@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
+from app.core.system_log import emit_system_log_detached
 from app.database import get_db
 from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
@@ -259,7 +260,36 @@ async def trigger_match_analysis(
     if not resume or resume.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Resume not found")
 
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="match_analysis.started",
+        source="jobs",
+        severity="info",
+        status="running",
+        message=f"Match analysis for resume {data.resume_id} started",
+        user_id=current_user.id,
+        entity_type="resume",
+        entity_id=str(data.resume_id),
+        payload={"job_ids": data.job_ids},
+    )
     result = await analyze_resume_vs_jobs(data.resume_id, data.job_ids)
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="match_analysis.completed",
+        source="jobs",
+        severity="info",
+        status="completed",
+        message=f"Match analysis for resume {data.resume_id} completed",
+        user_id=current_user.id,
+        entity_type="resume",
+        entity_id=str(data.resume_id),
+        payload={
+            "processed": result["processed"],
+            "created": result["created"],
+            "updated": result["updated"],
+            "skipped": result["skipped"],
+        },
+    )
     return MatchAnalyzeResponse(
         processed=result["processed"],
         created=result["created"],
@@ -309,7 +339,12 @@ async def trigger_match_analysis_async(
         })
 
     # Create background task with actual count
-    task = create_task(source="manual")
+    task = create_task(
+        source="manual",
+        user_id=current_user.id,
+        entity_type="resume",
+        entity_id=str(data.resume_id),
+    )
     task.total = len(jobs_to_analyze)
 
     # Start analysis in background (pass job ids that need analysis)
@@ -635,7 +670,7 @@ async def crawl_now(
     current_user: User = Depends(require_permission("crawl:execute")),
 ):
     """Trigger crawling all active job search configs (async)."""
-    task = await crawl_all_job_searches_background()
+    task = await crawl_all_job_searches_background(user_id=current_user.id)
     return JSONResponse(content={
         "status": "pending",
         "task_id": task.task_id,
@@ -664,7 +699,7 @@ async def crawl_single(
     if not config:
         raise HTTPException(status_code=404, detail="配置不存在或无权访问")
 
-    task = await crawl_single_config_background(config_id)
+    task = await crawl_single_config_background(config_id, user_id=current_user.id)
     return JSONResponse(content={
         "status": "pending",
         "task_id": task.task_id,

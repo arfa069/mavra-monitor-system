@@ -8,6 +8,7 @@ import {
   ShoppingCartOutlined,
   ScheduleOutlined,
   BarsOutlined,
+  NotificationOutlined,
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
@@ -86,6 +87,8 @@ export default function AppLayout({
 
   const selectedKey = location.pathname.startsWith('/schedule')
     ? '/schedule'
+    : location.pathname.startsWith('/events')
+      ? '/events'
     : location.pathname.startsWith('/jobs')
       ? '/jobs'
       : location.pathname.startsWith('/products')
@@ -100,6 +103,11 @@ export default function AppLayout({
   }
 
   const menuItems = [
+    {
+      key: '/events',
+      icon: <NotificationOutlined style={{ fontSize: 14 }} />,
+      label: 'Event Center',
+    },
     {
       key: '/jobs',
       icon: <TeamOutlined style={{ fontSize: 14 }} />,

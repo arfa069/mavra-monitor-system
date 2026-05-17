@@ -9,6 +9,8 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.event_stream import event_stream_broker
+from app.core.system_log import normalize_audit_log
 from app.models.audit_log import UserAuditLog
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,7 @@ async def log_audit(
         db.add(log_entry)
         if commit:
             await db.commit()
+            await event_stream_broker.publish(normalize_audit_log(log_entry))
         return log_entry
     except Exception:
         logger.warning(

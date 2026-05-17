@@ -14,6 +14,7 @@ import LoginPage from '@/pages/Login'
 import RegisterPage from '@/pages/Register'
 import AdminUsersPage from '@/pages/AdminUsers'
 import AdminAuditLogsPage from '@/pages/AdminAuditLogs'
+import EventCenterPage from '@/pages/EventCenter'
 
 // Error Fallback component (uses hooks, must be inside Router)
 function ErrorFallback() {
@@ -247,6 +248,7 @@ function AppRoutes() {
 
             {/* Protected routes */}
             <Route element={<ProtectedLayoutRoute />}>
+              <Route path="/events" element={<EventCenterPage />} />
               <Route path="/jobs" element={<JobsPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/schedule" element={<ScheduleConfigPage />} />

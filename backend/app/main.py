@@ -11,16 +11,18 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.api.admin import admin_router
 from app.api.admin import router as admin_users_router
 from app.api.auth import router as auth_router
+from app.api.events import router as events_router
 from app.api.wechat import router as wechat_router
 from app.config import settings
-from app.core.security import require_role
+from app.core.security import decode_access_token, require_role
+from app.core.system_log import emit_system_log_detached
 from app.database import engine
 from app.routers import alerts, config, crawl, products
 from app.routers.jobs import router as jobs_router
@@ -71,6 +73,16 @@ async def _start_scheduler(app: FastAPI) -> None:
 
     scheduler.start()
     logger.info("APScheduler started")
+    await emit_system_log_detached(
+        category="platform",
+        event_type="scheduler.started",
+        source="app.startup",
+        severity="info",
+        status="success",
+        message="APScheduler started",
+        entity_type="scheduler",
+        entity_id="apscheduler",
+    )
 
 
 async def _stop_scheduler(app: FastAPI) -> None:
@@ -79,6 +91,16 @@ async def _stop_scheduler(app: FastAPI) -> None:
     if scheduler and scheduler.running:
         scheduler.shutdown(wait=True)
         logger.info("APScheduler shutdown complete")
+        await emit_system_log_detached(
+            category="platform",
+            event_type="scheduler.stopped",
+            source="app.shutdown",
+            severity="info",
+            status="success",
+            message="APScheduler shutdown complete",
+            entity_type="scheduler",
+            entity_id="apscheduler",
+        )
 
 
 app = FastAPI(
@@ -108,8 +130,83 @@ app.include_router(crawl.router)
 app.include_router(jobs_router)
 app.include_router(auth_router)
 app.include_router(wechat_router)
+app.include_router(events_router)
 app.include_router(admin_users_router)
 app.include_router(admin_router)
+
+
+def _extract_token_user_id(request: Request) -> int | None:
+    """Best-effort decode of bearer token for platform logging."""
+    token: str | None = None
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        token = auth_header[7:]
+    elif request.query_params.get("token"):
+        token = request.query_params.get("token")
+    if not token:
+        return None
+    payload = decode_access_token(token)
+    if payload is None or payload.get("sub") is None:
+        return None
+    try:
+        return int(payload["sub"])
+    except (TypeError, ValueError):
+        return None
+
+
+@app.middleware("http")
+async def platform_event_logging_middleware(request: Request, call_next):
+    """Capture platform-level denied/error responses as structured events."""
+    user_id = _extract_token_user_id(request)
+    path = request.url.path
+    method = request.method
+
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        if not path.startswith("/events"):
+            await emit_system_log_detached(
+                category="platform",
+                event_type="http.500",
+                source=path,
+                severity="error",
+                status="error",
+                message=f"{method} {path} raised an unhandled exception",
+                user_id=user_id,
+                entity_type="request",
+                entity_id=path,
+                payload={"method": method, "path": path, "error": str(exc)},
+            )
+        raise
+
+    if not path.startswith("/events") and response.status_code in (401, 403):
+        await emit_system_log_detached(
+            category="platform",
+            event_type=f"http.{response.status_code}",
+            source=path,
+            severity="warning",
+            status="denied",
+            message=f"{method} {path} was denied",
+            user_id=user_id,
+            entity_type="request",
+            entity_id=path,
+            payload={"method": method, "path": path, "status_code": response.status_code},
+        )
+    elif not path.startswith("/events") and response.status_code >= 500:
+        await emit_system_log_detached(
+            category="platform",
+            event_type=f"http.{response.status_code}",
+            source=path,
+            severity="error",
+            status="error",
+            message=f"{method} {path} returned server error",
+            user_id=user_id,
+            entity_type="request",
+            entity_id=path,
+            payload={"method": method, "path": path, "status_code": response.status_code},
+        )
+
+    return response
 
 # Scheduler status endpoint
 @app.get("/scheduler/status", tags=["scheduler"])

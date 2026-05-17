@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.platforms import BossZhipinAdapter
+    from app.services.scheduler_service import CrawlTask
 
 from sqlalchemy import select
 
+from app.core.system_log import emit_system_log_detached
 from app.database import AsyncSessionLocal
 from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
@@ -353,7 +355,7 @@ async def update_job_detail(job_id: int, adapter: BossZhipinAdapter | None = Non
 
 
 async def crawl_single_config(
-    config_id: int, adapter: "BossZhipinAdapter | None" = None
+    config_id: int, adapter: BossZhipinAdapter | None = None
 ) -> dict:
     """Crawl a single JobSearchConfig and process results.
 
@@ -443,47 +445,133 @@ async def crawl_all_job_searches(source: str = "manual") -> dict:
     }
 
 
-async def crawl_single_config_background(config_id: int) -> "CrawlTask":
+async def crawl_single_config_background(
+    config_id: int,
+    *,
+    user_id: int | None = None,
+) -> CrawlTask:
     """后台运行单配置爬取，立即返回 task 对象。"""
-    from app.services.scheduler_service import CrawlTask, TaskStatus, create_task
+    from app.services.scheduler_service import TaskStatus, create_task
 
-    task = create_task("manual")
+    task = create_task(
+        "manual",
+        user_id=user_id,
+        entity_type="job_config",
+        entity_id=str(config_id),
+    )
     task.status = TaskStatus.RUNNING
 
     async def _run():
         try:
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.started",
+                source="jobs",
+                severity="info",
+                status="running",
+                message=f"Job crawl for config {config_id} started",
+                user_id=task.user_id,
+                entity_type="job_config",
+                entity_id=str(config_id),
+                payload={"task_id": task.task_id, "config_id": config_id},
+            )
             result = await crawl_single_config(config_id)
             ok = result.get("status") != "error"
             task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
             task.total = sum(v for k, v in result.items() if k in ("new_count", "updated_count", "deactivated_count"))
             task.success = result.get("new_count", 0)
             task.errors = 0 if ok else 1
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.completed" if ok else "job_crawl.failed",
+                source="jobs",
+                severity="info" if ok else "error",
+                status="completed" if ok else "failed",
+                message=f"Job crawl for config {config_id} {'completed' if ok else 'failed'}",
+                user_id=task.user_id,
+                entity_type="job_config",
+                entity_id=str(config_id),
+                payload={"task_id": task.task_id, **result},
+            )
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.reason = str(e)
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.failed",
+                source="jobs",
+                severity="error",
+                status="failed",
+                message=f"Job crawl for config {config_id} failed",
+                user_id=task.user_id,
+                entity_type="job_config",
+                entity_id=str(config_id),
+                payload={"task_id": task.task_id, "reason": task.reason},
+            )
 
     asyncio.create_task(_run())
     return task
 
 
-async def crawl_all_job_searches_background() -> "CrawlTask":
+async def crawl_all_job_searches_background(*, user_id: int | None = None) -> CrawlTask:
     """后台运行全量爬取，立即返回 task 对象。"""
-    from app.services.scheduler_service import CrawlTask, TaskStatus, create_task
+    from app.services.scheduler_service import TaskStatus, create_task
 
-    task = create_task("manual")
+    task = create_task(
+        "manual",
+        user_id=user_id,
+        entity_type="job_crawl",
+        entity_id=None,
+    )
     task.status = TaskStatus.RUNNING
 
     async def _run():
         try:
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.started",
+                source="jobs",
+                severity="info",
+                status="running",
+                message="Job crawl for all active configs started",
+                user_id=task.user_id,
+                entity_type="job_crawl",
+                entity_id=task.task_id,
+                payload={"task_id": task.task_id},
+            )
             result = await crawl_all_job_searches(source="manual")
             ok = result.get("status") != "error"
             task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
             task.total = result.get("total", 0)
             task.success = result.get("success", 0)
             task.errors = result.get("errors", 0)
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.completed" if ok else "job_crawl.failed",
+                source="jobs",
+                severity="info" if ok else "error",
+                status="completed" if ok else "failed",
+                message=f"Job crawl for all active configs {'completed' if ok else 'failed'}",
+                user_id=task.user_id,
+                entity_type="job_crawl",
+                entity_id=task.task_id,
+                payload={"task_id": task.task_id, **result},
+            )
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.reason = str(e)
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="job_crawl.failed",
+                source="jobs",
+                severity="error",
+                status="failed",
+                message="Job crawl for all active configs failed",
+                user_id=task.user_id,
+                entity_type="job_crawl",
+                entity_id=task.task_id,
+                payload={"task_id": task.task_id, "reason": task.reason},
+            )
 
     asyncio.create_task(_run())
     return task

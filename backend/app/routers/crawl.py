@@ -140,7 +140,11 @@ async def crawl_now(
         raise HTTPException(status_code=401, detail="请先登录")
     from app.services.scheduler_service import crawl_all_products
 
-    result = await crawl_all_products(source="manual", background=True)
+    result = await crawl_all_products(
+        source="manual",
+        background=True,
+        user_id=current_user.id,
+    )
 
     if result["status"] == "skipped":
         return JSONResponse(content={"status": "skipped", "reason": result["reason"]}, status_code=409)

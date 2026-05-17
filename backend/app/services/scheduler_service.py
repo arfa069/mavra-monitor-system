@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
+from app.core.system_log import emit_system_log_detached
+
 logger = logging.getLogger(__name__)
 
 # Deferred import to avoid circular dependency
@@ -40,6 +42,9 @@ class CrawlTask:
     errors: int = 0
     details: list = field(default_factory=list)
     reason: str | None = None
+    user_id: int | None = None
+    entity_type: str | None = None
+    entity_id: str | None = None
     created_at: float = field(default_factory=lambda: asyncio.get_event_loop().time())
 
 
@@ -58,10 +63,22 @@ def get_task(task_id: str) -> CrawlTask | None:
     return _crawl_tasks.get(task_id)
 
 
-def create_task(source: Literal["cron", "manual"]) -> CrawlTask:
+def create_task(
+    source: Literal["cron", "manual"],
+    *,
+    user_id: int | None = None,
+    entity_type: str | None = None,
+    entity_id: str | None = None,
+) -> CrawlTask:
     """Create a new crawl task and return its info."""
     task_id = str(uuid.uuid4())[:8]
-    task = CrawlTask(task_id=task_id, source=source)
+    task = CrawlTask(
+        task_id=task_id,
+        source=source,
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
     _crawl_tasks[task_id] = task
     return task
 
@@ -82,6 +99,18 @@ async def _run_crawl_task(task: CrawlTask) -> None:
     """Execute the actual crawl and update task status."""
     task.status = TaskStatus.RUNNING
     logger.info(f"Task {task.task_id}: started (source={task.source})")
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="product_crawl.started",
+        source="products",
+        severity="info",
+        status="running",
+        message=f"Product crawl task {task.task_id} started",
+        user_id=task.user_id,
+        entity_type=task.entity_type or "crawl_task",
+        entity_id=task.entity_id or task.task_id,
+        payload={"task_id": task.task_id, "source": task.source},
+    )
 
     try:
         from app.services.crawl import get_active_products
@@ -91,6 +120,18 @@ async def _run_crawl_task(task: CrawlTask) -> None:
             logger.info(f"Task {task.task_id}: no active products")
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
+            await emit_system_log_detached(
+                category="runtime",
+                event_type="product_crawl.completed",
+                source="products",
+                severity="info",
+                status="completed",
+                message=f"Product crawl task {task.task_id} completed with no active products",
+                user_id=task.user_id,
+                entity_type=task.entity_type or "crawl_task",
+                entity_id=task.entity_id or task.task_id,
+                payload={"task_id": task.task_id, "reason": task.reason},
+            )
             return
 
         task.total = len(products)
@@ -117,14 +158,48 @@ async def _run_crawl_task(task: CrawlTask) -> None:
         task.details = processed_results
         task.status = TaskStatus.COMPLETED
         logger.info(f"Task {task.task_id}: completed ({task.success} success, {task.errors} errors)")
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="product_crawl.completed",
+            source="products",
+            severity="info" if task.errors == 0 else "warning",
+            status="completed",
+            message=f"Product crawl task {task.task_id} completed",
+            user_id=task.user_id,
+            entity_type=task.entity_type or "crawl_task",
+            entity_id=task.entity_id or task.task_id,
+            payload={
+                "task_id": task.task_id,
+                "total": task.total,
+                "success": task.success,
+                "errors": task.errors,
+            },
+        )
 
     except Exception as e:
         logger.exception(f"Task {task.task_id}: failed")
         task.status = TaskStatus.FAILED
         task.reason = str(e)
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="product_crawl.failed",
+            source="products",
+            severity="error",
+            status="failed",
+            message=f"Product crawl task {task.task_id} failed",
+            user_id=task.user_id,
+            entity_type=task.entity_type or "crawl_task",
+            entity_id=task.entity_id or task.task_id,
+            payload={"task_id": task.task_id, "reason": task.reason},
+        )
 
 
-async def crawl_all_products(source: Literal["cron", "manual"], background: bool = True) -> dict:
+async def crawl_all_products(
+    source: Literal["cron", "manual"],
+    background: bool = True,
+    *,
+    user_id: int | None = None,
+) -> dict:
     """Start crawl all active products with concurrency protection.
 
     Uses a shared Semaphore to prevent overlapping executions from
@@ -156,7 +231,12 @@ async def crawl_all_products(source: Literal["cron", "manual"], background: bool
         }
 
     # Create task and start background execution
-    task = create_task(source)
+    task = create_task(
+        source,
+        user_id=user_id,
+        entity_type="crawl_task",
+        entity_id=None,
+    )
 
     if background:
         # Create background task - it will acquire the lock when it runs
@@ -230,7 +310,6 @@ async def crawl_products_by_platform(platform: str) -> None:
     limits and logs results.
     """
     from app.services.crawl import get_active_products
-    from app.routers.crawl import _crawl_one
 
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
     products = await get_active_products()

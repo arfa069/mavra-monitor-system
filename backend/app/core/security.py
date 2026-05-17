@@ -1,8 +1,10 @@
 """Security utilities: password hashing and JWT token handling."""
+from __future__ import annotations
+
 import asyncio
-from datetime import UTC, datetime, timedelta
-from typing import Any
 import hashlib
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 import redis.asyncio as redis
 from fastapi import Depends, HTTPException, status
@@ -15,6 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.session import Session
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
