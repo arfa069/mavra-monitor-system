@@ -61,3 +61,4 @@ set_password.py
 /.claude
 .pi-lens/
 *.png
+backend/app/platforms/.boss_cookies.json
