@@ -26,6 +26,10 @@ class JobSearchConfig(Base, TimestampMixin):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    platform = Column(
+        String(20), nullable=False, default="boss",
+        comment="Job platform: boss, 51job",
+    )
     name = Column(String(100), nullable=False)
     keyword = Column(String(200), nullable=True)
     city_code = Column(String(20), nullable=True)

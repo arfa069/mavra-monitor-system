@@ -105,6 +105,9 @@ export default function JobConfigList({
                 title={config.name}
                 extra={
                   <Space>
+                    <Tag color={config.platform === '51job' ? 'orange' : 'blue'}>
+                      {config.platform === '51job' ? '前程无忧' : 'Boss直聘'}
+                    </Tag>
                     <Tag color={config.active ? 'success' : 'default'}>
                       {config.active ? 'Enabled' : 'Disabled'}
                     </Tag>

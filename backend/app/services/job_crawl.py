@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.platforms import BossZhipinAdapter
+    from app.platforms.base import BasePlatformAdapter
     from app.services.scheduler_service import CrawlTask
 
 from sqlalchemy import select
@@ -23,6 +23,20 @@ from app.services.job_match import analyze_resume_vs_jobs
 from app.services.notification import send_new_job_notification
 
 logger = logging.getLogger(__name__)
+
+
+def _create_adapter(platform: str) -> BasePlatformAdapter:
+    """Create the appropriate adapter for the given job platform."""
+    from app.platforms import BossZhipinAdapter, Job51Adapter
+
+    adapters: dict[str, type] = {
+        "boss": BossZhipinAdapter,
+        "51job": Job51Adapter,
+    }
+    cls = adapters.get(platform)
+    if not cls:
+        raise ValueError(f"Unknown job platform: {platform}")
+    return cls()
 
 
 def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
@@ -61,7 +75,9 @@ async def process_job_results(
     config_id: int,
     jobs: list[dict],
     total_scraped: int,
-    adapter: BossZhipinAdapter | None = None,
+    adapter: BasePlatformAdapter | None = None,
+    *,
+    platform: str = "boss",
 ) -> dict:
     """Process crawl results: deduplicate, insert/update jobs, send notifications.
 
@@ -269,7 +285,7 @@ async def process_job_results(
             consecutive_cookie_failures = 0
             for jid in new_job_ids:
                 try:
-                    result = await update_job_detail(jid, adapter=adapter)
+                    result = await update_job_detail(jid, adapter=adapter, platform=platform)
                     if isinstance(result, Exception):
                         detail_errors += 1
                     elif isinstance(result, dict) and not result.get("success"):
@@ -318,18 +334,22 @@ async def process_job_results(
     }
 
 
-async def update_job_detail(job_id: int, adapter: BossZhipinAdapter | None = None) -> dict:
-    """Fetch and update job detail (description, address) from Boss API.
+async def update_job_detail(
+    job_id: int,
+    adapter: BasePlatformAdapter | None = None,
+    *,
+    platform: str = "boss",
+) -> dict:
+    """Fetch and update job detail (description, address) from platform API.
 
     Args:
         job_id: The internal Job record ID.
-        adapter: Optional shared BossZhipinAdapter instance (reuses session/cookies).
+        adapter: Optional shared adapter instance (reuses session/cookies).
+        platform: The job platform for adapter creation.
 
     Returns:
         {"success": True, "detail": {...}} or {"success": False, "error": "..."}
     """
-    from app.platforms import BossZhipinAdapter
-
     async with AsyncSessionLocal() as db:
         job = await db.get(Job, job_id)
         if not job:
@@ -337,7 +357,11 @@ async def update_job_detail(job_id: int, adapter: BossZhipinAdapter | None = Non
 
         # Reuse adapter if provided (shares session & cookies), else create new
         if adapter is None:
-            adapter = BossZhipinAdapter()
+            adapter = _create_adapter(platform)
+
+        # crawl_detail is available on both BossZhipinAdapter and Job51Adapter
+        if not hasattr(adapter, "crawl_detail"):
+            return {"success": False, "error": f"Adapter for {platform} has no crawl_detail"}
         result = await adapter.crawl_detail(job.job_id)
 
         if not result.get("success"):
@@ -355,26 +379,29 @@ async def update_job_detail(job_id: int, adapter: BossZhipinAdapter | None = Non
 
 
 async def crawl_single_config(
-    config_id: int, adapter: BossZhipinAdapter | None = None
+    config_id: int, adapter: BasePlatformAdapter | None = None
 ) -> dict:
     """Crawl a single JobSearchConfig and process results.
 
+    Routes to the correct platform adapter based on config.platform.
+
     Args:
         config_id: The JobSearchConfig ID to crawl.
-        adapter: Optional shared BossZhipinAdapter. When provided, reuses
+        adapter: Optional shared adapter. When provided, reuses
             the adapter's session and cookies across multiple configs to
             avoid redundant cookie acquisition and browser tab churn.
     """
-    from app.platforms import BossZhipinAdapter
-
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
         if not config:
             return {"status": "error", "error": "Config not found"}
+        # Eagerly load platform before session closes
+        platform = config.platform or "boss"
+        url = config.url
 
     if adapter is None:
-        adapter = BossZhipinAdapter()
-    result = await adapter.crawl(config.url)
+        adapter = _create_adapter(platform)
+    result = await adapter.crawl(url)
 
     if result.get("success"):
         stats = await process_job_results(
@@ -382,6 +409,7 @@ async def crawl_single_config(
             jobs=result["jobs"],
             total_scraped=result["count"],
             adapter=adapter,
+            platform=platform,
         )
         return {"status": "success", **stats}
     else:
@@ -401,12 +429,10 @@ async def crawl_single_config(
 async def crawl_all_job_searches(source: str = "manual") -> dict:
     """Crawl all active job search configs.
 
-    Shares a single BossZhipinAdapter across all configs so that cookie
-    acquisition (including any browser-tab refresh) happens at most once
-    instead of once per config.
+    Groups configs by platform and shares one adapter per platform so that
+    cookie acquisition happens at most once per platform instead of once
+    per config.
     """
-    from app.platforms import BossZhipinAdapter
-
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(JobSearchConfig).where(JobSearchConfig.active)
@@ -421,20 +447,28 @@ async def crawl_all_job_searches(source: str = "manual") -> dict:
     error_count = 0
     details = []
 
-    adapter = BossZhipinAdapter()
+    # Group configs by platform, share one adapter per platform
+    by_platform: dict[str, list] = {}
+    for config in configs:
+        platform = config.platform or "boss"
+        by_platform.setdefault(platform, []).append(config)
 
-    for i, config in enumerate(configs):
-        result = await crawl_single_config(config.id, adapter=adapter)
-        details.append({"config_id": config.id, **result})
-        if result.get("status") == "success":
-            success_count += 1
-        else:
-            error_count += 1
+    idx = 0
+    for platform, platform_configs in by_platform.items():
+        adapter = _create_adapter(platform)
+        for config in platform_configs:
+            result = await crawl_single_config(config.id, adapter=adapter)
+            details.append({"config_id": config.id, **result})
+            if result.get("status") == "success":
+                success_count += 1
+            else:
+                error_count += 1
 
-        if i < len(configs) - 1:
-            delay = random.uniform(3, 6)
-            logger.debug("Waiting %.1fs before next config", delay)
-            await asyncio.sleep(delay)
+            idx += 1
+            if idx < total:
+                delay = random.uniform(3, 6)
+                logger.debug("Waiting %.1fs before next config", delay)
+                await asyncio.sleep(delay)
 
     return {
         "status": "completed",

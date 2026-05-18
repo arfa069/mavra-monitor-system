@@ -187,6 +187,7 @@ export interface JobSearchConfig {
   id: number;
   user_id: number;
   name: string;
+  platform: 'boss' | '51job';
   keyword: string | null;
   city_code: string | null;
   salary_min: number | null;
@@ -206,6 +207,7 @@ export interface JobSearchConfig {
 
 export interface JobSearchConfigCreate {
   name: string;
+  platform?: 'boss' | '51job';
   keyword?: string;
   city_code?: string;
   salary_min?: number;
@@ -223,6 +225,7 @@ export interface JobSearchConfigCreate {
 
 export interface JobSearchConfigUpdate {
   name?: string;
+  platform?: 'boss' | '51job';
   keyword?: string;
   city_code?: string;
   salary_min?: number;

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Form, Input, InputNumber, Modal, Switch } from 'antd'
+import { Form, Input, InputNumber, Modal, Select, Switch } from 'antd'
 import type { JobSearchConfig, JobSearchConfigCreate } from '@/types'
 
 interface JobConfigFormProps {
@@ -27,6 +27,7 @@ export default function JobConfigForm({
     }
     form.resetFields()
     form.setFieldsValue({
+      platform: 'boss',
       active: true,
       notify_on_new: true,
       enable_match_analysis: false,
@@ -44,12 +45,26 @@ export default function JobConfigForm({
     const url = e.target.value
     try {
       const parsed = new URL(url)
-      const query = parsed.searchParams.get('query')
+      // Boss uses 'query', 51job uses 'keyword'
+      const query = parsed.searchParams.get('query') || parsed.searchParams.get('keyword')
       if (query) form.setFieldsValue({ keyword: query })
     } catch {
       // ignore malformed URL while typing
     }
   }
+
+  const platform = Form.useWatch('platform', form) || 'boss'
+  const urlConfigMap = {
+    boss: {
+      label: 'Boss Search URL',
+      placeholder: 'https://www.zhipin.com/web/geek/job?query=frontend',
+    },
+    '51job': {
+      label: '51job Search URL',
+      placeholder: 'https://we.51job.com/pc/search?keyword=python&searchType=2',
+    },
+  } as const
+  const urlConfig = urlConfigMap[platform as keyof typeof urlConfigMap] || { label: 'Search URL', placeholder: '' }
 
   const handleOk = async () => {
     const values = await form.validateFields()
@@ -69,16 +84,22 @@ export default function JobConfigForm({
         <Form.Item name="name" label="Config Name" rules={[{ required: true, message: 'Please enter config name' }]}>
           <Input placeholder="e.g. Shanghai Frontend Jobs" autoComplete="off" />
         </Form.Item>
+        <Form.Item name="platform" label="Platform" rules={[{ required: true }]}>
+          <Select disabled={!!record}>
+            <Select.Option value="boss">Boss 直聘</Select.Option>
+            <Select.Option value="51job">前程无忧 (51job)</Select.Option>
+          </Select>
+        </Form.Item>
         <Form.Item
           name="url"
-          label="Boss Search URL"
+          label={urlConfig.label}
           rules={[
             { required: true, message: 'Please enter URL' },
             { type: 'url', message: 'Invalid URL format' },
           ]}
         >
           <Input
-            placeholder="https://www.zhipin.com/web/geek/job?query=frontend"
+            placeholder={urlConfig.placeholder}
             autoComplete="off"
             onChange={handleUrlChange}
           />

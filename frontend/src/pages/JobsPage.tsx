@@ -231,7 +231,7 @@ export default function JobsPage() {
           <div>
             <p className="page-eyebrow">Job Search</p>
             <h1 className="page-title">Job Management</h1>
-            <p className="page-subtitle">Configure Boss Zhipin job search rules, intelligently match candidates</p>
+            <p className="page-subtitle">Configure Boss Zhipin &amp; 51job search rules, intelligently match candidates</p>
           </div>
         </div>
       </div>

@@ -61,7 +61,15 @@ async def send_new_job_notification(
     if not user or not user.get("feishu_webhook_url"):
         return {"status": "skipped", "reason": "no_webhook"}
 
-    message = f"""🔔 Boss直聘新职位提醒
+    platform_names = {
+        "boss": "Boss直聘",
+        "51job": "前程无忧",
+    }
+    platform_label = platform_names.get(
+        getattr(config, "platform", "boss"), "招聘平台"
+    )
+
+    message = f"""🔔 {platform_label}新职位提醒
 
 搜索配置：{config.name}
 本次发现 {new_job_count} 个新职位（共扫描 {total_scraped} 个）
