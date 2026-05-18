@@ -168,6 +168,10 @@ async def process_job_results(
                 job_obj.education = job_data["education"]
             if job_data.get("url"):
                 job_obj.url = job_data["url"]
+            if job_data.get("description"):
+                job_obj.description = job_data["description"]
+            if job_data.get("address"):
+                job_obj.address = job_data["address"]
             updated_count += 1
 
         for job_data in jobs:
@@ -190,6 +194,8 @@ async def process_job_results(
                 "experience": job_data.get("experience") or "",
                 "education": job_data.get("education") or "",
                 "url": job_data.get("url") or "",
+                "description": job_data.get("description") or "",
+                "address": job_data.get("address") or "",
             })
 
         # Batch dedup query: find all matching by (title, company, salary) in ONE query
@@ -226,6 +232,10 @@ async def process_job_results(
                         existing_dup.education = item["education"]
                     if item["url"]:
                         existing_dup.url = item["url"]
+                    if item.get("description"):
+                        existing_dup.description = item["description"]
+                    if item.get("address"):
+                        existing_dup.address = item["address"]
                     updated_count += 1
                 else:
                     # Insert new job
@@ -243,6 +253,8 @@ async def process_job_results(
                         experience=item["experience"],
                         education=item["education"],
                         url=item["url"],
+                        description=item.get("description") or "",
+                        address=item.get("address") or "",
                         first_seen_at=now,
                         last_updated_at=now,
                         is_active=True,
@@ -358,6 +370,16 @@ async def update_job_detail(
         # Reuse adapter if provided (shares session & cookies), else create new
         if adapter is None:
             adapter = _create_adapter(platform)
+
+        # Skip detail fetching if description is already fully populated
+        if job.description:
+            return {
+                "success": True,
+                "detail": {
+                    "description": job.description,
+                    "address": job.address or "",
+                }
+            }
 
         # crawl_detail is available on both BossZhipinAdapter and Job51Adapter
         if not hasattr(adapter, "crawl_detail"):

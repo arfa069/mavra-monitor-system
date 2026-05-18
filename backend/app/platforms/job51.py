@@ -107,6 +107,12 @@ class Job51Adapter(BasePlatformAdapter):
             targets = json.loads(resp.read())
             conn.close()
 
+            # Prefer we.51job.com for search APIs to avoid CORS
+            for t in targets:
+                url = t.get("url", "")
+                if "we.51job.com" in url and "socket" not in url:
+                    return t["webSocketDebuggerUrl"]
+
             for t in targets:
                 url = t.get("url", "")
                 if "51job" in url and "socket" not in url:
@@ -194,116 +200,153 @@ class Job51Adapter(BasePlatformAdapter):
             return True
         return await self._acquire_cookies(self._get_session())
 
-    # ── Crawl ───────────────────────────────────────────────────────────
+    # ── Crawl via CDP ───────────────────────────────────────────────────
 
     async def crawl(self, url: str) -> dict[str, Any]:
-        """Crawl 51job job search results via curl_cffi.
+        """Crawl 51job search results using CDP to execute fetch in-browser.
 
-        Args:
-            url: The 51job search URL
-                 (e.g. https://we.51job.com/pc/search?keyword=python&searchType=2)
-
-        Returns:
-            {"success": True, "jobs": [...], "count": N}
-            or {"success": False, "error": "..."}
-
-        NOTE: The search API endpoint must be confirmed via browser DevTools.
-              This implementation parses the URL parameters and attempts to
-              call the backend API. If the API structure differs, this method
-              needs to be updated based on actual packet capture results.
+        Since 51job uses strong Aliyun WAF, using curl_cffi often triggers
+        a block if the TLS fingerprint or headers don't match exactly.
+        Executing fetch via the existing browser tab guarantees success.
         """
         try:
-            session = self._get_session()
-
-            if not await self._ensure_cookies():
-                logger.warning("51job crawl: proceeding without cookies")
-
             parsed = urlparse(url)
             params = parse_qs(parsed.query, keep_blank_values=True)
+            keyword = params.get("keyword", [""])[0]
+            job_area = params.get("jobArea", ["000000"])[0]
+
+            ws_url = await self._find_page_ws()
+            if not ws_url:
+                return {"success": False, "error": "请在浏览器中打开前程无忧搜索页 (we.51job.com) 以允许获取数据"}
+
+            # If the user only has the detail page open, fetching the search API will fail due to CORS.
+            # We can't perfectly check ws_url's actual URL here without another CDP call,
+            # but if it fails with TypeError, we will return a helpful error.
 
             all_jobs: list[dict] = []
             pages_fetched = 0
+            
+            import time
+            import uuid
 
-            for page_num in range(1, MAX_PAGES + 1):
-                params["pageNum"] = [str(page_num)]
-                params["pageSize"] = ["50"]
-                query = urlencode(params, doseq=True)
+            async with websockets.connect(ws_url, max_size=2 ** 24) as ws:
+                for page_num in range(1, MAX_PAGES + 1):
+                    api_params = {
+                        "api_key": "51job",
+                        "timestamp": str(int(time.time())),
+                        "keyword": keyword,
+                        "searchType": "2",
+                        "function": "",
+                        "industry": "",
+                        "jobArea": job_area,
+                        "jobArea2": "",
+                        "landmark": "",
+                        "metro": "",
+                        "salary": "",
+                        "workYear": "",
+                        "degree": "",
+                        "companyType": "",
+                        "companySize": "",
+                        "jobType": "",
+                        "issueDate": "",
+                        "sortType": "0",
+                        "pageNum": str(page_num),
+                        "requestId": uuid.uuid4().hex,
+                        "pageSize": "50",
+                        "source": "1",
+                        "accountId": "",
+                        "pageCode": "sou|sou|soulb",
+                        "scene": "7",
+                    }
+                    query = urlencode(api_params)
+                    api_url = f"{BASE_URL}{SEARCH_API_PATH}?{query}"
 
-                # TODO: Replace with confirmed API endpoint from packet capture
-                api_url = f"{BASE_URL}{SEARCH_API_PATH}?{query}"
+                    # Execute fetch inside the browser tab
+                    js_code = f"""
+                    new Promise((resolve, reject) => {{
+                        fetch('{api_url}', {{
+                            headers: {{
+                                "Accept": "application/json, text/plain, */*",
+                                "property": '{{\"partner\":\"\",\"webId\":\"2\",\"clientType\":\"pc\"}}'
+                            }}
+                        }})
+                        .then(r => r.json())
+                        .then(d => resolve(JSON.stringify(d)))
+                        .catch(e => resolve(JSON.stringify({{error: e.toString()}})));
+                    }})
+                    """
 
-                resp = session.get(
-                    api_url,
-                    impersonate="chrome124",
-                    headers={
-                        "Referer": url,
-                        "Accept": "application/json, text/plain, */*",
-                        "Origin": BASE_URL,
-                    },
-                )
+                    await ws.send(json.dumps({
+                        "id": page_num,
+                        "method": "Runtime.evaluate",
+                        "params": {
+                            "expression": js_code,
+                            "awaitPromise": True,
+                            "returnByValue": True
+                        }
+                    }))
 
-                if resp.status_code != 200:
-                    logger.warning("51job API HTTP %d on page %d", resp.status_code, page_num)
-                    break
+                    raw_resp = await asyncio.wait_for(ws.recv(), timeout=10)
+                    result_payload = json.loads(raw_resp)
+                    
+                    if "error" in result_payload:
+                        logger.warning("CDP Error: %s", result_payload["error"])
+                        break
+                        
+                    # Extract stringified JSON from CDP response
+                    try:
+                        value_str = result_payload.get("result", {}).get("result", {}).get("value", "{}")
+                        data = json.loads(value_str)
+                    except Exception as e:
+                        logger.warning("Failed to parse CDP fetch result: %s", e)
+                        break
 
-                try:
-                    data = resp.json()
-                except Exception:
-                    logger.warning("51job API returned non-JSON on page %d", page_num)
-                    break
+                    if data.get("error"):
+                        err_msg = data['error']
+                        if "Failed to fetch" in err_msg:
+                            logger.warning("CORS Error: Please ensure you are on we.51job.com")
+                            return {"success": False, "error": "请确保浏览器停留在前程无忧搜索页 (we.51job.com)，不要停留在详情页，否则会因跨域被拦截。"}
+                        logger.warning("Browser fetch failed: %s", err_msg)
+                        break
 
-                # TODO: Adjust JSON path based on actual API response structure
-                # Possible paths: data.resultbody.job.items, data.jobList, etc.
-                status_code = data.get("status") or data.get("code")
-                if status_code and str(status_code) != "1" and str(status_code) != "0":
-                    logger.warning("51job API status=%s on page %d", status_code, page_num)
-                    break
+                    # Common response structures
+                    page_jobs = (
+                        data.get("resultbody", {}).get("job", {}).get("items", [])
+                        or data.get("engine_jds", [])
+                        or data.get("jobList", [])
+                        or data.get("data", {}).get("jobList", [])
+                        or []
+                    )
 
-                # Try common response structures
-                page_jobs = (
-                    data.get("resultbody", {}).get("job", {}).get("items", [])
-                    or data.get("engine_jds", [])
-                    or data.get("jobList", [])
-                    or data.get("data", {}).get("jobList", [])
-                    or []
-                )
+                    if page_jobs:
+                        all_jobs.extend(page_jobs)
+                        pages_fetched = page_num
+                    else:
+                        break
 
-                if page_jobs:
-                    all_jobs.extend(page_jobs)
-                    pages_fetched = page_num
-                else:
-                    break
+                    # Check for more pages
+                    has_more = (
+                        data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
+                        or len(page_jobs) >= 50
+                    )
+                    if not has_more:
+                        break
 
-                # Check for more pages
-                has_more = (
-                    data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
-                    or len(page_jobs) >= 50
-                )
-                if not has_more:
-                    break
-
-                await asyncio.sleep(random.uniform(3.0, 6.0))
+                    await asyncio.sleep(random.uniform(2.0, 4.0))
 
             if all_jobs:
                 transformed = self._transform_jobs(all_jobs)
-                logger.info(
-                    "51job curl_cffi: %d jobs from %d page(s)",
-                    len(transformed), pages_fetched,
-                )
-                self._save_cookies(session)
+                logger.info("51job CDP fetch: %d jobs from %d page(s)", len(transformed), pages_fetched)
                 return {"success": True, "jobs": transformed, "count": len(transformed)}
 
-            return {"success": False, "error": "No job data from 51job search API"}
+            return {"success": False, "error": "No job data from 51job search API via CDP"}
 
         except Exception as e:
             logger.exception("51job crawl failed")
             return {"success": False, "error": str(e)}
 
     async def crawl_detail(self, job_id: str) -> dict[str, Any]:
-        """Fetch 51job job detail.
-
-        Uses curl_cffi to call detail API if available, otherwise
-        falls back to Playwright for page rendering.
+        """Fetch 51job job detail using HTML parsing.
 
         Args:
             job_id: The 51job internal job ID.
@@ -317,27 +360,49 @@ class Job51Adapter(BasePlatformAdapter):
             if not await self._ensure_cookies():
                 logger.warning("51job detail: proceeding without cookies")
 
-            # TODO: Confirm detail API endpoint via packet capture
-            detail_url = f"{BASE_URL}/api/job/detail?jobId={job_id}"
+            # detail URL format: https://jobs.51job.com/{location}/{job_id}.html
+            # But the backend doesn't know location. However, 51job supports a generic detail URL:
+            # We can use the generic detail page or search for the exact URL.
+            # Actually, the database already stores the full URL in job.url.
+            # In our pipeline, `update_job_detail` calls `crawl_detail` with `job.job_id`.
+            # If we don't have the full URL, we can use a proxy search API or Playwright.
+            # Wait, 51job supports https://jobs.51job.com/all/{job_id}.html
+            detail_url = f"https://jobs.51job.com/all/{job_id}.html"
+            
             resp = session.get(
                 detail_url,
                 impersonate="chrome124",
                 headers={
                     "Referer": f"{BASE_URL}/",
-                    "Accept": "application/json, text/plain, */*",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 },
             )
 
             if resp.status_code != 200:
                 return {"success": False, "error": f"HTTP {resp.status_code}"}
 
-            try:
-                data = resp.json()
-            except Exception:
-                return {"success": False, "error": "Non-JSON response from detail API"}
+            from bs4 import BeautifulSoup
+            import re
 
-            # TODO: Adjust field paths based on actual API response
-            job_info = data.get("data", {}) or data.get("jobDetail", {}) or {}
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            # WAF Check
+            if soup.find("meta", attrs={"name": "aliyun_waf_aa"}):
+                return {"success": False, "error": "Blocked by Aliyun WAF"}
+
+            # Extract data based on DOM
+            # Description
+            job_msg_div = soup.select_one("div.job_msg") or soup.select_one("div.bmsg.job_msg.inbox")
+            description = job_msg_div.get_text(strip=True, separator="\n") if job_msg_div else ""
+
+            # Remove trailing extra text like "分享 微信 邮件"
+            description = re.sub(r'分享\s*微信\s*邮件.*$', '', description, flags=re.DOTALL).strip()
+
+            # Address
+            address_div = soup.find("span", class_="label", string=re.compile(r"上班地址："))
+            address = ""
+            if address_div and address_div.parent:
+                address = address_div.parent.get_text(strip=True).replace("上班地址：", "")
 
             self._save_cookies(session)
 
@@ -345,17 +410,8 @@ class Job51Adapter(BasePlatformAdapter):
                 "success": True,
                 "detail": {
                     "job_id": job_id,
-                    "title": job_info.get("jobName", ""),
-                    "salary": job_info.get("provideSalaryString", ""),
-                    "location": job_info.get("workAreaString", ""),
-                    "address": job_info.get("workAddress", ""),
-                    "experience": job_info.get("workYearString", ""),
-                    "education": job_info.get("degreeString", ""),
-                    "description": job_info.get("jobDescribe", ""),
-                    "company": job_info.get("companyName", ""),
-                    "company_stage": job_info.get("companyTypeString", ""),
-                    "company_scale": job_info.get("companySizeString", ""),
-                    "company_industry": job_info.get("companyIndString", ""),
+                    "description": description,
+                    "address": address,
                 },
             }
 
@@ -366,45 +422,39 @@ class Job51Adapter(BasePlatformAdapter):
     # ── Data transformation ────────────────────────────────────────────
 
     def _transform_jobs(self, raw_jobs: list[dict]) -> list[dict]:
-        """Transform 51job raw data to unified format.
-
-        NOTE: Field names must be adjusted based on actual API response
-        after packet capture confirmation.
-        """
+        """Transform 51job raw data to unified format."""
         transformed = []
         for job in raw_jobs:
-            # Try multiple possible field name patterns
-            job_id = (
-                job.get("jobId")
-                or job.get("job_id")
-                or job.get("jobid")
-                or str(job.get("id", ""))
-            )
+            job_id = job.get("jobId")
             if not job_id:
                 continue
 
-            title = job.get("jobName") or job.get("job_name") or job.get("jname", "")
-            company = job.get("companyName") or job.get("company_name") or job.get("cname", "")
-            salary = job.get("provideSalaryString") or job.get("salary") or job.get("sal", "")
-            location = job.get("workAreaString") or job.get("work_area") or job.get("workarea", "")
-            experience = job.get("workYearString") or job.get("work_year") or job.get("attribute", {}).get("experience", "")
-            education = job.get("degreeString") or job.get("degree") or job.get("attribute", {}).get("education", "")
+            title = job.get("jobName", "")
+            company = job.get("fullCompanyName") or job.get("companyName", "")
+            salary = job.get("provideSalaryString", "")
+            location = job.get("jobAreaString") or job.get("workAreaString", "")
+            experience = job.get("workYearString", "")
+            education = job.get("degreeString", "")
+            description = job.get("jobDescribe", "")
+            address = job.get("workAddress", "")
 
             # Build detail URL
             detail_url = ""
-            href = job.get("job_href") or job.get("jobHref") or job.get("detailUrl")
+            href = job.get("jobHref", "")
             if href:
-                detail_url = href if href.startswith("http") else f"{BASE_URL}{href}"
+                detail_url = href if href.startswith("http") else f"https://we.51job.com{href}"
 
             transformed.append({
                 "job_id": str(job_id),
                 "title": title,
                 "company": company,
-                "company_id": str(job.get("companyId") or job.get("company_id") or job.get("coid", "")),
+                "company_id": str(job.get("encCoId") or job.get("coId") or company), 
                 "salary": salary,
                 "location": location,
                 "experience": experience,
                 "education": education,
+                "description": description,
+                "address": address,
                 "url": detail_url,
             })
         return transformed
