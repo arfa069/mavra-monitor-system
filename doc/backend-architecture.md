@@ -43,7 +43,7 @@ backend/
 │   │   ├── price_history.py    # PriceHistory 模型
 │   │   ├── alert.py            # Alert 模型
 │   │   ├── crawl_log.py        # CrawlLog 模型（商品爬取日志）
-│   │   ├── job_crawl_log.py    # JobCrawlLog 模型（BOSS 职位爬取日志）
+│   │   ├── job_crawl_log.py    # JobCrawlLog 模型（职位爬取日志）
 │   │   ├── job.py              # Job / JobSearchConfig 模型
 │   │   ├── job_match.py        # UserResume / MatchResult 模型
 │   │   ├── permission.py       # 权限定义表（保留，未接入）
@@ -53,7 +53,9 @@ backend/
 │   │   ├── taobao.py           # TaobaoAdapter
 │   │   ├── jd.py               # JDAdapter
 │   │   ├── amazon.py           # AmazonAdapter
-│   │   └── boss.py             # BossZhipinAdapter
+│   │   ├── boss.py             # BossZhipinAdapter
+│   │   ├── job51.py            # Job51Adapter
+│   │   └── liepin.py           # LiepinAdapter
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── config.py           # 配置管理 API
@@ -74,7 +76,7 @@ backend/
 │       ├── notification.py     # 飞书 Webhook 通知
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── scheduler_job.py    # APScheduler 任务注册管理
-│       ├── job_crawl.py        # BOSS 职位爬取
+│       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
 │       ├── job_match.py        # LLM 简历-职位匹配分析
 │       ├── llm_provider.py     # LLM Provider 工厂
 │       ├── llm_anthropic.py    # Anthropic Claude
@@ -247,7 +249,7 @@ JWT payload 结构：
 
 ### 7.2 定时任务管理（scheduler_job.py）
 
-**JobConfigScheduler** — 管理 per-config 的 BOSS 职位爬取 cron：
+**JobConfigScheduler** — 管理 per-config 的职位爬取 cron：
 
 - Job ID 格式：`job_config_cron_{config_id}`
 - `add_job(config_id, cron_expression, timezone)` — 注册或替换任务
@@ -273,7 +275,7 @@ JWT payload 结构：
 4. 写入 `products_price_history` 表
 5. 调用 `check_price_alerts()` 检查是否触发通知
 
-### 7.4 BOSS 职位爬取（services/job_crawl.py）
+### 7.4 职位爬取（services/job_crawl.py）
 
 不使用 Playwright，改用 `curl_cffi` 的 TLS 指纹模拟：
 
@@ -327,6 +329,8 @@ backend/app/platforms/taobao.py   — TaobaoAdapter
 backend/app/platforms/jd.py       — JDAdapter
 backend/app/platforms/amazon.py  — AmazonAdapter
 backend/app/platforms/boss.py    — BossZhipinAdapter (裸 WebSocket CDP + curl_cffi)
+backend/app/platforms/job51.py   — Job51Adapter (curl_cffi)
+backend/app/platforms/liepin.py  — LiepinAdapter (curl_cffi)
 ```
 
 ### 8.1 BasePlatformAdapter（platforms/base.py）
@@ -369,7 +373,7 @@ _shared_context: BrowserContext
 - `check_price_alerts()` 在每次抓取后对比最近两条价格记录，跌幅达标则发飞书通知
 - `POST /products/crawl/cleanup` 手动触发旧数据清理
 
-### 8.4 Boss 职位抓取流程（`POST /jobs/crawl-now`）
+### 8.4 职位抓取流程（`POST /jobs/crawl-now`）
 
 - `BossZhipinAdapter.crawl()` 通过 curl_cffi 调 Boss 搜索 API，不依赖 Playwright 浏览器
 - **Cookie 获取**：不做搜索 API 测试（避免消耗 token），CDP 优先 → 磁盘缓存 → 后台 tab 刷新

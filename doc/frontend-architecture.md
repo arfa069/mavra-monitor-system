@@ -69,40 +69,32 @@ frontend/src/
 
 ```tsx
 <AuthProvider>
-  {" "}
   {/* 全局认证上下文 */}
   <QueryClientProvider>
-    {" "}
     {/* 全局 React Query */}
     <ConfigProvider>
-      {" "}
       {/* Ant Design 主题配置 */}
       <BrowserRouter>
         <Routes>
           <PublicRoute>
-            {" "}
-            <LoginPage />{" "}
+            <LoginPage />
           </PublicRoute>
           <PublicRoute>
-            {" "}
-            <RegisterPage />{" "}
+            <RegisterPage />
           </PublicRoute>
           <ProtectedRoute>
             <AppLayout>
-              {" "}
-              <JobsPage />{" "}
+              <JobsPage />
             </AppLayout>
           </ProtectedRoute>
           <ProtectedRoute>
             <AppLayout>
-              {" "}
-              <ProductsPage />{" "}
+              <ProductsPage />
             </AppLayout>
           </ProtectedRoute>
           <ProtectedRoute>
             <AppLayout>
-              {" "}
-              <ScheduleConfigPage />{" "}
+              <ScheduleConfigPage />
             </AppLayout>
           </ProtectedRoute>
         </Routes>
