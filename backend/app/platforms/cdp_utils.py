@@ -57,8 +57,43 @@ async def close_target(target_id: str) -> None:
         conn = http.client.HTTPConnection(CDP_HOST, CDP_PORT, timeout=3)
         conn.request("GET", f"/json/close/{target_id}")
         conn.getresponse()
+        await asyncio.sleep(0.5)
+        if not await _target_exists(target_id):
+            return
+
+        browser_ws = await _browser_ws_url()
+        if browser_ws:
+            async with websockets.connect(browser_ws, max_size=2**25) as ws:
+                await ws.send(json.dumps({
+                    "id": 1,
+                    "method": "Target.closeTarget",
+                    "params": {"targetId": target_id},
+                }))
+                await asyncio.wait_for(ws.recv(), timeout=3)
     except Exception as exc:
         logger.warning("Failed to close CDP target %s: %s", target_id, exc)
+    finally:
+        if conn:
+            conn.close()
+
+
+async def _target_exists(target_id: str) -> bool:
+    try:
+        return any(target.get("id") == target_id for target in await list_targets())
+    except Exception:
+        return True
+
+
+async def _browser_ws_url() -> str | None:
+    conn = None
+    try:
+        conn = http.client.HTTPConnection(CDP_HOST, CDP_PORT, timeout=3)
+        conn.request("GET", "/json/version")
+        response = conn.getresponse()
+        data = json.loads(response.read())
+        return data.get("webSocketDebuggerUrl")
+    except Exception:
+        return None
     finally:
         if conn:
             conn.close()
