@@ -245,6 +245,7 @@ export interface Job {
   id: number;
   job_id: string;
   search_config_id: number;
+  platform: 'boss' | '51job';
   title: string | null;
   company: string | null;
   company_id: string | null;

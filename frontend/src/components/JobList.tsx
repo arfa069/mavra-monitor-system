@@ -48,6 +48,16 @@ export default function JobList({
 		() => [
 			{ title: "ID", dataIndex: "id", width: 80 },
 			{
+				title: "Platform",
+				dataIndex: "platform",
+				width: 110,
+				render: (platform: Job["platform"]) => (
+					<Tag color={platform === "51job" ? "orange" : "blue"}>
+						{platform === "51job" ? "前程无忧" : "Boss直聘"}
+					</Tag>
+				),
+			},
+			{
 				title: "Match",
 				key: "match_score",
 				width: 90,

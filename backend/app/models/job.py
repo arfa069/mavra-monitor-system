@@ -123,3 +123,10 @@ class Job(Base):
     # Relationships
     search_config = relationship("JobSearchConfig", back_populates="jobs")
     match_results = relationship("MatchResult", back_populates="job", cascade="all, delete-orphan")
+
+    @property
+    def platform(self) -> str:
+        """Expose the owning config platform for API serialization."""
+        if self.search_config is None:
+            return "boss"
+        return self.search_config.platform or "boss"

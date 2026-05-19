@@ -87,6 +87,7 @@ class JobResponse(BaseModel):
     id: int
     job_id: str
     search_config_id: int
+    platform: JobPlatform
     title: str | None
     company: str | None
     company_id: str | None

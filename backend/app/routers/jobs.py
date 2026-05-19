@@ -540,7 +540,12 @@ async def list_jobs(
     if not current_user:
         raise HTTPException(status_code=401, detail="请先登录")
     # Join with JobSearchConfig to filter by current_user
-    query = select(Job).join(JobSearchConfig).where(JobSearchConfig.user_id == current_user.id)
+    query = (
+        select(Job)
+        .join(JobSearchConfig)
+        .options(selectinload(Job.search_config))
+        .where(JobSearchConfig.user_id == current_user.id)
+    )
     count_query = select(func.count()).select_from(Job).join(JobSearchConfig).where(
         JobSearchConfig.user_id == current_user.id
     )
@@ -652,7 +657,10 @@ async def get_job(
     if not current_user:
         raise HTTPException(status_code=401, detail="请先登录")
     result = await db.execute(
-        select(Job).join(JobSearchConfig).where(
+        select(Job)
+        .join(JobSearchConfig)
+        .options(selectinload(Job.search_config))
+        .where(
             Job.job_id == job_id_str,
             JobSearchConfig.user_id == current_user.id,
         )

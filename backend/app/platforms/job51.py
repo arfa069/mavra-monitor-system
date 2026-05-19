@@ -16,7 +16,7 @@ import random
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import websockets
 from curl_cffi.requests import Session as CffiSession
@@ -113,15 +113,7 @@ class Job51Adapter(BasePlatformAdapter):
                 if "we.51job.com" in url and "socket" not in url:
                     return t["webSocketDebuggerUrl"]
 
-            for t in targets:
-                url = t.get("url", "")
-                if "51job" in url and "socket" not in url:
-                    return t["webSocketDebuggerUrl"]
-
-            # Fall back to any open page
-            for t in targets:
-                if "webSocketDebuggerUrl" in t:
-                    return t["webSocketDebuggerUrl"]
+            logger.info("No 51job CDP page found")
         except Exception:
             if conn:
                 try:
@@ -129,6 +121,58 @@ class Job51Adapter(BasePlatformAdapter):
                 except Exception:
                     pass
         return None
+
+    @staticmethod
+    async def _open_search_page_ws(keyword: str, job_area: str) -> tuple[str | None, str | None]:
+        """Open a temporary 51job search tab and return its CDP URL and target id."""
+        import http.client
+
+        search_url = (
+            f"{BASE_URL}/pc/search?"
+            f"{urlencode({'keyword': keyword, 'searchType': '2', 'jobArea': job_area})}"
+        )
+        conn = None
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=5)
+            conn.request("PUT", f"/json/new?{quote(search_url, safe='')}")
+            resp = conn.getresponse()
+            target = json.loads(resp.read())
+            conn.close()
+
+            ws_url = target.get("webSocketDebuggerUrl")
+            target_id = target.get("id")
+            if ws_url and target_id:
+                logger.info("Opened temporary 51job CDP page: %s", target_id)
+                await asyncio.sleep(2)
+                return ws_url, target_id
+        except Exception as e:
+            logger.warning("Failed to open temporary 51job CDP page: %s", e)
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        return None, None
+
+    @staticmethod
+    async def _close_page(target_id: str) -> None:
+        """Close a CDP target by id."""
+        import http.client
+
+        conn = None
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
+            conn.request("GET", f"/json/close/{target_id}")
+            conn.getresponse()
+            conn.close()
+            logger.info("Closed temporary 51job CDP page: %s", target_id)
+        except Exception as e:
+            logger.warning("Failed to close temporary 51job CDP page %s: %s", target_id, e)
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     # ── Cookie persistence ─────────────────────────────────────────────
 
@@ -215,9 +259,9 @@ class Job51Adapter(BasePlatformAdapter):
             keyword = params.get("keyword", [""])[0]
             job_area = params.get("jobArea", ["000000"])[0]
 
-            ws_url = await self._find_page_ws()
+            ws_url, temporary_target_id = await self._open_search_page_ws(keyword, job_area)
             if not ws_url:
-                return {"success": False, "error": "请在浏览器中打开前程无忧搜索页 (we.51job.com) 以允许获取数据"}
+                return {"success": False, "error": "请启动已开启远程调试端口的浏览器，以便自动打开前程无忧搜索页"}
 
             # If the user only has the detail page open, fetching the search API will fail due to CORS.
             # We can't perfectly check ws_url's actual URL here without another CDP call,
@@ -229,110 +273,114 @@ class Job51Adapter(BasePlatformAdapter):
             import time
             import uuid
 
-            async with websockets.connect(ws_url, max_size=2 ** 24) as ws:
-                for page_num in range(1, MAX_PAGES + 1):
-                    api_params = {
-                        "api_key": "51job",
-                        "timestamp": str(int(time.time())),
-                        "keyword": keyword,
-                        "searchType": "2",
-                        "function": "",
-                        "industry": "",
-                        "jobArea": job_area,
-                        "jobArea2": "",
-                        "landmark": "",
-                        "metro": "",
-                        "salary": "",
-                        "workYear": "",
-                        "degree": "",
-                        "companyType": "",
-                        "companySize": "",
-                        "jobType": "",
-                        "issueDate": "",
-                        "sortType": "0",
-                        "pageNum": str(page_num),
-                        "requestId": uuid.uuid4().hex,
-                        "pageSize": "50",
-                        "source": "1",
-                        "accountId": "",
-                        "pageCode": "sou|sou|soulb",
-                        "scene": "7",
-                    }
-                    query = urlencode(api_params)
-                    api_url = f"{BASE_URL}{SEARCH_API_PATH}?{query}"
-
-                    # Execute fetch inside the browser tab
-                    js_code = f"""
-                    new Promise((resolve, reject) => {{
-                        fetch('{api_url}', {{
-                            headers: {{
-                                "Accept": "application/json, text/plain, */*",
-                                "property": '{{\"partner\":\"\",\"webId\":\"2\",\"clientType\":\"pc\"}}'
-                            }}
-                        }})
-                        .then(r => r.json())
-                        .then(d => resolve(JSON.stringify(d)))
-                        .catch(e => resolve(JSON.stringify({{error: e.toString()}})));
-                    }})
-                    """
-
-                    await ws.send(json.dumps({
-                        "id": page_num,
-                        "method": "Runtime.evaluate",
-                        "params": {
-                            "expression": js_code,
-                            "awaitPromise": True,
-                            "returnByValue": True
+            try:
+                async with websockets.connect(ws_url, max_size=2 ** 24) as ws:
+                    for page_num in range(1, MAX_PAGES + 1):
+                        api_params = {
+                            "api_key": "51job",
+                            "timestamp": str(int(time.time())),
+                            "keyword": keyword,
+                            "searchType": "2",
+                            "function": "",
+                            "industry": "",
+                            "jobArea": job_area,
+                            "jobArea2": "",
+                            "landmark": "",
+                            "metro": "",
+                            "salary": "",
+                            "workYear": "",
+                            "degree": "",
+                            "companyType": "",
+                            "companySize": "",
+                            "jobType": "",
+                            "issueDate": "",
+                            "sortType": "0",
+                            "pageNum": str(page_num),
+                            "requestId": uuid.uuid4().hex,
+                            "pageSize": "50",
+                            "source": "1",
+                            "accountId": "",
+                            "pageCode": "sou|sou|soulb",
+                            "scene": "7",
                         }
-                    }))
+                        query = urlencode(api_params)
+                        api_url = f"{BASE_URL}{SEARCH_API_PATH}?{query}"
 
-                    raw_resp = await asyncio.wait_for(ws.recv(), timeout=10)
-                    result_payload = json.loads(raw_resp)
+                        # Execute fetch inside the browser tab
+                        js_code = f"""
+                        new Promise((resolve, reject) => {{
+                            fetch('{api_url}', {{
+                                headers: {{
+                                    "Accept": "application/json, text/plain, */*",
+                                    "property": '{{\"partner\":\"\",\"webId\":\"2\",\"clientType\":\"pc\"}}'
+                                }}
+                            }})
+                            .then(r => r.json())
+                            .then(d => resolve(JSON.stringify(d)))
+                            .catch(e => resolve(JSON.stringify({{error: e.toString()}})));
+                        }})
+                        """
 
-                    if "error" in result_payload:
-                        logger.warning("CDP Error: %s", result_payload["error"])
-                        break
+                        await ws.send(json.dumps({
+                            "id": page_num,
+                            "method": "Runtime.evaluate",
+                            "params": {
+                                "expression": js_code,
+                                "awaitPromise": True,
+                                "returnByValue": True
+                            }
+                        }))
 
-                    # Extract stringified JSON from CDP response
-                    try:
-                        value_str = result_payload.get("result", {}).get("result", {}).get("value", "{}")
-                        data = json.loads(value_str)
-                    except Exception as e:
-                        logger.warning("Failed to parse CDP fetch result: %s", e)
-                        break
+                        raw_resp = await asyncio.wait_for(ws.recv(), timeout=10)
+                        result_payload = json.loads(raw_resp)
 
-                    if data.get("error"):
-                        err_msg = data['error']
-                        if "Failed to fetch" in err_msg:
-                            logger.warning("CORS Error: Please ensure you are on we.51job.com")
-                            return {"success": False, "error": "请确保浏览器停留在前程无忧搜索页 (we.51job.com)，不要停留在详情页，否则会因跨域被拦截。"}
-                        logger.warning("Browser fetch failed: %s", err_msg)
-                        break
+                        if "error" in result_payload:
+                            logger.warning("CDP Error: %s", result_payload["error"])
+                            break
 
-                    # Common response structures
-                    page_jobs = (
-                        data.get("resultbody", {}).get("job", {}).get("items", [])
-                        or data.get("engine_jds", [])
-                        or data.get("jobList", [])
-                        or data.get("data", {}).get("jobList", [])
-                        or []
-                    )
+                        # Extract stringified JSON from CDP response
+                        try:
+                            value_str = result_payload.get("result", {}).get("result", {}).get("value", "{}")
+                            data = json.loads(value_str)
+                        except Exception as e:
+                            logger.warning("Failed to parse CDP fetch result: %s", e)
+                            break
 
-                    if page_jobs:
-                        all_jobs.extend(page_jobs)
-                        pages_fetched = page_num
-                    else:
-                        break
+                        if data.get("error"):
+                            err_msg = data['error']
+                            if "Failed to fetch" in err_msg:
+                                logger.warning("CORS Error: Please ensure you are on we.51job.com")
+                                return {"success": False, "error": "请确保浏览器停留在前程无忧搜索页 (we.51job.com)，不要停留在详情页，否则会因跨域被拦截。"}
+                            logger.warning("Browser fetch failed: %s", err_msg)
+                            break
 
-                    # Check for more pages
-                    has_more = (
-                        data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
-                        or len(page_jobs) >= 50
-                    )
-                    if not has_more:
-                        break
+                        # Common response structures
+                        page_jobs = (
+                            data.get("resultbody", {}).get("job", {}).get("items", [])
+                            or data.get("engine_jds", [])
+                            or data.get("jobList", [])
+                            or data.get("data", {}).get("jobList", [])
+                            or []
+                        )
 
-                    await asyncio.sleep(random.uniform(2.0, 4.0))
+                        if page_jobs:
+                            all_jobs.extend(page_jobs)
+                            pages_fetched = page_num
+                        else:
+                            break
+
+                        # Check for more pages
+                        has_more = (
+                            data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
+                            or len(page_jobs) >= 50
+                        )
+                        if not has_more:
+                            break
+
+                        await asyncio.sleep(random.uniform(2.0, 4.0))
+            finally:
+                if temporary_target_id:
+                    await self._close_page(temporary_target_id)
 
             if all_jobs:
                 transformed = self._transform_jobs(all_jobs)

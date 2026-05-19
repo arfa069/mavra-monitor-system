@@ -42,6 +42,7 @@ async def test_list_jobs_returns_paginated_response(mock_get_current_user):
     mock_job.id = 11
     mock_job.job_id = "test-job-id"
     mock_job.search_config_id = 7
+    mock_job.platform = "51job"
     mock_job.title = "Python Engineer"
     mock_job.company = "Acme"
     mock_job.company_id = "company-1"
@@ -82,5 +83,6 @@ async def test_list_jobs_returns_paginated_response(mock_get_current_user):
         assert data["page_size"] == 10
         assert len(data["items"]) == 1
         assert data["items"][0]["job_id"] == "test-job-id"
+        assert data["items"][0]["platform"] == "51job"
     finally:
         app.dependency_overrides.clear()
