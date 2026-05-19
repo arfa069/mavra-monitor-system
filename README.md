@@ -58,37 +58,37 @@ JD_COOKIE=...
 
 > **认证说明**：除 `/auth/register` 和 `/auth/login` 外，所有 API 调用都需要在请求头中携带 `Authorization: Bearer <token>`。未带 token 的请求返回 401。
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /health | Health check (database + Redis + scheduler) | 否 |
-| GET | /config | Get current configuration |
-| POST | /config | Create or update full configuration |
-| PATCH | /config | Partial update configuration (cron/tz/hours) |
-| POST | /products | Add a product to track |
-| GET | /products | List products (paginated: page, size, total, etc.) |
-| GET | /products/{id} | Get product details |
-| GET | /products/{id}/history | Get price history |
-| POST | /products/batch-create | Batch import products |
-| POST | /products/batch-delete | Batch delete products |
-| POST | /products/batch-update | Batch enable/disable products |
-| POST | /alerts | Create an alert |
-| GET | /alerts | List all alerts |
-| POST | /crawl/crawl-now | Crawl all active products |
-| GET | /crawl/logs | Get recent crawl logs |
-| POST | /crawl/cleanup | Delete old price history and crawl logs |
-| GET | /scheduler/status | Scheduler status (both product and job crawl) |
-| GET/POST/DELETE | /jobs/resumes | List/Create/Delete resumes |
-| PATCH | /jobs/resumes/{id} | Update a resume |
-| GET | /jobs/match-results | List match results |
-| POST | /jobs/match-results/analyze | Analyze resume vs jobs (sync) |
-| POST | /jobs/match-results/analyze-async | Analyze resume vs jobs (async) |
-| GET | /jobs/tasks/{task_id} | Poll async task status |
-| GET/POST | /jobs/configs | List/Create job search configs |
-| GET/PATCH/DELETE | /jobs/configs/{id} | Manage a job search config |
-| GET | /jobs | List crawled jobs (paginated) |
-| POST | /jobs/crawl-now | Crawl all active job configs |
-| POST | /jobs/crawl-now/{id} | Crawl single job config |
-| GET/PUT | /config/job-crawl-cron | Get/Update job crawl schedule |
+| Method           | Path                              | Description                                        |
+| ---------------- | --------------------------------- | -------------------------------------------------- | --- |
+| GET              | /health                           | Health check (database + Redis + scheduler)        | 否  |
+| GET              | /config                           | Get current configuration                          |
+| POST             | /config                           | Create or update full configuration                |
+| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       |
+| POST             | /products                         | Add a product to track                             |
+| GET              | /products                         | List products (paginated: page, size, total, etc.) |
+| GET              | /products/{id}                    | Get product details                                |
+| GET              | /products/{id}/history            | Get price history                                  |
+| POST             | /products/batch-create            | Batch import products                              |
+| POST             | /products/batch-delete            | Batch delete products                              |
+| POST             | /products/batch-update            | Batch enable/disable products                      |
+| POST             | /alerts                           | Create an alert                                    |
+| GET              | /alerts                           | List all alerts                                    |
+| POST             | /crawl/crawl-now                  | Crawl all active products                          |
+| GET              | /crawl/logs                       | Get recent crawl logs                              |
+| POST             | /crawl/cleanup                    | Delete old price history and crawl logs            |
+| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      |
+| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         |
+| PATCH            | /jobs/resumes/{id}                | Update a resume                                    |
+| GET              | /jobs/match-results               | List match results                                 |
+| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      |
+| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     |
+| GET              | /jobs/tasks/{task_id}             | Poll async task status                             |
+| GET/POST         | /jobs/configs                     | List/Create job search configs                     |
+| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         |
+| GET              | /jobs                             | List crawled jobs (paginated)                      |
+| POST             | /jobs/crawl-now                   | Crawl all active job configs                       |
+| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            |
+| GET/PUT          | /config/job-crawl-cron            | Get/Update job crawl schedule                      |
 
 ## 认证 API
 
@@ -96,12 +96,12 @@ JD_COOKIE=...
 
 ### 端点
 
-| Method | Path | Description | 认证 |
-|--------|------|-------------|------|
-| POST | /auth/register | 注册新用户 | 否 |
-| POST | /auth/login | 用户登录 | 否 |
-| POST | /auth/logout | 用户登出 | 是 |
-| GET | /auth/me | 获取当前用户信息 | 是 |
+| Method | Path           | Description      | 认证 |
+| ------ | -------------- | ---------------- | ---- |
+| POST   | /auth/register | 注册新用户       | 否   |
+| POST   | /auth/login    | 用户登录         | 否   |
+| POST   | /auth/logout   | 用户登出         | 是   |
+| GET    | /auth/me       | 获取当前用户信息 | 是   |
 
 ### 注册
 
@@ -119,6 +119,7 @@ curl -X POST http://localhost:8000/auth/register \
 | password | string | 是 | 密码（至少6位） |
 
 **响应（201 Created）：**
+
 ```json
 {
   "id": 1,
@@ -138,6 +139,7 @@ curl -X POST http://localhost:8000/auth/login \
 ```
 
 **响应（200 OK）：**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -156,14 +158,14 @@ curl -X GET http://localhost:8000/auth/me \
 
 ### 错误码
 
-| 状态码 | 含义 | 说明 |
-|--------|------|------|
-| 201 | 注册成功 | 新用户创建成功 |
-| 200 | 登录/登出成功 | 操作成功 |
-| 400 | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突 |
-| 401 | 认证失败 | 用户名/密码错误或 Token 过期 |
-| 422 | 参数验证失败 | 密码太短、邮箱格式错误等 |
-| 429 | 请求过于频繁 | 连续5次登录失败后锁定15分钟 |
+| 状态码 | 含义               | 说明                         |
+| ------ | ------------------ | ---------------------------- |
+| 201    | 注册成功           | 新用户创建成功               |
+| 200    | 登录/登出成功      | 操作成功                     |
+| 400    | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突       |
+| 401    | 认证失败           | 用户名/密码错误或 Token 过期 |
+| 422    | 参数验证失败       | 密码太短、邮箱格式错误等     |
+| 429    | 请求过于频繁       | 连续5次登录失败后锁定15分钟  |
 
 ### 安全机制
 
@@ -177,17 +179,17 @@ curl -X GET http://localhost:8000/auth/me \
 
 > 详见 `doc/permission-architecture.md` 完整权限矩阵。
 
-| Method | Path | 说明 | 所需权限 |
-|--------|------|------|----------|
-| GET | /admin/users | 列出所有用户 | admin/super_admin |
-| POST | /admin/users | 创建用户 | admin/super_admin |
-| GET | /admin/users/{id} | 获取用户详情 | admin/super_admin |
-| PATCH | /admin/users/{id} | 更新用户信息 | admin/super_admin |
-| DELETE | /admin/users/{id} | 软删除用户 | admin/super_admin |
-| GET | /admin/audit-logs | 查询审计日志 | admin/super_admin |
-| POST | /admin/resource-permissions | 授予资源级权限 | admin/super_admin |
-| GET | /admin/resource-permissions | 列出资源级权限 | admin/super_admin |
-| PATCH | /admin/resource-permissions/{id} | 更新资源级权限 | admin/super_admin |
+| Method | Path                             | 说明           | 所需权限          |
+| ------ | -------------------------------- | -------------- | ----------------- |
+| GET    | /admin/users                     | 列出所有用户   | admin/super_admin |
+| POST   | /admin/users                     | 创建用户       | admin/super_admin |
+| GET    | /admin/users/{id}                | 获取用户详情   | admin/super_admin |
+| PATCH  | /admin/users/{id}                | 更新用户信息   | admin/super_admin |
+| DELETE | /admin/users/{id}                | 软删除用户     | admin/super_admin |
+| GET    | /admin/audit-logs                | 查询审计日志   | admin/super_admin |
+| POST   | /admin/resource-permissions      | 授予资源级权限 | admin/super_admin |
+| GET    | /admin/resource-permissions      | 列出资源级权限 | admin/super_admin |
+| PATCH  | /admin/resource-permissions/{id} | 更新资源级权限 | admin/super_admin |
 | DELETE | /admin/resource-permissions/{id} | 撤销资源级权限 | admin/super_admin |
 
 **角色边界**：admin 不能创建/修改/删除 super_admin；super_admin 不能删除自己或最后一个活跃的 super_admin。
@@ -224,10 +226,12 @@ Crawl tasks run **directly in FastAPI's async context** — no Celery or backgro
 The system supports two independent cron jobs:
 
 **Product crawl** — two mutually exclusive modes:
+
 - **Interval mode**: Crawl every N hours (default: 1 hour)
 - **Cron mode**: Crawl on a cron schedule (e.g., `0 9 * * *` = daily at 9:00)
 
 Configured via `GET/POST/PATCH /config`:
+
 ```
 # Interval mode
 crawl_frequency_hours: 2
@@ -246,6 +250,7 @@ Concurrent crawl protection: both cron and manual crawls share a global `asyncio
 ### Products Pagination
 
 `GET /products` supports pagination with full metadata:
+
 ```json
 {
   "items": [...],

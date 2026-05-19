@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
-import { App, Button, DatePicker, Drawer, Input, Select, Space, Table, Tag } from "antd";
+import {
+  App,
+  Button,
+  DatePicker,
+  Drawer,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { eventsApi } from "@/api/events";
@@ -25,7 +35,9 @@ type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 export default function EventCenterPage() {
   const message = App.useApp().message;
   const [items, setItems] = useState<EventCenterItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<EventCenterItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<EventCenterItem | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -86,7 +98,21 @@ export default function EventCenterPage() {
     return () => {
       cancelled = true;
     };
-  }, [kind, eventType, category, severity, source, keyword, page, pageSize, rangeStart, rangeEnd, startAt, endAt, message]);
+  }, [
+    kind,
+    eventType,
+    category,
+    severity,
+    source,
+    keyword,
+    page,
+    pageSize,
+    rangeStart,
+    rangeEnd,
+    startAt,
+    endAt,
+    message,
+  ]);
 
   useEffect(() => {
     if (page !== 1) {
@@ -125,7 +151,21 @@ export default function EventCenterPage() {
     };
 
     return () => eventSource.close();
-  }, [kind, eventType, category, severity, source, keyword, page, pageSize, rangeStart, rangeEnd, startAt, endAt, message]);
+  }, [
+    kind,
+    eventType,
+    category,
+    severity,
+    source,
+    keyword,
+    page,
+    pageSize,
+    rangeStart,
+    rangeEnd,
+    startAt,
+    endAt,
+    message,
+  ]);
 
   const resetFilters = () => {
     setKind("all");
@@ -151,7 +191,11 @@ export default function EventCenterPage() {
       title: "Event Type",
       dataIndex: "event_type",
       width: 220,
-      render: (value: string) => <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{value}</span>,
+      render: (value: string) => (
+        <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          {value}
+        </span>
+      ),
     },
     {
       title: "Message",
@@ -163,7 +207,9 @@ export default function EventCenterPage() {
       dataIndex: "severity",
       width: 110,
       render: (value: string) => (
-        <Tag color={SEVERITY_COLORS[value] || "default"}>{value.toUpperCase()}</Tag>
+        <Tag color={SEVERITY_COLORS[value] || "default"}>
+          {value.toUpperCase()}
+        </Tag>
       ),
     },
     {
@@ -198,7 +244,8 @@ export default function EventCenterPage() {
             <p className="page-eyebrow">System Events</p>
             <h1 className="page-title">Event Center</h1>
             <p className="page-subtitle">
-              Unified audit, runtime, and platform event stream with realtime updates
+              Unified audit, runtime, and platform event stream with realtime
+              updates
             </p>
           </div>
         </div>
@@ -311,18 +358,44 @@ export default function EventCenterPage() {
       >
         {selectedItem ? (
           <Space direction="vertical" size={12} style={{ display: "flex" }}>
-            <div><strong>ID:</strong> {selectedItem.id}</div>
-            <div><strong>Kind:</strong> {selectedItem.kind}</div>
-            <div><strong>Event Type:</strong> {selectedItem.event_type}</div>
-            <div><strong>Category:</strong> {selectedItem.category}</div>
-            <div><strong>Severity:</strong> {selectedItem.severity}</div>
-            <div><strong>Status:</strong> {selectedItem.status || "-"}</div>
-            <div><strong>Source:</strong> {selectedItem.source}</div>
-            <div><strong>User ID:</strong> {selectedItem.user_id ?? "-"}</div>
-            <div><strong>Entity:</strong> {selectedItem.entity_type || "-"} / {selectedItem.entity_id || "-"}</div>
-            <div><strong>Trace ID:</strong> {selectedItem.trace_id || "-"}</div>
-            <div><strong>Occurred At:</strong> {dayjs(selectedItem.occurred_at).format("YYYY-MM-DD HH:mm:ss")}</div>
-            <div><strong>Message:</strong> {selectedItem.message}</div>
+            <div>
+              <strong>ID:</strong> {selectedItem.id}
+            </div>
+            <div>
+              <strong>Kind:</strong> {selectedItem.kind}
+            </div>
+            <div>
+              <strong>Event Type:</strong> {selectedItem.event_type}
+            </div>
+            <div>
+              <strong>Category:</strong> {selectedItem.category}
+            </div>
+            <div>
+              <strong>Severity:</strong> {selectedItem.severity}
+            </div>
+            <div>
+              <strong>Status:</strong> {selectedItem.status || "-"}
+            </div>
+            <div>
+              <strong>Source:</strong> {selectedItem.source}
+            </div>
+            <div>
+              <strong>User ID:</strong> {selectedItem.user_id ?? "-"}
+            </div>
+            <div>
+              <strong>Entity:</strong> {selectedItem.entity_type || "-"} /{" "}
+              {selectedItem.entity_id || "-"}
+            </div>
+            <div>
+              <strong>Trace ID:</strong> {selectedItem.trace_id || "-"}
+            </div>
+            <div>
+              <strong>Occurred At:</strong>{" "}
+              {dayjs(selectedItem.occurred_at).format("YYYY-MM-DD HH:mm:ss")}
+            </div>
+            <div>
+              <strong>Message:</strong> {selectedItem.message}
+            </div>
             <div>
               <strong>Payload:</strong>
               <pre

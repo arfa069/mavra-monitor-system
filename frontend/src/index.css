@@ -3,12 +3,12 @@
    ============================================================ */
 
 /* Load fonts first */
-@import './styles/fonts.css';
+@import "./styles/fonts.css";
 
 /* Design tokens and component overrides */
-@import './styles/design-tokens.css';
-@import './styles/components.css';
-@import './styles/motion.css';
+@import "./styles/design-tokens.css";
+@import "./styles/components.css";
+@import "./styles/motion.css";
 
 /* ---- Base Reset ---- */
 * {

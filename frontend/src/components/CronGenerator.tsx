@@ -1,83 +1,96 @@
-import { useCallback, useState } from 'react'
-import { Button, Divider, Input, Modal, Space, Tag } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { isValidCron } from 'cron-validator'
-import cronstrue from 'cronstrue'
-import { nlToCron } from '@/utils/nl-to-cron'
+import { useCallback, useState } from "react";
+import { Button, Divider, Input, Modal, Space, Tag } from "antd";
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
+import { isValidCron } from "cron-validator";
+import cronstrue from "cronstrue";
+import { nlToCron } from "@/utils/nl-to-cron";
 
 interface CronGeneratorProps {
-  open: boolean
-  onClose: () => void
-  onApply: (cronExpression: string) => void
+  open: boolean;
+  onClose: () => void;
+  onApply: (cronExpression: string) => void;
 }
 
 const PRESETS = [
-  { label: 'Every hour', cron: '0 * * * *', nl: 'every hour' },
-  { label: 'Daily at 9am', cron: '0 9 * * *', nl: 'daily at 9am' },
-  { label: 'Weekdays at 6pm', cron: '0 18 * * 1-5', nl: 'weekdays at 6pm' },
-  { label: 'Every Monday', cron: '0 0 * * 1', nl: 'every Monday' },
-  { label: 'Every 30 min', cron: '*/30 * * * *', nl: 'every 30 minutes' },
-]
+  { label: "Every hour", cron: "0 * * * *", nl: "every hour" },
+  { label: "Daily at 9am", cron: "0 9 * * *", nl: "daily at 9am" },
+  { label: "Weekdays at 6pm", cron: "0 18 * * 1-5", nl: "weekdays at 6pm" },
+  { label: "Every Monday", cron: "0 0 * * 1", nl: "every Monday" },
+  { label: "Every 30 min", cron: "*/30 * * * *", nl: "every 30 minutes" },
+];
 
-export default function CronGenerator({ open, onClose, onApply }: CronGeneratorProps) {
-  const [nlInput, setNlInput] = useState('')
-  const [result, setResult] = useState<{ cron: string; description: string } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [cronValid, setCronValid] = useState<boolean | null>(null)
+export default function CronGenerator({
+  open,
+  onClose,
+  onApply,
+}: CronGeneratorProps) {
+  const [nlInput, setNlInput] = useState("");
+  const [result, setResult] = useState<{
+    cron: string;
+    description: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [cronValid, setCronValid] = useState<boolean | null>(null);
 
   const resetState = useCallback(() => {
-    setNlInput('')
-    setResult(null)
-    setError(null)
-    setCronValid(null)
-  }, [])
+    setNlInput("");
+    setResult(null);
+    setError(null);
+    setCronValid(null);
+  }, []);
 
   const handleGenerate = useCallback(() => {
-    const trimmed = nlInput.trim()
+    const trimmed = nlInput.trim();
     if (!trimmed) {
-      setError('Please enter a description of your schedule')
-      setResult(null)
-      setCronValid(null)
-      return
+      setError("Please enter a description of your schedule");
+      setResult(null);
+      setCronValid(null);
+      return;
     }
 
-    const parsed = nlToCron(trimmed)
+    const parsed = nlToCron(trimmed);
     if (!parsed) {
-      setError('Could not understand this description. Try one of the presets above.')
-      setResult(null)
-      setCronValid(null)
-      return
+      setError(
+        "Could not understand this description. Try one of the presets above.",
+      );
+      setResult(null);
+      setCronValid(null);
+      return;
     }
 
-    setError(null)
-    setCronValid(isValidCron(parsed.cron, { seconds: false }))
+    setError(null);
+    setCronValid(isValidCron(parsed.cron, { seconds: false }));
 
     try {
-      const enriched = cronstrue.toString(parsed.cron)
-      setResult({ ...parsed, description: enriched })
+      const enriched = cronstrue.toString(parsed.cron);
+      setResult({ ...parsed, description: enriched });
     } catch {
-      setResult(parsed)
+      setResult(parsed);
     }
-  }, [nlInput])
+  }, [nlInput]);
 
   const handlePreset = useCallback((nl: string, cron: string) => {
-    setNlInput(nl)
-    setError(null)
-    setCronValid(isValidCron(cron, { seconds: false }))
+    setNlInput(nl);
+    setError(null);
+    setCronValid(isValidCron(cron, { seconds: false }));
     try {
-      const desc = cronstrue.toString(cron)
-      setResult({ cron, description: desc })
+      const desc = cronstrue.toString(cron);
+      setResult({ cron, description: desc });
     } catch {
-      setResult({ cron, description: '' })
+      setResult({ cron, description: "" });
     }
-  }, [])
+  }, []);
 
   const handleApply = useCallback(() => {
     if (result && cronValid) {
-      onApply(result.cron)
-      onClose()
+      onApply(result.cron);
+      onClose();
     }
-  }, [result, cronValid, onApply, onClose])
+  }, [result, cronValid, onApply, onClose]);
 
   return (
     <Modal
@@ -89,16 +102,33 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
       footer={
         <Space>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" disabled={!result || !cronValid} onClick={handleApply}>
+          <Button
+            type="primary"
+            disabled={!result || !cronValid}
+            onClick={handleApply}
+          >
             Apply
           </Button>
         </Space>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          marginTop: 8,
+        }}
+      >
         {/* Natural language input */}
         <div>
-          <div style={{ marginBottom: 6, fontSize: 13, color: 'var(--color-muted)' }}>
+          <div
+            style={{
+              marginBottom: 6,
+              fontSize: 13,
+              color: "var(--color-muted)",
+            }}
+          >
             Describe your schedule (English / 中文)
           </div>
           <Input
@@ -122,7 +152,13 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
 
         {/* Presets */}
         <div>
-          <div style={{ marginBottom: 6, fontSize: 13, color: 'var(--color-muted)' }}>
+          <div
+            style={{
+              marginBottom: 6,
+              fontSize: 13,
+              color: "var(--color-muted)",
+            }}
+          >
             Quick presets
           </div>
           <Space wrap>
@@ -142,23 +178,25 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
         {/* Result */}
         {result && (
           <>
-            <Divider style={{ margin: '4px 0' }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>Generated Expression</div>
+            <Divider style={{ margin: "4px 0" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ fontSize: 13, color: "var(--color-muted)" }}>
+                Generated Expression
+              </div>
               <div
                 style={{
-                  padding: '10px 14px',
-                  border: '1px solid var(--color-hairline)',
-                  borderRadius: 'var(--radius-md)',
-                  fontFamily: 'var(--font-mono)',
+                  padding: "10px 14px",
+                  border: "1px solid var(--color-hairline)",
+                  borderRadius: "var(--radius-md)",
+                  fontFamily: "var(--font-mono)",
                   fontSize: 16,
-                  background: 'var(--color-canvas)',
-                  letterSpacing: '0.05em',
+                  background: "var(--color-canvas)",
+                  letterSpacing: "0.05em",
                 }}
               >
                 {result.cron}
               </div>
-              <div style={{ fontSize: 14, color: 'var(--color-ink)' }}>
+              <div style={{ fontSize: 14, color: "var(--color-ink)" }}>
                 {result.description}
               </div>
               <div>
@@ -178,11 +216,14 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
 
         {/* Error */}
         {error && (
-          <Tag color="error" style={{ padding: '4px 8px', whiteSpace: 'normal', height: 'auto' }}>
+          <Tag
+            color="error"
+            style={{ padding: "4px 8px", whiteSpace: "normal", height: "auto" }}
+          >
             {error}
           </Tag>
         )}
       </div>
     </Modal>
-  )
+  );
 }

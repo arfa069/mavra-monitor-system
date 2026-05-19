@@ -3,11 +3,13 @@
 ## 背景
 
 DESIGN.md 动效规范要求：
+
 - 入场动画：元素从下方 8px 淡入，`opacity 0→1, translateY(8px)→0`，150ms ease-out
 - 页面切换：内容区淡入，`opacity 0→1`，200ms ease-out
 - 绝不使用：弹跳、弹性过冲、滚动视差
 
 当前状态：
+
 - Login/Register 已完整实现（7-8 处 fadeInUp 交错动画）
 - 所有管理页面（ProductsPage、JobsPage、ScheduleConfigPage、Profile、Settings、AdminUsers、AdminAuditLogs）**零实现**
 - AppLayout 布局组件**零实现**
@@ -22,11 +24,13 @@ DESIGN.md 动效规范要求：
 **做法：** 在每个管理页面组件的根元素添加 `animate-fade-in-up` 类
 
 **优点：**
+
 - 最小改动，与 Login/Register 保持一致
 - 复用已有的 motion.css 系统
 - 可精确控制每个元素的动画顺序
 
 **缺点：**
+
 - 需要修改多个页面文件
 - 动画效果相对简单
 
@@ -35,10 +39,12 @@ DESIGN.md 动效规范要求：
 **做法：** 创建 `AnimatedPage` 包装组件，统一处理动画
 
 **优点：**
+
 - 一处修改，全局生效
 - 便于后续统一调整
 
 **缺点：**
+
 - 引入额外组件层级
 - 与 Login/Register 不一致
 
@@ -47,10 +53,12 @@ DESIGN.md 动效规范要求：
 **做法：** 在 React Router 配置中添加路由切换动画
 
 **优点：**
+
 - 页面切换体验流畅
 - 一次配置，所有页面生效
 
 **缺点：**
+
 - 实现复杂度高
 - 与设计稿风格可能不匹配
 
@@ -121,12 +129,13 @@ DESIGN.md 动效规范要求：
 
 ## 待修改文件
 
-| 文件 | 修改内容 |
-|------|---------|
-| `frontend/src/components/AppLayout.tsx` | 添加 Header/Sider/Footer 入场动画 |
-| `frontend/src/styles/components.css` | 添加 `.page-root`、`.page-header`、`.fg-card` 动画 |
+| 文件                                    | 修改内容                                           |
+| --------------------------------------- | -------------------------------------------------- |
+| `frontend/src/components/AppLayout.tsx` | 添加 Header/Sider/Footer 入场动画                  |
+| `frontend/src/styles/components.css`    | 添加 `.page-root`、`.page-header`、`.fg-card` 动画 |
 
 **不需要修改的页面文件：**
+
 - ProductsPage、JobsPage 等无需改动，通过全局样式自动生效
 
 ---

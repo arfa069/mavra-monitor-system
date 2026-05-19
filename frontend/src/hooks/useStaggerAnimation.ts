@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
-import { useReducedMotion } from 'framer-motion'
-import type { Variants } from 'framer-motion'
+import { useMemo } from "react";
+import { useReducedMotion } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 export interface StaggerVariants {
-  container: Variants
-  item: Variants
+  container: Variants;
+  item: Variants;
 }
 
 export function getStaggerVariants(
@@ -28,13 +28,13 @@ export function getStaggerVariants(
         opacity: 1,
         y: 0,
         transition: {
-          type: 'spring',
+          type: "spring",
           stiffness: 300,
           damping: 20,
         },
       },
     },
-  }
+  };
 }
 
 const REDUCED_MOTION_VARIANTS: StaggerVariants = {
@@ -46,13 +46,13 @@ const REDUCED_MOTION_VARIANTS: StaggerVariants = {
     hidden: { opacity: 1, y: 0 },
     show: { opacity: 1, y: 0 },
   },
-}
+};
 
 export function useStaggerAnimation(
   delayChildren = 0.05,
   staggerChildren = 0.05,
 ): StaggerVariants {
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = useReducedMotion();
 
   return useMemo(
     () =>
@@ -60,5 +60,5 @@ export function useStaggerAnimation(
         ? REDUCED_MOTION_VARIANTS
         : getStaggerVariants(delayChildren, staggerChildren),
     [delayChildren, prefersReducedMotion, staggerChildren],
-  )
+  );
 }

@@ -19,10 +19,10 @@
 
 ### JobSearchConfig 表追加字段
 
-| 字段 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| `cron_expression` | `String(100)` | nullable=True | 5段 crontab 表达式，null 表示不定时 |
-| `cron_timezone` | `String(50)` | nullable=True, default="Asia/Shanghai" | 时区 |
+| 字段              | 类型          | 约束                                   | 说明                                |
+| ----------------- | ------------- | -------------------------------------- | ----------------------------------- |
+| `cron_expression` | `String(100)` | nullable=True                          | 5段 crontab 表达式，null 表示不定时 |
+| `cron_timezone`   | `String(50)`  | nullable=True, default="Asia/Shanghai" | 时区                                |
 
 需要新增 Alembic 迁移文件。
 
@@ -85,8 +85,16 @@ Job ID 规范：`job_config_cron_{config_id}`
 ```json
 {
   "configs": [
-    { "config_id": 1, "cron_expression": "0 9 * * *", "next_run_at": "2026-05-03T01:00:00+08:00" },
-    { "config_id": 2, "cron_expression": "0 18 * * *", "next_run_at": "2026-05-02T10:00:00+08:00" }
+    {
+      "config_id": 1,
+      "cron_expression": "0 9 * * *",
+      "next_run_at": "2026-05-03T01:00:00+08:00"
+    },
+    {
+      "config_id": 2,
+      "cron_expression": "0 18 * * *",
+      "next_run_at": "2026-05-02T10:00:00+08:00"
+    }
   ]
 }
 ```

@@ -1,56 +1,56 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { Form, Input, Button, App, Typography } from 'antd'
-import { UserOutlined, MailOutlined, LockOutlined } from '@ant-design/icons'
-import { authApi } from '@/api/auth'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Form, Input, Button, App, Typography } from "antd";
+import { UserOutlined, MailOutlined, LockOutlined } from "@ant-design/icons";
+import { authApi } from "@/api/auth";
 
-const { Text } = Typography
+const { Text } = Typography;
 
 interface RegisterFormValues {
-  username: string
-  email: string
-  password: string
-  password_confirm: string
+  username: string;
+  email: string;
+  password: string;
+  password_confirm: string;
 }
 
 export default function RegisterPage() {
-  const [loading, setLoading] = useState(false)
-  const [form] = Form.useForm()
-  const navigate = useNavigate()
-  const message = App.useApp().message
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const message = App.useApp().message;
 
   const handleSubmit = async (values: RegisterFormValues) => {
     if (values.password !== values.password_confirm) {
-      message.error('Passwords do not match')
-      return
+      message.error("Passwords do not match");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       await authApi.register({
         username: values.username,
         email: values.email,
         password: values.password,
         password_confirm: values.password_confirm,
-      })
-      message.success('Registration successful! Please sign in')
-      navigate('/login', { replace: true })
+      });
+      message.success("Registration successful! Please sign in");
+      navigate("/login", { replace: true });
     } catch {
-      message.error('Registration failed, please check your input')
-      form.resetFields(['password', 'password_confirm'])
+      message.error("Registration failed, please check your input");
+      form.resetFields(["password", "password_confirm"]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const validatePasswordConfirm = () => ({
     validator(_: unknown, value: string) {
-      if (!value) return Promise.reject(new Error('Please confirm password'))
-      if (value !== form.getFieldValue('password'))
-        return Promise.reject(new Error('Passwords do not match'))
-      return Promise.resolve()
+      if (!value) return Promise.reject(new Error("Please confirm password"));
+      if (value !== form.getFieldValue("password"))
+        return Promise.reject(new Error("Passwords do not match"));
+      return Promise.resolve();
     },
-  })
+  });
 
   return (
     <div className="login-root">
@@ -77,11 +77,13 @@ export default function RegisterPage() {
           {/* Hero copy */}
           <div className="login-hero">
             <h1 className="login-headline">
-              Join Us<br />
+              Join Us
+              <br />
               Start Monitoring
             </h1>
             <p className="login-subhead">
-              Create an account and start tracking prices for free<br />
+              Create an account and start tracking prices for free
+              <br />
               Get price drop alerts instantly
             </p>
           </div>
@@ -113,15 +115,26 @@ export default function RegisterPage() {
             layout="vertical"
             requiredMark={false}
             className="login-form"
-            initialValues={{ username: '', email: '', password: '', password_confirm: '' }}
+            initialValues={{
+              username: "",
+              email: "",
+              password: "",
+              password_confirm: "",
+            }}
           >
             <Form.Item
               name="username"
               rules={[
-                { required: true, message: 'Please enter username' },
-                { min: 3, message: 'Username must be at least 3 characters' },
-                { max: 20, message: 'Username must be no more than 20 characters' },
-                { pattern: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, and underscores allowed' },
+                { required: true, message: "Please enter username" },
+                { min: 3, message: "Username must be at least 3 characters" },
+                {
+                  max: 20,
+                  message: "Username must be no more than 20 characters",
+                },
+                {
+                  pattern: /^[a-zA-Z0-9_]+$/,
+                  message: "Only letters, numbers, and underscores allowed",
+                },
               ]}
             >
               <Input
@@ -136,8 +149,11 @@ export default function RegisterPage() {
             <Form.Item
               name="email"
               rules={[
-                { required: true, message: 'Please enter email' },
-                { type: 'email', message: 'Please enter a valid email address' },
+                { required: true, message: "Please enter email" },
+                {
+                  type: "email",
+                  message: "Please enter a valid email address",
+                },
               ]}
             >
               <Input
@@ -152,9 +168,12 @@ export default function RegisterPage() {
             <Form.Item
               name="password"
               rules={[
-                { required: true, message: 'Please enter password' },
-                { min: 6, message: 'Password must be at least 6 characters' },
-                { max: 50, message: 'Password must be no more than 50 characters' },
+                { required: true, message: "Please enter password" },
+                { min: 6, message: "Password must be at least 6 characters" },
+                {
+                  max: 50,
+                  message: "Password must be no more than 50 characters",
+                },
               ]}
               hasFeedback
             >
@@ -170,10 +189,10 @@ export default function RegisterPage() {
             <Form.Item
               name="password_confirm"
               rules={[
-                { required: true, message: 'Please confirm password' },
+                { required: true, message: "Please confirm password" },
                 validatePasswordConfirm,
               ]}
-              dependencies={['password']}
+              dependencies={["password"]}
               hasFeedback
             >
               <Input.Password
@@ -194,7 +213,7 @@ export default function RegisterPage() {
                 block
                 className="login-btn-primary"
               >
-                {loading ? 'Creating account...' : 'Sign Up'}
+                {loading ? "Creating account..." : "Sign Up"}
               </Button>
             </Form.Item>
           </Form>
@@ -207,9 +226,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <Text className="login-copyright">
-          Price Monitor © 2026
-        </Text>
+        <Text className="login-copyright">Price Monitor © 2026</Text>
       </div>
 
       <style>{`
@@ -514,5 +531,5 @@ export default function RegisterPage() {
         }
       `}</style>
     </div>
-  )
+  );
 }

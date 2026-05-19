@@ -1,6 +1,7 @@
 # Design System — Price Monitor
 
 ## Product Context
+
 - **What this is:** 电商价格监控系统（支持淘宝、京东、亚马逊）+ Boss直聘职位搜索监控后台。自动抓取商品/职位信息，价格降价时通过飞书 Webhook 推送告警。
 - **Who it's for:** 个人用户或小型团队，需要同时监控多个电商平台价格和职位机会的运营/采购人员。
 - **Space/industry:** 电商工具 / 价格追踪 / 后台管理系统（Dashboard）
@@ -8,12 +9,14 @@
 - **Tech stack:** React 18 + Vite + TypeScript + Ant Design 5
 
 ## Aesthetic Direction
+
 - **Direction:** Brutally Minimal + Playful Accents
 - **Decoration level:** Intentional
 - **Mood:** 专业但不沉闷，精准但不冰冷。黑白骨架传递工具的可信度，马卡龙色块作为"呼吸间隙"增加亲和力。用户打开这个后台不会觉得压抑，但也不会觉得轻浮。
 - **Memorable thing:** 一个不像后台的后台 — 数据密度和视觉愉悦感并存。
 
 ## Typography
+
 - **Display/Hero:** General Sans — 现代几何无衬线，比 Inter 更有性格但不夸张，适合工具类产品的标题和 Hero 区域。
 - **Body:** DM Sans — 温暖、清晰，小字号下可读性优秀，适合密集的正文和表单标签。
 - **UI/Labels:** same as body (DM Sans)
@@ -38,6 +41,7 @@
   | Eyebrow / Mono | 12px | 400 | 1.30 | 0.54px | 大写标签、表头（uppercase）|
 
 ## Color
+
 - **Approach:** Restrained base + Expressive accents
 - **Primary:** `#000000` — CTA 按钮、选中态、核心文字
 - **Canvas:** `#ffffff` — 页面背景
@@ -70,6 +74,7 @@
   - 马卡龙色块饱和度降低 15%（保持辨识度但减少眩光）：Lime `#3a4a1a`, Cream `#4a4020`, Mint `#1a3a1a`, Lilac `#3d305a`, Pink `#4a2020`, Coral `#4a2a18`
 
 ## Spacing
+
 - **Base unit:** 4px
 - **Density:** 支持三种密度模式，通过 CSS 变量切换
   - **Compact** — 数据表格、密集列表
@@ -89,6 +94,7 @@
   | section | 96px | 页面级间距 |
 
 ## Layout
+
 - **Approach:** Grid-disciplined（数据密集型后台需要严格对齐），头部色块区允许适度打破网格。
 - **Grid:** 12 列，断点 `sm:640px md:768px lg:1024px xl:1280px`
 - **Max content width:** 1200px（内容区），登录页无限制。
@@ -110,6 +116,7 @@
   | nav | `0 1px 3px rgba(0,0,0,0.08)` | 顶部导航 |
 
 ## Motion
+
 - **Approach:** Intentional + Spring — 只有帮助理解的动效，没有炫技；页面级过渡使用轻量弹性，让后台页面切换更自然。
 - **Easing:**
   - Enter: `ease-out`（元素入场快速减速，感觉"到达"）
@@ -138,6 +145,7 @@
   - **绝不使用：** 滚动视差（parallax）、无限循环装饰动画、强烈弹跳或夸张过冲
 
 ## Component Tokens
+
 - **Button:**
   - Primary: `background: #000`, `color: #fff`, `border-radius: 50px`, `padding: 10px 24px`
   - Secondary: `background: transparent`, `color: #000`, `border: 1.5px solid #e6e6e6`, `border-radius: 50px`
@@ -151,6 +159,7 @@
 - **Tag/Pill:** `border-radius: 50px`, `padding: 4px 12px`, `font-size: 12px`, `font-weight: 500`
 
 ## Ant Design Integration
+
 - **ConfigProvider token overrides:**
   ```ts
   {
@@ -178,6 +187,7 @@
   ```
 
 ## Responsive
+
 - **Mobile breakpoint:** 768px
 - **Desktop → Mobile adaptations:**
   - Sider 隐藏，汉堡菜单触发 Drawer
@@ -187,12 +197,13 @@
   - 按钮组垂直堆叠
 
 ## Decisions Log
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-05-11 | Initial design system documented | Created by /design-consultation based on existing Figma Marketing Style implementation |
+
+| Date       | Decision                                  | Rationale                                                                                                         |
+| ---------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 2026-05-11 | Initial design system documented          | Created by /design-consultation based on existing Figma Marketing Style implementation                            |
 | 2026-05-11 | Replace Inter with General Sans + DM Sans | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism |
-| 2026-05-11 | Add Geist for data tables | Tabular numbers are critical for price alignment; Geist is purpose-built for this |
-| 2026-05-11 | Semantic color blocks | Each macaron block maps to a functional domain (lime=products, cream=jobs, mint=config, etc.) |
-| 2026-05-11 | Add motion spec | Previously zero motion; intentional micro-interactions improve perceived quality and state comprehension |
-| 2026-05-11 | Add dark mode strategy | Night usage scenario for a tool that runs 24/7; macaron blocks desaturate 15% in dark mode |
-| 2026-05-13 | Adopt light spring transitions | User selected Spring style; AppLayout owns route transitions and Settings exposes speed preference |
+| 2026-05-11 | Add Geist for data tables                 | Tabular numbers are critical for price alignment; Geist is purpose-built for this                                 |
+| 2026-05-11 | Semantic color blocks                     | Each macaron block maps to a functional domain (lime=products, cream=jobs, mint=config, etc.)                     |
+| 2026-05-11 | Add motion spec                           | Previously zero motion; intentional micro-interactions improve perceived quality and state comprehension          |
+| 2026-05-11 | Add dark mode strategy                    | Night usage scenario for a tool that runs 24/7; macaron blocks desaturate 15% in dark mode                        |
+| 2026-05-13 | Adopt light spring transitions            | User selected Spring style; AppLayout owns route transitions and Settings exposes speed preference                |

@@ -49,11 +49,11 @@ flowchart TB
 
 ## 三条核心反馈循环
 
-| 循环 | 工具 | 触发时机 | 产出物 |
-|------|------|---------|--------|
-| **需求对齐循环** | `/grill-me` → `CONTEXT.md` | 每次新任务开始 | `CONTEXT.md` |
-| **编码质量循环** | `/tdd` → 红绿重构 → `/diagnose` | 每次写代码 | 测试 + 可运行代码 |
-| **架构维护循环** | `/improve-codebase-architecture` | 每隔几天跑一次 | 架构优化建议 |
+| 循环             | 工具                             | 触发时机       | 产出物            |
+| ---------------- | -------------------------------- | -------------- | ----------------- |
+| **需求对齐循环** | `/grill-me` → `CONTEXT.md`       | 每次新任务开始 | `CONTEXT.md`      |
+| **编码质量循环** | `/tdd` → 红绿重构 → `/diagnose`  | 每次写代码     | 测试 + 可运行代码 |
+| **架构维护循环** | `/improve-codebase-architecture` | 每隔几天跑一次 | 架构优化建议      |
 
 ---
 
@@ -64,10 +64,10 @@ flowchart TB
 ```markdown
 # 共享术语
 
-| 术语 | 含义 |
-|------|------|
+| 术语           | 含义                                         |
+| -------------- | -------------------------------------------- |
 | 素材化级联问题 | 当课程章节中的某课时获得实际位置时触发的问题 |
-| PI 事件 | 学生完成某个学习活动时触发的事件 |
+| PI 事件        | 学生完成某个学习活动时触发的事件             |
 ```
 
 ### 为什么有效
@@ -125,19 +125,19 @@ flowchart TB
 
 ## 快速命令参考
 
-| 命令 | 用途 |
-|------|------|
-| `/grill-me` | 需求深入提问（非代码任务） |
-| `/grill-with-docs` | 需求提问 + 生成共享术语文档 |
-| `/tdd` | 测试驱动开发，红绿重构循环 |
-| `/diagnose` | 调试诊断，定位复杂 Bug |
-| `/improve-codebase-architecture` | 架构优化建议 |
-| `/to-prd` | 当前对话 → 产品需求文档 |
-| `/to-issues` | 拆解为可领养的 GitHub Issue |
-| `/zoom-out` | 宏观视角理解陌生代码 |
-| `/caveman` | 极简沟通模式，节省 75% token |
-| `/write-a-skill` | 创建新的自定义技能 |
+| 命令                             | 用途                         |
+| -------------------------------- | ---------------------------- |
+| `/grill-me`                      | 需求深入提问（非代码任务）   |
+| `/grill-with-docs`               | 需求提问 + 生成共享术语文档  |
+| `/tdd`                           | 测试驱动开发，红绿重构循环   |
+| `/diagnose`                      | 调试诊断，定位复杂 Bug       |
+| `/improve-codebase-architecture` | 架构优化建议                 |
+| `/to-prd`                        | 当前对话 → 产品需求文档      |
+| `/to-issues`                     | 拆解为可领养的 GitHub Issue  |
+| `/zoom-out`                      | 宏观视角理解陌生代码         |
+| `/caveman`                       | 极简沟通模式，节省 75% token |
+| `/write-a-skill`                 | 创建新的自定义技能           |
 
 ---
 
-*基于 [mattpocock/skills](https://github.com/mattpocock/skills) 构建*
+_基于 [mattpocock/skills](https://github.com/mattpocock/skills) 构建_

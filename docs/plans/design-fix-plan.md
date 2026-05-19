@@ -5,6 +5,7 @@
 ## 背景
 
 价格监控系统前端使用 Ant Design + React，目前存在以下设计问题：
+
 - 移动端布局崩坏
 - 页面缺少语义化标题
 - Logo 无品牌标识
@@ -23,14 +24,17 @@ Sidebar 使用 `position: fixed` + 固定宽度，在移动端会遮挡主内容
 
 **修复方案:**
 在 `AppLayout.tsx` 中：
+
 1. 添加媒体查询，窗口宽度 < 768px 时隐藏 Sidebar
 2. 使用 Ant Design Drawer 作为移动端导航
 3. 汉堡菜单按钮始终可见
 
 **修改文件:**
+
 - `frontend/src/components/AppLayout.tsx`
 
 **验收标准:**
+
 - [ ] 移动端 (375px) 侧边栏隐藏，显示汉堡菜单
 - [ ] 点击汉堡菜单打开 Drawer 导航
 - [ ] 平板/桌面端保持原有布局
@@ -44,16 +48,19 @@ Sidebar 使用 `position: fixed` + 固定宽度，在移动端会遮挡主内容
 
 **修复方案:**
 在每个页面添加 `<h1>` 标题：
+
 - `/jobs` 页面: `<h1>职位管理</h1>`
 - `/products` 页面: `<h1>商品管理</h1>`
 - `/schedule` 页面: `<h1>定时配置</h1>`
 
 **修改文件:**
+
 - `frontend/src/pages/JobsPage.tsx`
 - `frontend/src/pages/ProductsPage.tsx`
 - `frontend/src/pages/ScheduleConfigPage.tsx`
 
 **验收标准:**
+
 - [ ] 每个页面有且只有一个 h1
 - [ ] h1 样式与 Ant Design 风格协调（字号约 24px，颜色 #1f2937）
 - [ ] h1 在页面加载后立即可见
@@ -67,14 +74,17 @@ Header 只显示文字"价格监控系统"，没有视觉品牌元素。
 
 **修复方案:**
 在 `AppLayout.tsx` Header 中：
+
 1. 在标题左侧添加 SVG 图标（使用 price/监控相关的简单图形）
 2. 或使用首字母 "价" 配合渐变背景
 
 **修改文件:**
+
 - `frontend/src/components/AppLayout.tsx`
 - `frontend/public/favicon.svg` (如需更新)
 
 **验收标准:**
+
 - [ ] Logo 清晰可见，与文字标题组合协调
 - [ ] 深色背景上 Logo 颜色适配
 - [ ] favicon 也使用相同图标保持一致
@@ -88,13 +98,16 @@ Header 只显示文字"价格监控系统"，没有视觉品牌元素。
 
 **修复方案:**
 在 `JobsPage.tsx` 和 `ProductsPage.tsx` 中：
+
 - 将 `<Space size={4}>` 改为 `<Space size={8}>` 或 `<Space size="small">`
 
 **修改文件:**
+
 - `frontend/src/pages/JobsPage.tsx`
 - `frontend/src/pages/ProductsPage.tsx`
 
 **验收标准:**
+
 - [ ] 按钮之间有足够间距 (8-12px)
 - [ ] 操作按钮组视觉上更宽松易读
 - [ ] 移动端不会因间距过大导致换行混乱
@@ -110,9 +123,11 @@ Header 只显示文字"价格监控系统"，没有视觉品牌元素。
 将 `addonAfter` 替换为 `Space.Compact` 包裹方式。
 
 **修改文件:**
+
 - `frontend/src/components/JobConfigForm.tsx` (或相关使用 InputNumber 的组件)
 
 **验收标准:**
+
 - [ ] Console 无弃用警告
 - [ ] InputNumber 功能保持不变
 

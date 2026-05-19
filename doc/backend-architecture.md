@@ -2,16 +2,16 @@
 
 ## 1. 技术栈概览
 
-| 层级 | 技术选型 |
-|------|----------|
-| 语言 | Python 3.11+ |
-| Web 框架 | FastAPI（异步 via asyncio） |
-| 数据库 | PostgreSQL（异步 via SQLAlchemy + asyncpg） |
-| 缓存 | Redis（异步 via redis.asyncio） |
-| 爬虫 | Playwright（商品）+ curl_cffi（BOSS 直聘） |
-| 定时调度 | APScheduler（AsyncIOScheduler） |
-| 通知 | 飞书 Webhook |
-| 认证 | JWT（python-jose + bcrypt） |
+| 层级     | 技术选型                                    |
+| -------- | ------------------------------------------- |
+| 语言     | Python 3.11+                                |
+| Web 框架 | FastAPI（异步 via asyncio）                 |
+| 数据库   | PostgreSQL（异步 via SQLAlchemy + asyncpg） |
+| 缓存     | Redis（异步 via redis.asyncio）             |
+| 爬虫     | Playwright（商品）+ curl_cffi（BOSS 直聘）  |
+| 定时调度 | APScheduler（AsyncIOScheduler）             |
+| 通知     | 飞书 Webhook                                |
+| 认证     | JWT（python-jose + bcrypt）                 |
 
 ## 2. 项目结构
 
@@ -100,6 +100,7 @@ async def lifespan(app: FastAPI):
 ```
 
 **启动顺序：**
+
 1. 创建 `asyncio.Semaphore(1)` 作为全局爬取锁
 2. 初始化 `AsyncIOScheduler`（时区 UTC，job_defaults: coalesce=True, max_instances=1）
 3. 创建 `JobConfigScheduler` 和 `ProductCronScheduler` 实例并调用 `sync_all()` 从数据库恢复 cron 任务
@@ -109,23 +110,23 @@ async def lifespan(app: FastAPI):
 
 基于 Pydantic Settings，按优先级从环境变量或 `.env` 文件加载：
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `database_url` | PostgreSQL 连接 URL | postgresql+asyncpg://... |
-| `redis_url` | Redis 连接 URL | redis://localhost:6379/0 |
-| `redis_password` | Redis 密码（可选） | |
-| `feishu_webhook_url` | 飞书 Webhook URL | |
-| `jwt_secret_key` | JWT 签名密钥 | （需在生产环境修改）|
-| `cdp_enabled` | 启用 CDP 模式连接已有浏览器 | false |
-| `cdp_url` | CDP 端点 | http://127.0.0.1:9222 |
-| `crawl_proxy_enabled` | 启用代理 | false |
-| `crawl_proxy_url` | 代理 URL | |
-| `data_retention_days` | 数据保留天数 | 365 |
-| `jd_cookie` | JD 登录态 Cookie | |
-| `job_match_provider` | LLM provider | minimax |
-| `minimax_api_key` | MiniMax API Key | |
-| `openai_api_key` | OpenAI API Key | |
-| `ollama_base_url` | Ollama 服务地址 | http://127.0.0.1:11434 |
+| 配置项                | 说明                        | 默认值                   |
+| --------------------- | --------------------------- | ------------------------ |
+| `database_url`        | PostgreSQL 连接 URL         | postgresql+asyncpg://... |
+| `redis_url`           | Redis 连接 URL              | redis://localhost:6379/0 |
+| `redis_password`      | Redis 密码（可选）          |                          |
+| `feishu_webhook_url`  | 飞书 Webhook URL            |                          |
+| `jwt_secret_key`      | JWT 签名密钥                | （需在生产环境修改）     |
+| `cdp_enabled`         | 启用 CDP 模式连接已有浏览器 | false                    |
+| `cdp_url`             | CDP 端点                    | http://127.0.0.1:9222    |
+| `crawl_proxy_enabled` | 启用代理                    | false                    |
+| `crawl_proxy_url`     | 代理 URL                    |                          |
+| `data_retention_days` | 数据保留天数                | 365                      |
+| `jd_cookie`           | JD 登录态 Cookie            |                          |
+| `job_match_provider`  | LLM provider                | minimax                  |
+| `minimax_api_key`     | MiniMax API Key             |                          |
+| `openai_api_key`      | OpenAI API Key              |                          |
+| `ollama_base_url`     | Ollama 服务地址             | http://127.0.0.1:11434   |
 
 Redis URL 支持在 `redis_password` 字段设置密码时会自动拼接为 `redis://:password@host:port/0` 格式。
 
@@ -156,18 +157,18 @@ User (1) ──────< Product (多)
 
 ### 5.3 关键表说明
 
-| 表名 | 说明 | 隔离方式 |
-|------|------|----------|
-| `users` | 用户账户（含飞书 Webhook URL） | 无（全局） |
-| `products` | 监控的商品 | user_id 隔离 |
-| `products_price_history` | 价格历史记录 | 通过 product_id 间接隔离 |
-| `products_alerts` | 降价告警配置 | 通过 product_id 间接隔离 |
-| `crawl_logs` | 爬取日志 | product_id nullable（系统日志无归属） |
-| `products_platform_crons` | per-platform 商品爬取 cron | user_id 隔离 |
-| `jobs_search_configs` | BOSS 搜索配置 | user_id 隔离 |
-| `jobs` | 爬取的职位 | 通过 search_config_id 间接隔离 |
-| `jobs_resumes` | 用户简历 | user_id 隔离 |
-| `jobs_match_results` | LLM 匹配结果 | user_id 隔离 |
+| 表名                      | 说明                           | 隔离方式                              |
+| ------------------------- | ------------------------------ | ------------------------------------- |
+| `users`                   | 用户账户（含飞书 Webhook URL） | 无（全局）                            |
+| `products`                | 监控的商品                     | user_id 隔离                          |
+| `products_price_history`  | 价格历史记录                   | 通过 product_id 间接隔离              |
+| `products_alerts`         | 降价告警配置                   | 通过 product_id 间接隔离              |
+| `crawl_logs`              | 爬取日志                       | product_id nullable（系统日志无归属） |
+| `products_platform_crons` | per-platform 商品爬取 cron     | user_id 隔离                          |
+| `jobs_search_configs`     | BOSS 搜索配置                  | user_id 隔离                          |
+| `jobs`                    | 爬取的职位                     | 通过 search_config_id 间接隔离        |
+| `jobs_resumes`            | 用户简历                       | user_id 隔离                          |
+| `jobs_match_results`      | LLM 匹配结果                   | user_id 隔离                          |
 
 **数据隔离原则**：所有包含 `user_id` 的表均通过 `user_id = current_user.id` 过滤查询。
 
@@ -175,18 +176,19 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 前缀 | 路由文件 | 说明 |
-|------|----------|------|
-| `/auth` | api/auth.py | 注册/登录/登出/当前用户 |
-| `/config` | routers/config.py | 用户配置（飞书 Webhook、数据保留期） |
-| `/products` | routers/products.py | 商品 CRUD + 批量操作 |
-| `/alerts` | routers/alerts.py | 告警管理 |
-| `/products/crawl` | routers/crawl.py | 商品爬取触发 + 日志查询 |
-| `/jobs` | routers/jobs.py | 职位搜索配置 + 爬取 + 匹配分析 |
-| `/admin` | api/admin.py | 用户管理 + 审计日志（admin/super_admin） |
-| `/scheduler/status` | main.py | APScheduler 状态（admin/super_admin） |
+| 前缀                | 路由文件            | 说明                                     |
+| ------------------- | ------------------- | ---------------------------------------- |
+| `/auth`             | api/auth.py         | 注册/登录/登出/当前用户                  |
+| `/config`           | routers/config.py   | 用户配置（飞书 Webhook、数据保留期）     |
+| `/products`         | routers/products.py | 商品 CRUD + 批量操作                     |
+| `/alerts`           | routers/alerts.py   | 告警管理                                 |
+| `/products/crawl`   | routers/crawl.py    | 商品爬取触发 + 日志查询                  |
+| `/jobs`             | routers/jobs.py     | 职位搜索配置 + 爬取 + 匹配分析           |
+| `/admin`            | api/admin.py        | 用户管理 + 审计日志（admin/super_admin） |
+| `/scheduler/status` | main.py             | APScheduler 状态（admin/super_admin）    |
 
 ### 6.2 认证系统
+
 - `POST /auth/register` — 用户注册
 - `POST /auth/login` — 用户登录（JWT token，60 分钟有效期）
 - `POST /auth/logout` — 登出
@@ -197,6 +199,7 @@ User (1) ──────< Product (多)
 - 请求拦截器自动添加 Token
 
 ### 6.3 认证流程
+
 所有 API（除 `/auth/*` 外）均通过 `Depends(get_current_user)` 强制认证：
 
 ```python
@@ -210,6 +213,7 @@ async def get_current_user(
 ```
 
 JWT payload 结构：
+
 ```json
 {"sub": '<username>', "user_id": 1, "exp": <timestamp>}
 ```
@@ -217,6 +221,7 @@ JWT payload 结构：
 ### 6.3 请求/响应模型（schemas/）
 
 每个资源有独立的 schema 文件，遵循以下模式：
+
 - `XxxCreate` — POST 请求体
 - `XxxUpdate` — PATCH 请求体（字段可选）
 - `XxxResponse` — 响应体
@@ -229,11 +234,13 @@ JWT payload 结构：
 **职责**：作为 APScheduler cron 触发和手动爬取 API 的共享入口，提供并发保护。
 
 **关键机制：**
+
 - `asyncio.Semaphore(1)` — 全局锁，防止 cron 和手动爬取重叠执行
 - `CONCURRENCY_LIMIT = 3` — 同一批次内最多 3 个并发商品爬取
 - `CRAWL_INTERVAL_MIN/MAX = 2-3s` — 批次内商品间随机间隔（避免反爬）
 
 **入口函数：**
+
 - `crawl_all_products(source, background)` — 爬取所有活跃商品
 - `crawl_products_by_platform(platform)` — 按平台爬取（ProductCronScheduler 调用）
 - `get_task(task_id)` / `create_task(source)` — 任务状态追踪
@@ -241,12 +248,14 @@ JWT payload 结构：
 ### 7.2 定时任务管理（scheduler_job.py）
 
 **JobConfigScheduler** — 管理 per-config 的 BOSS 职位爬取 cron：
+
 - Job ID 格式：`job_config_cron_{config_id}`
 - `add_job(config_id, cron_expression, timezone)` — 注册或替换任务
 - `remove_job(config_id)` — 移除任务
 - `sync_all()` — 启动时从数据库恢复所有有 cron 的配置
 
 **ProductCronScheduler** — 管理 per-platform 的商品爬取 cron：
+
 - Job ID 格式：`product_cron_{platform}`
 - `add_job(platform, cron_expression, timezone)` — 注册或替换任务
 - `remove_job(platform)` — 移除任务
@@ -257,6 +266,7 @@ JWT payload 结构：
 `get_active_products()` — 查询当前用户所有 `active=True` 的商品，返回 `List[Product]`。
 
 实际抓取逻辑在 `routers/crawl.py:_crawl_one()` 中，流程：
+
 1. 根据 platform 路由到对应 Adapter
 2. 调用 `adapter.crawl(url)` 执行 Playwright 自动化
 3. 提取价格和标题
@@ -268,6 +278,7 @@ JWT payload 结构：
 不使用 Playwright，改用 `curl_cffi` 的 TLS 指纹模拟：
 
 **核心逻辑：**
+
 - `crawl_all_job_searches_background()` — 后台爬取所有活跃配置
 - `crawl_single_config_background(config_id)` — 后台爬取单个配置
 - Cookie 获取优先级：CDP 读取 > 磁盘缓存 > 后台 tab 刷新
@@ -282,10 +293,12 @@ JWT payload 结构：
 - 匹配结果记录到 `job_match` 表，高分职位发送飞书通知
 
 **Provider 工厂**（services/llm_provider.py）：
+
 - `LLMProviderFactory.create(provider_name)` — 根据配置创建 Provider
 - 支持：minimax（默认）、anthropic、openai、ollama
 
 **分析流程：**
+
 1. `analyze_resume_vs_jobs(resume_id, job_ids)` — 批量分析
 2. `run_match_analysis_task(task, resume_id, job_ids)` — 异步任务执行
 3. 每个 Job 调用 `llm_provider.analyze(resume_text, job_description)`
@@ -294,6 +307,7 @@ JWT payload 结构：
 ### 7.6 通知服务（services/notification.py）
 
 飞书 Webhook JSON 推送，格式：
+
 ```json
 {
   "msg_type": "text",
@@ -320,10 +334,12 @@ backend/app/platforms/boss.py    — BossZhipinAdapter (裸 WebSocket CDP + curl
 抽象基类，管理 Playwright 浏览器生命周期：
 
 **浏览器模式：**
+
 - **Launch 模式**（默认）：每次启动新的 headless Chromium
 - **CDP 模式**：连接已运行浏览器的 DevTools（复用登录态）
 
 **共享浏览器缓存**（类级别）：
+
 ```python
 _shared_playwright: Playwright
 _shared_browser: Browser
@@ -331,6 +347,7 @@ _shared_context: BrowserContext
 ```
 
 **爬取流程（90s 超时）：**
+
 1. `goto(url, wait_until='domcontentloaded', timeout=45s)` — 页面导航
 2. `wait_for_selector(price_selector, state='attached', timeout=20s)` — 等待价格元素
 3. `window.scrollBy(0, 300)` — 滚动触发懒加载（淘宝）
@@ -339,19 +356,21 @@ _shared_context: BrowserContext
 
 ### 8.2 平台特定适配器
 
-| 适配器 | 提取策略 |
-|--------|----------|
-| TaobaoAdapter | CSS 选择器 + 活动页价格处理 |
-| JDAdapter | 价格元素定位 |
-| AmazonAdapter | 价格区域定位 |
-| BossZhipinAdapter | curl_cffi 调用搜索 API（不使用 Playwright）|
+| 适配器            | 提取策略                                    |
+| ----------------- | ------------------------------------------- |
+| TaobaoAdapter     | CSS 选择器 + 活动页价格处理                 |
+| JDAdapter         | 价格元素定位                                |
+| AmazonAdapter     | 价格区域定位                                |
+| BossZhipinAdapter | curl_cffi 调用搜索 API（不使用 Playwright） |
 
 ### 8.3 商品抓取流程（`POST /products/crawl/crawl-now`）
+
 - `_crawl_one()` 在 FastAPI async 上下文中直接运行，无 Celery 依赖
 - `check_price_alerts()` 在每次抓取后对比最近两条价格记录，跌幅达标则发飞书通知
 - `POST /products/crawl/cleanup` 手动触发旧数据清理
 
 ### 8.4 Boss 职位抓取流程（`POST /jobs/crawl-now`）
+
 - `BossZhipinAdapter.crawl()` 通过 curl_cffi 调 Boss 搜索 API，不依赖 Playwright 浏览器
 - **Cookie 获取**：不做搜索 API 测试（避免消耗 token），CDP 优先 → 磁盘缓存 → 后台 tab 刷新
 - **Token 刷新**：搜索和详情遇 code=37/36 自动开后台 tab 到搜索页刷新 `__zp_stoken__`（~3s），然后重试
@@ -363,28 +382,31 @@ _shared_context: BrowserContext
 ## 9. 安全设计
 
 ### 9.1 认证与授权
+
 - JWT Token：60 分钟有效期（`ACCESS_TOKEN_EXPIRE_MINUTES = 60`）
 - 密码：bcrypt 加密
 - 登录失败锁定：5 次失败后锁定 15 分钟（Redis 持久化，重启不丢失）
 
 ### 9.2 数据隔离
+
 - 所有数据库查询通过 `user_id = current_user.id` 过滤
 - 跨用户 URL 枚举防护：批量操作中先通过 user_id 过滤再处理
 
 ### 9.3 输入防护
+
 - LIKE 查询使用 `escape='\\'` 转义 LIKE 元字符（`%`、`_`、`\`）
 - URL 格式基础校验
 - Pydantic schema 层验证
 
 ## 10. 关键约束
 
-| 约束 | 说明 |
-|------|------|
-| Windows uvicorn | 禁止使用 `--reload`（Playwright 子进程问题）|
-| 数据库时间戳 | 全部使用 UTC（`datetime.now(timezone.utc)`）|
-| 价格比较 | 使用 `Decimal` 避免浮点误差 |
-| 爬取并发 | 全局 Semaphore(1) 互斥 + 批次 Semaphore(3) |
-| CDP 连接 | 通过 `settings.cdp_enabled` 开关控制 |
+| 约束            | 说明                                         |
+| --------------- | -------------------------------------------- |
+| Windows uvicorn | 禁止使用 `--reload`（Playwright 子进程问题） |
+| 数据库时间戳    | 全部使用 UTC（`datetime.now(timezone.utc)`） |
+| 价格比较        | 使用 `Decimal` 避免浮点误差                  |
+| 爬取并发        | 全局 Semaphore(1) 互斥 + 批次 Semaphore(3)   |
+| CDP 连接        | 通过 `settings.cdp_enabled` 开关控制         |
 
 ## 11. 环境变量配置示例
 

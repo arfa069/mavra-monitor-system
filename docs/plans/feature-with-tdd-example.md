@@ -11,16 +11,19 @@
 
 **修复方案:**
 创建邮件服务模块，支持：
+
 - SMTP 配置管理
 - 邮件模板渲染
 - 发送重试机制
 
 **修改文件:**
+
 - `app/services/email_service.py`
 - `app/models/email_config.py`
 - `tests/test_email_service.py`
 
 **TDD 要求:**
+
 ```
 先写测试，再实现功能。遵循 Red-Green-Refactor:
 
@@ -35,6 +38,7 @@
 ```
 
 **验收标准:**
+
 - [ ] `test_send_price_alert_email_success` 通过
 - [ ] `test_send_email_with_retry_on_failure` 通过
 - [ ] `test_render_email_template` 通过
@@ -50,15 +54,18 @@
 
 **修复方案:**
 在 `check_price_alerts()` 函数中：
+
 1. 获取商品的价格历史
 2. 计算降价幅度
 3. 如果超过阈值，调用邮件服务
 
 **修改文件:**
+
 - `app/services/alert_service.py`
 - `tests/test_alert_service.py`
 
 **TDD 要求:**
+
 ```
 必须先写测试:
 
@@ -73,6 +80,7 @@
 ```
 
 **验收标准:**
+
 - [ ] 降价超过阈值时触发告警
 - [ ] 降价未达阈值时不触发
 - [ ] 同一降价不会重复发送告警
@@ -87,15 +95,18 @@
 
 **修复方案:**
 添加 REST API 端点：
+
 - `GET /api/email-config` - 获取当前配置
 - `PUT /api/email-config` - 更新配置
 - `POST /api/email-config/test` - 发送测试邮件
 
 **修改文件:**
+
 - `app/api/email_config.py`
 - `tests/test_email_config_api.py`
 
 **TDD 要求:**
+
 ```
 API 测试驱动开发:
 
@@ -110,6 +121,7 @@ API 测试驱动开发:
 ```
 
 **验收标准:**
+
 - [ ] 获取配置返回正确的 SMTP 设置
 - [ ] 更新配置后持久化成功
 - [ ] 测试邮件端点发送成功

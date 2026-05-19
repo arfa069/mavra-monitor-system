@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   App,
   Button,
@@ -11,27 +11,27 @@ import {
   Switch,
   Tag,
   Typography,
-} from 'antd'
+} from "antd";
 import {
   DeleteOutlined,
   EditOutlined,
   PlayCircleOutlined,
   PlusOutlined,
-} from '@ant-design/icons'
-import JobConfigForm from '@/components/JobConfigForm'
-import { useStaggerAnimation } from '@/hooks/useStaggerAnimation'
-import type { JobSearchConfig, JobSearchConfigCreate } from '@/types'
+} from "@ant-design/icons";
+import JobConfigForm from "@/components/JobConfigForm";
+import { useStaggerAnimation } from "@/hooks/useStaggerAnimation";
+import type { JobSearchConfig, JobSearchConfigCreate } from "@/types";
 
 interface JobConfigListProps {
-  configs?: JobSearchConfig[]
-  isLoading?: boolean
-  onCreate: (data: JobSearchConfigCreate) => Promise<void>
-  onUpdate: (id: number, data: Partial<JobSearchConfigCreate>) => Promise<void>
-  onDelete: (id: number) => Promise<void>
-  onCrawl?: (id: number) => Promise<void>
-  createLoading?: boolean
-  updateLoading?: boolean
-  crawlLoading?: boolean
+  configs?: JobSearchConfig[];
+  isLoading?: boolean;
+  onCreate: (data: JobSearchConfigCreate) => Promise<void>;
+  onUpdate: (id: number, data: Partial<JobSearchConfigCreate>) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+  onCrawl?: (id: number) => Promise<void>;
+  createLoading?: boolean;
+  updateLoading?: boolean;
+  crawlLoading?: boolean;
 }
 
 export default function JobConfigList({
@@ -45,33 +45,42 @@ export default function JobConfigList({
   updateLoading,
   crawlLoading,
 }: JobConfigListProps) {
-  const message = App.useApp().message
-  const stagger = useStaggerAnimation(0.05, 0.05)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editRecord, setEditRecord] = useState<JobSearchConfig | null>(null)
+  const message = App.useApp().message;
+  const stagger = useStaggerAnimation(0.05, 0.05);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editRecord, setEditRecord] = useState<JobSearchConfig | null>(null);
 
   const handleCreate = async (data: Partial<JobSearchConfigCreate>) => {
-    if (!data.name || !data.url) throw new Error('missing required fields')
-    await onCreate(data as JobSearchConfigCreate)
-    setCreateOpen(false)
-    message.success('Config created successfully')
-  }
+    if (!data.name || !data.url) throw new Error("missing required fields");
+    await onCreate(data as JobSearchConfigCreate);
+    setCreateOpen(false);
+    message.success("Config created successfully");
+  };
 
   const handleUpdate = async (data: Partial<JobSearchConfigCreate>) => {
-    if (!editRecord) return
-    await onUpdate(editRecord.id, data)
-    setEditRecord(null)
-    message.success('Config updated successfully')
-  }
+    if (!editRecord) return;
+    await onUpdate(editRecord.id, data);
+    setEditRecord(null);
+    message.success("Config updated successfully");
+  };
 
-  const handleToggleMatch = async (config: JobSearchConfig, checked: boolean) => {
-    await onUpdate(config.id, { enable_match_analysis: checked })
-    message.success(checked ? 'Auto-match enabled' : 'Auto-match disabled')
-  }
+  const handleToggleMatch = async (
+    config: JobSearchConfig,
+    checked: boolean,
+  ) => {
+    await onUpdate(config.id, { enable_match_analysis: checked });
+    message.success(checked ? "Auto-match enabled" : "Auto-match disabled");
+  };
 
   return (
     <div>
-      <Space style={{ marginBottom: 12, width: '100%', justifyContent: 'space-between' }}>
+      <Space
+        style={{
+          marginBottom: 12,
+          width: "100%",
+          justifyContent: "space-between",
+        }}
+      >
         <Typography.Title level={5} style={{ margin: 0 }}>
           Job Search Config
         </Typography.Title>
@@ -85,7 +94,7 @@ export default function JobConfigList({
       </Space>
 
       {isLoading ? (
-        <div style={{ padding: 24, textAlign: 'center' }}>
+        <div style={{ padding: 24, textAlign: "center" }}>
           <Spin />
         </div>
       ) : !configs?.length ? (
@@ -95,61 +104,89 @@ export default function JobConfigList({
           variants={stagger.container}
           initial="hidden"
           animate="show"
-          style={{ width: '100%' }}
+          style={{ width: "100%" }}
         >
-        <Space orientation="vertical" style={{ width: '100%' }}>
-          {configs.map((config) => (
-            <motion.div key={config.id} variants={stagger.item}>
-              <Card
-                size="small"
-                title={config.name}
-                extra={
-                  <Space>
-                    <Tag color={config.platform === '51job' ? 'orange' : 'blue'}>
-                      {config.platform === '51job' ? '前程无忧' : 'Boss直聘'}
-                    </Tag>
-                    <Tag color={config.active ? 'success' : 'default'}>
-                      {config.active ? 'Enabled' : 'Disabled'}
-                    </Tag>
-                    <Tag color={config.notify_on_new ? 'processing' : 'default'}>
-                      {config.notify_on_new ? 'New Job Notification' : 'Notification Off'}
-                    </Tag>
-                    <Switch
-                      size="small"
-                      checked={config.enable_match_analysis}
-                      checkedChildren="Auto-match"
-                      unCheckedChildren="Auto-match"
-                      onChange={(checked) => void handleToggleMatch(config, checked)}
-                    />
-                  </Space>
-                }
-              >
-                <Typography.Paragraph ellipsis={{ rows: 1 }} style={{ marginBottom: 8 }}>
-                  {config.url}
-                </Typography.Paragraph>
-                <Space wrap size={8}>
-                  {onCrawl && (
+          <Space orientation="vertical" style={{ width: "100%" }}>
+            {configs.map((config) => (
+              <motion.div key={config.id} variants={stagger.item}>
+                <Card
+                  size="small"
+                  title={config.name}
+                  extra={
+                    <Space>
+                      {(() => {
+                        const platformLabels: Record<
+                          string,
+                          { label: string; color: string }
+                        > = {
+                          boss: { label: "Boss直聘", color: "blue" },
+                          "51job": { label: "前程无忧", color: "orange" },
+                          liepin: { label: "猎聘", color: "purple" },
+                        };
+                        const cfg = platformLabels[config.platform];
+                        return (
+                          <Tag color={cfg?.color || "default"}>
+                            {cfg?.label || config.platform}
+                          </Tag>
+                        );
+                      })()}
+                      <Tag color={config.active ? "success" : "default"}>
+                        {config.active ? "Enabled" : "Disabled"}
+                      </Tag>
+                      <Tag
+                        color={config.notify_on_new ? "processing" : "default"}
+                      >
+                        {config.notify_on_new
+                          ? "New Job Notification"
+                          : "Notification Off"}
+                      </Tag>
+                      <Switch
+                        size="small"
+                        checked={config.enable_match_analysis}
+                        checkedChildren="Auto-match"
+                        unCheckedChildren="Auto-match"
+                        onChange={(checked) =>
+                          void handleToggleMatch(config, checked)
+                        }
+                      />
+                    </Space>
+                  }
+                >
+                  <Typography.Paragraph
+                    ellipsis={{ rows: 1 }}
+                    style={{ marginBottom: 8 }}
+                  >
+                    {config.url}
+                  </Typography.Paragraph>
+                  <Space wrap size={8}>
+                    {onCrawl && (
+                      <Button
+                        icon={<PlayCircleOutlined />}
+                        loading={crawlLoading}
+                        onClick={() => onCrawl(config.id)}
+                      >
+                        Crawl
+                      </Button>
+                    )}
                     <Button
-                      icon={<PlayCircleOutlined />}
-                      loading={crawlLoading}
-                      onClick={() => onCrawl(config.id)}
+                      icon={<EditOutlined />}
+                      onClick={() => setEditRecord(config)}
                     >
-                      Crawl
+                      Edit
                     </Button>
-                  )}
-                  <Button icon={<EditOutlined />} onClick={() => setEditRecord(config)}>
-                    Edit
-                  </Button>
-                  <Popconfirm title="Confirm delete this config?" onConfirm={() => onDelete(config.id)}>
-                    <Button danger icon={<DeleteOutlined />}>
-                      Delete
-                    </Button>
-                  </Popconfirm>
-                </Space>
-              </Card>
-            </motion.div>
-          ))}
-        </Space>
+                    <Popconfirm
+                      title="Confirm delete this config?"
+                      onConfirm={() => onDelete(config.id)}
+                    >
+                      <Button danger icon={<DeleteOutlined />}>
+                        Delete
+                      </Button>
+                    </Popconfirm>
+                  </Space>
+                </Card>
+              </motion.div>
+            ))}
+          </Space>
         </motion.div>
       )}
 
@@ -167,5 +204,5 @@ export default function JobConfigList({
         confirmLoading={updateLoading}
       />
     </div>
-  )
+  );
 }

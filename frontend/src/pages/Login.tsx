@@ -1,54 +1,61 @@
-import { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { Form, Input, Button, App, Typography } from 'antd'
-import { authApi } from '@/api/auth'
-import { useAuth } from '@/contexts/AuthContext'
+import { useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { Form, Input, Button, App, Typography } from "antd";
+import { authApi } from "@/api/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
-const { Text } = Typography
+const { Text } = Typography;
 
 interface LoginFormValues {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 export default function LoginPage() {
-  const [loading, setLoading] = useState(false)
-  const [form] = Form.useForm()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { login } = useAuth()
-  const message = App.useApp().message
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const message = App.useApp().message;
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/jobs'
+  const from =
+    (location.state as { from?: { pathname: string } })?.from?.pathname ||
+    "/jobs";
 
   const handleSubmit = async (values: LoginFormValues) => {
-    setLoading(true)
+    setLoading(true);
     try {
       const response = await authApi.login({
         username: values.username,
         password: values.password,
-      })
-      const { access_token } = response.data
-      login(access_token, { id: 0, username: '', email: '', role: 'user' as const })
+      });
+      const { access_token } = response.data;
+      login(access_token, {
+        id: 0,
+        username: "",
+        email: "",
+        role: "user" as const,
+      });
 
-      const meResponse = await authApi.getMe()
-      const user = meResponse.data
+      const meResponse = await authApi.getMe();
+      const user = meResponse.data;
       login(access_token, {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role || 'user',
-      })
+        role: user.role || "user",
+      });
 
-      message.success(`Welcome back, ${user.username}!`)
-      navigate(from, { replace: true })
+      message.success(`Welcome back, ${user.username}!`);
+      navigate(from, { replace: true });
     } catch {
-      message.error('Invalid username or password')
-      form.resetFields(['password'])
+      message.error("Invalid username or password");
+      form.resetFields(["password"]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="login-root">
@@ -75,11 +82,13 @@ export default function LoginPage() {
           {/* Hero copy */}
           <div className="login-hero">
             <h1 className="login-headline">
-              All Prices<br />
+              All Prices
+              <br />
               One Dashboard
             </h1>
             <p className="login-subhead">
-              Track prices across Taobao, JD, and Amazon<br />
+              Track prices across Taobao, JD, and Amazon
+              <br />
               Auto alerts on price drops, never miss a deal
             </p>
           </div>
@@ -104,14 +113,14 @@ export default function LoginPage() {
             layout="vertical"
             requiredMark={false}
             className="login-form"
-            initialValues={{ username: '', password: '' }}
+            initialValues={{ username: "", password: "" }}
           >
             <Form.Item
               name="username"
               label="Email"
               rules={[
-                { required: true, message: 'Please enter username or email' },
-                { min: 2, message: 'Username must be at least 2 characters' },
+                { required: true, message: "Please enter username or email" },
+                { min: 2, message: "Username must be at least 2 characters" },
               ]}
             >
               <Input
@@ -126,8 +135,8 @@ export default function LoginPage() {
               name="password"
               label="Password"
               rules={[
-                { required: true, message: 'Please enter password' },
-                { min: 6, message: 'Password must be at least 6 characters' },
+                { required: true, message: "Please enter password" },
+                { min: 6, message: "Password must be at least 6 characters" },
               ]}
             >
               <Input.Password
@@ -147,22 +156,22 @@ export default function LoginPage() {
                 block
                 className="login-btn-primary"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? "Signing in..." : "Sign In"}
               </Button>
             </Form.Item>
           </Form>
 
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <div style={{ marginTop: 16, textAlign: "center" }}>
             <Button
               disabled
               size="large"
               block
               style={{
                 borderRadius: 50,
-                background: 'var(--color-surface-soft)',
-                borderColor: 'var(--color-hairline)',
-                color: 'var(--color-muted)',
-                fontFamily: 'var(--font-body)',
+                background: "var(--color-surface-soft)",
+                borderColor: "var(--color-hairline)",
+                color: "var(--color-muted)",
+                fontFamily: "var(--font-body)",
               }}
             >
               WeChat Login (Coming Soon)
@@ -170,18 +179,14 @@ export default function LoginPage() {
           </div>
 
           <div className="login-form-footer">
-            <Text className="login-footer-text">
-              Don't have an account?{' '}
-            </Text>
+            <Text className="login-footer-text">Don't have an account? </Text>
             <Link to="/register" className="login-footer-link">
               Sign Up
             </Link>
           </div>
         </div>
 
-        <Text className="login-copyright">
-          Price Monitor © 2026
-        </Text>
+        <Text className="login-copyright">Price Monitor © 2026</Text>
       </div>
 
       <style>{`
@@ -500,5 +505,5 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
-  )
+  );
 }

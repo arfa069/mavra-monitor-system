@@ -1,296 +1,340 @@
-import { useCallback, useEffect, useState } from 'react'
-import { DeleteOutlined, SaveOutlined, ThunderboltOutlined } from '@ant-design/icons'
-import { Alert, App, Button, Divider, Input, InputNumber, Modal, Select, Space, Table, Tag } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import { useConfig, useUpdateConfig } from '@/hooks/api'
-import { configApi } from '@/api/config'
-import { jobsApi } from '@/api/jobs'
-import { productsApi } from '@/api/products'
-import CronGenerator from '@/components/CronGenerator'
-import { useAuth } from '@/contexts/AuthContext'
+import { useCallback, useEffect, useState } from "react";
+import {
+  DeleteOutlined,
+  SaveOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
+import {
+  Alert,
+  App,
+  Button,
+  Divider,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { useConfig, useUpdateConfig } from "@/hooks/api";
+import { configApi } from "@/api/config";
+import { jobsApi } from "@/api/jobs";
+import { productsApi } from "@/api/products";
+import CronGenerator from "@/components/CronGenerator";
+import { useAuth } from "@/contexts/AuthContext";
 import type {
   JobConfigScheduleInfo,
   JobSearchConfig,
   ProductPlatformCron,
   ProductPlatformCronSchedule,
-} from '@/types'
+} from "@/types";
 
-const CRON_SEGMENT_RE = /^(\*|[0-9]+(?:-[0-9]+)?(?:\/[0-9]+)?)$/
+const CRON_SEGMENT_RE = /^(\*|[0-9]+(?:-[0-9]+)?(?:\/[0-9]+)?)$/;
 
 const isValidCronFormat = (value: string): boolean => {
-  const parts = value.trim().split(/\s+/)
-  return parts.length === 5 && parts.every((part) => CRON_SEGMENT_RE.test(part))
-}
+  const parts = value.trim().split(/\s+/);
+  return (
+    parts.length === 5 && parts.every((part) => CRON_SEGMENT_RE.test(part))
+  );
+};
 
 const PLATFORM_LABELS: Record<string, string> = {
-  taobao: 'Taobao',
-  jd: 'JD',
-  amazon: 'Amazon',
-}
+  taobao: "Taobao",
+  jd: "JD",
+  amazon: "Amazon",
+};
 
 export default function ScheduleConfigPage() {
-  const { user } = useAuth()
-  const isReadOnly = user?.role === 'admin'
-  const message = App.useApp().message
-  const { data: config, isLoading, isError, refetch } = useConfig()
-  const updateMutation = useUpdateConfig()
+  const { user } = useAuth();
+  const isReadOnly = user?.role === "admin";
+  const message = App.useApp().message;
+  const { data: config, isLoading, isError, refetch } = useConfig();
+  const updateMutation = useUpdateConfig();
 
-  const [retentionDays, setRetentionDays] = useState(365)
-  const [feishuWebhookUrl, setFeishuWebhookUrl] = useState('')
+  const [retentionDays, setRetentionDays] = useState(365);
+  const [feishuWebhookUrl, setFeishuWebhookUrl] = useState("");
 
-  const [platformConfigs, setPlatformConfigs] = useState<ProductPlatformCron[]>([])
-  const [platformSchedules, setPlatformSchedules] = useState<Record<string, ProductPlatformCronSchedule>>({})
-  const [platformLoading, setPlatformLoading] = useState(false)
-  const [platformCronInputs, setPlatformCronInputs] = useState<Record<string, string>>({})
-  const [platformSaving, setPlatformSaving] = useState<Record<string, boolean>>({})
+  const [platformConfigs, setPlatformConfigs] = useState<ProductPlatformCron[]>(
+    [],
+  );
+  const [platformSchedules, setPlatformSchedules] = useState<
+    Record<string, ProductPlatformCronSchedule>
+  >({});
+  const [platformLoading, setPlatformLoading] = useState(false);
+  const [platformCronInputs, setPlatformCronInputs] = useState<
+    Record<string, string>
+  >({});
+  const [platformSaving, setPlatformSaving] = useState<Record<string, boolean>>(
+    {},
+  );
 
-  const [addModalOpen, setAddModalOpen] = useState(false)
-  const [addPlatform, setAddPlatform] = useState<string | undefined>(undefined)
-  const [addCron, setAddCron] = useState('')
-  const [addSaving, setAddSaving] = useState(false)
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addPlatform, setAddPlatform] = useState<string | undefined>(undefined);
+  const [addCron, setAddCron] = useState("");
+  const [addSaving, setAddSaving] = useState(false);
 
-  const [configList, setConfigList] = useState<JobSearchConfig[]>([])
-  const [configSchedules, setConfigSchedules] = useState<Record<number, JobConfigScheduleInfo>>({})
-  const [configLoading, setConfigLoading] = useState(false)
-  const [cronInputs, setCronInputs] = useState<Record<number, string>>({})
-  const [savingCron, setSavingCron] = useState<Record<number, boolean>>({})
+  const [configList, setConfigList] = useState<JobSearchConfig[]>([]);
+  const [configSchedules, setConfigSchedules] = useState<
+    Record<number, JobConfigScheduleInfo>
+  >({});
+  const [configLoading, setConfigLoading] = useState(false);
+  const [cronInputs, setCronInputs] = useState<Record<number, string>>({});
+  const [savingCron, setSavingCron] = useState<Record<number, boolean>>({});
 
   // Cron generator state
-  const [generatorOpen, setGeneratorOpen] = useState(false)
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const [generatorTarget, setGeneratorTarget] = useState<{
-    type: 'platform' | 'config' | 'add'
-    platform?: string
-    configId?: number
-  } | null>(null)
+    type: "platform" | "config" | "add";
+    platform?: string;
+    configId?: number;
+  } | null>(null);
 
   const fetchSchedulerStatus = useCallback(async () => {
     try {
-      await configApi.getSchedulerStatus()
+      await configApi.getSchedulerStatus();
     } catch {
       // page uses per-table schedule endpoints directly; ignore status failures
     }
-  }, [])
+  }, []);
 
   const loadPlatformData = useCallback(async () => {
-    setPlatformLoading(true)
+    setPlatformLoading(true);
     try {
       const [configsRes, schedulesRes] = await Promise.all([
         productsApi.getCronConfigs(),
         productsApi.getCronSchedules(),
-      ])
-      const configs = configsRes.data
-      setPlatformConfigs(configs)
-      setPlatformSchedules(schedulesRes.data.platforms)
-      const inputs: Record<string, string> = {}
+      ]);
+      const configs = configsRes.data;
+      setPlatformConfigs(configs);
+      setPlatformSchedules(schedulesRes.data.platforms);
+      const inputs: Record<string, string> = {};
       configs.forEach((configItem) => {
-        inputs[configItem.platform] = configItem.cron_expression || ''
-      })
-      setPlatformCronInputs(inputs)
+        inputs[configItem.platform] = configItem.cron_expression || "";
+      });
+      setPlatformCronInputs(inputs);
     } catch {
-      message.error('Failed to load product schedule config')
+      message.error("Failed to load product schedule config");
     } finally {
-      setPlatformLoading(false)
+      setPlatformLoading(false);
     }
-  }, [message])
+  }, [message]);
 
   const loadConfigData = useCallback(async () => {
-    setConfigLoading(true)
+    setConfigLoading(true);
     try {
       const [configsRes, schedulesRes] = await Promise.all([
         jobsApi.getConfigs(),
         jobsApi.getJobConfigSchedules(),
-      ])
-      const configs = configsRes.data
-      setConfigList(configs)
-      const scheduleMap: Record<number, JobConfigScheduleInfo> = {}
+      ]);
+      const configs = configsRes.data;
+      setConfigList(configs);
+      const scheduleMap: Record<number, JobConfigScheduleInfo> = {};
       schedulesRes.data.configs.forEach((item) => {
-        scheduleMap[item.config_id] = item
-      })
-      setConfigSchedules(scheduleMap)
-      const inputs: Record<number, string> = {}
+        scheduleMap[item.config_id] = item;
+      });
+      setConfigSchedules(scheduleMap);
+      const inputs: Record<number, string> = {};
       configs.forEach((configItem) => {
-        inputs[configItem.id] = configItem.cron_expression || ''
-      })
-      setCronInputs(inputs)
+        inputs[configItem.id] = configItem.cron_expression || "";
+      });
+      setCronInputs(inputs);
     } catch {
-      message.error('Failed to load job schedule config')
+      message.error("Failed to load job schedule config");
     } finally {
-      setConfigLoading(false)
+      setConfigLoading(false);
     }
-  }, [message])
+  }, [message]);
 
   useEffect(() => {
     if (config) {
       const timer = window.setTimeout(() => {
-        setRetentionDays(config.data_retention_days || 365)
-        setFeishuWebhookUrl(config.feishu_webhook_url || '')
-      }, 0)
-      return () => window.clearTimeout(timer)
+        setRetentionDays(config.data_retention_days || 365);
+        setFeishuWebhookUrl(config.feishu_webhook_url || "");
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-  }, [config])
+  }, [config]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void fetchSchedulerStatus()
-      void loadPlatformData()
-      void loadConfigData()
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [fetchSchedulerStatus, loadPlatformData, loadConfigData])
+      void fetchSchedulerStatus();
+      void loadPlatformData();
+      void loadConfigData();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSchedulerStatus, loadPlatformData, loadConfigData]);
 
   const handleSaveRetention = async () => {
     try {
-      await updateMutation.mutateAsync({ data_retention_days: retentionDays })
-      message.success('Retention days saved')
-      refetch()
+      await updateMutation.mutateAsync({ data_retention_days: retentionDays });
+      message.success("Retention days saved");
+      refetch();
     } catch {
-      message.error('Save failed')
+      message.error("Save failed");
     }
-  }
+  };
 
   const handleSaveWebhook = async () => {
     try {
-      await updateMutation.mutateAsync({ feishu_webhook_url: feishuWebhookUrl })
-      message.success('Webhook URL saved')
-      refetch()
+      await updateMutation.mutateAsync({
+        feishu_webhook_url: feishuWebhookUrl,
+      });
+      message.success("Webhook URL saved");
+      refetch();
     } catch {
-      message.error('Save failed')
+      message.error("Save failed");
     }
-  }
+  };
 
   const handleAddPlatformCron = async () => {
     if (!addPlatform) {
-      message.error('Please select a platform')
-      return
+      message.error("Please select a platform");
+      return;
     }
-    const value = addCron.trim() || null
+    const value = addCron.trim() || null;
     if (value && !isValidCronFormat(value)) {
-      message.error('Invalid cron expression')
-      return
+      message.error("Invalid cron expression");
+      return;
     }
-    setAddSaving(true)
+    setAddSaving(true);
     try {
       await productsApi.createCronConfig({
         platform: addPlatform,
         cron_expression: value,
-        cron_timezone: 'Asia/Shanghai',
-      })
-      message.success('Added')
-      setAddModalOpen(false)
-      setAddPlatform(undefined)
-      setAddCron('')
-      void loadPlatformData()
+        cron_timezone: "Asia/Shanghai",
+      });
+      message.success("Added");
+      setAddModalOpen(false);
+      setAddPlatform(undefined);
+      setAddCron("");
+      void loadPlatformData();
     } catch {
-      message.error('Add failed')
+      message.error("Add failed");
     } finally {
-      setAddSaving(false)
+      setAddSaving(false);
     }
-  }
+  };
 
   const handleDeletePlatformCron = async (platform: string) => {
     Modal.confirm({
-      title: 'Delete Schedule Config',
+      title: "Delete Schedule Config",
       content: `Delete schedule config for ${PLATFORM_LABELS[platform] || platform}?`,
       onOk: async () => {
         try {
-          await productsApi.deleteCronConfig(platform)
-          message.success('Deleted')
-          void loadPlatformData()
+          await productsApi.deleteCronConfig(platform);
+          message.success("Deleted");
+          void loadPlatformData();
         } catch {
-          message.error('Delete failed')
+          message.error("Delete failed");
         }
       },
-    })
-  }
+    });
+  };
 
   const handleSavePlatformCron = async (platform: string) => {
-    const value = platformCronInputs[platform]?.trim() || null
+    const value = platformCronInputs[platform]?.trim() || null;
     if (value && !isValidCronFormat(value)) {
-      message.error('Invalid cron expression')
-      return
+      message.error("Invalid cron expression");
+      return;
     }
-    setPlatformSaving((prev) => ({ ...prev, [platform]: true }))
+    setPlatformSaving((prev) => ({ ...prev, [platform]: true }));
     try {
       await productsApi.updateCronConfig(platform, {
         cron_expression: value,
-        cron_timezone: 'Asia/Shanghai',
-      })
-      message.success('Saved')
-      void loadPlatformData()
+        cron_timezone: "Asia/Shanghai",
+      });
+      message.success("Saved");
+      void loadPlatformData();
     } catch {
-      message.error('Save failed')
+      message.error("Save failed");
     } finally {
-      setPlatformSaving((prev) => ({ ...prev, [platform]: false }))
+      setPlatformSaving((prev) => ({ ...prev, [platform]: false }));
     }
-  }
+  };
 
   const handleSaveConfigCron = async (configId: number) => {
-    const value = cronInputs[configId]?.trim() || null
+    const value = cronInputs[configId]?.trim() || null;
     if (value && !isValidCronFormat(value)) {
-      message.error('Invalid cron expression')
-      return
+      message.error("Invalid cron expression");
+      return;
     }
-    setSavingCron((prev) => ({ ...prev, [configId]: true }))
+    setSavingCron((prev) => ({ ...prev, [configId]: true }));
     try {
       await jobsApi.updateConfigCron(configId, {
         cron_expression: value,
-        cron_timezone: 'Asia/Shanghai',
-      })
-      message.success('Saved')
-      void loadConfigData()
+        cron_timezone: "Asia/Shanghai",
+      });
+      message.success("Saved");
+      void loadConfigData();
     } catch {
-      message.error('Save failed')
+      message.error("Save failed");
     } finally {
-      setSavingCron((prev) => ({ ...prev, [configId]: false }))
+      setSavingCron((prev) => ({ ...prev, [configId]: false }));
     }
-  }
+  };
 
   const handleOpenGenerator = useCallback(
-    (target: { type: 'platform'; platform: string } | { type: 'config'; configId: number } | { type: 'add' }) => {
-      setGeneratorTarget(target)
-      setGeneratorOpen(true)
+    (
+      target:
+        | { type: "platform"; platform: string }
+        | { type: "config"; configId: number }
+        | { type: "add" },
+    ) => {
+      setGeneratorTarget(target);
+      setGeneratorOpen(true);
     },
     [],
-  )
+  );
 
   const handleApplyCron = useCallback(
     (cronExpression: string) => {
-      if (!generatorTarget) return
+      if (!generatorTarget) return;
       switch (generatorTarget.type) {
-        case 'platform':
-          setPlatformCronInputs((prev) => ({ ...prev, [generatorTarget.platform!]: cronExpression }))
-          break
-        case 'config':
-          setCronInputs((prev) => ({ ...prev, [generatorTarget.configId!]: cronExpression }))
-          break
-        case 'add':
-          setAddCron(cronExpression)
-          break
+        case "platform":
+          setPlatformCronInputs((prev) => ({
+            ...prev,
+            [generatorTarget.platform!]: cronExpression,
+          }));
+          break;
+        case "config":
+          setCronInputs((prev) => ({
+            ...prev,
+            [generatorTarget.configId!]: cronExpression,
+          }));
+          break;
+        case "add":
+          setAddCron(cronExpression);
+          break;
       }
-      setGeneratorOpen(false)
-      setGeneratorTarget(null)
+      setGeneratorOpen(false);
+      setGeneratorTarget(null);
     },
     [generatorTarget],
-  )
+  );
 
   const platformColumns: ColumnsType<ProductPlatformCron> = [
     {
-      title: 'Platform',
-      dataIndex: 'platform',
-      key: 'platform',
+      title: "Platform",
+      dataIndex: "platform",
+      key: "platform",
       width: 200,
       render: (value: string) => PLATFORM_LABELS[value] || value,
     },
     {
-      title: 'Cron Expression',
-      key: 'cron',
+      title: "Cron Expression",
+      key: "cron",
       width: 450,
       render: (_: unknown, record: ProductPlatformCron) => (
         <Space>
           <Input
-            value={platformCronInputs[record.platform] ?? ''}
+            value={platformCronInputs[record.platform] ?? ""}
             onChange={(e) =>
-              setPlatformCronInputs((prev) => ({ ...prev, [record.platform]: e.target.value }))
+              setPlatformCronInputs((prev) => ({
+                ...prev,
+                [record.platform]: e.target.value,
+              }))
             }
             placeholder="0 9 * * *"
             style={{ width: 190 }}
@@ -299,7 +343,12 @@ export default function ScheduleConfigPage() {
           <Button
             icon={<ThunderboltOutlined />}
             size="small"
-            onClick={() => handleOpenGenerator({ type: 'platform', platform: record.platform })}
+            onClick={() =>
+              handleOpenGenerator({
+                type: "platform",
+                platform: record.platform,
+              })
+            }
             disabled={isReadOnly}
             className="fg-btn-secondary fg-btn-sm"
           />
@@ -315,49 +364,62 @@ export default function ScheduleConfigPage() {
       ),
     },
     {
-      title: 'Next Run',
-      key: 'next_run',
+      title: "Next Run",
+      key: "next_run",
       render: (_, record) => {
-        const schedule = platformSchedules[record.platform]
+        const schedule = platformSchedules[record.platform];
         const nextRun = schedule?.next_run_at
-          ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(schedule.next_run_at))
-          : null
-        return nextRun ? nextRun : <Tag>Unscheduled</Tag>
+          ? new Intl.DateTimeFormat("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }).format(new Date(schedule.next_run_at))
+          : null;
+        return nextRun ? nextRun : <Tag>Unscheduled</Tag>;
       },
     },
     ...(isReadOnly
       ? []
       : [
           {
-            title: 'Actions',
-            key: 'action',
+            title: "Actions",
+            key: "action",
             width: 90,
             render: (_: unknown, record: ProductPlatformCron) => (
-              <Button danger size="small" icon={<DeleteOutlined />} onClick={() => void handleDeletePlatformCron(record.platform)}>
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => void handleDeletePlatformCron(record.platform)}
+              >
                 Delete
               </Button>
             ),
           },
         ]),
-  ] as ColumnsType<ProductPlatformCron>
+  ] as ColumnsType<ProductPlatformCron>;
 
   const configColumns: ColumnsType<JobSearchConfig> = [
     {
-      title: 'Config Name',
-      dataIndex: 'name',
-      key: 'name',
+      title: "Config Name",
+      dataIndex: "name",
+      key: "name",
       width: 200,
       ellipsis: true,
     },
     {
-      title: 'Cron Expression',
-      key: 'cron',
+      title: "Cron Expression",
+      key: "cron",
       width: 450,
       render: (_, record) => (
         <Space>
           <Input
-            value={cronInputs[record.id] ?? ''}
-            onChange={(e) => setCronInputs((prev) => ({ ...prev, [record.id]: e.target.value }))}
+            value={cronInputs[record.id] ?? ""}
+            onChange={(e) =>
+              setCronInputs((prev) => ({
+                ...prev,
+                [record.id]: e.target.value,
+              }))
+            }
             placeholder="0 9 * * *"
             style={{ width: 190 }}
             disabled={isReadOnly}
@@ -365,7 +427,9 @@ export default function ScheduleConfigPage() {
           <Button
             icon={<ThunderboltOutlined />}
             size="small"
-            onClick={() => handleOpenGenerator({ type: 'config', configId: record.id })}
+            onClick={() =>
+              handleOpenGenerator({ type: "config", configId: record.id })
+            }
             disabled={isReadOnly}
             className="fg-btn-secondary fg-btn-sm"
           />
@@ -381,17 +445,20 @@ export default function ScheduleConfigPage() {
       ),
     },
     {
-      title: 'Next Run',
-      key: 'next_run',
+      title: "Next Run",
+      key: "next_run",
       render: (_, record) => {
-        const schedule = configSchedules[record.id]
+        const schedule = configSchedules[record.id];
         const nextRun = schedule?.next_run_at
-          ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(schedule.next_run_at))
-          : null
-        return nextRun ? nextRun : <Tag>Unscheduled</Tag>
+          ? new Intl.DateTimeFormat("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }).format(new Date(schedule.next_run_at))
+          : null;
+        return nextRun ? nextRun : <Tag>Unscheduled</Tag>;
       },
     },
-  ]
+  ];
 
   return (
     <div>
@@ -401,7 +468,10 @@ export default function ScheduleConfigPage() {
           <div>
             <p className="page-eyebrow">Automation</p>
             <h1 className="page-title">Schedule Config</h1>
-            <p className="page-subtitle">Configure product and job crawl schedules and notification channels</p>
+            <p className="page-subtitle">
+              Configure product and job crawl schedules and notification
+              channels
+            </p>
           </div>
         </div>
       </div>
@@ -422,7 +492,11 @@ export default function ScheduleConfigPage() {
           message="Load Failed"
           description="Unable to fetch configuration. Please try again later."
           action={
-            <Button size="small" onClick={() => void refetch()} className="fg-btn-secondary fg-btn-sm">
+            <Button
+              size="small"
+              onClick={() => void refetch()}
+              className="fg-btn-secondary fg-btn-sm"
+            >
               Retry
             </Button>
           }
@@ -433,13 +507,35 @@ export default function ScheduleConfigPage() {
       {/* Cron config card */}
       <div className="fg-card" style={{ marginTop: 24 }}>
         <div className="fg-card-header">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 480, color: 'var(--color-ink)' }}>
+          <span
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 15,
+              fontWeight: 480,
+              color: "var(--color-ink)",
+            }}
+          >
             Cron Schedule Configuration
           </span>
         </div>
-        <div style={{ padding: '20px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-            <h4 style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 480, color: 'var(--color-ink)', margin: 0 }}>
+        <div style={{ padding: "20px 24px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              margin: "0 0 12px",
+            }}
+          >
+            <h4
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 480,
+                color: "var(--color-ink)",
+                margin: 0,
+              }}
+            >
               Product Crawl Schedule Config
             </h4>
             {!isReadOnly && (
@@ -460,12 +556,20 @@ export default function ScheduleConfigPage() {
             pagination={false}
             size="small"
             scroll={{ x: 1000 }}
-            locale={{ emptyText: 'No product schedule configs' }}
+            locale={{ emptyText: "No product schedule configs" }}
           />
 
-          <Divider style={{ margin: '16px 0' }} />
+          <Divider style={{ margin: "16px 0" }} />
 
-          <h4 style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 480, color: 'var(--color-ink)', margin: '0 0 12px' }}>
+          <h4
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 14,
+              fontWeight: 480,
+              color: "var(--color-ink)",
+              margin: "0 0 12px",
+            }}
+          >
             Job Crawl Schedule Config
           </h4>
           <Table
@@ -476,7 +580,7 @@ export default function ScheduleConfigPage() {
             pagination={false}
             size="small"
             scroll={{ x: 1000 }}
-            locale={{ emptyText: 'No job search configs' }}
+            locale={{ emptyText: "No job search configs" }}
           />
         </div>
       </div>
@@ -484,13 +588,28 @@ export default function ScheduleConfigPage() {
       {/* Data & notification card */}
       <div className="fg-card" style={{ marginTop: 16 }}>
         <div className="fg-card-header">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: 15, fontWeight: 480, color: 'var(--color-ink)' }}>
+          <span
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 15,
+              fontWeight: 480,
+              color: "var(--color-ink)",
+            }}
+          >
             Data Retention & Notification Config
           </span>
         </div>
-        <div style={{ padding: '20px 24px' }}>
+        <div style={{ padding: "20px 24px" }}>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ marginBottom: 6, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 330, color: 'var(--color-muted)' }}>
+            <div
+              style={{
+                marginBottom: 6,
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 330,
+                color: "var(--color-muted)",
+              }}
+            >
               Feishu Webhook URL
             </div>
             <Space>
@@ -499,7 +618,11 @@ export default function ScheduleConfigPage() {
                 onChange={(e) => setFeishuWebhookUrl(e.target.value)}
                 placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/..."
                 autoComplete="off"
-                style={{ width: 420, fontFamily: 'var(--font-body)', fontSize: 14 }}
+                style={{
+                  width: 420,
+                  fontFamily: "var(--font-body)",
+                  fontSize: 14,
+                }}
               />
               <Button
                 onClick={() => void handleSaveWebhook()}
@@ -512,8 +635,16 @@ export default function ScheduleConfigPage() {
             </Space>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 330, color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 330,
+                color: "var(--color-muted)",
+                whiteSpace: "nowrap",
+              }}
+            >
               Data Retention Days
             </span>
             <Space>
@@ -522,7 +653,7 @@ export default function ScheduleConfigPage() {
                 max={3650}
                 value={retentionDays}
                 onChange={(v) => setRetentionDays(v ?? 365)}
-                style={{ width: 160, fontFamily: 'var(--font-body)' }}
+                style={{ width: 160, fontFamily: "var(--font-body)" }}
                 disabled={isReadOnly}
               />
               <Button
@@ -544,45 +675,72 @@ export default function ScheduleConfigPage() {
         open={addModalOpen}
         onOk={() => void handleAddPlatformCron()}
         onCancel={() => {
-          setAddModalOpen(false)
-          setAddPlatform(undefined)
-          setAddCron('')
+          setAddModalOpen(false);
+          setAddPlatform(undefined);
+          setAddCron("");
         }}
         confirmLoading={addSaving}
         okText="Add"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginTop: 16,
+          }}
+        >
           <div>
-            <div style={{ marginBottom: 4, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 330, color: 'var(--color-muted)' }}>
+            <div
+              style={{
+                marginBottom: 4,
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 330,
+                color: "var(--color-muted)",
+              }}
+            >
               Platform
             </div>
             <Select
               value={addPlatform}
               onChange={setAddPlatform}
               placeholder="Select platform"
-              style={{ width: '100%', fontFamily: 'var(--font-body)' }}
+              style={{ width: "100%", fontFamily: "var(--font-body)" }}
               options={[
-                { value: 'taobao', label: 'Taobao' },
-                { value: 'jd', label: 'JD' },
-                { value: 'amazon', label: 'Amazon' },
+                { value: "taobao", label: "Taobao" },
+                { value: "jd", label: "JD" },
+                { value: "amazon", label: "Amazon" },
               ]}
             />
           </div>
           <div>
-            <div style={{ marginBottom: 4, fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 330, color: 'var(--color-muted)' }}>
+            <div
+              style={{
+                marginBottom: 4,
+                fontFamily: "var(--font-body)",
+                fontSize: 14,
+                fontWeight: 330,
+                color: "var(--color-muted)",
+              }}
+            >
               Cron Expression
             </div>
-            <Space style={{ width: '100%' }}>
+            <Space style={{ width: "100%" }}>
               <Input
                 value={addCron}
                 onChange={(e) => setAddCron(e.target.value)}
                 placeholder="0 9 * * *"
-                style={{ flex: 1, fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}
+                style={{
+                  flex: 1,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 14,
+                }}
               />
               <Button
                 icon={<ThunderboltOutlined />}
                 size="small"
-                onClick={() => handleOpenGenerator({ type: 'add' })}
+                onClick={() => handleOpenGenerator({ type: "add" })}
                 disabled={isReadOnly}
                 className="fg-btn-secondary fg-btn-sm"
               />
@@ -594,11 +752,11 @@ export default function ScheduleConfigPage() {
       <CronGenerator
         open={generatorOpen}
         onClose={() => {
-          setGeneratorOpen(false)
-          setGeneratorTarget(null)
+          setGeneratorOpen(false);
+          setGeneratorTarget(null);
         }}
         onApply={handleApplyCron}
       />
     </div>
-  )
+  );
 }

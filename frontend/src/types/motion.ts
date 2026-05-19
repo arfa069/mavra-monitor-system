@@ -1,1 +1,1 @@
-export type MotionSpeed = 'fast' | 'normal' | 'slow'
+export type MotionSpeed = "fast" | "normal" | "slow";

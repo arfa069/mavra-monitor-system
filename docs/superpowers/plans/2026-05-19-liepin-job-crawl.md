@@ -68,6 +68,15 @@ Modify:
 - `frontend/src/components/JobList.tsx`  
   Display a `猎聘` platform tag.
 
+- `frontend/src/components/JobConfigForm.tsx`  
+  Add Liepin as a selectable platform, with Liepin URL parsing and placeholder text.
+
+- `frontend/src/components/JobConfigList.tsx`  
+  Display Liepin config rows with the same label/color mapping used by job rows.
+
+- `frontend/src/pages/JobsPage.tsx`  
+  Update page copy that names supported job platforms.
+
 - Any job config UI file that hardcodes platform options. Find with:
   `rg -n "51job|Boss|platform" frontend/src`
 
@@ -95,16 +104,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import http.client
 import time
 from dataclasses import dataclass
 from urllib.parse import quote
 
 import websockets
 
-from app.platforms.cdp_utils import close_target, open_temporary_tab
-
 
 SEARCH_URL = "https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0"
+CDP_HOST = "127.0.0.1"
+CDP_PORT = 9222
 
 
 @dataclass
@@ -112,7 +122,10 @@ class Candidate:
     url: str
     status: int | None
     mime_type: str | None
+    request_headers: dict
+    post_data: str | None
     body_preview: str
+    body_base64_encoded: bool
 
 
 def looks_like_job_payload(text: str) -> bool:
@@ -130,13 +143,38 @@ def looks_like_job_payload(text: str) -> bool:
     )
 
 
+async def open_temporary_tab(url: str) -> tuple[str | None, str | None]:
+    """Open a CDP tab without depending on app.platforms.cdp_utils."""
+    conn = None
+    try:
+        conn = http.client.HTTPConnection(CDP_HOST, CDP_PORT, timeout=5)
+        conn.request("PUT", f"/json/new?{quote(url, safe='')}")
+        target = json.loads(conn.getresponse().read())
+        return target.get("webSocketDebuggerUrl"), target.get("id")
+    finally:
+        if conn:
+            conn.close()
+
+
+async def close_target(target_id: str) -> None:
+    """Close a CDP target without depending on app.platforms.cdp_utils."""
+    conn = None
+    try:
+        conn = http.client.HTTPConnection(CDP_HOST, CDP_PORT, timeout=3)
+        conn.request("GET", f"/json/close/{target_id}")
+        conn.getresponse()
+    finally:
+        if conn:
+            conn.close()
+
+
 async def main() -> None:
     ws_url, target_id = await open_temporary_tab(SEARCH_URL)
     if not ws_url or not target_id:
         raise SystemExit("CDP browser is not available at 127.0.0.1:9222")
 
     candidates: list[Candidate] = []
-    request_urls: dict[str, str] = {}
+    request_data: dict[str, dict] = {}
 
     try:
         async with websockets.connect(ws_url, max_size=2**25) as ws:
@@ -165,12 +203,17 @@ async def main() -> None:
                     request_id = params.get("requestId")
                     url = request.get("url", "")
                     if request_id and "liepin.com" in url:
-                        request_urls[request_id] = url
+                        request_data[request_id] = {
+                            "url": url,
+                            "headers": request.get("headers", {}),
+                            "postData": request.get("postData"),
+                        }
 
                 if method == "Network.responseReceived":
                     response = params.get("response", {})
                     request_id = params.get("requestId")
-                    url = response.get("url") or request_urls.get(request_id, "")
+                    captured_request = request_data.get(request_id, {})
+                    url = response.get("url") or captured_request.get("url", "")
                     mime_type = response.get("mimeType")
                     if not request_id or "liepin.com" not in url:
                         continue
@@ -194,7 +237,10 @@ async def main() -> None:
                                 url=url,
                                 status=response.get("status"),
                                 mime_type=mime_type,
+                                request_headers=captured_request.get("headers", {}),
+                                post_data=captured_request.get("postData"),
                                 body_preview=body[:2000],
+                                body_base64_encoded=bool(body_result.get("base64Encoded")),
                             )
                         )
 
@@ -240,11 +286,16 @@ Discovery Status: Complete
   - city field and captured request value, for example `dqs = 020`
   - page field and captured request value, for example `currentPage = 0`
   - page size field and captured request value, when present
+- Request body:
+  - Capture the complete POST body when the endpoint uses POST
+  - Record `none` when the endpoint uses GET
 - Required headers:
   - Accept
   - Content-Type, if POST
   - Referer
   - X-* headers observed as required
+- Body encoding:
+  - Record whether CDP reported the response body as base64 encoded
 - Response job list path: the dotted path to the array
 - Response total path: the dotted path to total count, if present
 
@@ -503,7 +554,7 @@ Run:
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_liepin_adapter.py::test_open_temporary_tab_uses_cdp_new_endpoint tests/test_liepin_adapter.py::test_close_target_closes_requested_cdp_target -q"
 ```
 
-Expected: `2 passed`.
+Expected: the two targeted CDP helper tests pass.
 
 - [ ] **Step 5: Commit CDP helpers**
 
@@ -524,6 +575,9 @@ git commit -m "feat: add shared CDP helpers for job crawlers"
 - Modify: `backend/app/services/notification.py`
 - Modify: `frontend/src/types/index.ts`
 - Modify: `frontend/src/components/JobList.tsx`
+- Modify: `frontend/src/components/JobConfigForm.tsx`
+- Modify: `frontend/src/components/JobConfigList.tsx`
+- Modify: `frontend/src/pages/JobsPage.tsx`
 - Test: `backend/tests/test_liepin_pipeline.py`
 
 - [ ] **Step 1: Write failing backend contract tests**
@@ -672,19 +726,19 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("ck_jobs_search_configs_platform", "job_search_configs", type_="check")
+    op.drop_constraint("ck_jobs_search_configs_platform", "jobs_search_configs", type_="check")
     op.create_check_constraint(
         "ck_jobs_search_configs_platform",
-        "job_search_configs",
+        "jobs_search_configs",
         "platform IN ('boss', '51job', 'liepin')",
     )
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_jobs_search_configs_platform", "job_search_configs", type_="check")
+    op.drop_constraint("ck_jobs_search_configs_platform", "jobs_search_configs", type_="check")
     op.create_check_constraint(
         "ck_jobs_search_configs_platform",
-        "job_search_configs",
+        "jobs_search_configs",
         "platform IN ('boss', '51job')",
     )
 ```
@@ -767,6 +821,20 @@ const platformLabels: Record<Job['platform'], { label: string; color: string }> 
 
 Use the existing local pattern if the file currently defines labels inline.
 
+In `frontend/src/components/JobConfigForm.tsx`:
+
+- Add `liepin` to `urlConfigMap` with label `Liepin Search URL` and placeholder `https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0`.
+- Add `<Select.Option value="liepin">猎聘 (Liepin)</Select.Option>` to the platform selector.
+- Extend URL keyword parsing so Liepin's `key` query param populates `keyword`.
+
+In `frontend/src/components/JobConfigList.tsx`, replace inline binary `51job`/Boss rendering with a platform label map that includes:
+
+```tsx
+liepin: { label: '猎聘', color: 'orange' }
+```
+
+In `frontend/src/pages/JobsPage.tsx`, update any subtitle or copy that names supported platforms so it includes Liepin.
+
 - [ ] **Step 6: Run contract tests and frontend build**
 
 Run:
@@ -781,7 +849,7 @@ Expected: backend tests pass and frontend build passes.
 - [ ] **Step 7: Commit platform contract**
 
 ```powershell
-git add backend/app/schemas/job.py backend/app/models/job.py backend/alembic/versions/2026_05_19_add_liepin_job_platform.py backend/app/services/job_crawl.py backend/app/services/notification.py backend/app/platforms/liepin.py backend/app/platforms/__init__.py backend/tests/test_liepin_pipeline.py frontend/src/types/index.ts frontend/src/components/JobList.tsx
+git add backend/app/schemas/job.py backend/app/models/job.py backend/alembic/versions/2026_05_19_add_liepin_job_platform.py backend/app/services/job_crawl.py backend/app/services/notification.py backend/app/platforms/liepin.py backend/app/platforms/__init__.py backend/tests/test_liepin_pipeline.py frontend/src/types/index.ts frontend/src/components/JobList.tsx frontend/src/components/JobConfigForm.tsx frontend/src/components/JobConfigList.tsx frontend/src/pages/JobsPage.tsx
 git commit -m "feat: add liepin job platform contract"
 ```
 
@@ -1080,7 +1148,7 @@ Keep `_crawl_via_cdp()` as an `async` method returning a clear error until Task 
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_liepin_adapter.py::test_liepin_transform_jobs_normalizes_search_items tests/test_liepin_adapter.py::test_liepin_crawl_uses_http_json_success -q"
 ```
 
-Expected: `2 passed`.
+Expected: the two targeted HTTP search tests pass.
 
 - [ ] **Step 5: Commit HTTP search path**
 
@@ -1224,7 +1292,7 @@ In `backend/app/platforms/liepin.py`:
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_liepin_adapter.py::test_liepin_crawl_falls_back_to_cdp_when_http_returns_html tests/test_liepin_adapter.py::test_liepin_cdp_fallback_closes_temporary_tab -q"
 ```
 
-Expected: `2 passed`.
+Expected: the two targeted CDP fallback tests pass.
 
 - [ ] **Step 5: Commit CDP fallback**
 
@@ -1393,7 +1461,7 @@ If endpoint discovery shows a JSON detail API, implement the HTTP detail method 
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_liepin_adapter.py::test_liepin_crawl_detail_parses_html_description_and_address tests/test_liepin_adapter.py::test_liepin_crawl_detail_falls_back_to_cdp_on_challenge -q"
 ```
 
-Expected: `2 passed`.
+Expected: the two targeted detail tests pass.
 
 - [ ] **Step 5: Commit detail fetching**
 
@@ -1471,6 +1539,11 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     update_detail.assert_awaited_once_with(99, adapter=None, platform="liepin")
 ```
 
+Also add two regression tests in `backend/tests/test_job_crawl.py`:
+
+- A new inserted job lookup must include `Job.search_config_id == config_id` so the detail queue cannot pick another config's row with the same platform job id.
+- `update_job_detail()` must skip only when both `description` and `address` are already present; a job with `description` but empty `address` should still call the adapter detail method.
+
 - [ ] **Step 2: Run test and verify it fails**
 
 ```powershell
@@ -1489,14 +1562,40 @@ In `backend/app/services/job_crawl.py`:
 detail_job_ids: list[int] = []
 ```
 
-2. When updating existing jobs, append the internal id if detail fields remain missing after the update:
+2. When updating existing jobs, append the internal id if either detail field remains missing after the update:
 
 ```python
             if not job_obj.description or not job_obj.address:
                 detail_job_ids.append(job_obj.id)
 ```
 
-3. When inserting new jobs, append their ids after flush if the platform policy requires detail enrichment. Keep the already optimized behavior for rows where search results contain both fields:
+3. Update `update_job_detail()` so it skips only when both detail fields already exist:
+
+```python
+        if job.description and job.address:
+            return {
+                "success": True,
+                "detail": {
+                    "description": job.description,
+                    "address": job.address,
+                },
+            }
+```
+
+This keeps the 51job search-JSON optimization for fully enriched rows while allowing Liepin or legacy rows with only one field populated to fetch the missing detail.
+
+4. When inserting new jobs, append their ids after flush if the platform policy requires detail enrichment. Keep the already optimized behavior for rows where search results contain both fields. Also scope the inserted-row lookup by `search_config_id`, because `job_id` is only unique within a config:
+
+```python
+            result = await db.execute(
+                select(Job.id, Job.job_id).where(
+                    Job.search_config_id == config_id,
+                    Job.job_id.in_(newly_inserted_job_ids),
+                )
+            )
+```
+
+Then extend the detail queue:
 
 ```python
             inserted_rows = result.all()
@@ -1508,9 +1607,9 @@ detail_job_ids: list[int] = []
             )
 ```
 
-4. Run the detail loop over `detail_job_ids`, not only `new_job_ids`.
+5. Run the detail loop over `detail_job_ids`, not only `new_job_ids`.
 
-5. Keep notification and match analysis based on `new_job_ids`, not `detail_job_ids`.
+6. Keep notification and match analysis based on `new_job_ids`, not `detail_job_ids`.
 
 - [ ] **Step 4: Run pipeline tests**
 
@@ -1614,6 +1713,22 @@ Expected:
 
 - [ ] **Step 6: Verify temporary tabs are closed**
 
+Before triggering the crawl in Step 4, capture a baseline of existing Liepin CDP targets:
+
+```powershell
+@'
+import http.client, json
+conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
+conn.request("GET", "/json")
+targets = json.loads(conn.getresponse().read())
+conn.close()
+liepin = sorted(t.get("id") for t in targets if "liepin.com" in t.get("url", ""))
+print(json.dumps({"baselineLiepinTargetIds": liepin}, ensure_ascii=False, indent=2))
+'@ | python -
+```
+
+After the crawl completes, capture the target list again and compare target-id sets:
+
 ```powershell
 @'
 import http.client, json
@@ -1626,7 +1741,7 @@ print(json.dumps({"liepinTargetCount": len(liepin), "liepinTargets": liepin}, en
 '@ | python -
 ```
 
-Expected: no new crawl-created Liepin tabs remain. If the user already had Liepin tabs open before the crawl, those may remain.
+Expected: the after-crawl Liepin target ids contain no ids that were created by the crawl and absent from the baseline. If the user already had Liepin tabs open before the crawl, those baseline tabs may remain.
 
 - [ ] **Step 7: Commit E2E stabilization fixes if any**
 
@@ -1710,7 +1825,7 @@ Do not stage `.51job_cookies.json`, `.boss_cookies.json`, screenshots, or browse
 - [ ] **Step 7: Final commit**
 
 ```powershell
-git add backend/app/platforms/cdp_utils.py backend/app/platforms/liepin.py backend/app/platforms/__init__.py backend/app/models/job.py backend/app/schemas/job.py backend/app/services/job_crawl.py backend/app/services/notification.py backend/alembic/versions/2026_05_19_add_liepin_job_platform.py backend/tests/test_liepin_adapter.py backend/tests/test_liepin_pipeline.py frontend/src/types/index.ts frontend/src/components/JobList.tsx
+git add backend/app/platforms/cdp_utils.py backend/app/platforms/liepin.py backend/app/platforms/__init__.py backend/app/models/job.py backend/app/schemas/job.py backend/app/services/job_crawl.py backend/app/services/notification.py backend/alembic/versions/2026_05_19_add_liepin_job_platform.py backend/tests/test_liepin_adapter.py backend/tests/test_liepin_pipeline.py backend/tests/test_job_crawl.py frontend/src/types/index.ts frontend/src/components/JobList.tsx frontend/src/components/JobConfigForm.tsx frontend/src/components/JobConfigList.tsx frontend/src/pages/JobsPage.tsx
 git commit -m "feat: add liepin job crawling"
 ```
 
@@ -1741,3 +1856,16 @@ Includes platform contract updates, frontend platform display, adapter tests, pi
   - Platform key is consistently `liepin`.
   - Adapter class is consistently `LiepinAdapter`.
   - CDP helper names are consistently `open_temporary_tab`, `close_target`, and `evaluate_json_fetch`.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | not run | Not required before implementation unless scope expands beyond Liepin crawling |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | not run | Not run for this plan-stage review |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | issues fixed in plan | 8 findings reviewed; migration table name, CDP probe dependency, frontend platform entry points, detail queue semantics, cross-config job id lookup, probe capture completeness, tab baseline verification, and narrow pytest expectations were addressed |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | not run | Optional; UI work is limited to platform selectors and labels |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | not run | Not required for this crawler implementation |
+
+- **UNRESOLVED:** 0 plan-review blockers after this update.
+- **VERDICT:** ENG REVIEW ISSUES ADDRESSED - ready to implement after choosing execution mode.

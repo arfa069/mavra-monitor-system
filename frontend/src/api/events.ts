@@ -4,8 +4,12 @@ import type { EventCenterListResponse, EventCenterQuery } from "@/types";
 const TOKEN_KEY = "auth_token";
 
 export const eventsApi = {
-  listEvents: async (params: EventCenterQuery): Promise<EventCenterListResponse> => {
-    const response = await api.get<EventCenterListResponse>("/events", { params });
+  listEvents: async (
+    params: EventCenterQuery,
+  ): Promise<EventCenterListResponse> => {
+    const response = await api.get<EventCenterListResponse>("/events", {
+      params,
+    });
     return response.data;
   },
 

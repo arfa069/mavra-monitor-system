@@ -16,19 +16,19 @@
 
 ### 2xx 成功状态码
 
-| 状态码 | 含义 | 说明 |
-|--------|------|------|
-| 200 | OK | 请求成功（登录、登出、获取用户信息） |
-| 201 | Created | 资源创建成功（用户注册） |
+| 状态码 | 含义    | 说明                                 |
+| ------ | ------- | ------------------------------------ |
+| 200    | OK      | 请求成功（登录、登出、获取用户信息） |
+| 201    | Created | 资源创建成功（用户注册）             |
 
 ### 4xx 客户端错误状态码
 
-| 状态码 | 含义 | 说明 | 可能原因 |
-|--------|------|------|----------|
-| 400 | Bad Request | 请求格式错误 | 注册时用户名或邮箱已被占用 |
-| 401 | Unauthorized | 认证失败 | 用户名或密码错误、Token 无效或已过期 |
-| 422 | Unprocessable Entity | 参数验证失败 | 请求参数不符合要求 |
-| 429 | Too Many Requests | 请求过于频繁 | 连续登录失败导致账户被锁定 |
+| 状态码 | 含义                 | 说明         | 可能原因                             |
+| ------ | -------------------- | ------------ | ------------------------------------ |
+| 400    | Bad Request          | 请求格式错误 | 注册时用户名或邮箱已被占用           |
+| 401    | Unauthorized         | 认证失败     | 用户名或密码错误、Token 无效或已过期 |
+| 422    | Unprocessable Entity | 参数验证失败 | 请求参数不符合要求                   |
+| 429    | Too Many Requests    | 请求过于频繁 | 连续登录失败导致账户被锁定           |
 
 ## 详细错误说明
 
@@ -37,6 +37,7 @@
 **触发条件：** 注册时提供的用户名或邮箱与已有用户重复
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
@@ -44,6 +45,7 @@ curl -X POST http://localhost:8000/auth/register \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "用户名已注册"
@@ -69,6 +71,7 @@ curl -X POST http://localhost:8000/auth/register \
 #### 场景 1: 登录时用户名或密码错误
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
@@ -76,6 +79,7 @@ curl -X POST http://localhost:8000/auth/login \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "用户名或密码错误"
@@ -85,12 +89,14 @@ curl -X POST http://localhost:8000/auth/login \
 #### 场景 2: Token 无效或已过期
 
 **请求示例：**
+
 ```bash
 curl -X GET http://localhost:8000/auth/me \
   -H "Authorization: Bearer invalid_or_expired_token"
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "登录已过期"
@@ -106,6 +112,7 @@ curl -X GET http://localhost:8000/auth/me \
 ```
 
 **解决方案：**
+
 - 登录失败：请检查用户名和密码是否正确
 - Token 过期：请重新登录获取新的 Token
 
@@ -118,6 +125,7 @@ curl -X GET http://localhost:8000/auth/me \
 #### 场景 1: 用户名格式错误
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
@@ -125,6 +133,7 @@ curl -X POST http://localhost:8000/auth/register \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "Validation error",
@@ -135,6 +144,7 @@ curl -X POST http://localhost:8000/auth/register \
 #### 场景 2: 邮箱格式错误
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
@@ -142,6 +152,7 @@ curl -X POST http://localhost:8000/auth/register \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "邮箱格式错误"
@@ -151,6 +162,7 @@ curl -X POST http://localhost:8000/auth/register \
 #### 场景 3: 密码太短
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
@@ -158,6 +170,7 @@ curl -X POST http://localhost:8000/auth/register \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "密码必须至少6位"
@@ -180,6 +193,7 @@ curl -X POST http://localhost:8000/auth/register \
 **触发条件：** 连续5次登录失败后，账户被锁定15分钟
 
 **请求示例：**
+
 ```bash
 curl -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
@@ -187,6 +201,7 @@ curl -X POST http://localhost:8000/auth/login \
 ```
 
 **响应示例：**
+
 ```json
 {
   "detail": "登录尝试次数过多，请 15 分钟后再试"
@@ -194,22 +209,23 @@ curl -X POST http://localhost:8000/auth/login \
 ```
 
 **解决方案：**
+
 - 等待15分钟后重试
 - 如果忘记密码，请联系管理员重置密码
 
 ## 错误码速查表
 
-| 状态码 | detail 字段值 | 含义 | 解决方案 |
-|--------|--------------|------|----------|
-| 400 | 用户名已注册 | 用户名已被占用 | 使用其他用户名 |
-| 400 | 邮箱已注册 | 邮箱已被占用 | 使用其他邮箱 |
-| 401 | 用户名或密码错误 | 登录凭证不正确 | 检查用户名和密码 |
-| 401 | 登录已过期 | Token 已过期 | 重新登录 |
-| 401 | 未提供认证信息 | 请求头缺少 Token | 添加 Authorization header |
-| 401 | 用户不存在或已被禁用 | 用户被禁用或不存在 | 联系管理员 |
-| 422 | 密码必须至少6位 | 密码长度不足 | 使用更长的密码 |
-| 422 | 邮箱格式错误 | 邮箱格式不正确 | 使用有效的邮箱格式 |
-| 429 | 登录尝试次数过多，请 X 分钟后再试 | 账户被锁定 | 等待锁定解除 |
+| 状态码 | detail 字段值                     | 含义               | 解决方案                  |
+| ------ | --------------------------------- | ------------------ | ------------------------- |
+| 400    | 用户名已注册                      | 用户名已被占用     | 使用其他用户名            |
+| 400    | 邮箱已注册                        | 邮箱已被占用       | 使用其他邮箱              |
+| 401    | 用户名或密码错误                  | 登录凭证不正确     | 检查用户名和密码          |
+| 401    | 登录已过期                        | Token 已过期       | 重新登录                  |
+| 401    | 未提供认证信息                    | 请求头缺少 Token   | 添加 Authorization header |
+| 401    | 用户不存在或已被禁用              | 用户被禁用或不存在 | 联系管理员                |
+| 422    | 密码必须至少6位                   | 密码长度不足       | 使用更长的密码            |
+| 422    | 邮箱格式错误                      | 邮箱格式不正确     | 使用有效的邮箱格式        |
+| 429    | 登录尝试次数过多，请 X 分钟后再试 | 账户被锁定         | 等待锁定解除              |
 
 ## 开发建议
 
@@ -229,27 +245,27 @@ curl -X POST http://localhost:8000/auth/login \
 // 前端错误处理示例
 async function login(username: string, password: string) {
   try {
-    const response = await fetch('/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem('token', data.access_token);
+      localStorage.setItem("token", data.access_token);
       return { success: true };
     }
 
     const error = await response.json();
 
     if (response.status === 429) {
-      return { success: false, error: '账户已被锁定，请稍后再试' };
+      return { success: false, error: "账户已被锁定，请稍后再试" };
     }
 
     return { success: false, error: error.detail };
   } catch (e) {
-    return { success: false, error: '网络错误' };
+    return { success: false, error: "网络错误" };
   }
 }
 ```

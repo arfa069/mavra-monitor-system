@@ -1,30 +1,34 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { message } from 'antd'
-import './index.css'
-import App from './App'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import { message } from "antd";
+import "./index.css";
+import App from "./App";
 
 type QueryError = {
-  response?: { status?: number }
-  code?: string
-  message?: string
-}
+  response?: { status?: number };
+  code?: string;
+  message?: string;
+};
 
 const queryCache = new QueryCache({
   onError: (error) => {
-    const err = error as QueryError
+    const err = error as QueryError;
     if (err.response?.status != null && err.response.status >= 500) {
-      return
+      return;
     }
-    if (err.code === 'ECONNABORTED' || !err.response) {
-      return
+    if (err.code === "ECONNABORTED" || !err.response) {
+      return;
     }
     if (err.response?.status != null && err.response.status >= 400) {
-      message.error(`Request failed: ${err.message || 'Unknown error'}`)
+      message.error(`Request failed: ${err.message || "Unknown error"}`);
     }
   },
-})
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,12 +39,12 @@ const queryClient = new QueryClient({
     },
   },
   queryCache,
-})
+});
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
   </StrictMode>,
-)
+);

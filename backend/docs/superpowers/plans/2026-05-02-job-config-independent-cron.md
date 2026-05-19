@@ -12,25 +12,26 @@
 
 ## 文件清单
 
-| 文件 | 操作 | 职责 |
-|------|------|------|
-| `backend/app/models/job.py` | 修改 | `JobSearchConfig` 追加 `cron_expression`, `cron_timezone` |
-| `backend/app/schemas/job.py` | 修改 | 响应/更新 schema 追加 cron 字段；加 `JobConfigCronUpdate` |
-| `backend/alembic/versions/` | 新增 | 迁移文件（auto-generate + 调整） |
-| `backend/app/services/scheduler_job.py` | 修改 | 添加 `JobConfigScheduler` 类 |
-| `backend/app/main.py` | 修改 | 替换全局 `job_crawl_cron_job` 为 per-config 调度 |
-| `backend/app/routers/jobs.py` | 修改 | Config CRUD 同步调度器；新增两个端点 |
-| `frontend/src/types/index.ts` | 修改 | 追加 cron 字段类型；加 `JobConfigCronUpdate`；更新 `SchedulerStatusResponse` |
-| `frontend/src/api/config.ts` | 修改 | 移除 `getJobCrawlCron`/`updateJobCrawlCron` |
-| `frontend/src/pages/ScheduleConfigPage.tsx` | 修改 | 职位区域改为 config 级 cron 管理表格 |
-| `frontend/src/api/jobs.ts` | 修改 | 加 `updateConfigCron` 方法 |
-| `backend/tests/test_scheduler_config.py` | 新增 | 调度器同步测试 |
+| 文件                                        | 操作 | 职责                                                                         |
+| ------------------------------------------- | ---- | ---------------------------------------------------------------------------- |
+| `backend/app/models/job.py`                 | 修改 | `JobSearchConfig` 追加 `cron_expression`, `cron_timezone`                    |
+| `backend/app/schemas/job.py`                | 修改 | 响应/更新 schema 追加 cron 字段；加 `JobConfigCronUpdate`                    |
+| `backend/alembic/versions/`                 | 新增 | 迁移文件（auto-generate + 调整）                                             |
+| `backend/app/services/scheduler_job.py`     | 修改 | 添加 `JobConfigScheduler` 类                                                 |
+| `backend/app/main.py`                       | 修改 | 替换全局 `job_crawl_cron_job` 为 per-config 调度                             |
+| `backend/app/routers/jobs.py`               | 修改 | Config CRUD 同步调度器；新增两个端点                                         |
+| `frontend/src/types/index.ts`               | 修改 | 追加 cron 字段类型；加 `JobConfigCronUpdate`；更新 `SchedulerStatusResponse` |
+| `frontend/src/api/config.ts`                | 修改 | 移除 `getJobCrawlCron`/`updateJobCrawlCron`                                  |
+| `frontend/src/pages/ScheduleConfigPage.tsx` | 修改 | 职位区域改为 config 级 cron 管理表格                                         |
+| `frontend/src/api/jobs.ts`                  | 修改 | 加 `updateConfigCron` 方法                                                   |
+| `backend/tests/test_scheduler_config.py`    | 新增 | 调度器同步测试                                                               |
 
 ---
 
 ### Task 1: 数据库模型 + 迁移
 
 **Files:**
+
 - Modify: `backend/app/models/job.py:29-43`
 - Create: `backend/alembic/versions/006_add_cron_fields_to_job_configs.py`
 - Test: 手动验证迁移
@@ -76,6 +77,7 @@ git commit -m "feat(jobs): add cron_expression and cron_timezone fields to JobSe
 ### Task 2: Pydantic Schemas 更新
 
 **Files:**
+
 - Modify: `backend/app/schemas/job.py`
 
 - [ ] **Step 1: `JobSearchConfigCreate` 追加 cron 字段**
@@ -129,6 +131,7 @@ git commit -m "feat(jobs): add cron fields to job search config schemas"
 ### Task 3: SchedulerManager 类
 
 **Files:**
+
 - Modify: `backend/app/services/scheduler_job.py`
 
 - [ ] **Step 1: 写测试（先失败）**
@@ -368,6 +371,7 @@ git commit -m "feat(jobs): add JobConfigScheduler for per-config cron management
 ### Task 4: main.py 启动流程调整
 
 **Files:**
+
 - Modify: `backend/app/main.py:87-109`
 
 - [ ] **Step 1: 替换全局 job_crawl_cron_job 为 JobConfigScheduler**
@@ -423,6 +427,7 @@ git commit -m "feat(jobs): replace global job cron with per-config JobConfigSche
 ### Task 5: Router 端 CRUD 同步 + 新端点
 
 **Files:**
+
 - Modify: `backend/app/routers/jobs.py`
 
 - [ ] **Step 1: CRUD 端点注入 scheduler_manager**
@@ -522,6 +527,7 @@ git commit -m "feat(jobs): sync scheduler on config CRUD + add cron update endpo
 ### Task 6: 前端类型 + API 更新
 
 **Files:**
+
 - Modify: `frontend/src/types/index.ts`
 - Modify: `frontend/src/api/config.ts`
 - Modify: `frontend/src/api/jobs.ts`
@@ -531,39 +537,44 @@ git commit -m "feat(jobs): sync scheduler on config CRUD + add cron update endpo
 `frontend/src/types/index.ts`：
 
 `JobSearchConfig` 追加：
+
 ```typescript
-cron_expression: string | null
-cron_timezone: string | null
+cron_expression: string | null;
+cron_timezone: string | null;
 ```
 
 `JobSearchConfigUpdate` 追加：
+
 ```typescript
 cron_expression?: string | null
 cron_timezone?: string | null
 ```
 
 新增 `JobConfigCronUpdate`：
+
 ```typescript
 export interface JobConfigCronUpdate {
-  cron_expression: string | null
-  cron_timezone?: string | null
+  cron_expression: string | null;
+  cron_timezone?: string | null;
 }
 ```
 
 新增 `JobConfigScheduleInfo`：
+
 ```typescript
 export interface JobConfigScheduleInfo {
-  config_id: number
-  cron_expression: string | null
-  next_run_at: string | null
+  config_id: number;
+  cron_expression: string | null;
+  next_run_at: string | null;
 }
 ```
 
 更新 `SchedulerStatusResponse` 的 `jobs` 类型：
+
 ```typescript
 jobs: {
-  product_crawl: SchedulerJobStatus
-  job_configs: Record<string, JobConfigScheduleInfo> | Record<string, never>
+  product_crawl: SchedulerJobStatus;
+  job_configs: Record<string, JobConfigScheduleInfo> | Record<string, never>;
 }
 ```
 
@@ -574,12 +585,14 @@ jobs: {
 - [ ] **Step 3: 更新前端 API jobs.ts**
 
 添加 `updateConfigCron` 方法：
+
 ```typescript
 updateConfigCron: (id: number, data: JobConfigCronUpdate) =>
   api.patch<JobSearchConfig>(`/jobs/configs/${id}/cron`, data),
 ```
 
 添加 `getJobConfigSchedules` 方法：
+
 ```typescript
 getJobConfigSchedules: () =>
   api.get<{ configs: JobConfigScheduleInfo[] }>('/jobs/scheduler/job-configs'),
@@ -599,6 +612,7 @@ git commit -m "feat(jobs): update frontend types and API for per-config cron"
 ### Task 7: 前端 /schedule 页面 — config 级 cron 管理
 
 **Files:**
+
 - Modify: `frontend/src/pages/ScheduleConfigPage.tsx`
 
 - [ ] **Step 1: 替换"职位爬取"区域为 config 级表格**
@@ -607,86 +621,88 @@ git commit -m "feat(jobs): update frontend types and API for per-config cron"
 
 ```tsx
 // 文件顶部新增 imports
-import { useEffect, useState } from 'react'
-import { Table, Input, Button, Tag, Space, message, Spin } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import { jobsApi } from '@/api/jobs'
-import type { JobSearchConfig, JobConfigScheduleInfo } from '@/types'
+import { useEffect, useState } from "react";
+import { Table, Input, Button, Tag, Space, message, Spin } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { jobsApi } from "@/api/jobs";
+import type { JobSearchConfig, JobConfigScheduleInfo } from "@/types";
 
 // 在 ScheduleConfigPage 组件内新增 state
-const [configList, setConfigList] = useState<JobSearchConfig[]>([])
-const [configSchedules, setConfigSchedules] = useState<Record<number, JobConfigScheduleInfo>>({})
-const [configLoading, setConfigLoading] = useState(false)
-const [cronInputs, setCronInputs] = useState<Record<number, string>>({})
-const [savingCron, setSavingCron] = useState<Record<number, boolean>>({})
+const [configList, setConfigList] = useState<JobSearchConfig[]>([]);
+const [configSchedules, setConfigSchedules] = useState<
+  Record<number, JobConfigScheduleInfo>
+>({});
+const [configLoading, setConfigLoading] = useState(false);
+const [cronInputs, setCronInputs] = useState<Record<number, string>>({});
+const [savingCron, setSavingCron] = useState<Record<number, boolean>>({});
 
 // 加载 config 列表和调度信息
 const loadConfigData = async () => {
-  setConfigLoading(true)
+  setConfigLoading(true);
   try {
     const [configsRes, schedulesRes] = await Promise.all([
       jobsApi.getConfigs(),
       jobsApi.getJobConfigSchedules(),
-    ])
-    setConfigList(configsRes.data)
-    const scheduleMap: Record<number, JobConfigScheduleInfo> = {}
+    ]);
+    setConfigList(configsRes.data);
+    const scheduleMap: Record<number, JobConfigScheduleInfo> = {};
     for (const s of schedulesRes.data.configs) {
-      scheduleMap[s.config_id] = s
+      scheduleMap[s.config_id] = s;
     }
-    setConfigSchedules(scheduleMap)
+    setConfigSchedules(scheduleMap);
     // 初始化 cron inputs
-    const inputs: Record<number, string> = {}
+    const inputs: Record<number, string> = {};
     for (const c of configsRes.data) {
-      inputs[c.id] = c.cron_expression || ''
+      inputs[c.id] = c.cron_expression || "";
     }
-    setCronInputs(inputs)
+    setCronInputs(inputs);
   } catch {
-    message.error('加载配置列表失败')
+    message.error("加载配置列表失败");
   } finally {
-    setConfigLoading(false)
+    setConfigLoading(false);
   }
-}
+};
 
 // 保存单个 config 的 cron
 const handleSaveConfigCron = async (configId: number) => {
-  const value = cronInputs[configId]?.trim() || null
+  const value = cronInputs[configId]?.trim() || null;
   if (value && !isValidCronFormat(value)) {
-    message.error('Cron 表达式不合法')
-    return
+    message.error("Cron 表达式不合法");
+    return;
   }
-  setSavingCron(prev => ({ ...prev, [configId]: true }))
+  setSavingCron((prev) => ({ ...prev, [configId]: true }));
   try {
     await jobsApi.updateConfigCron(configId, {
       cron_expression: value,
-      cron_timezone: 'Asia/Shanghai',
-    })
-    message.success('已保存')
-    loadConfigData()
+      cron_timezone: "Asia/Shanghai",
+    });
+    message.success("已保存");
+    loadConfigData();
   } catch {
-    message.error('保存失败')
+    message.error("保存失败");
   } finally {
-    setSavingCron(prev => ({ ...prev, [configId]: false }))
+    setSavingCron((prev) => ({ ...prev, [configId]: false }));
   }
-}
+};
 
 // 表格列定义
 const configColumns: ColumnsType<JobSearchConfig> = [
   {
-    title: '配置名称',
-    dataIndex: 'name',
-    key: 'name',
+    title: "配置名称",
+    dataIndex: "name",
+    key: "name",
     width: 200,
   },
   {
-    title: 'Cron 表达式',
-    key: 'cron',
+    title: "Cron 表达式",
+    key: "cron",
     width: 300,
     render: (_, record) => (
-      <Space.Compact style={{ width: '100%' }}>
+      <Space.Compact style={{ width: "100%" }}>
         <Input
-          value={cronInputs[record.id] ?? ''}
+          value={cronInputs[record.id] ?? ""}
           onChange={(e) =>
-            setCronInputs(prev => ({ ...prev, [record.id]: e.target.value }))
+            setCronInputs((prev) => ({ ...prev, [record.id]: e.target.value }))
           }
           placeholder="0 9 * * *（空=不定时）"
           style={{ width: 220 }}
@@ -702,16 +718,16 @@ const configColumns: ColumnsType<JobSearchConfig> = [
     ),
   },
   {
-    title: '下次执行',
-    key: 'next_run',
+    title: "下次执行",
+    key: "next_run",
     width: 200,
     render: (_, record) => {
-      const schedule = configSchedules[record.id]
-      if (!schedule || !schedule.next_run_at) return <Tag>未调度</Tag>
-      return new Date(schedule.next_run_at).toLocaleString('zh-CN')
+      const schedule = configSchedules[record.id];
+      if (!schedule || !schedule.next_run_at) return <Tag>未调度</Tag>;
+      return new Date(schedule.next_run_at).toLocaleString("zh-CN");
     },
   },
-]
+];
 ```
 
 替换页面中 "职位爬取" 的 Divider 之后到下一个 Divider/元素之前的全部内容：
@@ -740,9 +756,9 @@ const configColumns: ColumnsType<JobSearchConfig> = [
 
 ```tsx
 useEffect(() => {
-  fetchSchedulerStatus()
-  loadConfigData()  // 新增
-}, [])
+  fetchSchedulerStatus();
+  loadConfigData(); // 新增
+}, []);
 ```
 
 - [ ] **Step 3: 提交**
@@ -757,6 +773,7 @@ git commit -m "feat(jobs): replace job cron section with per-config cron table o
 ### Task 8: 清理遗留的全局 job_crawl_cron
 
 **Files:**
+
 - Modify: `backend/app/routers/config.py`（如有 `trigger_job_crawl` 注册逻辑）
 - Modify: `backend/app/main.py`（已处理）
 - 确认前端 `updateJobCrawlCron` 调用已移除
@@ -787,6 +804,7 @@ git commit -m "chore: remove global job_crawl_cron endpoints and cleanup"
 ### Task 9: 全面测试
 
 **Files:**
+
 - 已有: `backend/tests/test_scheduler_config.py`
 - 新增: -（已有测试）
 

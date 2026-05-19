@@ -55,6 +55,7 @@ Crawl tasks run **asynchronously in FastAPI's event loop** — no Celery or exte
 APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown. Two scheduler managers handle per-entity cron jobs:
 
 **Product crawl (per-platform)** — `ProductCronScheduler`:
+
 - Each platform (taobao/jd/amazon) gets its own cron expression stored in `products_platform_crons` table
 - APScheduler job ID format: `product_cron_{platform}`
 - When triggered, calls `crawl_products_by_platform(platform)` — only crawls products of that platform
@@ -62,6 +63,7 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 - Frontend: `/schedule` page shows a table with 3 platform rows, add/delete via modal
 
 **Job crawl (per-config)** — `JobConfigScheduler`:
+
 - Each `JobSearchConfig` gets its own cron expression stored in `cron_expression` / `cron_timezone` fields on `jobs_search_configs`
 - APScheduler job ID format: `job_config_cron_{config_id}`
 - When triggered, calls `crawl_single_config(config_id)` — only crawls that specific config
@@ -98,158 +100,166 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 > **数据隔离**：所有包含 `user_id` 字段的表（users 除外）均按 `user_id` 隔离查询。用户只能操作属于自己的数据。
 
 ### users
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| feishu_webhook_url | TEXT | Feishu webhook URL |
-| data_retention_days | SMALLINT | History retention (default: 365) |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
+
+| Column              | Type        | Description                      |
+| ------------------- | ----------- | -------------------------------- |
+| id                  | BIGSERIAL   | Primary key                      |
+| feishu_webhook_url  | TEXT        | Feishu webhook URL               |
+| data_retention_days | SMALLINT    | History retention (default: 365) |
+| created_at          | TIMESTAMPTZ | Creation timestamp               |
+| updated_at          | TIMESTAMPTZ | Last update timestamp            |
 
 ### products
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| user_id | BIGINT | FK to users |
-| platform | VARCHAR(20) | 'taobao', 'jd', 'amazon' |
-| url | TEXT | Product URL |
-| title | TEXT | Product title |
-| active | BOOLEAN | Whether monitoring is active |
+
+| Column   | Type        | Description                  |
+| -------- | ----------- | ---------------------------- |
+| id       | BIGSERIAL   | Primary key                  |
+| user_id  | BIGINT      | FK to users                  |
+| platform | VARCHAR(20) | 'taobao', 'jd', 'amazon'     |
+| url      | TEXT        | Product URL                  |
+| title    | TEXT        | Product title                |
+| active   | BOOLEAN     | Whether monitoring is active |
 
 ### products_price_history
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| product_id | BIGINT | FK to products |
-| price | NUMERIC(12,2) | Scraped price |
-| currency | VARCHAR(3) | Currency code |
-| scraped_at | TIMESTAMPTZ | Scraping timestamp |
+
+| Column     | Type          | Description        |
+| ---------- | ------------- | ------------------ |
+| id         | BIGSERIAL     | Primary key        |
+| product_id | BIGINT        | FK to products     |
+| price      | NUMERIC(12,2) | Scraped price      |
+| currency   | VARCHAR(3)    | Currency code      |
+| scraped_at | TIMESTAMPTZ   | Scraping timestamp |
 
 ### products_alerts
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| product_id | BIGINT | FK to products |
-| threshold_percent | NUMERIC(5,2) | Trigger threshold |
-| last_notified_at | TIMESTAMPTZ | Last notification time |
+
+| Column              | Type          | Description                |
+| ------------------- | ------------- | -------------------------- |
+| id                  | BIGSERIAL     | Primary key                |
+| product_id          | BIGINT        | FK to products             |
+| threshold_percent   | NUMERIC(5,2)  | Trigger threshold          |
+| last_notified_at    | TIMESTAMPTZ   | Last notification time     |
 | last_notified_price | NUMERIC(12,2) | Price at last notification |
-| active | BOOLEAN | Whether alert is active |
+| active              | BOOLEAN       | Whether alert is active    |
 
 ### crawl_logs
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| product_id | BIGINT | FK to products (NULL for system-level logs) |
-| platform | VARCHAR(20) | Platform (nullable) |
-| status | VARCHAR(20) | SUCCESS/ERROR/SKIPPED/CRON_SUCCESS/CRON_ERROR |
-| price | NUMERIC(12,2) | Scraped price (nullable) |
-| timestamp | TIMESTAMPTZ | Crawl timestamp |
-| error_message | TEXT | Error details or summary if failed/skipped |
+
+| Column        | Type          | Description                                   |
+| ------------- | ------------- | --------------------------------------------- |
+| id            | BIGSERIAL     | Primary key                                   |
+| product_id    | BIGINT        | FK to products (NULL for system-level logs)   |
+| platform      | VARCHAR(20)   | Platform (nullable)                           |
+| status        | VARCHAR(20)   | SUCCESS/ERROR/SKIPPED/CRON_SUCCESS/CRON_ERROR |
+| price         | NUMERIC(12,2) | Scraped price (nullable)                      |
+| timestamp     | TIMESTAMPTZ   | Crawl timestamp                               |
+| error_message | TEXT          | Error details or summary if failed/skipped    |
 
 ### products_platform_crons
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| user_id | BIGINT | FK to users |
-| platform | VARCHAR(20) | 'taobao', 'jd', 'amazon' (unique) |
-| cron_expression | VARCHAR | 5-segment crontab (nullable) |
-| cron_timezone | VARCHAR | Timezone (default: Asia/Shanghai) |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
+
+| Column          | Type        | Description                       |
+| --------------- | ----------- | --------------------------------- |
+| id              | BIGSERIAL   | Primary key                       |
+| user_id         | BIGINT      | FK to users                       |
+| platform        | VARCHAR(20) | 'taobao', 'jd', 'amazon' (unique) |
+| cron_expression | VARCHAR     | 5-segment crontab (nullable)      |
+| cron_timezone   | VARCHAR     | Timezone (default: Asia/Shanghai) |
+| created_at      | TIMESTAMPTZ | Creation timestamp                |
+| updated_at      | TIMESTAMPTZ | Last update timestamp             |
 
 ### jobs_search_configs
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| user_id | BIGINT | FK to users |
-| name | VARCHAR | Config name |
-| url | TEXT | Boss search URL |
-| active | BOOLEAN | Whether monitoring is active |
-| notify_on_new | BOOLEAN | Send notification for new jobs |
-| deactivation_threshold | SMALLINT | Consecutive misses before deactivation (default: 3) |
-| cron_expression | VARCHAR | Per-config 5-segment crontab (nullable) |
-| cron_timezone | VARCHAR | Timezone (default: Asia/Shanghai) |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
+
+| Column                 | Type        | Description                                         |
+| ---------------------- | ----------- | --------------------------------------------------- |
+| id                     | BIGSERIAL   | Primary key                                         |
+| user_id                | BIGINT      | FK to users                                         |
+| name                   | VARCHAR     | Config name                                         |
+| url                    | TEXT        | Boss search URL                                     |
+| active                 | BOOLEAN     | Whether monitoring is active                        |
+| notify_on_new          | BOOLEAN     | Send notification for new jobs                      |
+| deactivation_threshold | SMALLINT    | Consecutive misses before deactivation (default: 3) |
+| cron_expression        | VARCHAR     | Per-config 5-segment crontab (nullable)             |
+| cron_timezone          | VARCHAR     | Timezone (default: Asia/Shanghai)                   |
+| created_at             | TIMESTAMPTZ | Creation timestamp                                  |
+| updated_at             | TIMESTAMPTZ | Last update timestamp                               |
 
 ### jobs
-| Column | Type | Description |
-|--------|------|-------------|
-| id | BIGSERIAL | Primary key |
-| job_id | VARCHAR | Boss securityId (API调用); encryptJobId 用于拼详情页 URL |
-| search_config_id | BIGINT | FK to jobs_search_configs |
-| title | TEXT | Job title |
-| company | TEXT | Company name |
-| company_id | VARCHAR | Boss encryptBrandId |
-| salary | VARCHAR | Salary string (e.g. "20-40K") |
-| salary_min | INTEGER | Parsed minimum salary (K) |
-| salary_max | INTEGER | Parsed maximum salary (K) |
-| location | VARCHAR | Job location |
-| experience | VARCHAR | Experience requirement |
-| education | VARCHAR | Education requirement |
-| description | TEXT | Job description (from detail API) |
-| address | TEXT | Company address (from detail API) |
-| url | TEXT | Job detail URL |
-| is_active | BOOLEAN | Whether job is currently listed |
-| first_seen_at | TIMESTAMPTZ | First discovery timestamp |
-| last_active_at | TIMESTAMPTZ | Last seen in crawl |
-| consecutive_miss_count | SMALLINT | Consecutive crawls not seen |
-| last_updated_at | TIMESTAMPTZ | Last update timestamp |
+
+| Column                 | Type        | Description                                              |
+| ---------------------- | ----------- | -------------------------------------------------------- |
+| id                     | BIGSERIAL   | Primary key                                              |
+| job_id                 | VARCHAR     | Boss securityId (API调用); encryptJobId 用于拼详情页 URL |
+| search_config_id       | BIGINT      | FK to jobs_search_configs                                |
+| title                  | TEXT        | Job title                                                |
+| company                | TEXT        | Company name                                             |
+| company_id             | VARCHAR     | Boss encryptBrandId                                      |
+| salary                 | VARCHAR     | Salary string (e.g. "20-40K")                            |
+| salary_min             | INTEGER     | Parsed minimum salary (K)                                |
+| salary_max             | INTEGER     | Parsed maximum salary (K)                                |
+| location               | VARCHAR     | Job location                                             |
+| experience             | VARCHAR     | Experience requirement                                   |
+| education              | VARCHAR     | Education requirement                                    |
+| description            | TEXT        | Job description (from detail API)                        |
+| address                | TEXT        | Company address (from detail API)                        |
+| url                    | TEXT        | Job detail URL                                           |
+| is_active              | BOOLEAN     | Whether job is currently listed                          |
+| first_seen_at          | TIMESTAMPTZ | First discovery timestamp                                |
+| last_active_at         | TIMESTAMPTZ | Last seen in crawl                                       |
+| consecutive_miss_count | SMALLINT    | Consecutive crawls not seen                              |
+| last_updated_at        | TIMESTAMPTZ | Last update timestamp                                    |
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /health | Health check (database + Redis + scheduler) |
-| GET | /config | Get current configuration |
-| POST | /config | Create or update full configuration |
-| PATCH | /config | Partial update (feishu url, retention days) |
-| POST | /products | Add a product to track |
-| GET | /products | List products (paginated) |
-| GET | /products/{id} | Get product details |
-| GET | /products/{id}/history | Get price history |
-| POST | /products/batch-create | Batch import products |
-| POST | /products/batch-delete | Batch delete products |
-| POST | /products/batch-update | Batch enable/disable products |
-| GET | /products/cron-configs | List per-platform cron configs |
-| POST | /products/cron-configs | Create per-platform cron config |
-| PATCH | /products/cron-configs/{platform} | Update platform cron |
-| DELETE | /products/cron-configs/{platform} | Delete platform cron |
-| GET | /products/cron-schedules | Next run times for product cron |
-| POST | /alerts | Create an alert |
-| GET | /alerts | List all alerts |
-| POST | /products/crawl/crawl-now | Crawl all active products |
-| GET | /products/crawl/logs | Get recent crawl logs |
-| POST | /products/crawl/cleanup | Delete old data |
-| GET | /scheduler/status | Scheduler job state |
-| GET/POST/DELETE | /jobs/resumes | List/Create/Delete resumes |
-| PATCH | /jobs/resumes/{id} | Update a resume |
-| GET | /jobs/match-results | List LLM match results |
-| POST | /jobs/match-results/analyze | Sync resume-job analysis |
-| POST | /jobs/match-results/analyze-async | Async resume-job analysis |
-| GET | /jobs/tasks/{task_id} | Poll async analysis task |
-| GET | /jobs/configs | List job search configs |
-| POST | /jobs/configs | Create job search config |
-| GET | /jobs/configs/{id} | Get job search config |
-| PATCH | /jobs/configs/{id} | Update job search config |
-| PATCH | /jobs/configs/{id}/cron | Update per-config cron |
-| DELETE | /jobs/configs/{id} | Delete job search config |
-| GET | /jobs/scheduler/job-configs | Next run times for job cron |
-| GET | /jobs | List crawled jobs (paginated) |
-| GET | /jobs/{id} | Get job details |
-| POST | /jobs/crawl-now | Crawl all active job configs |
-| POST | /jobs/crawl-now/{id} | Crawl single job config |
-| GET | /jobs/crawl-logs | Get job crawl logs (filterable by config/status) |
-| GET | /admin/users | List all users |
-| POST | /admin/users | Create user |
-| GET | /admin/users/{id} | Get user details |
-| PATCH | /admin/users/{id} | Update user |
-| DELETE | /admin/users/{id} | Soft delete user |
-| GET | /admin/audit-logs | Query audit logs |
-| POST | /admin/resource-permissions | Grant resource permission |
-| GET | /admin/resource-permissions | List resource permissions |
-| PATCH | /admin/resource-permissions/{id} | Update resource permission |
-| DELETE | /admin/resource-permissions/{id} | Revoke resource permission |
+| Method          | Path                              | Description                                      |
+| --------------- | --------------------------------- | ------------------------------------------------ |
+| GET             | /health                           | Health check (database + Redis + scheduler)      |
+| GET             | /config                           | Get current configuration                        |
+| POST            | /config                           | Create or update full configuration              |
+| PATCH           | /config                           | Partial update (feishu url, retention days)      |
+| POST            | /products                         | Add a product to track                           |
+| GET             | /products                         | List products (paginated)                        |
+| GET             | /products/{id}                    | Get product details                              |
+| GET             | /products/{id}/history            | Get price history                                |
+| POST            | /products/batch-create            | Batch import products                            |
+| POST            | /products/batch-delete            | Batch delete products                            |
+| POST            | /products/batch-update            | Batch enable/disable products                    |
+| GET             | /products/cron-configs            | List per-platform cron configs                   |
+| POST            | /products/cron-configs            | Create per-platform cron config                  |
+| PATCH           | /products/cron-configs/{platform} | Update platform cron                             |
+| DELETE          | /products/cron-configs/{platform} | Delete platform cron                             |
+| GET             | /products/cron-schedules          | Next run times for product cron                  |
+| POST            | /alerts                           | Create an alert                                  |
+| GET             | /alerts                           | List all alerts                                  |
+| POST            | /products/crawl/crawl-now         | Crawl all active products                        |
+| GET             | /products/crawl/logs              | Get recent crawl logs                            |
+| POST            | /products/crawl/cleanup           | Delete old data                                  |
+| GET             | /scheduler/status                 | Scheduler job state                              |
+| GET/POST/DELETE | /jobs/resumes                     | List/Create/Delete resumes                       |
+| PATCH           | /jobs/resumes/{id}                | Update a resume                                  |
+| GET             | /jobs/match-results               | List LLM match results                           |
+| POST            | /jobs/match-results/analyze       | Sync resume-job analysis                         |
+| POST            | /jobs/match-results/analyze-async | Async resume-job analysis                        |
+| GET             | /jobs/tasks/{task_id}             | Poll async analysis task                         |
+| GET             | /jobs/configs                     | List job search configs                          |
+| POST            | /jobs/configs                     | Create job search config                         |
+| GET             | /jobs/configs/{id}                | Get job search config                            |
+| PATCH           | /jobs/configs/{id}                | Update job search config                         |
+| PATCH           | /jobs/configs/{id}/cron           | Update per-config cron                           |
+| DELETE          | /jobs/configs/{id}                | Delete job search config                         |
+| GET             | /jobs/scheduler/job-configs       | Next run times for job cron                      |
+| GET             | /jobs                             | List crawled jobs (paginated)                    |
+| GET             | /jobs/{id}                        | Get job details                                  |
+| POST            | /jobs/crawl-now                   | Crawl all active job configs                     |
+| POST            | /jobs/crawl-now/{id}              | Crawl single job config                          |
+| GET             | /jobs/crawl-logs                  | Get job crawl logs (filterable by config/status) |
+| GET             | /admin/users                      | List all users                                   |
+| POST            | /admin/users                      | Create user                                      |
+| GET             | /admin/users/{id}                 | Get user details                                 |
+| PATCH           | /admin/users/{id}                 | Update user                                      |
+| DELETE          | /admin/users/{id}                 | Soft delete user                                 |
+| GET             | /admin/audit-logs                 | Query audit logs                                 |
+| POST            | /admin/resource-permissions       | Grant resource permission                        |
+| GET             | /admin/resource-permissions       | List resource permissions                        |
+| PATCH           | /admin/resource-permissions/{id}  | Update resource permission                       |
+| DELETE          | /admin/resource-permissions/{id}  | Revoke resource permission                       |
 
 ## Notification System
 
@@ -258,6 +268,7 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 - **Retry**: 3 attempts with exponential backoff
 - **Alert Logic**: Compares the latest two price history records. If the drop percentage >= threshold_percent, sends notification.
 - **Payload Format**:
+
 ```json
 {
   "msg_type": "text",
@@ -312,15 +323,15 @@ This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot scrip
 
 All settings via environment variables in `.env` (loaded via Pydantic Settings):
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| DATABASE_URL | PostgreSQL async connection URL | `postgresql+asyncpg://...` |
-| REDIS_URL | Redis connection URL | `redis://localhost:6379/0` |
-| REDIS_PASSWORD | Redis password (alternative to URL) | |
-| FEISHU_WEBHOOK_URL | Feishu webhook URL for notifications | |
-| CDP_ENABLED | Enable CDP mode (connect to existing browser) | `false` |
-| CDP_URL | CDP endpoint for existing browser | `http://127.0.0.1:9222` |
-| CRAWL_PROXY_ENABLED | Enable proxy for crawling | `false` |
-| CRAWL_PROXY_URL | Proxy URL | |
-| DATA_RETENTION_DAYS | Days to retain price history | `365` |
-| JD_COOKIE | JD cookie string for login session | |
+| Variable            | Description                                   | Default                    |
+| ------------------- | --------------------------------------------- | -------------------------- |
+| DATABASE_URL        | PostgreSQL async connection URL               | `postgresql+asyncpg://...` |
+| REDIS_URL           | Redis connection URL                          | `redis://localhost:6379/0` |
+| REDIS_PASSWORD      | Redis password (alternative to URL)           |                            |
+| FEISHU_WEBHOOK_URL  | Feishu webhook URL for notifications          |                            |
+| CDP_ENABLED         | Enable CDP mode (connect to existing browser) | `false`                    |
+| CDP_URL             | CDP endpoint for existing browser             | `http://127.0.0.1:9222`    |
+| CRAWL_PROXY_ENABLED | Enable proxy for crawling                     | `false`                    |
+| CRAWL_PROXY_URL     | Proxy URL                                     |                            |
+| DATA_RETENTION_DAYS | Days to retain price history                  | `365`                      |
+| JD_COOKIE           | JD cookie string for login session            |                            |
