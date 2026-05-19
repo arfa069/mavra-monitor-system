@@ -146,6 +146,32 @@ def test_liepin_transform_jobs_normalizes_search_items():
     ]
 
 
+def test_liepin_transform_jobs_prefers_detail_id_from_link():
+    from app.platforms.liepin import LiepinAdapter
+
+    payload = {
+        "data": {
+            "data": {
+                "jobCardList": [
+                    {
+                        "job": {
+                            "jobId": "82380963",
+                            "title": "Python Engineer",
+                            "link": "https://www.liepin.com/job/1982380963.shtml",
+                        },
+                        "comp": {"compName": "Example Co"},
+                    }
+                ]
+            }
+        }
+    }
+
+    jobs = LiepinAdapter._transform_jobs(payload)
+
+    assert jobs[0]["job_id"] == "1982380963"
+    assert jobs[0]["url"] == "https://www.liepin.com/job/1982380963.shtml"
+
+
 @pytest.mark.asyncio
 async def test_liepin_crawl_uses_http_json_success(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
@@ -177,8 +203,17 @@ async def test_liepin_crawl_uses_http_json_success(monkeypatch):
                 }
             }
 
+    class FakeCookies:
+        def get(self, key):
+            return "token-123" if key == "XSRF-TOKEN" else None
+
     class FakeSession:
+        cookies = FakeCookies()
+
         def get(self, *_args, **_kwargs):
+            return object()
+
+        def post(self, *_args, **_kwargs):
             return FakeResponse()
 
     adapter = LiepinAdapter()
@@ -190,6 +225,63 @@ async def test_liepin_crawl_uses_http_json_success(monkeypatch):
     assert result["success"] is True
     assert result["count"] == 1
     assert result["jobs"][0]["job_id"] == "123"
+    adapter._crawl_via_cdp.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_liepin_crawl_posts_pc_search_api_without_opening_browser(monkeypatch):
+    from app.platforms.liepin import API_BASE_URL, SEARCH_API_PATH, LiepinAdapter
+
+    calls: dict[str, object] = {}
+
+    class FakeResponse:
+        status_code = 200
+        headers = {"content-type": "application/json"}
+        text = "{}"
+
+        def json(self):
+            return {
+                "data": {
+                    "data": {
+                        "jobCardList": [
+                            {
+                                "job": {"jobId": "123", "title": "Python Engineer"},
+                                "comp": {"compName": "Example Co"},
+                            }
+                        ]
+                    }
+                }
+            }
+
+    class FakeCookies:
+        def get(self, key):
+            return "token-123" if key == "XSRF-TOKEN" else None
+
+    class FakeSession:
+        cookies = FakeCookies()
+
+        def get(self, url, **kwargs):
+            calls["get_url"] = url
+            calls["get_kwargs"] = kwargs
+            return object()
+
+        def post(self, url, **kwargs):
+            calls["post_url"] = url
+            calls["post_kwargs"] = kwargs
+            return FakeResponse()
+
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
+    monkeypatch.setattr(adapter, "_crawl_via_cdp", AsyncMock())
+
+    result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
+
+    post_kwargs = calls["post_kwargs"]
+    assert result["success"] is True
+    assert calls["post_url"] == f"{API_BASE_URL}{SEARCH_API_PATH}"
+    assert post_kwargs["headers"]["X-XSRF-TOKEN"] == "token-123"
+    assert post_kwargs["json"]["data"]["mainSearchPcConditionForm"]["key"] == "python"
+    assert post_kwargs["json"]["data"]["mainSearchPcConditionForm"]["dq"] == "020"
     adapter._crawl_via_cdp.assert_not_called()
 
 
@@ -371,13 +463,19 @@ async def test_liepin_crawl_fails_when_browser_unavailable(monkeypatch):
     from app.platforms import liepin
     from app.platforms.liepin import LiepinAdapter
 
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            raise TimeoutError("network blocked")
+
     monkeypatch.setattr(
         liepin,
         "open_temporary_tab",
         AsyncMock(return_value=(None, None)),
     )
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
 
-    result = await LiepinAdapter().crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
+    result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
     assert result["success"] is False
     assert "浏览器" in result["error"]
@@ -405,6 +503,40 @@ async def test_liepin_crawl_detail_uses_http_first(monkeypatch):
     assert result["success"] is True
     assert result["detail"]["description"] == "负责开发"
     assert result["detail"]["address"] == "上海市"
+    adapter._crawl_detail_via_cdp.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_liepin_crawl_detail_tries_anonymous_detail_url(monkeypatch):
+    from app.platforms.liepin import LiepinAdapter
+
+    requested_urls = []
+
+    class FakeResponse:
+        def __init__(self, text):
+            self.status_code = 200
+            self.headers = {"content-type": "text/html"}
+            self.text = text
+
+    class FakeSession:
+        def get(self, url, *_args, **_kwargs):
+            requested_urls.append(url)
+            if "/a/" in url:
+                return FakeResponse("<html><div class='job-intro-container'>匿名职位详情</div></html>")
+            return FakeResponse("<html></html>")
+
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
+    monkeypatch.setattr(adapter, "_crawl_detail_via_cdp", AsyncMock())
+
+    result = await adapter.crawl_detail("75066461")
+
+    assert result["success"] is True
+    assert result["detail"]["description"] == "匿名职位详情"
+    assert requested_urls == [
+        "https://www.liepin.com/job/75066461.shtml",
+        "https://www.liepin.com/a/75066461.shtml",
+    ]
     adapter._crawl_detail_via_cdp.assert_not_called()
 
 
