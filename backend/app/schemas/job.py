@@ -1,15 +1,18 @@
 """Pydantic schemas for job-related API endpoints."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+JobPlatform = Literal["boss", "51job"]
 
 
 class JobSearchConfigCreate(BaseModel):
     """Schema for creating a job search config."""
 
     name: str = Field(..., max_length=100)
-    platform: str = Field(default="boss", max_length=20)
+    platform: JobPlatform = "boss"
     keyword: str | None = Field(default=None, max_length=200)
     city_code: str | None = Field(default=None, max_length=20)
     salary_min: int | None = Field(default=None, ge=0)
@@ -29,7 +32,7 @@ class JobSearchConfigUpdate(BaseModel):
     """Schema for updating a job search config."""
 
     name: str | None = Field(default=None, max_length=100)
-    platform: str | None = Field(default=None, max_length=20)
+    platform: JobPlatform | None = None
     keyword: str | None = Field(default=None, max_length=200)
     city_code: str | None = Field(default=None, max_length=20)
     salary_min: int | None = Field(default=None, ge=0)
@@ -51,7 +54,7 @@ class JobSearchConfigResponse(BaseModel):
     id: int
     user_id: int
     name: str
-    platform: str
+    platform: JobPlatform
     keyword: str | None
     city_code: str | None
     salary_min: int | None

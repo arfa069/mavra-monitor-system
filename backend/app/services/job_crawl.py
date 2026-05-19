@@ -24,19 +24,29 @@ from app.services.notification import send_new_job_notification
 
 logger = logging.getLogger(__name__)
 
+VALID_JOB_PLATFORMS = {"boss", "51job"}
+
+
+def _normalize_platform(platform: object) -> str:
+    """Return a supported platform key, defaulting legacy rows/mocks to boss."""
+    if not isinstance(platform, str) or not platform:
+        return "boss"
+    normalized = platform.strip().lower()
+    if normalized not in VALID_JOB_PLATFORMS:
+        raise ValueError(f"Unknown job platform: {platform}")
+    return normalized
+
 
 def _create_adapter(platform: str) -> BasePlatformAdapter:
     """Create the appropriate adapter for the given job platform."""
     from app.platforms import BossZhipinAdapter, Job51Adapter
 
+    platform = _normalize_platform(platform)
     adapters: dict[str, type] = {
         "boss": BossZhipinAdapter,
         "51job": Job51Adapter,
     }
-    cls = adapters.get(platform)
-    if not cls:
-        raise ValueError(f"Unknown job platform: {platform}")
-    return cls()
+    return adapters[platform]()
 
 
 def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
@@ -135,7 +145,10 @@ async def process_job_results(
         jobs_by_job_id: dict[str, Job] = {}
         if job_ids:
             result = await db.execute(
-                select(Job).where(Job.job_id.in_(job_ids))
+                select(Job).where(
+                    Job.search_config_id == config_id,
+                    Job.job_id.in_(job_ids),
+                )
             )
             for job in result.scalars().all():
                 jobs_by_job_id[job.job_id] = job
@@ -418,7 +431,10 @@ async def crawl_single_config(
         if not config:
             return {"status": "error", "error": "Config not found"}
         # Eagerly load platform before session closes
-        platform = config.platform or "boss"
+        try:
+            platform = _normalize_platform(getattr(config, "platform", "boss"))
+        except ValueError as exc:
+            return {"status": "error", "error": str(exc)}
         url = config.url
 
     if adapter is None:
@@ -472,7 +488,13 @@ async def crawl_all_job_searches(source: str = "manual") -> dict:
     # Group configs by platform, share one adapter per platform
     by_platform: dict[str, list] = {}
     for config in configs:
-        platform = config.platform or "boss"
+        try:
+            platform = _normalize_platform(getattr(config, "platform", "boss"))
+        except ValueError as exc:
+            logger.warning("Skipping config %s with invalid platform %r", config.id, config.platform)
+            details.append({"config_id": config.id, "status": "error", "error": str(exc)})
+            error_count += 1
+            continue
         by_platform.setdefault(platform, []).append(config)
 
     idx = 0

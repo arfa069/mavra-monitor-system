@@ -225,7 +225,7 @@ class Job51Adapter(BasePlatformAdapter):
 
             all_jobs: list[dict] = []
             pages_fetched = 0
-            
+
             import time
             import uuid
 
@@ -288,11 +288,11 @@ class Job51Adapter(BasePlatformAdapter):
 
                     raw_resp = await asyncio.wait_for(ws.recv(), timeout=10)
                     result_payload = json.loads(raw_resp)
-                    
+
                     if "error" in result_payload:
                         logger.warning("CDP Error: %s", result_payload["error"])
                         break
-                        
+
                     # Extract stringified JSON from CDP response
                     try:
                         value_str = result_payload.get("result", {}).get("result", {}).get("value", "{}")
@@ -368,7 +368,7 @@ class Job51Adapter(BasePlatformAdapter):
             # If we don't have the full URL, we can use a proxy search API or Playwright.
             # Wait, 51job supports https://jobs.51job.com/all/{job_id}.html
             detail_url = f"https://jobs.51job.com/all/{job_id}.html"
-            
+
             resp = session.get(
                 detail_url,
                 impersonate="chrome124",
@@ -381,11 +381,12 @@ class Job51Adapter(BasePlatformAdapter):
             if resp.status_code != 200:
                 return {"success": False, "error": f"HTTP {resp.status_code}"}
 
-            from bs4 import BeautifulSoup
             import re
 
+            from bs4 import BeautifulSoup
+
             soup = BeautifulSoup(resp.text, "html.parser")
-            
+
             # WAF Check
             if soup.find("meta", attrs={"name": "aliyun_waf_aa"}):
                 return {"success": False, "error": "Blocked by Aliyun WAF"}
@@ -448,7 +449,7 @@ class Job51Adapter(BasePlatformAdapter):
                 "job_id": str(job_id),
                 "title": title,
                 "company": company,
-                "company_id": str(job.get("encCoId") or job.get("coId") or company), 
+                "company_id": str(job.get("encCoId") or job.get("coId") or company),
                 "salary": salary,
                 "location": location,
                 "experience": experience,

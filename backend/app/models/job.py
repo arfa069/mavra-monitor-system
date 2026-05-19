@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -11,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 
@@ -21,13 +23,21 @@ class JobSearchConfig(Base, TimestampMixin):
     """Job search configuration for scheduled crawling."""
 
     __tablename__ = "jobs_search_configs"
+    __table_args__ = (
+        CheckConstraint(
+            "platform IN ('boss', '51job')",
+            name="ck_jobs_search_configs_platform",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     platform = Column(
-        String(20), nullable=False, default="boss",
+        String(20),
+        nullable=False,
+        default="boss",
         comment="Job platform: boss, 51job",
     )
     name = Column(String(100), nullable=False)
@@ -68,13 +78,14 @@ class Job(Base):
 
     __tablename__ = "jobs"
     __table_args__ = (
+        UniqueConstraint("search_config_id", "job_id", name="uq_jobs_config_job_id"),
         Index("ix_jobs_job_id", "job_id"),
         Index("ix_jobs_search_config_id", "search_config_id"),
         Index("ix_jobs_dedup", "search_config_id", "title", "company", "salary"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    job_id = Column(String(500), nullable=False, unique=True)  # boss's encrypted job ID
+    job_id = Column(String(500), nullable=False)  # platform job ID within a config
     search_config_id = Column(
         Integer, ForeignKey("jobs_search_configs.id", ondelete="CASCADE"), nullable=False
     )
