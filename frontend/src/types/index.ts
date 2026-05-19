@@ -187,7 +187,7 @@ export interface JobSearchConfig {
   id: number;
   user_id: number;
   name: string;
-  platform: 'boss' | '51job';
+  platform: "boss" | "51job" | "liepin";
   keyword: string | null;
   city_code: string | null;
   salary_min: number | null;
@@ -207,7 +207,7 @@ export interface JobSearchConfig {
 
 export interface JobSearchConfigCreate {
   name: string;
-  platform?: 'boss' | '51job';
+  platform?: "boss" | "51job" | "liepin";
   keyword?: string;
   city_code?: string;
   salary_min?: number;
@@ -225,7 +225,7 @@ export interface JobSearchConfigCreate {
 
 export interface JobSearchConfigUpdate {
   name?: string;
-  platform?: 'boss' | '51job';
+  platform?: "boss" | "51job" | "liepin";
   keyword?: string;
   city_code?: string;
   salary_min?: number;
@@ -245,7 +245,7 @@ export interface Job {
   id: number;
   job_id: string;
   search_config_id: number;
-  platform: 'boss' | '51job';
+  platform: "boss" | "51job" | "liepin";
   title: string | null;
   company: string | null;
   company_id: string | null;
@@ -256,6 +256,7 @@ export interface Job {
   experience: string | null;
   education: string | null;
   description: string | null;
+  address: string | null;
   url: string | null;
   first_seen_at: string;
   last_updated_at: string;

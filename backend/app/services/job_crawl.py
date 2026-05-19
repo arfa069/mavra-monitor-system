@@ -24,7 +24,7 @@ from app.services.notification import send_new_job_notification
 
 logger = logging.getLogger(__name__)
 
-VALID_JOB_PLATFORMS = {"boss", "51job"}
+VALID_JOB_PLATFORMS = {"boss", "51job", "liepin"}
 
 
 def _normalize_platform(platform: object) -> str:
@@ -39,12 +39,13 @@ def _normalize_platform(platform: object) -> str:
 
 def _create_adapter(platform: str) -> BasePlatformAdapter:
     """Create the appropriate adapter for the given job platform."""
-    from app.platforms import BossZhipinAdapter, Job51Adapter
+    from app.platforms import BossZhipinAdapter, Job51Adapter, LiepinAdapter
 
     platform = _normalize_platform(platform)
     adapters: dict[str, type] = {
         "boss": BossZhipinAdapter,
         "51job": Job51Adapter,
+        "liepin": LiepinAdapter,
     }
     return adapters[platform]()
 
@@ -103,6 +104,7 @@ async def process_job_results(
     updated_count = 0
     deactivated_count = 0
     new_job_ids: list[int] = []
+    detail_job_ids: list[int] = []
 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
@@ -185,6 +187,8 @@ async def process_job_results(
                 job_obj.description = job_data["description"]
             if job_data.get("address"):
                 job_obj.address = job_data["address"]
+            if not job_obj.description or not job_obj.address:
+                detail_job_ids.append(job_obj.id)
             updated_count += 1
 
         for job_data in jobs:
@@ -282,17 +286,18 @@ async def process_job_results(
         if newly_inserted_job_ids:
             await db.flush()
             result = await db.execute(
-                select(Job.id, Job.job_id).where(Job.job_id.in_(newly_inserted_job_ids))
+                select(Job.id, Job.job_id).where(
+                    Job.search_config_id == config_id,
+                    Job.job_id.in_(newly_inserted_job_ids),
+                )
             )
             inserted_rows = result.all()
             new_job_ids = [row[0] for row in inserted_rows]
-            detail_job_ids = [
+            detail_job_ids.extend(
                 row[0]
                 for row in inserted_rows
                 if len(row) < 2 or row[1] in newly_inserted_job_ids_needing_detail
-            ]
-        else:
-            detail_job_ids = []
+            )
 
         # Send notification for new jobs (after commit so config.notify_on_new is available)
         if new_count > 0 and config.notify_on_new:
@@ -395,13 +400,13 @@ async def update_job_detail(
         if adapter is None:
             adapter = _create_adapter(platform)
 
-        # Skip detail fetching if description is already fully populated
-        if job.description:
+        # Skip detail fetching only when both fields already exist
+        if job.description and job.address:
             return {
                 "success": True,
                 "detail": {
                     "description": job.description,
-                    "address": job.address or "",
+                    "address": job.address,
                 }
             }
 

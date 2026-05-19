@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-JobPlatform = Literal["boss", "51job"]
+JobPlatform = Literal["boss", "51job", "liepin"]
 
 
 class JobSearchConfigCreate(BaseModel):
@@ -98,6 +98,7 @@ class JobResponse(BaseModel):
     experience: str | None
     education: str | None
     description: str | None
+    address: str | None
     url: str | None
     first_seen_at: datetime
     last_updated_at: datetime

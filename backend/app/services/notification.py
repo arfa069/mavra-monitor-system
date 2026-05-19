@@ -64,6 +64,7 @@ async def send_new_job_notification(
     platform_names = {
         "boss": "Boss直聘",
         "51job": "前程无忧",
+        "liepin": "猎聘",
     }
     platform_label = platform_names.get(
         getattr(config, "platform", "boss"), "招聘平台"

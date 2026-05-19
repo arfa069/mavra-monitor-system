@@ -4,7 +4,16 @@ from app.platforms.base import BasePlatformAdapter
 from app.platforms.boss import BossZhipinAdapter
 from app.platforms.jd import JDAdapter
 from app.platforms.job51 import Job51Adapter
+from app.platforms.liepin import LiepinAdapter
 from app.platforms.taobao import TaobaoAdapter
 
-__all__ = ["BasePlatformAdapter", "TaobaoAdapter", "JDAdapter", "AmazonAdapter", "BossZhipinAdapter", "Job51Adapter"]
+__all__ = [
+    "BasePlatformAdapter",
+    "TaobaoAdapter",
+    "JDAdapter",
+    "AmazonAdapter",
+    "BossZhipinAdapter",
+    "Job51Adapter",
+    "LiepinAdapter",
+]
 

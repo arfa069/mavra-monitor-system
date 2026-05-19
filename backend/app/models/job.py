@@ -25,7 +25,7 @@ class JobSearchConfig(Base, TimestampMixin):
     __tablename__ = "jobs_search_configs"
     __table_args__ = (
         CheckConstraint(
-            "platform IN ('boss', '51job')",
+            "platform IN ('boss', '51job', 'liepin')",
             name="ck_jobs_search_configs_platform",
         ),
     )
@@ -38,7 +38,7 @@ class JobSearchConfig(Base, TimestampMixin):
         String(20),
         nullable=False,
         default="boss",
-        comment="Job platform: boss, 51job",
+        comment="Job platform: boss, 51job, liepin",
     )
     name = Column(String(100), nullable=False)
     keyword = Column(String(200), nullable=True)

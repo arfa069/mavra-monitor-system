@@ -53,6 +53,7 @@ async def test_list_jobs_returns_paginated_response(mock_get_current_user):
     mock_job.experience = "3-5 years"
     mock_job.education = "Bachelor"
     mock_job.description = "Build things"
+    mock_job.address = None
     mock_job.url = "https://example.com/jobs/11"
     mock_job.first_seen_at = datetime.now(UTC)
     mock_job.last_updated_at = datetime.now(UTC)
