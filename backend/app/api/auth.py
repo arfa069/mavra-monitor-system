@@ -171,6 +171,18 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
             -H "Content-Type: application/json" \\
             -d '{"username": "testuser", "password": "123456"}'
     """
+    # Find user by username
+    result = await db.execute(select(User).where(User.username == login_data.username))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        # Record failed attempt
+        await record_failed_login(login_data.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户名或密码错误",
+        )
+
     # Check if account is locked
     is_locked, minutes_remaining = await is_account_locked(login_data.username)
     if is_locked:
@@ -179,11 +191,7 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
             detail=f"登录尝试次数过多，请 {minutes_remaining} 分钟后再试",
         )
 
-    # Find user by username
-    result = await db.execute(select(User).where(User.username == login_data.username))
-    user = result.scalar_one_or_none()
-
-    if user is None or not verify_password(login_data.password, user.hashed_password):
+    if not verify_password(login_data.password, user.hashed_password):
         # Record failed attempt
         await record_failed_login(login_data.username)
         raise HTTPException(

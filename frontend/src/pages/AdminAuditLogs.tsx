@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { App, Table, Tag } from 'antd'
 import { adminApi, type AuditLog } from '@/api/admin'
 
@@ -40,6 +40,20 @@ const ACTION_COLORS: Record<string, string> = {
   'job_config.delete': 'red',
 }
 
+const getErrorMessage = (error: unknown): string => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error
+  ) {
+    const response = (error as { response?: { data?: { detail?: unknown } } }).response
+    if (typeof response?.data?.detail === 'string') {
+      return response.data.detail
+    }
+  }
+  return 'Failed to fetch audit logs'
+}
+
 export default function AdminAuditLogsPage() {
   const message = App.useApp().message
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -48,22 +62,25 @@ export default function AdminAuditLogsPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true)
     try {
       const response = await adminApi.getAuditLogs({ page, page_size: pageSize })
       setLogs(response.items)
       setTotal(response.total)
-    } catch (error: any) {
-      message.error(error.response?.data?.detail || 'Failed to fetch audit logs')
+    } catch (error: unknown) {
+      message.error(getErrorMessage(error))
     } finally {
       setLoading(false)
     }
-  }
+  }, [message, page, pageSize])
 
   useEffect(() => {
-    fetchLogs()
-  }, [page, pageSize])
+    const timer = window.setTimeout(() => {
+      void fetchLogs()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [fetchLogs])
 
   const columns = [
     { title: 'ID', dataIndex: 'id', width: 60 },

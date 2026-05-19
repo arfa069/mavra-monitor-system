@@ -20,6 +20,12 @@ PERMISSIONS = {
     "schedule:configure": {"super_admin"},
     "config:read": {"admin", "super_admin"},
     "config:write": {"user", "admin", "super_admin"},
+    "product:read": {"super_admin"},
+    "product:write": {"super_admin"},
+    "product:delete": {"super_admin"},
+    "job:read": {"super_admin"},
+    "job:write": {"super_admin"},
+    "job:delete": {"super_admin"},
 }
 
 

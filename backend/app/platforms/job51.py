@@ -1,12 +1,9 @@
 """51job (前程无忧) platform adapter for job search crawling.
 
-Strategy: curl_cffi impersonates Chrome at TLS level. Cookies are read from
-the CDP browser (if a 51job tab is open) or from disk cache, then used for
-API calls. Falls back to Playwright for detail page rendering when needed.
-
-NOTE: The search API endpoint and response format must be confirmed via
-browser DevTools packet capture before the crawl() method is fully
-functional. This skeleton provides the Cookie lifecycle and framework.
+Search crawling runs inside a real browser page via CDP. Each crawl opens a
+temporary we.51job.com search tab, executes the search-pc API fetch in that
+browser context so WAF cookies and browser state are preserved, then closes the
+temporary tab. Cookie helpers remain for detail-page fallback paths.
 """
 
 import asyncio
@@ -37,12 +34,8 @@ COOKIE_FILE = Path(__file__).resolve().parent / ".51job_cookies.json"
 class Job51Adapter(BasePlatformAdapter):
     """Adapter for 51job (前程无忧) job search crawling.
 
-    Cookie lifecycle:
-    1. Read cookies from CDP browser via raw WebSocket (if 51job tab open).
-    2. Fall back to disk cache (.51job_cookies.json).
-    3. If both fail, use Playwright to visit search page and extract cookies.
-    4. CffiSession auto-updates cookies from API Set-Cookie headers.
-    5. Persist cookies to disk after each successful crawl.
+    Search results are fetched through a temporary CDP browser tab. The cookie
+    lifecycle is only used by detail fallback requests.
     """
 
     def __init__(self):

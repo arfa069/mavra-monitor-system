@@ -1,6 +1,7 @@
 """Tests for job crawling service."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestParseSalary:
@@ -84,6 +85,53 @@ class TestProcessJobResults:
 
         assert result["new_count"] == 1
         assert result["deactivated_count"] == 0
+
+    @pytest.mark.asyncio
+    async def test_process_job_results_skips_detail_wait_when_description_present(self):
+        """Search results with descriptions should not pay detail fetch throttling cost."""
+        from app.services.job_crawl import process_job_results
+
+        mock_config = MagicMock()
+        mock_config.id = 1
+        mock_config.notify_on_new = False
+        mock_config.deactivation_threshold = 3
+        mock_config.enable_match_analysis = False
+
+        empty_result = MagicMock()
+        empty_result.scalars.return_value.all.return_value = []
+        id_result = MagicMock()
+        id_result.all.return_value = [(123, "abc123")]
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock(return_value=mock_config)
+        mock_db.execute = AsyncMock(side_effect=[
+            empty_result,  # active jobs
+            empty_result,  # existing jobs by job_id
+            empty_result,  # dedup query
+            id_result,  # inserted internal IDs
+        ])
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.flush = AsyncMock()
+
+        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+            mock_session.return_value.__aenter__.return_value = mock_db
+            mock_session.return_value.__aexit__.return_value = None
+
+            with (
+                patch("app.services.job_crawl.update_job_detail", new_callable=AsyncMock) as update_detail,
+                patch("app.services.job_crawl.asyncio.sleep", new_callable=AsyncMock) as sleep,
+            ):
+                result = await process_job_results(
+                    1,
+                    [{"job_id": "abc123", "title": "Dev", "description": "Already in search JSON"}],
+                    1,
+                    platform="51job",
+                )
+
+        assert result["new_count"] == 1
+        update_detail.assert_not_called()
+        sleep.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_process_job_results_updates_existing_job(self):

@@ -6,11 +6,11 @@ import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+import bcrypt
 import redis.asyncio as redis
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,8 +21,7 @@ from app.models.user import User
 if TYPE_CHECKING:
     from app.models.session import Session
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+PASSWORD_HASH_PREFIX = "$bcrypt-sha256$"
 
 # JWT settings
 SECRET_KEY = settings.jwt_secret_key
@@ -49,12 +48,22 @@ async def _get_redis() -> redis.Redis:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""
-    return pwd_context.verify(plain_password, hashed_password)
+    password_bytes = plain_password.encode("utf-8")
+    if hashed_password.startswith(PASSWORD_HASH_PREFIX):
+        digest = hashlib.sha256(password_bytes).digest()
+        stored_hash = hashed_password[len(PASSWORD_HASH_PREFIX):].encode("utf-8")
+        return bcrypt.checkpw(digest, stored_hash)
+
+    try:
+        return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return PASSWORD_HASH_PREFIX + bcrypt.hashpw(digest, bcrypt.gensalt()).decode("utf-8")
 
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:

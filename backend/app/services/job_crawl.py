@@ -213,6 +213,7 @@ async def process_job_results(
 
         # Batch dedup query: find all matching by (title, company, salary) in ONE query
         newly_inserted_job_ids: list[str] = []  # track string job_ids of new inserts
+        newly_inserted_job_ids_needing_detail: set[str] = set()
         if jobs_need_dedup:
             dedup_tuples = [(j["title"], j["company"], j["salary"] or "") for j in jobs_need_dedup]
             result = await db.execute(
@@ -253,6 +254,8 @@ async def process_job_results(
                 else:
                     # Insert new job
                     newly_inserted_job_ids.append(item["job_id"])
+                    if not item.get("description"):
+                        newly_inserted_job_ids_needing_detail.add(item["job_id"])
                     new_job = Job(
                         job_id=item["job_id"],
                         search_config_id=config_id,
@@ -279,9 +282,17 @@ async def process_job_results(
         if newly_inserted_job_ids:
             await db.flush()
             result = await db.execute(
-                select(Job.id).where(Job.job_id.in_(newly_inserted_job_ids))
+                select(Job.id, Job.job_id).where(Job.job_id.in_(newly_inserted_job_ids))
             )
-            new_job_ids = [row[0] for row in result.all()]
+            inserted_rows = result.all()
+            new_job_ids = [row[0] for row in inserted_rows]
+            detail_job_ids = [
+                row[0]
+                for row in inserted_rows
+                if len(row) < 2 or row[1] in newly_inserted_job_ids_needing_detail
+            ]
+        else:
+            detail_job_ids = []
 
         # Send notification for new jobs (after commit so config.notify_on_new is available)
         if new_count > 0 and config.notify_on_new:
@@ -305,10 +316,10 @@ async def process_job_results(
         await db.commit()
 
         # Fetch job details sequentially with rate limiting (no concurrency)
-        if new_job_ids:
+        if detail_job_ids:
             detail_errors = 0
             consecutive_cookie_failures = 0
-            for jid in new_job_ids:
+            for jid in detail_job_ids:
                 try:
                     result = await update_job_detail(jid, adapter=adapter, platform=platform)
                     if isinstance(result, Exception):
@@ -328,7 +339,7 @@ async def process_job_results(
 
                 # 连续 3 次 cookie 失败 → token 彻底失效，停止获取详情
                 if consecutive_cookie_failures >= 3:
-                    remaining = len(new_job_ids) - new_job_ids.index(jid) - 1
+                    remaining = len(detail_job_ids) - detail_job_ids.index(jid) - 1
                     logger.warning(
                         "Bailing out of detail fetch: %d consecutive cookie failures, "
                         "%d jobs remaining",
@@ -339,7 +350,7 @@ async def process_job_results(
                 # 2-5秒间隔，避免触发反爬
                 await asyncio.sleep(random.uniform(2.0, 5.0))
             if detail_errors:
-                logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(new_job_ids))
+                logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_job_ids))
 
         if new_job_ids and config.enable_match_analysis:
             resume_result = await db.execute(

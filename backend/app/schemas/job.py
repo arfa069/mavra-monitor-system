@@ -54,7 +54,7 @@ class JobSearchConfigResponse(BaseModel):
     id: int
     user_id: int
     name: str
-    platform: JobPlatform
+    platform: JobPlatform = "boss"
     keyword: str | None
     city_code: str | None
     salary_min: int | None

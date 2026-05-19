@@ -91,7 +91,7 @@ export default function ScheduleConfigPage() {
     } finally {
       setPlatformLoading(false)
     }
-  }, [])
+  }, [message])
 
   const loadConfigData = useCallback(async () => {
     setConfigLoading(true)
@@ -117,19 +117,25 @@ export default function ScheduleConfigPage() {
     } finally {
       setConfigLoading(false)
     }
-  }, [])
+  }, [message])
 
   useEffect(() => {
     if (config) {
-      setRetentionDays(config.data_retention_days || 365)
-      setFeishuWebhookUrl(config.feishu_webhook_url || '')
+      const timer = window.setTimeout(() => {
+        setRetentionDays(config.data_retention_days || 365)
+        setFeishuWebhookUrl(config.feishu_webhook_url || '')
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
   }, [config])
 
   useEffect(() => {
-    void fetchSchedulerStatus()
-    void loadPlatformData()
-    void loadConfigData()
+    const timer = window.setTimeout(() => {
+      void fetchSchedulerStatus()
+      void loadPlatformData()
+      void loadConfigData()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [fetchSchedulerStatus, loadPlatformData, loadConfigData])
 
   const handleSaveRetention = async () => {

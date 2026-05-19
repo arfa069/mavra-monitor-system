@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Button, Divider, Input, Modal, Space, Tag } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined, ThunderboltOutlined } from '@ant-design/icons'
 import { isValidCron } from 'cron-validator'
@@ -25,14 +25,12 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
   const [error, setError] = useState<string | null>(null)
   const [cronValid, setCronValid] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    if (!open) {
-      setNlInput('')
-      setResult(null)
-      setError(null)
-      setCronValid(null)
-    }
-  }, [open])
+  const resetState = useCallback(() => {
+    setNlInput('')
+    setResult(null)
+    setError(null)
+    setCronValid(null)
+  }, [])
 
   const handleGenerate = useCallback(() => {
     const trimmed = nlInput.trim()
@@ -85,6 +83,7 @@ export default function CronGenerator({ open, onClose, onApply }: CronGeneratorP
     <Modal
       title="Cron Expression Generator"
       open={open}
+      afterClose={resetState}
       onCancel={onClose}
       width={500}
       footer={

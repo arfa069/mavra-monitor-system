@@ -32,7 +32,7 @@ function parseTime(
   ampm?: string,
 ): { hour: number; minute: number } | null {
   let hour = parseInt(hourStr, 10)
-  let minute = minuteStr ? parseInt(minuteStr, 10) : 0
+  const minute = minuteStr ? parseInt(minuteStr, 10) : 0
 
   if (isNaN(hour) || hour < 0 || hour > 23) return null
   if (isNaN(minute) || minute < 0 || minute > 59) return null

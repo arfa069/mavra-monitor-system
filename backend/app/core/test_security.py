@@ -62,8 +62,16 @@ def test_hash_password_generates_unique_hashes():
 
     # Hash should not be the plain password
     assert hashed != password
-    # Hash should be a bcrypt format (starts with $2b$)
-    assert hashed.startswith("$2b$")
+    # Hash should use the configured bcrypt-family scheme.
+    assert hashed.startswith("$bcrypt-sha256$")
+
+
+def test_hash_password_supports_long_passwords():
+    """hash_password handles bcrypt 5.x inputs longer than 72 bytes."""
+    password = "长密码" * 30
+    hashed = get_password_hash(password)
+
+    assert verify_password(password, hashed) is True
 
 
 def test_verify_password_correct_password_succeeds():
