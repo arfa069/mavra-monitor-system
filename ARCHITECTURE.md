@@ -2,7 +2,7 @@
 
 ## Overview
 
-A multi-user e-commerce price monitoring system that tracks product prices across Taobao, JD, Amazon, and Boss Zhipin job searches. When price drops are detected, notifications are sent via Feishu Webhook.
+A multi-user e-commerce price monitoring system that tracks product prices across Taobao, JD, and Amazon, plus job searches across Boss Zhipin, 51job, and Liepin. When price drops are detected, notifications are sent via Feishu Webhook.
 
 All API endpoints (except `/auth/register` and `/auth/login`) require JWT authentication. Data is isolated per user — each user can only access their own products, alerts, jobs, and configurations.
 
@@ -12,7 +12,7 @@ All API endpoints (except `/auth/register` and `/auth/login`) require JWT authen
 - **Web Framework**: FastAPI (async via asyncio)
 - **Database**: PostgreSQL (async via SQLAlchemy)
 - **Cache**: Redis
-- **Crawler**: Playwright (handles dynamic JS-rendered pages, supports CDP mode)
+- **Crawler**: Playwright for product pages; `curl_cffi` HTTP clients for job platforms
 - **Notification**: Feishu Webhook
 - **Frontend**: React + Vite + TypeScript + Ant Design (mobile-responsive, WCAG accessible)
 
@@ -286,20 +286,24 @@ backend/app/platforms/taobao.py   — TaobaoAdapter
 backend/app/platforms/jd.py       — JDAdapter
 backend/app/platforms/amazon.py   — AmazonAdapter
 backend/app/platforms/boss.py    — BossZhipinAdapter (裸 WebSocket CDP + curl_cffi)
+backend/app/platforms/job51.py   — Job51Adapter (curl_cffi)
+backend/app/platforms/liepin.py  — LiepinAdapter (curl_cffi)
 ```
 
 Each product adapter implements `extract_price()` and `extract_title()`. The base class manages browser lifecycle (launch or CDP connection), page navigation with timeout handling, and error recovery.
 
-### BossZhipinAdapter (Job Crawling)
+### Job Crawling Adapters
 
-Unlike product adapters, Boss does NOT use Playwright for crawling. Instead:
+Unlike product adapters, job adapters do not use Playwright for their normal crawl paths. Instead:
 
-- **curl_cffi** with `impersonate="chrome124"` calls the Boss search API directly (TLS-level Chrome fingerprint)
+- **BossZhipinAdapter** uses `curl_cffi` with `impersonate="chrome124"` to call Boss search/detail APIs directly (TLS-level Chrome fingerprint)
 - **Cookies** acquired without search API test (test consumes token): CDP read → disk cache → background tab → homepage
 - **Token lifecycle**: `__zp_stoken__` lasts ~5-6 API calls then returns code=37. Automatically refreshed by opening a background tab to search page (~3s). Search/detail API responses only return `__zp_sseed__`, `__zp_sname__`, `__zp_sts__` — NOT new `__zp_stoken__`
 - **Cookie domain**: Must use `session.cookies.set(k,v,domain=".zhipin.com")` — `update()` without domain causes old/new token collision
 - **Detail fetching**: Sequential 2-5s intervals (no `asyncio.gather`). Retries once on code=37/36 after token refresh. 3 consecutive cookie failures triggers bailout
 - **Adapter sharing**: `crawl_all_job_searches` creates one adapter for all configs; `update_job_detail` reuses the passed adapter
+- **Job51Adapter** uses `curl_cffi` search and HTML detail parsing.
+- **LiepinAdapter** uses `curl_cffi` for both search and detail. Search posts to `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`, seeded by a search-page GET for cookies/XSRF. Detail parsing tries standard `/job/<id>.shtml` and anonymous `/a/<id>.shtml` URLs, so the normal Liepin path should not open browser tabs.
 
 This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot script triggers on detection.
 

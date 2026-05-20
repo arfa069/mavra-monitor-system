@@ -277,14 +277,16 @@ JWT payload 结构：
 
 ### 7.4 职位爬取（services/job_crawl.py）
 
-不使用 Playwright，改用 `curl_cffi` 的 TLS 指纹模拟：
+正常路径不使用 Playwright，改用 `curl_cffi` 的 TLS 指纹模拟；只有 Boss token 刷新等兜底路径会使用 CDP：
 
 **核心逻辑：**
 
 - `crawl_all_job_searches_background()` — 后台爬取所有活跃配置
 - `crawl_single_config_background(config_id)` — 后台爬取单个配置
-- Cookie 获取优先级：CDP 读取 > 磁盘缓存 > 后台 tab 刷新
-- Token 刷新：`__zp_stoken__` 失效后自动开后台 tab 到搜索页刷新
+- Boss Cookie 获取优先级：CDP 读取 > 磁盘缓存 > 后台 tab 刷新
+- Boss Token 刷新：`__zp_stoken__` 失效后自动开后台 tab 到搜索页刷新
+- Liepin 搜索直接 POST `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`；先 GET 搜索页只为获取 cookie/XSRF，不打开浏览器 tab
+- Liepin 详情直接 HTTP 解析，依次尝试 `/job/<id>.shtml` 和 `/a/<id>.shtml`，无地址时标记为 `无地址`
 - 详情页串行获取，间隔 2-5s，连续 3 次 cookie 失败则熔断
 
 ### 7.5 LLM 匹配分析（services/job_match.py）
@@ -365,7 +367,9 @@ _shared_context: BrowserContext
 | TaobaoAdapter     | CSS 选择器 + 活动页价格处理                 |
 | JDAdapter         | 价格元素定位                                |
 | AmazonAdapter     | 价格区域定位                                |
-| BossZhipinAdapter | curl_cffi 调用搜索 API（不使用 Playwright） |
+| BossZhipinAdapter | curl_cffi 调用搜索/详情 API；token 失效时可通过 CDP 刷新 |
+| Job51Adapter      | curl_cffi 搜索 + HTML 详情解析              |
+| LiepinAdapter     | curl_cffi 搜索 API + HTTP 详情解析，不开 tab |
 
 ### 8.3 商品抓取流程（`POST /products/crawl/crawl-now`）
 
@@ -380,6 +384,8 @@ _shared_context: BrowserContext
 - **Token 刷新**：搜索和详情遇 code=37/36 自动开后台 tab 到搜索页刷新 `__zp_stoken__`（~3s），然后重试
 - **Cookie 设置**：必须用 `session.cookies.set(k,v,domain=".zhipin.com")`，`update()` 不带 domain 会导致新旧 token 共存
 - **详情重试**：`crawl_detail` 优先用 session 已有 cookie（来自搜索 API Set-Cookie 链），失败后才从 CDP 刷新
+- `LiepinAdapter.crawl()` 先 GET 搜索页拿 cookie/XSRF，再 POST `api-c.liepin.com` 的 PC 搜索 API；不要为搜索列表打开 tab
+- `LiepinAdapter.crawl_detail()` 直接 HTTP 解析 `/job/` 和 `/a/` 两类详情页；不要为详情打开 tab
 - **连续失败熔断**：`process_job_results` 中连续 3 次 cookie 失败自动跳过剩余详情获取
 - **Adapter 共享**：`crawl_all_job_searches()` 所有 config 共享一个 adapter 实例，详情串行 2-5s 间隔
 

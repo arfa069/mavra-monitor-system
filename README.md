@@ -4,12 +4,12 @@ E-commerce price monitoring system for Taobao, JD, and Amazon with Feishu webhoo
 
 ## Features
 
-- Track product prices across multiple platforms (Taobao, JD, Amazon, Boss Zhipin)
-- Automated crawling with Playwright (handles dynamic JS-rendered pages)
+- Track product prices across Taobao, JD, and Amazon; monitor jobs across Boss Zhipin, 51job, and Liepin
+- Automated product crawling with Playwright (handles dynamic JS-rendered pages)
 - Price drop alerts via Feishu Webhook
 - CDP mode: reuse an existing browser session to bypass login walls and anti-bot detection
 - Per-product crawl schedule (cron support per product)
-- Job search monitoring for Boss Zhipin
+- Job search monitoring for Boss Zhipin, 51job, and Liepin
 - RESTful API for product and alert management
 - Mobile-responsive UI with accessibility support (WCAG compliance)
 
@@ -215,7 +215,8 @@ cd frontend && npm run dev
 
 - **FastAPI**: Web framework (async via asyncio)
 - **PostgreSQL**: Database (async via SQLAlchemy)
-- **Playwright**: Web crawler for dynamic pages (launch or CDP mode)
+- **Playwright**: Product crawler for dynamic pages (launch or CDP mode)
+- **curl_cffi**: Job crawler HTTP client with browser-like TLS fingerprints
 - **Redis**: Cache layer
 - **Feishu Webhook**: Notification service
 
@@ -246,6 +247,12 @@ crawl_timezone: "Asia/Shanghai"
 Both cron jobs are managed via the **Schedule page** (`/schedule`) in the frontend, which shows registration state, next run time, and provides independent save buttons.
 
 Concurrent crawl protection: both cron and manual crawls share a global `asyncio.Semaphore(1)` — only one crawl runs at a time. On cron failure, a CrawlLog entry is written and a Feishu notification is sent if configured.
+
+### Job Platform Notes
+
+- Boss Zhipin uses `curl_cffi` search/detail APIs and may refresh cookies through the existing CDP browser when anti-bot tokens expire.
+- 51job uses `curl_cffi` search and HTML detail parsing.
+- Liepin uses `curl_cffi` for both search and detail. Search calls `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`; detail parsing tries `/job/<id>.shtml` and `/a/<id>.shtml`. The normal Liepin path should not open browser tabs.
 
 ### Products Pagination
 

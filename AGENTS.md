@@ -58,7 +58,7 @@ Always load the `karpathy-guidelines` skill when coding.
 
 ## 2.项目概览
 
-淘宝、京东、亚马逊价格监控系统 + Boss 直聘职位搜索监控。通过 Playwright 抓取商品页面/职位信息，记录价格历史，降价时通过飞书 Webhook 发送通知。
+淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
 **技术栈**：Python 3.11+ · FastAPI · PostgreSQL (async SQLAlchemy) · Redis · Playwright · 飞书 Webhook
 **前端**：React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）
 
@@ -110,6 +110,7 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
 - 涉及爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
 - Boss/京东/淘宝等强反爬流程，默认用已登录的 Edge CDP 专用浏览器验证。
+- 猎聘正常爬取路径应完全不开浏览器 tab：搜索 POST `api-c.liepin.com`，详情 HTTP 解析 `/job/` 和 `/a/` 两类页面；只有验证 CDP target 数量时需要读取 `http://127.0.0.1:9222/json`。
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
 
 ## 8. Design System
