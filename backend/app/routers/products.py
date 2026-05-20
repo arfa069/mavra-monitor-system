@@ -341,7 +341,10 @@ async def update_product_cron_config(
 
 
 @router.get("/cron-schedules")
-async def get_product_cron_schedules(request: Request):
+async def get_product_cron_schedules(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
     """Get next run times for all per-platform product crawl schedules."""
     from app.services.scheduler_job import ProductCronScheduler
 
@@ -350,7 +353,7 @@ async def get_product_cron_schedules(request: Request):
     )
     if not scheduler:
         return {"platforms": {}}
-    return {"platforms": scheduler.get_next_run_times()}
+    return {"platforms": scheduler.get_next_run_times(user_id=current_user.id)}
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
