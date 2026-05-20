@@ -106,3 +106,53 @@ class TestProductCronSchedulerUserIsolation:
         assert "user_id == 1" not in source, (
             "sync_all still filters by user_id == 1"
         )
+
+    @pytest.mark.asyncio
+    async def test_get_next_run_times_returns_platform_as_key(self):
+        """get_next_run_times must use platform name (not user_id:platform) as dict key."""
+        from app.services.scheduler_job import ProductCronScheduler
+
+        scheduler = AsyncIOScheduler()
+        scheduler.start()
+        try:
+            mgr = ProductCronScheduler(scheduler)
+            mgr.add_job(user_id=1, platform="taobao", cron_expression="0 6 * * *")
+            mgr.add_job(user_id=1, platform="jd", cron_expression="0 9 * * *")
+
+            times = mgr.get_next_run_times(user_id=1)
+
+            # Keys should be platform names, not "1:taobao" or "1:jd"
+            assert "taobao" in times, (
+                f"Expected key 'taobao', got keys: {list(times.keys())}"
+            )
+            assert "jd" in times
+            assert "1:taobao" not in times, (
+                "Key should not include user_id prefix like '1:taobao'"
+            )
+            assert times["taobao"]["cron_expression"] == "cron[month='*', day='*', day_of_week='*', hour='6', minute='0']"
+            assert times["taobao"]["next_run_at"] is not None
+        finally:
+            scheduler.shutdown(wait=False)
+
+    @pytest.mark.asyncio
+    async def test_get_next_run_times_filters_by_user_id(self):
+        """get_next_run_times with user_id should only return that user's jobs."""
+        from app.services.scheduler_job import ProductCronScheduler
+
+        scheduler = AsyncIOScheduler()
+        scheduler.start()
+        try:
+            mgr = ProductCronScheduler(scheduler)
+            mgr.add_job(user_id=1, platform="taobao", cron_expression="0 6 * * *")
+            mgr.add_job(user_id=2, platform="taobao", cron_expression="0 12 * * *")
+
+            user1_times = mgr.get_next_run_times(user_id=1)
+            assert "taobao" in user1_times
+            # Verify it's user 1's schedule (6 AM), not user 2's (12 PM)
+            assert "hour='6'" in user1_times["taobao"]["cron_expression"]
+
+            user2_times = mgr.get_next_run_times(user_id=2)
+            assert "taobao" in user2_times
+            assert "hour='12'" in user2_times["taobao"]["cron_expression"]
+        finally:
+            scheduler.shutdown(wait=False)

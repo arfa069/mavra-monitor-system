@@ -182,15 +182,26 @@ class ProductCronScheduler:
 
         logger.info("ProductCronScheduler synced: %d platform jobs registered", len(configs))
 
-    def get_next_run_times(self) -> dict[str, dict]:
-        """Return next run time info for all registered platform jobs."""
+    def get_next_run_times(self, user_id: int | None = None) -> dict[str, dict]:
+        """Return next run time info for registered platform jobs.
+
+        Args:
+            user_id: If provided, only return jobs for this user.
+                     The dict keys will be platform names (no user_id prefix).
+        """
         result: dict[str, dict] = {}
         for job in self._scheduler.get_jobs():
             if not job.id.startswith(self.JOB_ID_PREFIX):
                 continue
             # job id format: product_cron_{user_id}:{platform}
             suffix = job.id[len(self.JOB_ID_PREFIX):]
-            result[suffix] = {
+            parts = suffix.split(":", 1)
+            if len(parts) != 2:
+                continue
+            job_user_id, platform = parts
+            if user_id is not None and int(job_user_id) != user_id:
+                continue
+            result[platform] = {
                 "cron_expression": str(job.trigger),
                 "next_run_at": job.next_run_time.isoformat() if job.next_run_time else None,
             }
