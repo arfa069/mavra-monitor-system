@@ -1,0 +1,187 @@
+"""Dashboard API router with SSE and trend endpoints."""
+from __future__ import annotations
+
+import asyncio
+import json
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import decode_access_token, require_role
+from app.database import get_db
+from app.models.user import User
+from app.schemas.dashboard import DashboardKPIResponse, TrendResponse
+from app.services.dashboard_service import DashboardService
+
+router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+# In-memory store for last pushed KPI values per user
+_last_kpi_values: dict[int, dict[str, Any]] = {}
+
+
+def _json_default(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+
+@router.get("/kpi", response_model=DashboardKPIResponse)
+async def get_dashboard_kpi(
+    current_user: User = Depends(require_role("user", "admin", "super_admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current dashboard KPI data."""
+    service = DashboardService(db)
+    user_kpi = await service.calculate_user_kpi(current_user.id)
+
+    system_kpi = None
+    if current_user.role in ("admin", "super_admin"):
+        system_kpi = await service.calculate_system_kpi()
+
+    return DashboardKPIResponse(user=user_kpi, system=system_kpi)
+
+
+@router.get("/events")
+async def stream_dashboard_events(
+    request: Request,
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stream dashboard KPI updates over SSE."""
+    payload = decode_access_token(token)
+    if payload is None or payload.get("sub") is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing token",
+        )
+
+    user_id = int(payload["sub"])
+
+    # Fetch user from DB to check role
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None))
+    )
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+
+    is_admin = user.role in ("admin", "super_admin")
+
+    async def event_generator():
+        try:
+            yield ": connected\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+
+                service = DashboardService(db)
+                user_kpi = await service.calculate_user_kpi(user_id)
+
+                event_payload = {
+                    "event": "kpi_update",
+                    "data": user_kpi.model_dump(),
+                }
+
+                if is_admin:
+                    system_kpi = await service.calculate_system_kpi()
+                    event_payload["system"] = system_kpi.model_dump()
+
+                # Check if values changed since last push
+                current_values = user_kpi.model_dump()
+                last_values = _last_kpi_values.get(user_id)
+
+                if last_values != current_values or last_values is None:
+                    _last_kpi_values[user_id] = current_values
+                    payload_json = json.dumps(
+                        event_payload, ensure_ascii=False, default=_json_default
+                    )
+                    yield f"data: {payload_json}\n\n"
+
+                # Wait before next check (30 seconds)
+                await asyncio.sleep(30)
+        except asyncio.CancelledError:
+            pass
+
+    return StreamingResponse(
+        event_generator(), media_type="text/event-stream"
+    )
+
+
+@router.get("/trends", response_model=TrendResponse)
+async def get_trend_data(
+    type: str = Query(
+        ...,
+        pattern="^(price|jobs|platform_products|platform_jobs|salary|system_health|platform_success)$",
+    ),
+    days: int = Query(7, ge=1, le=90),
+    current_user: User = Depends(require_role("user", "admin", "super_admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get trend chart data for dashboard."""
+    service = DashboardService(db)
+
+    if type == "price":
+        return await service.get_price_trends(current_user.id, days)
+    elif type == "jobs":
+        return await service.get_job_trends(current_user.id, days)
+    elif type == "platform_products":
+        return await service.get_platform_distribution(
+            current_user.id, "products"
+        )
+    elif type == "platform_jobs":
+        return await service.get_platform_distribution(current_user.id, "jobs")
+    elif type == "salary":
+        return await service.get_salary_distribution(current_user.id)
+    elif type == "system_health":
+        if current_user.role not in ("admin", "super_admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required",
+            )
+        return await service.get_system_health_trends(days)
+    elif type == "platform_success":
+        if current_user.role not in ("admin", "super_admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required",
+            )
+        return await service.get_platform_success_rates()
+
+    raise HTTPException(status_code=400, detail=f"Unknown trend type: {type}")
+
+
+@router.get("/alerts/recent")
+async def get_recent_alerts(
+    limit: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(require_role("admin", "super_admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get recent alerts (admin only)."""
+    from app.models.alert import Alert
+
+    result = await db.execute(
+        select(Alert).order_by(Alert.created_at.desc()).limit(limit)
+    )
+    alerts = result.scalars().all()
+
+    return [
+        {
+            "id": alert.id,
+            "product_id": alert.product_id,
+            "alert_type": alert.alert_type,
+            "message": f"Threshold: {alert.threshold_percent}%",
+            "active": alert.active,
+            "created_at": (
+                alert.created_at.isoformat() if alert.created_at else None
+            ),
+        }
+        for alert in alerts
+    ]

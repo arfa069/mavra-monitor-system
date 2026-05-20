@@ -25,6 +25,7 @@ from app.core.security import decode_access_token, require_role
 from app.core.system_log import emit_system_log_detached
 from app.database import engine
 from app.routers import alerts, config, crawl, products
+from app.routers.dashboard import router as dashboard_router
 from app.routers.jobs import router as jobs_router
 
 logger = logging.getLogger(__name__)
@@ -133,6 +134,7 @@ app.include_router(wechat_router)
 app.include_router(events_router)
 app.include_router(admin_users_router)
 app.include_router(admin_router)
+app.include_router(dashboard_router)
 
 
 def _extract_token_user_id(request: Request) -> int | None:
