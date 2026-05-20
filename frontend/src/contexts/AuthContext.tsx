@@ -10,6 +10,7 @@ import type { User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
@@ -23,19 +24,21 @@ const USER_KEY = "auth_user";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Restore auth state from localStorage on init
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem(TOKEN_KEY);
+      const savedToken = localStorage.getItem(TOKEN_KEY);
       const savedUser = localStorage.getItem(USER_KEY);
 
-      if (token && savedUser) {
+      if (savedToken && savedUser) {
         try {
           // Try to fetch latest user info from server
           const response = await authApi.getMe();
           setUser(response.data);
+          setToken(savedToken);
           // Update locally cached user info
           localStorage.setItem(USER_KEY, JSON.stringify(response.data));
         } catch {
@@ -50,15 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem(TOKEN_KEY, token);
+  const login = (newToken: string, userData: User) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
     localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    setToken(newToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    setToken(null);
     setUser(null);
   };
 
@@ -66,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        token,
         isLoading,
         isAuthenticated: !!user,
         login,

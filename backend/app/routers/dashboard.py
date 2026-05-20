@@ -77,7 +77,25 @@ async def stream_dashboard_events(
 
     async def event_generator():
         try:
-            yield ": connected\n\n"
+            # Push initial data immediately on connection
+            service = DashboardService(db)
+            user_kpi = await service.calculate_user_kpi(user_id)
+
+            initial_payload = {
+                "event": "kpi_update",
+                "data": user_kpi.model_dump(),
+            }
+
+            if is_admin:
+                system_kpi = await service.calculate_system_kpi()
+                initial_payload["system"] = system_kpi.model_dump()
+
+            _last_kpi_values[user_id] = user_kpi.model_dump()
+            payload_json = json.dumps(
+                initial_payload, ensure_ascii=False, default=_json_default
+            )
+            yield f"data: {payload_json}\n\n"
+
             while True:
                 if await request.is_disconnected():
                     break
@@ -98,7 +116,7 @@ async def stream_dashboard_events(
                 current_values = user_kpi.model_dump()
                 last_values = _last_kpi_values.get(user_id)
 
-                if last_values != current_values or last_values is None:
+                if last_values != current_values:
                     _last_kpi_values[user_id] = current_values
                     payload_json = json.dumps(
                         event_payload, ensure_ascii=False, default=_json_default

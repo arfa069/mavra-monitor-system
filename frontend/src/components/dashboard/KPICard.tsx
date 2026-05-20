@@ -19,14 +19,14 @@ export function KPICard({
   valueStyle,
 }: KPICardProps) {
   return (
-    <Card bordered={false} style={{ borderRadius: 16 }}>
+    <Card variant="borderless" style={{ borderRadius: 16 }}>
       <Statistic
         title={title}
         value={value}
         prefix={prefix}
         suffix={suffix}
         precision={precision}
-        valueStyle={valueStyle}
+        styles={{ content: valueStyle }}
       />
     </Card>
   );

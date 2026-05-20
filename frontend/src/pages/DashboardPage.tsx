@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Row, Col, Card, Segmented, Spin, Tag } from "antd";
+import axios from "axios";
 import {
   ShoppingCartOutlined,
   FallOutlined,
@@ -16,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardSSE } from "@/hooks/useDashboardSSE";
 import { useDashboardTrends } from "@/hooks/useDashboardTrends";
 import { KPICard, TrendChart, DashboardPieChart } from "@/components/dashboard";
-import type { TimeRange } from "@/types/dashboard";
+import type { DashboardKPIResponse, TimeRange } from "@/types/dashboard";
 
 const TIME_RANGE_OPTIONS = [
   { label: "7天", value: 7 },
@@ -27,9 +28,28 @@ const TIME_RANGE_OPTIONS = [
 export default function DashboardPage() {
   const { user, token } = useAuth();
   const [days, setDays] = useState<TimeRange>(7);
+  const [initialData, setInitialData] = useState<DashboardKPIResponse | null>(null);
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
-  const { data: kpiData, connected, error: sseError } = useDashboardSSE(token);
+  // Fetch initial KPI data via HTTP
+  useEffect(() => {
+    if (!token) return;
+    const fetchInitial = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const response = await axios.get<DashboardKPIResponse>(
+          `${apiUrl}/dashboard/kpi`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        setInitialData(response.data);
+      } catch {
+        // Silently fail — SSE will provide data eventually
+      }
+    };
+    fetchInitial();
+  }, [token]);
+
+  const { data: sseData, connected, error: sseError } = useDashboardSSE(token);
   const priceTrends = useDashboardTrends("price", days, token);
   const jobTrends = useDashboardTrends("jobs", days, token);
   const productDist = useDashboardTrends("platform_products", days, token);
@@ -48,6 +68,8 @@ export default function DashboardPage() {
     isAdmin ? token : null,
   );
 
+  // Prefer SSE data over initial data (real-time updates)
+  const kpiData = sseData ?? initialData;
   const userKPI = kpiData?.user;
   const systemKPI = kpiData?.system;
 
@@ -87,7 +109,7 @@ export default function DashboardPage() {
             title="今日降价"
             value={userKPI?.price_drops_today ?? 0}
             prefix={<FallOutlined />}
-            valueStyle={{ color: "#e5484d" }}
+            styles={{ content: { color: "#e5484d" } }}
           />
         </Col>
         <Col xs={12} sm={12} md={8} lg={4}>
@@ -118,7 +140,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={12}>
           <Card
             title="各平台商品分布"
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 16 }}
           >
             {productDist.loading ? (
@@ -131,7 +153,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="价格趋势" bordered={false} style={{ borderRadius: 16 }}>
+          <Card title="价格趋势" variant="borderless" style={{ borderRadius: 16 }}>
             {priceTrends.loading ? (
               <Spin />
             ) : priceTrends.data ? (
@@ -148,7 +170,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={8}>
           <Card
             title="各平台职位分布"
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 16 }}
           >
             {jobDist.loading ? (
@@ -163,7 +185,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={8}>
           <Card
             title="新增职位趋势"
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 16 }}
           >
             {jobTrends.loading ? (
@@ -178,7 +200,7 @@ export default function DashboardPage() {
         <Col xs={24} lg={8}>
           <Card
             title="薪资区间分布"
-            bordered={false}
+            variant="borderless"
             style={{ borderRadius: 16 }}
           >
             {salaryDist.loading ? (
@@ -229,8 +251,10 @@ export default function DashboardPage() {
                 title="活跃告警"
                 value={systemKPI.active_alerts}
                 prefix={<AlertOutlined />}
-                valueStyle={{
-                  color: systemKPI.active_alerts > 0 ? "#e5484d" : "#1ea64a",
+                styles={{
+                  content: {
+                    color: systemKPI.active_alerts > 0 ? "#e5484d" : "#1ea64a",
+                  },
                 }}
               />
             </Col>
@@ -259,7 +283,7 @@ export default function DashboardPage() {
             <Col xs={24} lg={12}>
               <Card
                 title="系统健康度趋势"
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 16 }}
               >
                 {systemHealth.loading ? (
@@ -274,7 +298,7 @@ export default function DashboardPage() {
             <Col xs={24} lg={12}>
               <Card
                 title="平台成功率对比"
-                bordered={false}
+                variant="borderless"
                 style={{ borderRadius: 16 }}
               >
                 {platformSuccess.loading ? (
