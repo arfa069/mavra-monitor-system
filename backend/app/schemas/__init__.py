@@ -31,23 +31,9 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
-from app.schemas.dashboard import (
-    DashboardKPIResponse,
-    SystemKPI,
-    TrendDataset,
-    TrendDataPoint,
-    TrendResponse,
-    UserKPI,
-)
 from app.schemas.user import UserConfigCreate, UserConfigResponse, UserConfigUpdate
 
 __all__ = [
-    "DashboardKPIResponse",
-    "SystemKPI",
-    "TrendDataset",
-    "TrendDataPoint",
-    "TrendResponse",
-    "UserKPI",
     "AdminUserUpdate",
     "AdminUserListResponse",
     "AdminUserResponse",

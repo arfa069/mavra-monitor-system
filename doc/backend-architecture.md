@@ -362,14 +362,14 @@ _shared_context: BrowserContext
 
 ### 8.2 平台特定适配器
 
-| 适配器            | 提取策略                                    |
-| ----------------- | ------------------------------------------- |
-| TaobaoAdapter     | CSS 选择器 + 活动页价格处理                 |
-| JDAdapter         | 价格元素定位                                |
-| AmazonAdapter     | 价格区域定位                                |
+| 适配器            | 提取策略                                                 |
+| ----------------- | -------------------------------------------------------- |
+| TaobaoAdapter     | CSS 选择器 + 活动页价格处理                              |
+| JDAdapter         | 价格元素定位                                             |
+| AmazonAdapter     | 价格区域定位                                             |
 | BossZhipinAdapter | curl_cffi 调用搜索/详情 API；token 失效时可通过 CDP 刷新 |
-| Job51Adapter      | curl_cffi 搜索 + HTML 详情解析              |
-| LiepinAdapter     | curl_cffi 搜索 API + HTTP 详情解析，不开 tab |
+| Job51Adapter      | curl_cffi 搜索 + HTML 详情解析                           |
+| LiepinAdapter     | curl_cffi 搜索 API + HTTP 详情解析，不开 tab             |
 
 ### 8.3 商品抓取流程（`POST /products/crawl/crawl-now`）
 
