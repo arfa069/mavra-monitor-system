@@ -3,13 +3,13 @@ import logging
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import and_, delete, func, or_, select, true
+from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, stage_delete_user_sessions
 from app.database import get_db
 from app.models.audit_log import UserAuditLog
 from app.models.resource_permission import ResourcePermission
@@ -257,12 +257,11 @@ async def update_user(
     # Handle is_active special case (soft delete / restore)
     if "is_active" in update_dict:
         if update_data.is_active is False:
-            # Prevent disabling the last active super_admin
+            # Prevent disabling the last active super_admin (count non-deleted)
             if user.role == "super_admin":
                 active_super_count_result = await db.execute(
                     select(func.count(User.id)).where(
                         User.role == "super_admin",
-                        User.is_active.is_(True),
                         User.deleted_at.is_(None),
                     )
                 )
@@ -275,6 +274,8 @@ async def update_user(
             # Soft delete
             user.deleted_at = datetime.now(UTC)
             user.is_active = False
+            # Stage session deletion in same transaction
+            await stage_delete_user_sessions(user_id, db)
         elif update_data.is_active is True:
             # Restore
             user.deleted_at = None
@@ -282,10 +283,21 @@ async def update_user(
         # Remove is_active from update_dict to avoid setting it twice
         del update_dict["is_active"]
 
+    # Detect role change before applying fields
+    role_changed = (
+        "role" in update_dict
+        and update_dict["role"] is not None
+        and update_dict["role"] != user.role
+    )
+
     # Apply remaining fields
     for field, value in update_dict.items():
         if value is not None:
             setattr(user, field, value)
+
+    # Stage session deletion for role changes (same transaction)
+    if role_changed:
+        await stage_delete_user_sessions(user_id, db)
 
     try:
         await db.commit()
@@ -359,12 +371,11 @@ async def delete_user(
             detail="权限不足：不能删除 super_admin 用户",
         )
 
-    # Prevent deleting the last active super_admin
+    # Prevent deleting the last active super_admin (count non-deleted)
     if user.role == "super_admin":
         active_super_count_result = await db.execute(
             select(func.count(User.id)).where(
                 User.role == "super_admin",
-                User.is_active.is_(True),
                 User.deleted_at.is_(None),
             )
         )
@@ -375,17 +386,10 @@ async def delete_user(
                 detail="不能删除最后一个活跃的 super_admin",
             )
 
-    # Soft delete user
+    # Soft delete user + stage session deletion (same transaction)
     user.deleted_at = datetime.now(UTC)
     user.is_active = False
-
-    # Clean up user's sessions (if Session model exists - Task 9)
-    try:
-        from app.models.session import Session
-        session_delete = delete(Session).where(Session.user_id == user_id)
-        await db.execute(session_delete)
-    except ImportError:
-        pass  # Session model not yet implemented
+    await stage_delete_user_sessions(user_id, db)
 
     await db.commit()
 

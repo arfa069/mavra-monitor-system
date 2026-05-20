@@ -1,9 +1,7 @@
 """Tests for session management."""
-import hashlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.database import get_db
 from app.main import app
@@ -47,7 +45,6 @@ def test_user():
 @pytest.mark.asyncio
 async def test_create_session(mock_db_session, test_user):
     """Test creating a new session."""
-    from datetime import UTC, datetime
     from app.core.security import create_session
 
     token = "test_token_123"
@@ -83,7 +80,7 @@ async def test_create_session_max_5_removes_oldest(mock_db_session):
     mock_result.scalars.return_value.all.return_value = existing_sessions
     mock_db_session.execute.return_value = mock_result
 
-    session = await create_session(
+    await create_session(
         user_id=1,
         token="token_6",
         device="New Device",
@@ -180,6 +177,7 @@ async def test_parse_device():
 async def test_session_response_model():
     """Test SessionResponse model can be instantiated."""
     from datetime import UTC, datetime
+
     from app.api.auth import SessionResponse
 
     session_data = {

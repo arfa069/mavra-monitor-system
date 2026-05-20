@@ -28,8 +28,8 @@ class User(Base, TimestampMixin):
 
     @property
     def is_authenticated(self) -> bool:
-        """Return True if user is active and not deleted."""
-        return self.is_active and self.deleted_at is None
+        """Return True if user is not soft-deleted."""
+        return self.deleted_at is None
 
     @property
     def is_admin(self) -> bool:

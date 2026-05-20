@@ -180,6 +180,7 @@ async def test_login_success_returns_200_and_token(test_user, mock_get_db):
     mock_user.email = test_user["email"]
     mock_user.hashed_password = hashed
     mock_user.is_active = True
+    mock_user.deleted_at = None
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_user
@@ -235,6 +236,7 @@ async def test_login_wrong_password_returns_401(test_user, mock_get_db):
     mock_user.username = test_user["username"]
     mock_user.hashed_password = hashed
     mock_user.is_active = True
+    mock_user.deleted_at = None
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_user
@@ -695,6 +697,118 @@ async def test_change_password_without_token_returns_401_or_422():
         )
 
     assert response.status_code in [401, 422]
+
+
+# --- Password Change Session Cleanup Tests ---
+
+
+@pytest.mark.asyncio
+async def test_change_password_deletes_other_sessions_but_keeps_current(test_user, mock_get_db):
+    """POST /auth/me/password removes other sessions but keeps current."""
+    from datetime import UTC, datetime
+
+    from app.core.security import create_access_token, get_password_hash
+
+    token = create_access_token({"sub": "1", "username": test_user["username"]})
+
+    # Mock user
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.deleted_at = None
+    mock_user.created_at = datetime.now(UTC)
+    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.role = "user"
+
+    # Mock session (current)
+    mock_session_row = MagicMock()
+    mock_session_row.id = 42
+    mock_session_row.user_id = 1
+
+    # get_current_user needs: user query + session query
+    # get_session_by_token needs: session query
+    # stage_delete_other_sessions needs: query to find other sessions
+    mock_result_user = MagicMock()
+    mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = mock_session_row
+
+    mock_result_other_sessions = MagicMock()
+    mock_result_other_sessions.scalars.return_value.all.return_value = [MagicMock()]
+
+    mock_get_db.execute.side_effect = [
+        mock_result_user,              # get_current_user: user lookup
+        mock_result_session,           # get_current_user: session lookup
+        mock_result_session,           # get_session_by_token: session lookup
+        mock_result_other_sessions,    # stage_delete_other_sessions: query
+    ]
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/me/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": test_user["password"],
+                "new_password": "new_secure_password",
+            },
+        )
+
+    assert response.status_code == 200
+    # stage_delete_other_sessions was called (deletes done before commit)
+    assert mock_get_db.commit.called
+
+
+@pytest.mark.asyncio
+async def test_change_password_missing_current_session_returns_401(test_user, mock_get_db):
+    """POST /auth/me/password returns 401 when current session is missing."""
+    from datetime import UTC, datetime
+
+    from app.core.security import create_access_token, get_password_hash
+
+    token = create_access_token({"sub": "1", "username": test_user["username"]})
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.deleted_at = None
+    mock_user.created_at = datetime.now(UTC)
+    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.role = "user"
+
+    mock_result_user = MagicMock()
+    mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session for get_current_user
+
+    mock_result_no_session = MagicMock()
+    mock_result_no_session.scalar_one_or_none.return_value = None  # session missing for get_session_by_token
+
+    mock_get_db.execute.side_effect = [
+        mock_result_user,         # get_current_user: user lookup
+        mock_result_session,      # get_current_user: session lookup
+        mock_result_no_session,   # get_session_by_token: None
+    ]
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/me/password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "old_password": test_user["password"],
+                "new_password": "new_secure_password",
+            },
+        )
+
+    assert response.status_code == 401
+    assert "会话" in response.json().get("detail", "")
 
 
 # --- Health Check for Auth Endpoints ---

@@ -49,7 +49,7 @@ def fake_redis():
 def patch_redis(fake_redis, monkeypatch):
     async def fake_get_redis():
         return fake_redis
-    monkeypatch.setattr("app.core.security._get_redis", fake_get_redis)
+    monkeypatch.setattr("app.core.login_lockout._get_redis", fake_get_redis)
 
 
 # --- Password Hashing Tests ---

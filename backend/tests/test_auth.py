@@ -122,6 +122,7 @@ class TestLogin:
         mock_user.email = "test@example.com"
         mock_user.hashed_password = hashed
         mock_user.is_active = True
+        mock_user.deleted_at = None
         mock_user.created_at = datetime.now(UTC)
 
         mock_session = AsyncMock()
@@ -156,6 +157,7 @@ class TestLogin:
         mock_user.username = "testuser"
         mock_user.hashed_password = hashed
         mock_user.is_active = True
+        mock_user.deleted_at = None
 
         mock_session = AsyncMock()
         mock_result = MagicMock()
@@ -204,12 +206,13 @@ class TestLogin:
 
     @pytest.mark.asyncio
     async def test_login_inactive_user(self):
-        """Test login with inactive user returns 401."""
+        """Test login with soft-deleted user returns 401."""
         mock_user = MagicMock(spec=User)
         mock_user.id = 1
         mock_user.username = "testuser"
         mock_user.hashed_password = get_password_hash("password123")
-        mock_user.is_active = False
+        mock_user.is_active = True
+        mock_user.deleted_at = datetime.now(UTC)  # soft-deleted
 
         mock_session = AsyncMock()
         mock_result = MagicMock()
@@ -229,6 +232,71 @@ class TestLogin:
                 )
             assert response.status_code == 401
             assert "用户已被禁用" in response.json()["detail"]
+        finally:
+            app.dependency_overrides.clear()
+
+    # ── deleted_at lifecycle tests (refactored auth truth) ──
+
+    @pytest.mark.asyncio
+    async def test_login_rejects_soft_deleted_user(self):
+        """A user with deleted_at set cannot log in, regardless of is_active."""
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 1
+        mock_user.username = "testuser"
+        mock_user.hashed_password = get_password_hash("password123")
+        mock_user.is_active = True  # is_active is True, but deleted_at is set
+        mock_user.deleted_at = datetime.now(UTC)
+
+        mock_session = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_user
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.post(
+                    "/auth/login",
+                    json={"username": "testuser", "password": "password123"},
+                )
+            assert response.status_code == 401
+            # Must not create session for deleted user
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.asyncio
+    async def test_login_ignores_is_active_when_not_deleted(self):
+        """is_active is API compatibility only; login is allowed when deleted_at is None."""
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 1
+        mock_user.username = "testuser"
+        mock_user.hashed_password = get_password_hash("password123")
+        mock_user.is_active = False  # is_active=False but deleted_at=None
+        mock_user.deleted_at = None
+
+        mock_session = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_user
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.post(
+                    "/auth/login",
+                    json={"username": "testuser", "password": "password123"},
+                )
+            assert response.status_code == 200
+            data = response.json()
+            assert "access_token" in data
         finally:
             app.dependency_overrides.clear()
 
@@ -301,6 +369,109 @@ class TestGetMe:
             )
         assert response.status_code == 401
         assert "Token 无效或已过期" in response.json()["detail"]
+
+    # ── deleted_at lifecycle tests for get_current_user ──
+
+    @pytest.mark.asyncio
+    async def test_get_me_ignores_is_active_when_not_deleted_and_session_exists(self):
+        """Authentication validity is based on deleted_at + session, not is_active."""
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 1
+        mock_user.username = "testuser"
+        mock_user.email = "test@example.com"
+        mock_user.hashed_password = get_password_hash("password123")
+        mock_user.is_active = False  # is_active=False but not deleted
+        mock_user.deleted_at = None
+        mock_user.role = "user"
+        mock_user.created_at = datetime.now(UTC)
+
+        mock_session_obj = MagicMock()
+        mock_session_obj.user_id = 1
+
+        mock_session = AsyncMock()
+        # execute call 1: user query → found
+        # execute call 2: session query → found
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
+        session_result = MagicMock()
+        session_result.scalar_one_or_none.return_value = mock_session_obj
+
+        mock_session.execute = AsyncMock(side_effect=[user_result, session_result])
+
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+        try:
+            from app.core.security import create_access_token
+            token = create_access_token({"sub": "1", "username": "testuser"})
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["username"] == "testuser"
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.asyncio
+    async def test_get_me_rejects_deleted_user_even_with_session(self):
+        """Soft-deleted users are rejected even if the token session row exists.
+
+        With the refactored get_current_user, the SQL WHERE clause includes
+        deleted_at IS NULL, so a deleted user's row won't be returned.
+        We simulate this by making scalar_one_or_none() return None.
+        """
+        mock_session = AsyncMock()
+        # User query returns None (SQL filtered out deleted user)
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=user_result)
+
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+        try:
+            from app.core.security import create_access_token
+            token = create_access_token({"sub": "999", "username": "deleteduser"})
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert response.status_code == 401
+        finally:
+            app.dependency_overrides.clear()
+
+    @pytest.mark.asyncio
+    async def test_get_me_rejects_non_integer_sub_as_401(self):
+        """Malformed token subject must not surface as 500."""
+        mock_session = AsyncMock()
+
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+        try:
+            from app.core.security import create_access_token
+            token = create_access_token({"sub": "not-an-int", "username": "testuser"})
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            assert response.status_code == 401
+        finally:
+            app.dependency_overrides.clear()
 
 
 class TestLogout:

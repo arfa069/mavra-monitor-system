@@ -61,11 +61,13 @@ from app.core.security import (
     delete_session,
     get_current_user,
     get_password_hash,
+    get_session_by_token,
     get_user_sessions,
     is_account_locked,
     oauth2_scheme,
     parse_device,
     record_failed_login,
+    stage_delete_other_sessions,
     verify_password,
 )
 from app.database import get_db
@@ -193,19 +195,19 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
             detail=f"登录尝试次数过多，请 {minutes_remaining} 分钟后再试",
         )
 
+    # Reject soft-deleted users before password check to avoid info leak
+    if user.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户已被禁用",
+        )
+
     if not verify_password(login_data.password, user.hashed_password):
         # Record failed attempt
         await record_failed_login(login_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
-        )
-
-    # Check if user is active
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户已被禁用",
         )
 
     # Clear failed login attempts
@@ -418,10 +420,14 @@ async def update_me(
 async def change_password(
     request: Request,
     password_data: PasswordChange,
+    token: str = Depends(oauth2_scheme),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Change current user's password.
+
+    Validates current session before mutation, then invalidates other sessions
+    in the same transaction as the password update.
 
     Args:
         password_data: Password change data (old_password, new_password)
@@ -433,6 +439,7 @@ async def change_password(
 
     Raises:
         HTTPException 400: Old password is incorrect
+        HTTPException 401: Current session is invalid/missing
 
     Example:
         curl -X POST http://localhost:8000/auth/me/password \\
@@ -447,13 +454,27 @@ async def change_password(
             detail="原密码错误",
         )
 
+    # Resolve current session before mutation
+    current_session = await get_session_by_token(token, current_user.id, db)
+    if current_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：当前会话不存在或已失效",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Update password
     current_user.hashed_password = get_password_hash(password_data.new_password)
+
+    # Stage deletion of all other sessions (same transaction)
+    await stage_delete_other_sessions(current_session.id, current_user.id, db)
+
+    # Commit password change and session cleanup once
     await db.commit()
 
     logger.info(f"Password changed for user: {current_user.username}")
 
-    # Audit log
+    # Best-effort audit after business commit
     ip_address = request.client.host if request.client else ""
     await log_audit(
         db=db,
