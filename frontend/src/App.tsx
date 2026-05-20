@@ -23,6 +23,7 @@ import RegisterPage from "@/pages/Register";
 import AdminUsersPage from "@/pages/AdminUsers";
 import AdminAuditLogsPage from "@/pages/AdminAuditLogs";
 import EventCenterPage from "@/pages/EventCenter";
+import DashboardPage from "@/pages/DashboardPage";
 
 // Error Fallback component (uses hooks, must be inside Router)
 function ErrorFallback() {
@@ -278,6 +279,7 @@ function AppRoutes() {
 
               {/* Protected routes */}
               <Route element={<ProtectedLayoutRoute />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/events" element={<EventCenterPage />} />
                 <Route path="/jobs" element={<JobsPage />} />
                 <Route path="/products" element={<ProductsPage />} />

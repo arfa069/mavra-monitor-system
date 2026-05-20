@@ -21,6 +21,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   SettingOutlined,
+  DashboardOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeContext } from "@/components/ThemeProvider";
@@ -99,9 +100,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ? "/jobs"
         : location.pathname.startsWith("/products")
           ? "/products"
-          : location.pathname.startsWith("/admin")
-            ? location.pathname
-            : "/products";
+          : location.pathname.startsWith("/dashboard")
+            ? "/dashboard"
+            : location.pathname.startsWith("/admin")
+              ? location.pathname
+              : "/products";
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
@@ -109,6 +112,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const menuItems = [
+    {
+      key: "/dashboard",
+      icon: <DashboardOutlined style={{ fontSize: 14 }} />,
+      label: "Dashboard",
+    },
     {
       key: "/events",
       icon: <NotificationOutlined style={{ fontSize: 14 }} />,
