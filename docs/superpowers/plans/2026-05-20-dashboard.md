@@ -1841,9 +1841,47 @@ Expected: 前后端都成功启动
 
 ---
 
+## /autoplan Review Report
+
+**Status:** APPROVED (with override: optimize N+1 queries)
+**Date:** 2026-05-20
+**Branch:** main
+
+### Decision Audit Trail
+
+| # | Phase | Decision | Classification | Principle | Rationale |
+|---|-------|----------|----------------|-----------|-----------|
+| 1 | CEO | Scope is appropriate, do not reduce | Mechanical | P1 (Completeness) | 14 tasks covering full feature, medium risk |
+| 2 | CEO | Use recharts (existing) over ECharts | Mechanical | P4 (DRY) | Avoid new dependency when existing one works |
+| 3 | CEO | Hybrid role layout (split + conditional) | Mechanical | P5 (Explicit) | Clear separation, easy to reason about |
+| 4 | CEO | 7/30/90 day time range | Mechanical | P3 (Pragmatic) | User-requested, flexible |
+| 5 | CEO | SSE 30s push interval | Mechanical | P3 (Pragmatic) | Balance real-time feel vs server load |
+| 6 | Design | Accept current responsive strategy | Mechanical | P1 | Uses Ant Design responsive grid, sufficient |
+| 7 | Design | Accept loading states (Spin) | Taste | P3 | Skeleton screens would be better but higher effort |
+| 8 | Eng | Keep separate KPI queries (not merged) | Taste → OVERRIDDEN | P5 → P1 | User chose B: merge into fewer queries for N+1 optimization |
+| 9 | Eng | Test plan sufficient for MVP | Mechanical | P1 | Service + API tests cover critical paths |
+| 10 | DX | API design is clean and consistent | Mechanical | P5 | Follows REST conventions, clear parameters |
+
+### Review Scores
+- CEO: Clean, no user challenges, scope well-calibrated
+- Design: 8/10 — loading states could be richer, responsive strategy solid
+- Eng: 7/10 — N+1 queries flagged and approved for optimization, architecture sound
+- DX: 8/10 — clear task-by-task guide, good for agentic execution
+
+### Cross-Phase Themes
+- **Performance scalability** — CEO + Eng both flagged PostgreSQL aggregation as future bottleneck. Mitigation: plan uses Redis for KPI caching.
+- **Test coverage gap** — Eng noted missing frontend component tests. Accepted as tradeoff for MVP speed.
+
+### Approved Overrides
+- **N+1 Query Optimization** (from Taste Decision #8): User selected Option B. Task 3 `calculate_user_kpi()` should combine multiple `COUNT()` queries into a single query or use `asyncio.gather()` for parallel execution to reduce database round-trips.
+
+---
+
 ## 执行选项
 
-**Plan complete and saved to `docs/superpowers/plans/2026-05-20-dashboard.md`.**
+**Plan complete, reviewed, and saved to `docs/superpowers/plans/2026-05-20-dashboard.md`.**
+
+**Status:** APPROVED with N+1 optimization override.
 
 **Two execution options:**
 
