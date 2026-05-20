@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.services.scheduler_service import CrawlTask
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.system_log import emit_system_log_detached
 from app.database import AsyncSessionLocal
@@ -25,6 +26,9 @@ from app.services.notification import send_new_job_notification
 logger = logging.getLogger(__name__)
 
 VALID_JOB_PLATFORMS = {"boss", "51job", "liepin"}
+_JOB_CRAWL_LOCK = asyncio.Lock()
+DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2
+DETAIL_RETRY_DELAY_SECONDS = (20.0, 40.0)
 
 
 def _normalize_platform(platform: object) -> str:
@@ -323,28 +327,54 @@ async def process_job_results(
         # Fetch job details sequentially with rate limiting (no concurrency)
         if detail_job_ids:
             detail_errors = 0
+            detail_updates = 0
             consecutive_cookie_failures = 0
+            cookie_failure_cooldowns = 0
+            retry_detail_job_ids: list[int] = []
             for jid in detail_job_ids:
                 try:
-                    result = await update_job_detail(jid, adapter=adapter, platform=platform)
+                    result = await update_job_detail(
+                        jid,
+                        adapter=adapter,
+                        platform=platform,
+                    )
                     if isinstance(result, Exception):
                         detail_errors += 1
+                        retry_detail_job_ids.append(jid)
                     elif isinstance(result, dict) and not result.get("success"):
                         detail_errors += 1
+                        retry_detail_job_ids.append(jid)
                         err = result.get("error", "")
                         if "code=37" in err or "code=36" in err or "Cookie expired" in err:
                             consecutive_cookie_failures += 1
                         else:
                             consecutive_cookie_failures = 0
                     else:
+                        detail_updates += 1
                         consecutive_cookie_failures = 0
                 except Exception:
                     detail_errors += 1
+                    retry_detail_job_ids.append(jid)
                     consecutive_cookie_failures += 1
 
-                # 连续 3 次 cookie 失败 → token 彻底失效，停止获取详情
+                # 连续 cookie 失败时先冷却，再继续串行补详情；多次冷却仍失败才停止。
                 if consecutive_cookie_failures >= 3:
                     remaining = len(detail_job_ids) - detail_job_ids.index(jid) - 1
+                    if cookie_failure_cooldowns < DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT:
+                        cookie_failure_cooldowns += 1
+                        cooldown = random.uniform(20.0, 40.0)
+                        logger.warning(
+                            "Cooling down detail fetch after %d consecutive cookie failures; "
+                            "%d jobs remaining, cooldown %.1fs (%d/%d)",
+                            consecutive_cookie_failures,
+                            remaining,
+                            cooldown,
+                            cookie_failure_cooldowns,
+                            DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT,
+                        )
+                        consecutive_cookie_failures = 0
+                        await asyncio.sleep(cooldown)
+                        continue
                     logger.warning(
                         "Bailing out of detail fetch: %d consecutive cookie failures, "
                         "%d jobs remaining",
@@ -354,6 +384,27 @@ async def process_job_results(
 
                 # 2-5秒间隔，避免触发反爬
                 await asyncio.sleep(random.uniform(2.0, 5.0))
+            if retry_detail_job_ids:
+                retry_delay = random.uniform(*DETAIL_RETRY_DELAY_SECONDS)
+                logger.info(
+                    "Retrying %d failed detail fetches after %.1fs",
+                    len(retry_detail_job_ids),
+                    retry_delay,
+                )
+                await asyncio.sleep(retry_delay)
+                for jid in retry_detail_job_ids:
+                    try:
+                        result = await update_job_detail(
+                            jid,
+                            adapter=adapter,
+                            platform=platform,
+                        )
+                        if isinstance(result, dict) and result.get("success"):
+                            detail_updates += 1
+                    except Exception:
+                        logger.exception("Retry detail fetch failed for job %s", jid)
+
+                    await asyncio.sleep(random.uniform(2.0, 5.0))
             if detail_errors:
                 logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_job_ids))
 
@@ -380,6 +431,8 @@ async def update_job_detail(
     adapter: BasePlatformAdapter | None = None,
     *,
     platform: str = "boss",
+    db: AsyncSession | None = None,
+    commit: bool = True,
 ) -> dict:
     """Fetch and update job detail (description, address) from platform API.
 
@@ -387,18 +440,21 @@ async def update_job_detail(
         job_id: The internal Job record ID.
         adapter: Optional shared adapter instance (reuses session/cookies).
         platform: The job platform for adapter creation.
+        db: Optional session to reuse for batch detail updates.
+        commit: Whether to commit after updating the job.
 
     Returns:
         {"success": True, "detail": {...}} or {"success": False, "error": "..."}
     """
-    async with AsyncSessionLocal() as db:
-        job = await db.get(Job, job_id)
+    async def _update(db_session: AsyncSession) -> dict:
+        job = await db_session.get(Job, job_id)
         if not job:
             return {"success": False, "error": "Job not found"}
 
         # Reuse adapter if provided (shares session & cookies), else create new
-        if adapter is None:
-            adapter = _create_adapter(platform)
+        detail_adapter = adapter
+        if detail_adapter is None:
+            detail_adapter = _create_adapter(platform)
 
         # Skip detail fetching only when both fields already exist
         if job.description and job.address:
@@ -411,9 +467,9 @@ async def update_job_detail(
             }
 
         # crawl_detail is available on both BossZhipinAdapter and Job51Adapter
-        if not hasattr(adapter, "crawl_detail"):
+        if not hasattr(detail_adapter, "crawl_detail"):
             return {"success": False, "error": f"Adapter for {platform} has no crawl_detail"}
-        result = await adapter.crawl_detail(job.job_id)
+        result = await detail_adapter.crawl_detail(job.job_id)
 
         if not result.get("success"):
             return result
@@ -424,13 +480,23 @@ async def update_job_detail(
         job.description = detail.get("description", "")
         job.address = detail.get("address", "")
         job.last_updated_at = datetime.now(UTC)
-        await db.commit()
+        if commit:
+            await db_session.commit()
 
         return {"success": True, "detail": detail}
 
+    if db is not None:
+        return await _update(db)
+
+    async with AsyncSessionLocal() as db_session:
+        return await _update(db_session)
+
 
 async def crawl_single_config(
-    config_id: int, adapter: BasePlatformAdapter | None = None
+    config_id: int,
+    adapter: BasePlatformAdapter | None = None,
+    *,
+    _lock_already_held: bool = False,
 ) -> dict:
     """Crawl a single JobSearchConfig and process results.
 
@@ -442,6 +508,17 @@ async def crawl_single_config(
             the adapter's session and cookies across multiple configs to
             avoid redundant cookie acquisition and browser tab churn.
     """
+    if not _lock_already_held:
+        if _JOB_CRAWL_LOCK.locked():
+            logger.warning("Job crawl skipped: another job crawl is in progress")
+            return {"status": "skipped", "reason": "another_job_crawl_in_progress"}
+        async with _JOB_CRAWL_LOCK:
+            return await crawl_single_config(
+                config_id,
+                adapter=adapter,
+                _lock_already_held=True,
+            )
+
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
         if not config:
@@ -480,16 +557,44 @@ async def crawl_single_config(
         return {"status": "error", "error": result.get("error")}
 
 
-async def crawl_all_job_searches(source: str = "manual") -> dict:
+async def crawl_all_job_searches(
+    source: str = "manual",
+    *,
+    user_id: int | None = None,
+    _lock_already_held: bool = False,
+) -> dict:
     """Crawl all active job search configs.
 
     Groups configs by platform and shares one adapter per platform so that
     cookie acquisition happens at most once per platform instead of once
     per config.
     """
+    if not _lock_already_held:
+        if _JOB_CRAWL_LOCK.locked():
+            logger.warning(
+                "Job crawl skipped: another job crawl is in progress (source=%s)",
+                source,
+            )
+            return {
+                "status": "skipped",
+                "reason": "another_job_crawl_in_progress",
+                "total": 0,
+                "success": 0,
+                "errors": 0,
+            }
+        async with _JOB_CRAWL_LOCK:
+            return await crawl_all_job_searches(
+                source=source,
+                user_id=user_id,
+                _lock_already_held=True,
+            )
+
     async with AsyncSessionLocal() as db:
+        filters = [JobSearchConfig.active]
+        if user_id is not None:
+            filters.append(JobSearchConfig.user_id == user_id)
         result = await db.execute(
-            select(JobSearchConfig).where(JobSearchConfig.active)
+            select(JobSearchConfig).where(*filters)
         )
         configs = list(result.scalars().all())
 
@@ -517,7 +622,11 @@ async def crawl_all_job_searches(source: str = "manual") -> dict:
     for platform, platform_configs in by_platform.items():
         adapter = _create_adapter(platform)
         for config in platform_configs:
-            result = await crawl_single_config(config.id, adapter=adapter)
+            result = await crawl_single_config(
+                config.id,
+                adapter=adapter,
+                _lock_already_held=True,
+            )
             details.append({"config_id": config.id, **result})
             if result.get("status") == "success":
                 success_count += 1
@@ -633,7 +742,7 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                 entity_id=task.task_id,
                 payload={"task_id": task.task_id},
             )
-            result = await crawl_all_job_searches(source="manual")
+            result = await crawl_all_job_searches(source="manual", user_id=task.user_id)
             ok = result.get("status") != "error"
             task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
             task.total = result.get("total", 0)

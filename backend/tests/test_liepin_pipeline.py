@@ -112,4 +112,10 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     )
 
     assert result["updated_count"] == 1
-    update_detail.assert_awaited_once_with(99, adapter=None, platform="liepin")
+    update_detail.assert_awaited_once()
+    _, kwargs = update_detail.await_args
+    assert update_detail.await_args.args == (99,)
+    assert kwargs["adapter"] is None
+    assert kwargs["platform"] == "liepin"
+    assert "db" not in kwargs
+    assert "commit" not in kwargs

@@ -2,8 +2,7 @@
 
 Strategy: curl_cffi impersonates Chrome 124 at TLS level to call the search
 API (wapi/zpgeek/search/joblist.json). Cookies are read from the CDP browser
-via minimal raw WebSocket (2 CDP commands, avoids anti-bot detection) and
-persisted to disk so subsequent crawls don't need the browser at all.
+via minimal raw WebSocket (2 CDP commands, avoids anti-bot detection).
 """
 
 import asyncio
@@ -11,7 +10,6 @@ import json
 import logging
 import random
 import time
-from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -24,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 MAX_PAGES = 3
 PAGE_SIZE = 45
+DETAIL_MAX_ATTEMPTS = 3
 SEARCH_API_PATH = "/wapi/zpgeek/search/joblist.json"
 DETAIL_API_PATH = "/wapi/zpgeek/job/detail.json"
 BASE_URL = "https://www.zhipin.com"
 CDP_BASE = "http://127.0.0.1:9222"
-COOKIE_FILE = Path(__file__).resolve().parent / ".boss_cookies.json"
 
 
 class BossZhipinAdapter(BasePlatformAdapter):
@@ -36,10 +34,8 @@ class BossZhipinAdapter(BasePlatformAdapter):
 
     Cookie lifecycle:
     1. Read cookies from CDP browser via raw WebSocket (< 0.1s, non-destructive).
-    2. Persist to disk after each successful crawl.
-    3. Subsequent crawls use disk cookies (no browser needed).
-    4. CffiSession auto-updates cookies from API Set-Cookie headers.
-    5. When cookies expire: re-read from CDP browser (page must be open, past captcha).
+    2. CffiSession keeps cookies in memory during the current crawl.
+    3. When cookies expire: refresh via a short-lived CDP target.
     """
 
     def __init__(self):
@@ -55,13 +51,13 @@ class BossZhipinAdapter(BasePlatformAdapter):
     async def _ensure_cookies(self) -> bool:
         """Ensure the adapter has valid cookies for search API."""
         if self._cookies_acquired_at and time.time() - self._cookies_acquired_at < 300:
-            logger.warning("_ensure_cookies: cache hit, returning True")
+            logger.debug("_ensure_cookies: cache hit")
             return True
-        logger.warning("_ensure_cookies: calling _acquire_cookies")
+        logger.debug("_ensure_cookies: calling _acquire_cookies")
         if await self._acquire_cookies(self._get_session()):
-            logger.warning("_ensure_cookies: _acquire_cookies succeeded")
+            logger.debug("_ensure_cookies: _acquire_cookies succeeded")
             return True
-        logger.warning("_ensure_cookies: _acquire_cookies FAILED")
+        logger.warning("_ensure_cookies: _acquire_cookies failed")
         return False
 
     # ── Public interface ──────────────────────────────────────────────
@@ -104,83 +100,6 @@ class BossZhipinAdapter(BasePlatformAdapter):
             return {}
 
     @staticmethod
-    async def _quick_refresh_cookies() -> dict[str, str]:
-        """直接开后台 tab 到搜索页以获取新 __zp_stoken__。
-
-        Target.createTarget 直接到搜索 URL，服务端响应 Set-Cookie。
-        """
-        import http.client
-
-        target_id = None
-        try:
-            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
-            conn.request("GET", "/json/version")
-            data = json.loads(conn.getresponse().read())
-            browser_ws = data.get("webSocketDebuggerUrl")
-            conn.close()
-            if not browser_ws:
-                return {}
-
-            search_url = (
-                "https://www.zhipin.com/web/geek/jobs"
-                "?query=python&city=101280100"
-            )
-            async with websockets.connect(browser_ws, max_size=2 ** 24) as ws:
-                await ws.send(json.dumps({
-                    "id": 1, "method": "Target.createTarget",
-                    "params": {"url": search_url, "background": True},
-                }))
-                result = json.loads(await ws.recv())
-                target_id = result["result"]["targetId"]
-
-            # 等 HTTP 响应 + 浏览器处理 Set-Cookie
-            await asyncio.sleep(2.5)
-
-            target_ws = await BossZhipinAdapter._find_target_ws(target_id)
-            if not target_ws:
-                return {}
-
-            cookies = {}
-            async with websockets.connect(target_ws, max_size=2 ** 24) as ws:
-                await ws.send(json.dumps({"id": 1, "method": "Network.enable"}))
-                await asyncio.wait_for(ws.recv(), timeout=2)
-                await ws.send(json.dumps({
-                    "id": 2, "method": "Network.getCookies",
-                    "params": {"urls": ["https://www.zhipin.com/"]},
-                }))
-                raw = await asyncio.wait_for(ws.recv(), timeout=2)
-                data = json.loads(raw)
-
-                for c in data.get("result", {}).get("cookies", []):
-                    cookies[c["name"]] = c["value"]
-
-            st_new = cookies.get("__zp_stoken__", "<missing>")
-            logger.warning("quick-refresh: %d cookies, stoken=%s", len(cookies),
-                       st_new[:24] if len(st_new) > 24 else st_new)
-            return cookies
-
-        except Exception as e:
-            logger.warning("quick-refresh FAILED: %s", e)
-            return {}
-        finally:
-            if target_id:
-                try:
-                    conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
-                    conn.request("GET", "/json/version")
-                    data = json.loads(conn.getresponse().read())
-                    browser_ws = data.get("webSocketDebuggerUrl")
-                    conn.close()
-                    if browser_ws:
-                        async with websockets.connect(browser_ws, max_size=2 ** 24) as ws:
-                            await ws.send(json.dumps({
-                                "id": 99, "method": "Target.closeTarget",
-                                "params": {"targetId": target_id},
-                            }))
-                            await asyncio.wait_for(ws.recv(), timeout=2)
-                except Exception:
-                    pass
-
-    @staticmethod
     async def _find_page_ws() -> str | None:
         """Find a page's WebSocket CDP URL — prefers Boss, falls back to any."""
         import http.client
@@ -209,6 +128,90 @@ class BossZhipinAdapter(BasePlatformAdapter):
         return None
 
     @staticmethod
+    async def _refresh_cookies_via_cdp_target() -> dict[str, str]:
+        """Open a short-lived Boss target to let the site issue a fresh stoken.
+
+        This mirrors the main-branch code=36/37 recovery path, but keeps the
+        refreshed cookies in memory only. Nothing is persisted to disk.
+        """
+        import http.client
+
+        target_id = None
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
+            conn.request("GET", "/json/version")
+            data = json.loads(conn.getresponse().read())
+            browser_ws = data.get("webSocketDebuggerUrl")
+            conn.close()
+            if not browser_ws:
+                return {}
+
+            refresh_url = (
+                "https://www.zhipin.com/web/geek/jobs"
+                "?query=python&city=101280100"
+            )
+            async with websockets.connect(browser_ws, max_size=2 ** 24) as ws:
+                await ws.send(json.dumps({
+                    "id": 1,
+                    "method": "Target.createTarget",
+                    "params": {"url": refresh_url, "background": True},
+                }))
+                result = json.loads(await ws.recv())
+                target_id = result.get("result", {}).get("targetId")
+                if not target_id:
+                    return {}
+
+            await asyncio.sleep(2.5)
+
+            target_ws = await BossZhipinAdapter._find_target_ws(target_id)
+            if not target_ws:
+                return {}
+
+            cookies = {}
+            async with websockets.connect(target_ws, max_size=2 ** 24) as ws:
+                await ws.send(json.dumps({"id": 1, "method": "Network.enable"}))
+                await asyncio.wait_for(ws.recv(), timeout=2)
+                await ws.send(json.dumps({
+                    "id": 2,
+                    "method": "Network.getCookies",
+                    "params": {"urls": ["https://www.zhipin.com/"]},
+                }))
+                raw = await asyncio.wait_for(ws.recv(), timeout=2)
+                data = json.loads(raw)
+
+            for c in data.get("result", {}).get("cookies", []):
+                cookies[c["name"]] = c["value"]
+
+            logger.info(
+                "CDP refresh: %d cookies, stoken_present=%s",
+                len(cookies),
+                bool(cookies.get("__zp_stoken__")),
+            )
+            return cookies
+
+        except Exception as e:
+            logger.warning("CDP cookie refresh failed: %s", e)
+            return {}
+        finally:
+            if target_id:
+                try:
+                    conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
+                    conn.request("GET", "/json/version")
+                    data = json.loads(conn.getresponse().read())
+                    browser_ws = data.get("webSocketDebuggerUrl")
+                    conn.close()
+                    if browser_ws:
+                        async with websockets.connect(browser_ws, max_size=2 ** 24) as ws:
+                            await ws.send(json.dumps({
+                                "id": 99,
+                                "method": "Target.closeTarget",
+                                "params": {"targetId": target_id},
+                            }))
+                            await asyncio.wait_for(ws.recv(), timeout=2)
+                except Exception:
+                    pass
+
+    @staticmethod
     async def _find_target_ws(target_id: str) -> str | None:
         """根据 targetId 查找 CDP WebSocket URL。"""
         import http.client
@@ -231,82 +234,41 @@ class BossZhipinAdapter(BasePlatformAdapter):
                     pass
         return None
 
-    # ── Cookie persistence ─────────────────────────────────────────────
-
-    @staticmethod
-    def _load_cookies() -> dict[str, str]:
-        try:
-            if COOKIE_FILE.exists():
-                return json.loads(COOKIE_FILE.read_text())
-        except Exception:
-            pass
-        return {}
-
-    @staticmethod
-    def _save_cookies(cffi_session: CffiSession) -> None:
-        try:
-            COOKIE_FILE.write_text(json.dumps(
-                cffi_session.cookies.get_dict()
-            ))
-        except Exception:
-            pass
-
-    @staticmethod
-    def _refresh_via_homepage(session: CffiSession) -> None:
-        try:
-            session.get(
-                "https://www.zhipin.com/?ka=header-home",
-                impersonate="chrome124",
-                headers={"Referer": "https://www.zhipin.com/"},
-            )
-        except Exception:
-            pass
-
     # ── Crawl ───────────────────────────────────────────────────────────
 
     async def _acquire_cookies(self, session: CffiSession) -> bool:
         """直接加载 cookie，不做搜索 API 测试（测试消耗 __zp_stoken__）。"""
-        logger.warning("_acquire_cookies: START (no-test mode)")
+        logger.debug("_acquire_cookies: start (no-test mode)")
 
-        # 1. CDP
+        # 1. Reuse in-memory session cookies only; never persist Boss cookies to disk.
+        if session.cookies.get("__zp_stoken__"):
+            logger.debug("_acquire_cookies: using session cookies")
+            self._cookies_acquired_at = time.time()
+            return True
+
+        # 2. CDP 读取现有 Boss 页面 cookie。
         cdp_cookies = await self._get_cookies_via_raw_cdp()
         if cdp_cookies and cdp_cookies.get("__zp_stoken__"):
             for k, v in cdp_cookies.items():
                 session.cookies.set(k, v, domain=".zhipin.com", path="/")
-            logger.warning("_acquire_cookies: using CDP cookies")
+            logger.info("_acquire_cookies: using CDP cookies")
             self._cookies_acquired_at = time.time()
             return True
 
-        # 2. 磁盘缓存
-        saved = self._load_cookies()
-        if saved and saved.get("__zp_stoken__"):
-            for k, v in saved.items():
-                session.cookies.set(k, v, domain=".zhipin.com", path="/")
-            logger.warning("_acquire_cookies: using disk cache")
-            self._cookies_acquired_at = time.time()
-            return True
-
-        # 3. 快速刷新
-        fresh = await self._quick_refresh_cookies()
+        # 3. 与 main 保持一致：初始无可用 stoken 时也主动开临时 target 刷新。
+        fresh = await self._refresh_cookies_via_cdp_target()
         if fresh and fresh.get("__zp_stoken__"):
             for k, v in fresh.items():
                 session.cookies.set(k, v, domain=".zhipin.com", path="/")
-            logger.warning("_acquire_cookies: using quick-refresh")
+            logger.info("_acquire_cookies: using refreshed CDP cookies")
             self._cookies_acquired_at = time.time()
             return True
 
-        # 4. 主页刷新保底
-        self._refresh_via_homepage(session)
-        if session.cookies.get("__zp_stoken__"):
-            logger.warning("_acquire_cookies: using homepage refresh")
-            self._cookies_acquired_at = time.time()
-            return True
-
-        logger.warning("_acquire_cookies: ALL FAILED")
+        logger.warning("_acquire_cookies: CDP cookies unavailable")
         return False
 
     async def crawl(self, url: str) -> dict[str, Any]:
-        """Crawl a Boss Zhipin job search via curl_cffi + persistent cookies."""
+        """Crawl a Boss Zhipin job search via curl_cffi + CDP cookies."""
         try:
             session = self._get_session()
 
@@ -316,13 +278,12 @@ class BossZhipinAdapter(BasePlatformAdapter):
                         "success": False,
                         "error": (
                             "No valid cookies. Please open "
-                            "https://www.zhipin.com in your browser, "
+                            "https://www.zhipin.com in the Edge CDP browser, "
                             "complete captcha if shown, then retry."
                         ),
                     }
 
-                ck = session.cookies.get_dict()
-                logger.warning("crawl: pre-search cookies=%s", list(ck.keys()))
+                logger.debug("crawl: pre-search cookie_count=%d", len(session.cookies.get_dict()))
 
                 parsed = urlparse(url)
                 params = parse_qs(parsed.query, keep_blank_values=True)
@@ -362,8 +323,8 @@ class BossZhipinAdapter(BasePlatformAdapter):
                             break
 
                         if page_retry == 0 and code in (36, 37):
-                            logger.warning("crawl page=%d code=%s, quick-refresh", page_num, code)
-                            fresh = await self._quick_refresh_cookies()
+                            logger.warning("crawl page=%d code=%s, refreshing CDP cookies", page_num, code)
+                            fresh = await self._refresh_cookies_via_cdp_target()
                             if fresh and fresh.get("__zp_stoken__"):
                                 for k, v in fresh.items():
                                     session.cookies.set(k, v, domain=".zhipin.com", path="/")
@@ -382,11 +343,11 @@ class BossZhipinAdapter(BasePlatformAdapter):
 
                 if all_jobs:
                     transformed = self._transform_jobs(all_jobs)
-                    logger.warning("curl_cffi: %d jobs from %d page(s)",
-                               len(transformed), pages_fetched)
-                    ck = session.cookies.get_dict()
-                    logger.warning("crawl: post-search cookies=%s", list(ck.keys()))
-                    self._save_cookies(session)
+                    logger.info(
+                        "curl_cffi: %d jobs from %d page(s)",
+                        len(transformed), pages_fetched,
+                    )
+                    logger.debug("crawl: post-search cookie_count=%d", len(session.cookies.get_dict()))
                     return {"success": True, "jobs": transformed, "count": len(transformed)}
 
             return {"success": False, "error": "No job data from search API"}
@@ -399,17 +360,19 @@ class BossZhipinAdapter(BasePlatformAdapter):
         """Crawl a Boss Zhipin job detail page.
 
         优先用 session 已有 cookie（来自搜索 API Set-Cookie 链）。
-        code=37/36 时 quick-refresh 后重试一次。
+        code=37/36 时通过 CDP 临时 target 刷新 cookie 后重试一次。
         """
         try:
             session = self._get_session()
 
-            for attempt in range(2):
+            for attempt in range(DETAIL_MAX_ATTEMPTS):
                 ck = session.cookies.get_dict()
-                stoken = ck.get("__zp_stoken__", "<missing>")
-                logger.warning("detail attempt=%d sid=%s stoken=%s",
-                           attempt, security_id[:8],
-                           stoken[:24] if len(stoken) > 24 else stoken)
+                logger.debug(
+                    "detail attempt=%d sid=%s stoken_present=%s",
+                    attempt,
+                    security_id[:8],
+                    bool(ck.get("__zp_stoken__")),
+                )
 
                 api_url = f"{BASE_URL}{DETAIL_API_PATH}?securityId={security_id}"
                 resp = session.get(
@@ -427,8 +390,6 @@ class BossZhipinAdapter(BasePlatformAdapter):
                 if code == 0:
                     job_info = data.get("zpData", {}).get("jobInfo", {})
                     brand_info = data.get("zpData", {}).get("brandComInfo", {})
-
-                    self._save_cookies(session)
 
                     return {
                         "success": True,
@@ -448,12 +409,12 @@ class BossZhipinAdapter(BasePlatformAdapter):
                         },
                     }
 
-                if attempt == 0 and code in (36, 37):
+                if attempt < DETAIL_MAX_ATTEMPTS - 1 and code in (36, 37):
                     logger.warning(
-                        "Detail API code=%s for securityId=%s, retrying with quick-refresh",
+                        "Detail API code=%s for securityId=%s, retrying with CDP cookies",
                         code, security_id[:8],
                     )
-                    fresh = await self._quick_refresh_cookies()
+                    fresh = await self._refresh_cookies_via_cdp_target()
                     new_stoken = fresh.get("__zp_stoken__") if fresh else None
                     if new_stoken:
                         session.cookies.set("__zp_stoken__", new_stoken,
@@ -461,12 +422,10 @@ class BossZhipinAdapter(BasePlatformAdapter):
                         for k, v in fresh.items():
                             if k != "__zp_stoken__":
                                 session.cookies.set(k, v, domain=".zhipin.com", path="/")
-                        actual = session.cookies.get_dict().get("__zp_stoken__", "")
-                        logger.warning("detail retry: new=%s session=%s",
-                                   new_stoken[:24],
-                                   actual[:24] if actual else "<missing>")
+                        logger.info("detail retry refreshed CDP stoken for securityId=%s", security_id[:8])
                     else:
-                        logger.warning("quick-refresh returned no __zp_stoken__")
+                        logger.warning("CDP cookie refresh returned no __zp_stoken__")
+                    await asyncio.sleep(random.uniform(3.0, 6.0))
                     continue
 
                 logger.warning("Detail API code=%s for securityId=%s", code, security_id[:8])
@@ -476,8 +435,8 @@ class BossZhipinAdapter(BasePlatformAdapter):
                         f"API code={code}"
                         if code not in (36, 37)
                         else (
-                            "Cookie expired and refresh failed. Please open "
-                            "https://www.zhipin.com in your browser, "
+                            "Cookie expired and CDP refresh failed. Please open "
+                            "https://www.zhipin.com in the Edge CDP browser, "
                             "complete captcha if shown, then retry."
                         )
                     ),
