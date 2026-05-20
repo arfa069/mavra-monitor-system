@@ -1,7 +1,7 @@
 """Authentication schemas for request/response validation."""
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class UserRegister(BaseModel):
@@ -26,15 +26,29 @@ class UserLogin(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Response schema for user information."""
+    """Response schema for user information.
+
+    is_active is a compatibility projection of deleted_at (not the DB column).
+    """
     id: int
     username: str
     email: str
     role: str | None = None
-    is_active: bool
+    is_active: bool = True
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def derive_is_active(cls, data):
+        """is_active is a compatibility projection of deleted_at."""
+        if hasattr(data, 'deleted_at'):
+            try:
+                data.is_active = data.deleted_at is None
+            except Exception:
+                pass
+        return data
 
 
 class TokenResponse(BaseModel):

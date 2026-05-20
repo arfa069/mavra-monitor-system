@@ -5,9 +5,7 @@ Revises: 2026_05_19_harden_job_platform
 Create Date: 2026-05-19
 """
 
-from alembic import op
-
-revision = "2026_05_19_liepin_platform"
+revision = "2026_05_19_add_liepin_job_platform"
 down_revision = "2026_05_19_harden_job_platform"
 branch_labels = None
 depends_on = None

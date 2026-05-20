@@ -335,6 +335,7 @@ async def process_job_results(
                         job_obj,
                         adapter=adapter,
                         platform=platform,
+                        db=db,
                     )
                     if isinstance(result, Exception):
                         detail_errors += 1
@@ -396,6 +397,7 @@ async def process_job_results(
                             job_obj,
                             adapter=adapter,
                             platform=platform,
+                            db=db,
                         )
                         if isinstance(result, dict) and result.get("success"):
                             detail_updates += 1

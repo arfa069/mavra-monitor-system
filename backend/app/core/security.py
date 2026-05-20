@@ -1,125 +1,60 @@
-"""Security utilities: password hashing and JWT token handling."""
+"""Security utilities: auth dependencies and compatibility re-exports.
+
+Modules have been split into:
+  - passwords.py: bcrypt-sha256 hashing
+  - tokens.py: JWT create/decode
+  - login_lockout.py: Redis-backed login attempts
+  - sessions.py: DB session management + transaction-aware variants
+  - security.py: FastAPI auth dependencies + compatibility re-exports
+"""
 from __future__ import annotations
 
-import asyncio
 import hashlib
-from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+import logging
+from typing import TYPE_CHECKING
 
-import bcrypt
-import redis.asyncio as redis
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.core.login_lockout import (  # noqa: F401  # re-exported for compatibility
+    LOCKOUT_DURATION_SECONDS,
+    MAX_LOGIN_ATTEMPTS,
+    clear_login_attempts,
+    is_account_locked,
+    record_failed_login,
+)
+
+# ── Re-exported from split modules ────────────────────────
+from app.core.passwords import (  # noqa: F401  # re-exported for compatibility
+    PASSWORD_HASH_PREFIX,
+    get_password_hash,
+    verify_password,
+)
+from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
+    create_session,
+    delete_other_sessions,
+    delete_session,
+    get_session_by_token,
+    get_user_sessions,
+    stage_delete_other_sessions,
+    stage_delete_user_sessions,
+)
+from app.core.tokens import (  # noqa: F401  # re-exported for compatibility
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ALGORITHM,
+    create_access_token,
+    decode_access_token,
+)
 from app.database import get_db
-from app.models.user import User
 
 if TYPE_CHECKING:
-    from app.models.session import Session
+    from app.models.user import User
 
-PASSWORD_HASH_PREFIX = "$bcrypt-sha256$"
+logger = logging.getLogger(__name__)
 
-# JWT settings
-SECRET_KEY = settings.jwt_secret_key
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-# Login attempt tracking (Redis-backed)
-MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_DURATION_SECONDS = 900  # 15 minutes
-
-_redis_client: redis.Redis | None = None
-_redis_loop: asyncio.AbstractEventLoop | None = None
-
-
-async def _get_redis() -> redis.Redis:
-    """Get or create Redis client (connection reused per event loop)."""
-    global _redis_client, _redis_loop
-    current_loop = asyncio.get_running_loop()
-    if _redis_client is None or _redis_loop is not current_loop:
-        _redis_client = redis.from_url(settings.redis_url_with_password)
-        _redis_loop = current_loop
-    return _redis_client
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password."""
-    password_bytes = plain_password.encode("utf-8")
-    if hashed_password.startswith(PASSWORD_HASH_PREFIX):
-        digest = hashlib.sha256(password_bytes).digest()
-        stored_hash = hashed_password[len(PASSWORD_HASH_PREFIX):].encode("utf-8")
-        return bcrypt.checkpw(digest, stored_hash)
-
-    try:
-        return bcrypt.checkpw(password_bytes, hashed_password.encode("utf-8"))
-    except ValueError:
-        return False
-
-
-def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt."""
-    digest = hashlib.sha256(password.encode("utf-8")).digest()
-    return PASSWORD_HASH_PREFIX + bcrypt.hashpw(digest, bcrypt.gensalt()).decode("utf-8")
-
-
-def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
-    """Create a JWT access token."""
-    to_encode = data.copy()
-    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def decode_access_token(token: str) -> dict[str, Any] | None:
-    """Decode and validate a JWT access token. Returns None if invalid/expired."""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except JWTError:
-        return None
-
-
-async def is_account_locked(username: str) -> tuple[bool, int]:
-    """Check if account is locked due to too many failed attempts.
-
-    Returns:
-        tuple of (is_locked, minutes_remaining)
-    """
-    redis_client = await _get_redis()
-    key = f"login_attempts:{username}"
-    count = await redis_client.get(key)
-    if count is None:
-        return False, 0
-
-    count_int = int(count)
-    if count_int >= MAX_LOGIN_ATTEMPTS:
-        ttl = await redis_client.ttl(key)
-        minutes_remaining = max(1, int(ttl / 60)) if ttl > 0 else 1
-        return True, minutes_remaining
-
-    return False, 0
-
-
-async def record_failed_login(username: str) -> None:
-    """Record a failed login attempt."""
-    redis_client = await _get_redis()
-    key = f"login_attempts:{username}"
-    count = await redis_client.incr(key)
-    if count == 1:
-        await redis_client.expire(key, LOCKOUT_DURATION_SECONDS)
-
-
-async def clear_login_attempts(username: str) -> None:
-    """Clear failed login attempts after successful login."""
-    redis_client = await _get_redis()
-    await redis_client.delete(f"login_attempts:{username}")
-
-
-# OAuth2 scheme for token authentication (used by get_current_user and OpenAPI docs)
+# OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
@@ -129,10 +64,13 @@ async def get_current_user(
 ) -> User:
     """Dependency to get current authenticated user from JWT token.
 
-    Validates the token AND checks that a corresponding session exists.
-    This ensures logout, device session deletion, and max-session eviction
-    take effect immediately (not just on token expiry).
+    Validates the token AND checks that:
+      - The user exists and is not soft-deleted (deleted_at IS NULL)
+      - A corresponding session exists in users_sessions
+    Does NOT check is_active (API compatibility field only).
     """
+    from app.models.user import User
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="认证失败：Token 无效或已过期",
@@ -146,21 +84,24 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
 
+    # Convert sub to int; malformed subjects get 401, not 500
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise credentials_exception
+
     result = await db.execute(
         select(User).where(
-            User.id == int(user_id),
-            User.deleted_at.is_(None)  # 确保软删除用户立即失效
+            User.id == user_id_int,
+            User.deleted_at.is_(None),
         )
     )
     user = result.scalar_one_or_none()
 
-    if user is None or not user.is_active:
+    if user is None:
         raise credentials_exception
 
     # ── Session validation ──────────────────────────────────
-    # Check that this token's session still exists in the database.
-    # A missing session means the user logged out, their session was
-    # deleted, or they were evicted due to max-session limit.
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     from app.models.session import Session
 
@@ -188,87 +129,8 @@ def parse_device(user_agent: str) -> str:
     return user_agent[:200]
 
 
-async def create_session(
-    user_id: int,
-    token: str,
-    device: str,
-    ip_address: str,
-    db: AsyncSession,
-) -> Session:
-    """Create a new session for a user."""
-    from app.models.session import Session
-
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-
-    # Check max sessions (5)
-    result = await db.execute(
-        select(Session).where(
-            Session.user_id == user_id,
-            Session.token_hash.isnot(None)
-        ).order_by(Session.created_at)
-    )
-    existing = result.scalars().all()
-    if len(existing) >= 5:
-        await db.delete(existing[0])
-
-    session = Session(
-        user_id=user_id,
-        token_hash=token_hash,
-        device=device,
-        ip_address=ip_address,
-    )
-    db.add(session)
-    await db.commit()
-    return session
-
-
-async def get_user_sessions(user_id: int, db: AsyncSession) -> list[Session]:
-    """Get all active sessions for a user."""
-    from app.models.session import Session
-
-    result = await db.execute(
-        select(Session).where(Session.user_id == user_id)
-    )
-    return list(result.scalars().all())
-
-
-async def delete_session(session_id: int, user_id: int, db: AsyncSession) -> bool:
-    """Delete a specific session."""
-    from app.models.session import Session
-
-    result = await db.execute(
-        select(Session).where(
-            Session.id == session_id,
-            Session.user_id == user_id
-        )
-    )
-    session = result.scalar_one_or_none()
-    if not session:
-        return False
-    await db.delete(session)
-    await db.commit()
-    return True
-
-
-async def delete_other_sessions(current_session_id: int, user_id: int, db: AsyncSession) -> int:
-    """Delete all sessions except the current one."""
-    from app.models.session import Session
-
-    result = await db.execute(
-        select(Session).where(
-            Session.user_id == user_id,
-            Session.id != current_session_id
-        )
-    )
-    sessions = result.scalars().all()
-    for s in sessions:
-        await db.delete(s)
-    await db.commit()
-    return len(sessions)
-
-
 def require_role(*allowed_roles: str):
-    """Decorator to require specific roles for an endpoint.
+    """Require specific roles for an endpoint.
 
     Usage:
         @router.get("/admin", dependencies=[Depends(require_role("admin", "super_admin"))])

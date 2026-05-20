@@ -188,6 +188,7 @@ class ProductCronScheduler:
         Args:
             user_id: If provided, only return jobs for this user.
                      The dict keys will be platform names (no user_id prefix).
+                     Without user_id, keys remain user_id:platform to avoid collisions.
         """
         result: dict[str, dict] = {}
         for job in self._scheduler.get_jobs():
@@ -195,13 +196,13 @@ class ProductCronScheduler:
                 continue
             # job id format: product_cron_{user_id}:{platform}
             suffix = job.id[len(self.JOB_ID_PREFIX):]
-            parts = suffix.split(":", 1)
-            if len(parts) != 2:
+            job_user_id, separator, platform = suffix.partition(":")
+            if not separator:
                 continue
-            job_user_id, platform = parts
-            if user_id is not None and int(job_user_id) != user_id:
+            if user_id is not None and job_user_id != str(user_id):
                 continue
-            result[platform] = {
+            key = platform if user_id is not None else suffix
+            result[key] = {
                 "cron_expression": str(job.trigger),
                 "next_run_at": job.next_run_time.isoformat() if job.next_run_time else None,
             }

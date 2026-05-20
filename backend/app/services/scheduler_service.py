@@ -115,7 +115,7 @@ async def _run_crawl_task(task: CrawlTask) -> None:
     try:
         from app.services.crawl import get_active_products
 
-        products = await get_active_products()
+        products = await get_active_products(user_id=task.user_id)
         if not products:
             logger.info(f"Task {task.task_id}: no active products")
             task.status = TaskStatus.COMPLETED
@@ -253,7 +253,7 @@ async def crawl_all_products(
         try:
             from app.services.crawl import get_active_products
 
-            products = await get_active_products()
+            products = await get_active_products(user_id=user_id)
             if not products:
                 logger.info("No active products to crawl")
                 return {"status": "completed", "total": 0, "success": 0, "errors": 0}

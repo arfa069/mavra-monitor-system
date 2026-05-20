@@ -227,6 +227,8 @@ class TestProcessJobResults:
         # Now passes Job objects, not raw ints
         assert update_detail.await_args_list[0].args[0] is existing_job
         assert update_detail.await_args_list[1].args[0] is existing_job
+        assert update_detail.await_args_list[0].kwargs["db"] is mock_db
+        assert update_detail.await_args_list[1].kwargs["db"] is mock_db
         sleep.assert_awaited()
 
     @pytest.mark.asyncio

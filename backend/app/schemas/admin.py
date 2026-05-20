@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class AuditLogResponse(BaseModel):
@@ -45,15 +45,29 @@ class AdminUserUpdate(BaseModel):
 
 
 class AdminUserResponse(BaseModel):
-    """Schema for user response (admin)."""
+    """Schema for user response (admin).
+
+    is_active is a compatibility projection of deleted_at (not the DB column).
+    """
     id: int
     username: str
     email: str
     role: str
-    is_active: bool
+    is_active: bool = True
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def derive_is_active(cls, data):
+        """is_active is a compatibility projection of deleted_at."""
+        if hasattr(data, 'deleted_at'):
+            try:
+                data.is_active = data.deleted_at is None
+            except Exception:
+                pass
+        return data
 
 
 class AdminUserListResponse(BaseModel):

@@ -2,17 +2,15 @@
 
 TDD approach: tests define expected behavior, then implementation is written.
 """
-from unittest.mock import AsyncMock, MagicMock
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.core.security import get_password_hash, get_current_user
+from app.core.security import get_current_user
 from app.database import get_db
 from app.main import app
-from app.models.user import User
-
 
 # --- Fixtures ---
 
@@ -501,3 +499,78 @@ async def test_non_admin_gets_403_on_delete(mock_get_db):
         assert response.status_code == 403
     finally:
         clear_auth_mocks()
+
+
+# --- Transactional session cleanup tests ---
+
+
+@pytest.mark.asyncio
+async def test_admin_role_change_deletes_target_sessions(admin_user, regular_user, mock_get_db):
+    """PATCH /admin/users/{user_id} with role change calls stage_delete_user_sessions."""
+    setup_admin_mock(admin_user)
+
+    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+        try:
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = regular_user
+            mock_get_db.execute.return_value = mock_result
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.patch(
+                    "/admin/users/2",
+                    json={"role": "admin"},
+                )
+
+            assert response.status_code == 200
+            mock_stage.assert_awaited_once()
+            assert mock_stage.await_args[0][0] == 2
+        finally:
+            clear_auth_mocks()
+
+
+@pytest.mark.asyncio
+async def test_admin_disable_deletes_target_sessions(admin_user, regular_user, mock_get_db):
+    """PATCH /admin/users/{user_id} is_active=False calls stage_delete_user_sessions."""
+    setup_admin_mock(admin_user)
+
+    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+        try:
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = regular_user
+            mock_get_db.execute.return_value = mock_result
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.patch(
+                    "/admin/users/2",
+                    json={"is_active": False},
+                )
+
+            assert response.status_code == 200
+            mock_stage.assert_awaited_once()
+            assert mock_stage.await_args[0][0] == 2
+        finally:
+            clear_auth_mocks()
+
+
+@pytest.mark.asyncio
+async def test_admin_delete_deletes_target_sessions(admin_user, regular_user, mock_get_db):
+    """DELETE /admin/users/{user_id} calls stage_delete_user_sessions."""
+    setup_admin_mock(admin_user)
+
+    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+        try:
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = regular_user
+            mock_get_db.execute.return_value = mock_result
+
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.delete("/admin/users/2")
+
+            assert response.status_code == 200
+            mock_stage.assert_awaited_once()
+            assert mock_stage.await_args[0][0] == 2
+        finally:
+            clear_auth_mocks()

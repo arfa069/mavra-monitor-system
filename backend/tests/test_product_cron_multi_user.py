@@ -95,6 +95,26 @@ class TestProductCronSchedulerUserIsolation:
         finally:
             scheduler.shutdown(wait=False)
 
+    @pytest.mark.asyncio
+    async def test_next_run_times_for_user_are_keyed_by_platform(self):
+        """UI-facing schedule map should use platform keys for the current user."""
+        from app.services.scheduler_job import ProductCronScheduler
+
+        scheduler = AsyncIOScheduler()
+        scheduler.start()
+        try:
+            mgr = ProductCronScheduler(scheduler)
+
+            mgr.add_job(user_id=1, platform="jd", cron_expression="0 */6 * * *")
+            mgr.add_job(user_id=2, platform="jd", cron_expression="0 */12 * * *")
+
+            result = mgr.get_next_run_times(user_id=1)
+
+            assert set(result) == {"jd"}
+            assert "1:jd" not in result
+        finally:
+            scheduler.shutdown(wait=False)
+
     def test_sync_all_no_longer_filters_user_id_1_only(self):
         """sync_all's query should not filter user_id == 1."""
         import inspect
