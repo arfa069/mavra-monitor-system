@@ -20,10 +20,14 @@ class JDAdapter(BasePlatformAdapter, CookieInjectionMiddleware):
     2. Cookie mode: Launches headless browser and injects JD cookies.
        Set JD_COOKIE env var with the full cookie string.
 
-    Uses ChainedPriceStrategy with:
-    - CSSSelectorStrategy as primary extraction
-    - JSDeeScanStrategy as fallback
+    Cookie injection is tracked at class level so the same shared context
+    only gets cookies once. Re-injection only occurs when the shared
+    browser/context is rebuilt.
     """
+
+    # Class-level injection tracking
+    _shared_cookies_injected: bool = False
+    _shared_cookie_context_id: int | None = None
 
     def __init__(self):
         """Initialize JD adapter with strategies."""
@@ -56,13 +60,28 @@ class JDAdapter(BasePlatformAdapter, CookieInjectionMiddleware):
         """Initialize browser with JD cookies if using launch mode."""
         await super()._init_browser()
 
-        # In launch mode (not CDP), inject cookies after browser init
+        # In launch mode (not CDP), inject cookies only once per shared context
         if not self._cdp_mode and settings.jd_cookie and self._context:
-            await self.inject_cookies(self._context, settings.jd_cookie, domain=".jd.com")
-            # Re-create page after adding cookies
-            if self._page:
-                await self._page.close()
-            self._page = await self._context.new_page()
+            context_id = id(self._context)
+            needs_injection = (
+                not self.__class__._shared_cookies_injected
+                or self.__class__._shared_cookie_context_id != context_id
+            )
+            if needs_injection:
+                await self.inject_cookies(self._context, settings.jd_cookie, domain=".jd.com")
+                self.__class__._shared_cookies_injected = True
+                self.__class__._shared_cookie_context_id = context_id
+                # Re-create page after adding cookies
+                if self._page:
+                    await self._page.close()
+                self._page = await self._context.new_page()
+
+    @classmethod
+    async def _close_shared_browser(cls):
+        """Close shared browser and reset injection state."""
+        await super()._close_shared_browser()
+        cls._shared_cookies_injected = False
+        cls._shared_cookie_context_id = None
 
     async def extract_price(self, page) -> dict[str, Any]:
         """Extract price from JD page using chained strategies.

@@ -43,6 +43,7 @@ curl -X GET http://localhost:8000/auth/me \\
     -H "Authorization: Bearer <token>"
 ```
 """
+import hashlib
 import logging
 from datetime import datetime
 
@@ -62,6 +63,7 @@ from app.core.security import (
     get_password_hash,
     get_user_sessions,
     is_account_locked,
+    oauth2_scheme,
     parse_device,
     record_failed_login,
     verify_password,
@@ -253,13 +255,14 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
 @router.post("/logout", response_model=MessageResponse, tags=["auth"])
 async def logout(
     request: Request,
+    token: str = Depends(oauth2_scheme),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Logout current user.
 
-    Since JWT tokens are stateless, this endpoint just returns success.
-    Client should remove the stored token.
+    Deletes the current token's session from the database so the token
+    cannot be used for further requests.
 
     Args:
         current_user: Authenticated user (from JWT token)
@@ -271,6 +274,25 @@ async def logout(
         curl -X POST http://localhost:8000/auth/logout \\
             -H "Authorization: Bearer <token>"
     """
+    # Delete current session (best-effort — must not fail the logout)
+    try:
+        from app.models.session import Session
+
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        result = await db.execute(
+            select(Session).where(
+                Session.user_id == current_user.id,
+                Session.token_hash == token_hash,
+            )
+        )
+        session = result.scalar_one_or_none()
+        if session:
+            await db.delete(session)
+            await db.commit()
+    except Exception:
+        logger.exception("Failed to delete session on logout")
+        await db.rollback()
+
     await log_audit(
         db=db,
         action="auth.logout",

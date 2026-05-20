@@ -1,6 +1,8 @@
 """Session model for device tracking."""
 from datetime import UTC, datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+
 from app.models.base import Base, TimestampMixin
 
 

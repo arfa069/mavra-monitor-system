@@ -7,25 +7,20 @@ Create Date: 2026-05-19
 
 from alembic import op
 
-revision = "2026_05_19_add_liepin_job_platform"
+revision = "2026_05_19_liepin_platform"
 down_revision = "2026_05_19_harden_job_platform"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("ck_jobs_search_configs_platform", "jobs_search_configs", type_="check")
-    op.create_check_constraint(
-        "ck_jobs_search_configs_platform",
-        "jobs_search_configs",
-        "platform IN ('boss', '51job', 'liepin')",
-    )
+    # No-op: harden_job_platform already includes 'liepin' in the constraint
+    # to handle existing data that predates the check constraint. This migration
+    # is preserved only to maintain the revision chain for environments that
+    # apply migrations sequentially.
+    pass
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_jobs_search_configs_platform", "jobs_search_configs", type_="check")
-    op.create_check_constraint(
-        "ck_jobs_search_configs_platform",
-        "jobs_search_configs",
-        "platform IN ('boss', '51job')",
-    )
+    # No-op: downgrade is handled by harden_job_platform.
+    pass

@@ -1,7 +1,9 @@
 """Login history model."""
 from datetime import UTC, datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from app.models.base import Base, TimestampMixin
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+
+from app.models.base import Base
 
 
 class LoginLog(Base):

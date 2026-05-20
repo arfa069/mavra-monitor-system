@@ -112,3 +112,117 @@ class TestJDAdapterUsesStrategies:
         # Should call the chained strategy's extract method
         adapter._price_strategy.extract.assert_called_once_with(mock_page)
         assert result == mock_result
+
+
+class TestJDCookieInjectionTracking:
+    """Tests that JDAdapter only injects cookies once per shared context."""
+
+    def test_has_class_level_injection_state(self):
+        """JDAdapter should have class-level _shared_cookies_injected flag."""
+        from app.platforms.jd import JDAdapter
+
+        assert hasattr(JDAdapter, "_shared_cookies_injected")
+        assert hasattr(JDAdapter, "_shared_cookie_context_id")
+        assert JDAdapter._shared_cookies_injected is False
+        assert JDAdapter._shared_cookie_context_id is None
+
+    def test_has_overridden_close_shared_browser(self):
+        """JDAdapter should override _close_shared_browser to reset state."""
+        from app.platforms.jd import JDAdapter
+
+        assert "_close_shared_browser" in JDAdapter.__dict__, (
+            "JDAdapter must override _close_shared_browser"
+        )
+
+    @pytest.mark.asyncio
+    async def test_cookie_injection_only_once_for_same_context(self):
+        """Same shared context should only trigger injection once."""
+        from unittest.mock import AsyncMock, patch
+
+        from app.platforms.jd import JDAdapter
+
+        # Reset class-level state
+        JDAdapter._shared_cookies_injected = False
+        JDAdapter._shared_cookie_context_id = None
+
+        mock_context = MagicMock()
+        mock_context.new_page = AsyncMock()
+        mock_context.add_cookies = AsyncMock()
+        mock_page = AsyncMock()
+
+        adapter = JDAdapter()
+        adapter._playwright = MagicMock()
+        adapter._browser = MagicMock()
+        adapter._context = mock_context
+        adapter._page = mock_page
+        adapter._cdp_mode = False
+
+        with (
+            patch.object(JDAdapter, "inject_cookies", new_callable=AsyncMock) as mock_inject,
+            patch("app.platforms.jd.settings") as mock_settings,
+        ):
+            mock_settings.jd_cookie = "key=value"
+
+            # First init → should inject
+            await adapter._init_browser()
+            mock_inject.assert_awaited_once()
+
+            # Second init with same context → should NOT inject again
+            mock_inject.reset_mock()
+            await adapter._init_browser()
+            mock_inject.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cookie_reinjected_after_context_change(self):
+        """When shared context is rebuilt, cookies should be re-injected."""
+        from unittest.mock import AsyncMock, patch
+
+        from app.platforms.jd import JDAdapter
+
+        # Reset class-level state
+        JDAdapter._shared_cookies_injected = False
+        JDAdapter._shared_cookie_context_id = None
+
+        mock_context = MagicMock()
+        mock_context.new_page = AsyncMock()
+        mock_page = AsyncMock()
+        mock_playwright = MagicMock()
+
+        adapter = JDAdapter()
+        adapter._playwright = mock_playwright
+        adapter._browser = MagicMock()
+        adapter._context = mock_context
+        adapter._page = mock_page
+        adapter._cdp_mode = False
+
+        with (
+            patch.object(JDAdapter, "inject_cookies", new_callable=AsyncMock) as mock_inject,
+            patch("app.platforms.jd.settings") as mock_settings,
+        ):
+            mock_settings.jd_cookie = "key=value"
+
+            # First init → should inject
+            await adapter._init_browser()
+            mock_inject.assert_awaited_once()
+
+            # Reset class state (simulates _close_shared_browser)
+            JDAdapter._shared_cookies_injected = False
+            JDAdapter._shared_cookie_context_id = None
+            # Reset instance state so _init_browser re-runs _get_shared_browser
+            adapter._playwright = None
+            adapter._browser = None
+            adapter._context = None
+            adapter._page = None
+            mock_inject.reset_mock()
+
+            # Set up a NEW context for the second init
+            new_context = MagicMock()
+            new_context.new_page = AsyncMock()
+
+            with patch.object(JDAdapter, "_get_shared_browser") as mock_get:
+                mock_get.return_value = (
+                    MagicMock(), MagicMock(), new_context, False
+                )
+                await adapter._init_browser()
+            # Should re-inject because context changed
+            mock_inject.assert_awaited_once()

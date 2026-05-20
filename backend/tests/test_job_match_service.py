@@ -24,18 +24,15 @@ async def test_upsert_match_result_creates_new_record():
     select_result = MagicMock()
     select_result.scalar_one_or_none.return_value = None
 
-    # INSERT RETURNING id → returns new id 42
-    insert_result = MagicMock()
-    insert_result.scalar.return_value = 42
-
-    mock_db = AsyncMock()
-    mock_db.execute = AsyncMock(side_effect=[select_result, insert_result])
-
-    # db.get(MatchResult, 42) → returns the freshly-loaded row
+    # UPSERT RETURNING MatchResult → returns the freshly-loaded row
     fresh_row = MagicMock()
     fresh_row.match_score = 83
     fresh_row.resume_id = 2
-    mock_db.get = AsyncMock(return_value=fresh_row)
+    upsert_result = MagicMock()
+    upsert_result.scalar_one.return_value = fresh_row
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(side_effect=[select_result, upsert_result])
 
     analysis = MatchAnalysis(
         match_score=83,
@@ -55,9 +52,10 @@ async def test_upsert_match_result_creates_new_record():
     assert was_created is True
     assert result.match_score == 83
     assert result.resume_id == 2
-    # SELECT existence + INSERT
+    # Lightweight SELECT + single UPSERT RETURNING = 2 executes
     assert mock_db.execute.await_count == 2
-    mock_db.get.assert_awaited_once()
+    # No separate db.get() needed — RETURNING returns the row directly
+    mock_db.get.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -70,17 +68,15 @@ async def test_upsert_match_result_updates_existing_record():
     select_result = MagicMock()
     select_result.scalar_one_or_none.return_value = 17
 
-    # UPDATE returns nothing useful, just a mock
-    update_result = MagicMock()
-
-    mock_db = AsyncMock()
-    mock_db.execute = AsyncMock(side_effect=[select_result, update_result])
-
-    # db.get(MatchResult, 17) → returns row with updated fields
+    # UPSERT RETURNING MatchResult → returns the updated row
     refreshed = MagicMock()
     refreshed.match_score = 92
     refreshed.apply_recommendation = "强烈推荐"
-    mock_db.get = AsyncMock(return_value=refreshed)
+    upsert_result = MagicMock()
+    upsert_result.scalar_one.return_value = refreshed
+
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock(side_effect=[select_result, upsert_result])
 
     analysis = MatchAnalysis(
         match_score=92,
@@ -101,6 +97,7 @@ async def test_upsert_match_result_updates_existing_record():
     assert result is refreshed
     assert result.match_score == 92
     assert result.apply_recommendation == "强烈推荐"
-    # SELECT existence + UPDATE
+    # Lightweight SELECT + single UPSERT RETURNING = 2 executes
     assert mock_db.execute.await_count == 2
-    mock_db.get.assert_awaited_once()
+    # No separate db.get() needed — RETURNING returns the row directly
+    mock_db.get.assert_not_called()

@@ -1,9 +1,8 @@
 """Role model."""
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
-
 
 role_permissions = Table(
     'users_roles_permissions',

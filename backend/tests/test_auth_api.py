@@ -433,14 +433,20 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     mock_user.hashed_password = get_password_hash(test_user["password"])
     mock_user.role = "user"
 
-    # Mock results for execute calls: get_current_user, username check, email check
+    # Mock results for execute calls: get_current_user (user + session),
+    # then username check, email check
     mock_result_user = MagicMock()
     mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
 
     mock_result_none = MagicMock()
     mock_result_none.scalar_one_or_none.return_value = None
 
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_none, mock_result_none]
+    mock_get_db.execute.side_effect = [
+        mock_result_user, mock_result_session, mock_result_none, mock_result_none
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -478,16 +484,19 @@ async def test_update_me_with_duplicate_username_returns_400(test_user, mock_get
     mock_user.hashed_password = get_password_hash(test_user["password"])
     mock_user.role = "user"
 
-    # Mock results: get_current_user returns user, username check returns duplicate
+    # Mock results: get_current_user (user + session), then duplicate username check
     mock_result_user = MagicMock()
     mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
 
     mock_result_duplicate = MagicMock()
     existing_user = MagicMock()
     existing_user.username = "existing_user"
     mock_result_duplicate.scalar_one_or_none.return_value = existing_user
 
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_duplicate]
+    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_duplicate]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -521,10 +530,13 @@ async def test_update_me_with_duplicate_email_returns_400(test_user, mock_get_db
     mock_user.role = "user"
     mock_user.deleted_at = None
 
-    # Mock results: get_current_user returns user, email check returns duplicate
+    # Mock results: get_current_user (user + session), then email check returns duplicate
     # Note: username check is SKIPPED because update_data.username is None
     mock_result_user = MagicMock()
     mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
 
     mock_result_duplicate = MagicMock()
     duplicate_user = MagicMock()
@@ -533,8 +545,8 @@ async def test_update_me_with_duplicate_email_returns_400(test_user, mock_get_db
     duplicate_user.deleted_at = None
     mock_result_duplicate.scalar_one_or_none.return_value = duplicate_user
 
-    # Only 2 execute calls: 1) get_current_user, 2) email check (username check skipped)
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_duplicate]
+    # 3 execute calls: get_user, get_session, then email check
+    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_duplicate]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -567,14 +579,17 @@ async def test_update_me_with_same_username_returns_200(test_user, mock_get_db):
     mock_user.hashed_password = get_password_hash(test_user["password"])
     mock_user.role = "user"
 
-    # Mock results: get_current_user returns user, username check returns None (same username OK)
+    # Mock results: get_current_user (user + session), then username check None (same username OK)
     mock_result_user = MagicMock()
     mock_result_user.scalar_one_or_none.return_value = mock_user
+
+    mock_result_session = MagicMock()
+    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
 
     mock_result_none = MagicMock()
     mock_result_none.scalar_one_or_none.return_value = None
 
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_none]
+    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_none]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

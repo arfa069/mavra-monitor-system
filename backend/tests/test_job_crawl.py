@@ -224,8 +224,9 @@ class TestProcessJobResults:
 
         assert result["updated_count"] == 1
         assert update_detail.await_count == 2
-        assert update_detail.await_args_list[0].args == (99,)
-        assert update_detail.await_args_list[1].args == (99,)
+        # Now passes Job objects, not raw ints
+        assert update_detail.await_args_list[0].args[0] is existing_job
+        assert update_detail.await_args_list[1].args[0] is existing_job
         sleep.assert_awaited()
 
     @pytest.mark.asyncio
@@ -730,6 +731,39 @@ class TestUpdateJobDetail:
 
         assert result["success"] is False
         assert "not found" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_update_job_detail_accepts_job_object_skips_db_get(self):
+        """Passing a Job object should skip db.get()."""
+        from app.models.job import Job
+        from app.services.job_crawl import update_job_detail
+
+        mock_job = MagicMock(spec=Job)
+        mock_job.id = 1
+        mock_job.job_id = "test_encrypt_id"
+        mock_job.description = None
+        mock_job.address = None
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock()  # should NOT be called
+        mock_db.commit = AsyncMock()
+
+        mock_adapter = MagicMock()
+        mock_adapter.crawl_detail = AsyncMock(return_value={
+            "success": True,
+            "detail": {"description": "岗位职责", "address": "深圳"},
+        })
+
+        result = await update_job_detail(
+            mock_job,  # Pass Job object, not int
+            adapter=mock_adapter,
+            db=mock_db,
+            commit=False,
+        )
+
+        assert result["success"] is True
+        mock_db.get.assert_not_called()  # Key: no db.get() for loaded Job
+        mock_db.commit.assert_not_awaited()
 
 
 class TestAdapterSharing:

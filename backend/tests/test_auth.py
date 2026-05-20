@@ -350,6 +350,93 @@ class TestLogout:
         finally:
             app.dependency_overrides.clear()
 
+    @pytest.mark.asyncio
+    async def test_logout_invalidates_session(self):
+        """After logout, the same token should return 401 on /auth/me."""
+        from app.core.security import get_password_hash
+
+        mock_user = MagicMock(spec=User)
+        mock_user.id = 1
+        mock_user.username = "testuser"
+        mock_user.email = "test@example.com"
+        mock_user.hashed_password = get_password_hash("password123")
+        mock_user.is_active = True
+        mock_user.role = "user"
+        mock_user.deleted_at = None
+        mock_user.created_at = datetime.now(UTC)
+
+        # Use side_effect to control execute results per call
+        user_result = MagicMock()
+        user_result.scalar_one_or_none.return_value = mock_user
+
+        session_found_result = MagicMock()
+        session_found_result.scalar_one_or_none.return_value = MagicMock()  # session exists
+
+        session_gone_result = MagicMock()
+        session_gone_result.scalar_one_or_none.return_value = None  # session deleted
+
+        mock_session = AsyncMock()
+        mock_session.add = MagicMock()
+        mock_session.delete = AsyncMock()
+
+        # The execute sequence is complex due to login/create_session/logout flow,
+        # so instead of tracking exact call ordering, we swap the override for
+        # the /auth/me step to force 401.
+        async def _override_get_db():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override_get_db
+
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                # Login → set up mock to return user + session
+                mock_session.execute = AsyncMock(return_value=user_result)
+                response = await client.post(
+                    "/auth/login",
+                    json={"username": "testuser", "password": "password123"},
+                )
+                assert response.status_code == 200, f"Login failed: {response.text}"
+                token = response.json()["access_token"]
+
+                # Logout → set up mock to return user + session for get_current_user
+                mock_session.execute = AsyncMock(return_value=user_result)
+                response = await client.post(
+                    "/auth/logout",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                assert response.status_code == 200, f"Logout failed: {response.text}"
+
+                # /auth/me → mock where first execute returns user, second returns None
+                mock_me_session = AsyncMock()
+
+                # First execute call: user query → found
+                # Second execute call: session query → None (session deleted after logout)
+                mock_user_found = MagicMock()
+                mock_user_found.scalar_one_or_none.return_value = mock_user
+
+                mock_session_gone = MagicMock()
+                mock_session_gone.scalar_one_or_none.return_value = None
+
+                mock_me_session.execute = AsyncMock(side_effect=[
+                    mock_user_found,   # user query in get_current_user
+                    mock_session_gone, # session query in get_current_user → None → 401
+                ])
+                mock_me_session.add = MagicMock()
+
+                async def _override_get_db_me():
+                    yield mock_me_session
+
+                app.dependency_overrides[get_db] = _override_get_db_me
+                response = await client.get(
+                    "/auth/me",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+                assert response.status_code == 401
+                assert "会话已失效" in response.json()["detail"]
+        finally:
+            app.dependency_overrides.clear()
+
 
 class TestRequireRole:
     """Tests for require_role decorator."""
@@ -389,8 +476,9 @@ class TestRequireRole:
     @pytest.mark.asyncio
     async def test_require_role_denies_wrong_role(self):
         """Test require_role denies user with wrong role."""
-        from app.core.security import require_role
         from fastapi import HTTPException
+
+        from app.core.security import require_role
 
         mock_user = MagicMock(spec=User)
         mock_user.id = 1

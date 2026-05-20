@@ -318,55 +318,46 @@ async def upsert_match_result(
     job_id: int,
     analysis: MatchAnalysis,
 ) -> tuple[MatchResult, bool]:
-    """Insert or update a single match result using direct SQL."""
-    from sqlalchemy import text
+    """Insert or update a single match result using PostgreSQL atomic upsert.
 
-    # 直接用 SQL 查询是否存在
-    result = await db.execute(
-        text(
-            "SELECT id FROM jobs_match_results WHERE resume_id = :resume_id AND job_id = :job_id"
-        ),
-        {"resume_id": resume_id, "job_id": job_id},
-    )
-    existing_id = result.scalar_one_or_none()
+    Uses a lightweight SELECT for ``was_created`` tracking, then a single
+    ``INSERT … ON CONFLICT DO UPDATE … RETURNING`` to atomically write and
+    return the result, avoiding the extra ``db.get()`` of the old approach.
+    """
+    from sqlalchemy import func
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-    if existing_id:
-        # 更新
-        await db.execute(
-            text("""
-                UPDATE jobs_match_results
-                SET match_score = :score, match_reason = :reason,
-                    apply_recommendation = :rec, llm_model_used = :model,
-                    updated_at = NOW()
-                WHERE id = :id
-            """),
-            {
-                "score": analysis.match_score,
-                "reason": analysis.match_reason,
-                "rec": analysis.apply_recommendation,
-                "model": analysis.model_used,
-                "id": existing_id,
-            },
+    # Lightweight existence check for was_created semantics
+    existing_result = await db.execute(
+        select(MatchResult.id).where(
+            MatchResult.resume_id == resume_id,
+            MatchResult.job_id == job_id,
         )
-        return await db.get(MatchResult, existing_id), False
-
-    # 插入
-    result = await db.execute(
-        text("""
-            INSERT INTO jobs_match_results
-            (user_id, resume_id, job_id, match_score, match_reason, apply_recommendation, llm_model_used, created_at, updated_at)
-            VALUES (:user_id, :resume_id, :job_id, :score, :reason, :rec, :model, NOW(), NOW())
-            RETURNING id
-        """),
-        {
-            "user_id": user_id,
-            "resume_id": resume_id,
-            "job_id": job_id,
-            "score": analysis.match_score,
-            "reason": analysis.match_reason,
-            "rec": analysis.apply_recommendation,
-            "model": analysis.model_used,
-        },
     )
-    new_id = result.scalar()
-    return await db.get(MatchResult, new_id), True
+    existing_id = existing_result.scalar_one_or_none()
+
+    # Atomic upsert with RETURNING — no separate db.get() needed
+    stmt = pg_insert(MatchResult).values(
+        user_id=user_id,
+        resume_id=resume_id,
+        job_id=job_id,
+        match_score=analysis.match_score,
+        match_reason=analysis.match_reason,
+        apply_recommendation=analysis.apply_recommendation,
+        llm_model_used=analysis.model_used,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=[MatchResult.resume_id, MatchResult.job_id],
+        set_={
+            "match_score": stmt.excluded.match_score,
+            "match_reason": stmt.excluded.match_reason,
+            "apply_recommendation": stmt.excluded.apply_recommendation,
+            "llm_model_used": stmt.excluded.llm_model_used,
+            "updated_at": func.now(),
+        },
+    ).returning(MatchResult)
+
+    result = await db.execute(stmt)
+    match_result = result.scalar_one()
+
+    return match_result, existing_id is None

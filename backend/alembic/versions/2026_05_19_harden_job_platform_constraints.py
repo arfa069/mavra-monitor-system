@@ -14,10 +14,12 @@ depends_on: str | None = None
 
 
 def upgrade() -> None:
+    # Include 'liepin' upfront to handle existing data before the follow-up
+    # migration (add_liepin_job_platform) that would otherwise fail.
     op.create_check_constraint(
         "ck_jobs_search_configs_platform",
         "jobs_search_configs",
-        "platform IN ('boss', '51job')",
+        "platform IN ('boss', '51job', 'liepin')",
     )
     op.drop_constraint("jobs_job_id_key", "jobs", type_="unique")
     op.create_unique_constraint(

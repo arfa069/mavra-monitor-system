@@ -63,6 +63,7 @@ class JobConfigScheduler:
     async def sync_all(self) -> None:
         """Sync scheduler state with the database on startup."""
         from sqlalchemy import select
+
         from app.database import AsyncSessionLocal
         from app.models.job import JobSearchConfig
 
@@ -107,7 +108,8 @@ class ProductCronScheduler:
     """Manages per-platform APScheduler jobs for product crawl scheduling.
 
     Each platform (taobao, jd, amazon) can have its own cron expression.
-    Job IDs follow the format ``product_cron_{platform}``.
+    Job IDs follow the format ``product_cron_{user_id}:{platform}`` to
+    support multi-user isolation.
     """
 
     JOB_ID_PREFIX = "product_cron_"
@@ -119,16 +121,17 @@ class ProductCronScheduler:
 
     def add_job(
         self,
+        user_id: int,
         platform: str,
         cron_expression: str,
         timezone: str = "Asia/Shanghai",
     ) -> None:
-        """Register or replace a cron job for the given platform."""
+        """Register or replace a cron job for the given user + platform."""
         if not cron_expression or not cron_expression.strip():
-            self.remove_job(platform)
+            self.remove_job(user_id=user_id, platform=platform)
             return
 
-        job_id = self._job_id(platform)
+        job_id = self._job_id(user_id, platform)
         tz = zoneinfo.ZoneInfo(timezone)
 
         from app.services.scheduler_service import crawl_products_by_platform
@@ -137,19 +140,19 @@ class ProductCronScheduler:
             crawl_products_by_platform,
             trigger=CronTrigger.from_crontab(cron_expression, timezone=tz),
             id=job_id,
-            name=f"Product crawl {platform}",
+            name=f"Product crawl user={user_id} {platform}",
             replace_existing=True,
             max_instances=1,
-            kwargs={"platform": platform},
+            kwargs={"user_id": user_id, "platform": platform},
         )
         logger.info(
             "Registered cron job %s with schedule '%s' (tz=%s)",
             job_id, cron_expression, timezone,
         )
 
-    def remove_job(self, platform: str) -> None:
-        """Remove the cron job for a platform (if it exists)."""
-        job_id = self._job_id(platform)
+    def remove_job(self, user_id: int, platform: str) -> None:
+        """Remove the cron job for a user+platform (if it exists)."""
+        job_id = self._job_id(user_id, platform)
         if self._scheduler.get_job(job_id):
             self._scheduler.remove_job(job_id)
             logger.info("Removed cron job %s", job_id)
@@ -157,6 +160,7 @@ class ProductCronScheduler:
     async def sync_all(self) -> None:
         """Register cron jobs for all existing product platform cron configs."""
         from sqlalchemy import select
+
         from app.database import AsyncSessionLocal
         from app.models.product import ProductPlatformCron
 
@@ -164,13 +168,13 @@ class ProductCronScheduler:
             result = await db.execute(
                 select(ProductPlatformCron).where(
                     ProductPlatformCron.cron_expression.isnot(None),
-                    ProductPlatformCron.user_id == 1,
                 )
             )
             configs = result.scalars().all()
 
         for config in configs:
             self.add_job(
+                user_id=config.user_id,
                 platform=config.platform,
                 cron_expression=config.cron_expression,
                 timezone=config.cron_timezone or "Asia/Shanghai",
@@ -184,12 +188,13 @@ class ProductCronScheduler:
         for job in self._scheduler.get_jobs():
             if not job.id.startswith(self.JOB_ID_PREFIX):
                 continue
-            platform = job.id[len(self.JOB_ID_PREFIX):]
-            result[platform] = {
+            # job id format: product_cron_{user_id}:{platform}
+            suffix = job.id[len(self.JOB_ID_PREFIX):]
+            result[suffix] = {
                 "cron_expression": str(job.trigger),
                 "next_run_at": job.next_run_time.isoformat() if job.next_run_time else None,
             }
         return result
 
-    def _job_id(self, platform: str) -> str:
-        return f"{self.JOB_ID_PREFIX}{platform}"
+    def _job_id(self, user_id: int, platform: str) -> str:
+        return f"{self.JOB_ID_PREFIX}{user_id}:{platform}"

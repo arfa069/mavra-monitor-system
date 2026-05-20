@@ -212,7 +212,7 @@ async def create_product_cron_config(
         )
         if scheduler:
             scheduler.add_job(
-                config.platform, config.cron_expression, config.cron_timezone
+                current_user.id, config.platform, config.cron_expression, config.cron_timezone
             )
 
     # Audit log
@@ -260,7 +260,7 @@ async def delete_product_cron_config(
         request.app.state, "product_cron_scheduler", None
     )
     if scheduler:
-        scheduler.remove_job(platform)
+        scheduler.remove_job(current_user.id, platform)
 
     await db.delete(config)
     await db.commit()
@@ -318,10 +318,10 @@ async def update_product_cron_config(
     if scheduler:
         if config.cron_expression:
             scheduler.add_job(
-                config.platform, config.cron_expression, config.cron_timezone
+                current_user.id, config.platform, config.cron_expression, config.cron_timezone
             )
         else:
-            scheduler.remove_job(config.platform)
+            scheduler.remove_job(current_user.id, config.platform)
 
     # Audit log
     ip_address = request.client.host if request.client else ""

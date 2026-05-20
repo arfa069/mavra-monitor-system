@@ -294,7 +294,10 @@ async def test_logout_audit_failure_does_not_break_business_success():
     with patch("app.api.auth.log_audit", new=AsyncMock(return_value=None)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/auth/logout")
+            response = await client.post(
+                "/auth/logout",
+                headers={"Authorization": "Bearer dummy-token-for-test"},
+            )
 
     assert response.status_code == 200
     assert response.json()["message"] == "登出成功"

@@ -108,7 +108,7 @@ async def process_job_results(
     updated_count = 0
     deactivated_count = 0
     new_job_ids: list[int] = []
-    detail_job_ids: list[int] = []
+    detail_jobs: list[Job] = []
 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
@@ -192,7 +192,7 @@ async def process_job_results(
             if job_data.get("address"):
                 job_obj.address = job_data["address"]
             if not job_obj.description or not job_obj.address:
-                detail_job_ids.append(job_obj.id)
+                detail_jobs.append(job_obj)
             updated_count += 1
 
         for job_data in jobs:
@@ -286,22 +286,20 @@ async def process_job_results(
                     db.add(new_job)
                     new_count += 1
 
-        # Flush all new jobs and fetch their internal IDs
+        # Flush all new jobs and fetch full Job objects
         if newly_inserted_job_ids:
             await db.flush()
             result = await db.execute(
-                select(Job.id, Job.job_id).where(
+                select(Job).where(
                     Job.search_config_id == config_id,
                     Job.job_id.in_(newly_inserted_job_ids),
                 )
             )
-            inserted_rows = result.all()
-            new_job_ids = [row[0] for row in inserted_rows]
-            detail_job_ids.extend(
-                row[0]
-                for row in inserted_rows
-                if len(row) < 2 or row[1] in newly_inserted_job_ids_needing_detail
-            )
+            new_jobs: list[Job] = list(result.scalars().all())
+            new_job_ids = [j.id for j in new_jobs]
+            for job_obj in new_jobs:
+                if job_obj.job_id in newly_inserted_job_ids_needing_detail:
+                    detail_jobs.append(job_obj)
 
         # Send notification for new jobs (after commit so config.notify_on_new is available)
         if new_count > 0 and config.notify_on_new:
@@ -325,25 +323,25 @@ async def process_job_results(
         await db.commit()
 
         # Fetch job details sequentially with rate limiting (no concurrency)
-        if detail_job_ids:
+        if detail_jobs:
             detail_errors = 0
             detail_updates = 0
             consecutive_cookie_failures = 0
             cookie_failure_cooldowns = 0
-            retry_detail_job_ids: list[int] = []
-            for jid in detail_job_ids:
+            retry_detail_jobs: list[Job] = []
+            for job_obj in detail_jobs:
                 try:
                     result = await update_job_detail(
-                        jid,
+                        job_obj,
                         adapter=adapter,
                         platform=platform,
                     )
                     if isinstance(result, Exception):
                         detail_errors += 1
-                        retry_detail_job_ids.append(jid)
+                        retry_detail_jobs.append(job_obj)
                     elif isinstance(result, dict) and not result.get("success"):
                         detail_errors += 1
-                        retry_detail_job_ids.append(jid)
+                        retry_detail_jobs.append(job_obj)
                         err = result.get("error", "")
                         if "code=37" in err or "code=36" in err or "Cookie expired" in err:
                             consecutive_cookie_failures += 1
@@ -354,12 +352,12 @@ async def process_job_results(
                         consecutive_cookie_failures = 0
                 except Exception:
                     detail_errors += 1
-                    retry_detail_job_ids.append(jid)
+                    retry_detail_jobs.append(job_obj)
                     consecutive_cookie_failures += 1
 
                 # 连续 cookie 失败时先冷却，再继续串行补详情；多次冷却仍失败才停止。
                 if consecutive_cookie_failures >= 3:
-                    remaining = len(detail_job_ids) - detail_job_ids.index(jid) - 1
+                    remaining = len(detail_jobs) - detail_jobs.index(job_obj) - 1
                     if cookie_failure_cooldowns < DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT:
                         cookie_failure_cooldowns += 1
                         cooldown = random.uniform(20.0, 40.0)
@@ -384,29 +382,29 @@ async def process_job_results(
 
                 # 2-5秒间隔，避免触发反爬
                 await asyncio.sleep(random.uniform(2.0, 5.0))
-            if retry_detail_job_ids:
+            if retry_detail_jobs:
                 retry_delay = random.uniform(*DETAIL_RETRY_DELAY_SECONDS)
                 logger.info(
                     "Retrying %d failed detail fetches after %.1fs",
-                    len(retry_detail_job_ids),
+                    len(retry_detail_jobs),
                     retry_delay,
                 )
                 await asyncio.sleep(retry_delay)
-                for jid in retry_detail_job_ids:
+                for job_obj in retry_detail_jobs:
                     try:
                         result = await update_job_detail(
-                            jid,
+                            job_obj,
                             adapter=adapter,
                             platform=platform,
                         )
                         if isinstance(result, dict) and result.get("success"):
                             detail_updates += 1
                     except Exception:
-                        logger.exception("Retry detail fetch failed for job %s", jid)
+                        logger.exception("Retry detail fetch failed for job %s", job_obj.id)
 
                     await asyncio.sleep(random.uniform(2.0, 5.0))
             if detail_errors:
-                logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_job_ids))
+                logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_jobs))
 
         if new_job_ids and config.enable_match_analysis:
             resume_result = await db.execute(
@@ -427,7 +425,7 @@ async def process_job_results(
 
 
 async def update_job_detail(
-    job_id: int,
+    job: int | Job,
     adapter: BasePlatformAdapter | None = None,
     *,
     platform: str = "boss",
@@ -436,20 +434,16 @@ async def update_job_detail(
 ) -> dict:
     """Fetch and update job detail (description, address) from platform API.
 
-    Args:
-        job_id: The internal Job record ID.
-        adapter: Optional shared adapter instance (reuses session/cookies).
-        platform: The job platform for adapter creation.
-        db: Optional session to reuse for batch detail updates.
-        commit: Whether to commit after updating the job.
-
-    Returns:
-        {"success": True, "detail": {...}} or {"success": False, "error": "..."}
+    Accepts a Job ID (int) or an already-loaded Job object to avoid an
+    extra ``db.get()`` when the caller already has the object loaded.
     """
     async def _update(db_session: AsyncSession) -> dict:
-        job = await db_session.get(Job, job_id)
-        if not job:
-            return {"success": False, "error": "Job not found"}
+        if isinstance(job, Job):
+            job_obj = job
+        else:
+            job_obj = await db_session.get(Job, job)
+            if not job_obj:
+                return {"success": False, "error": "Job not found"}
 
         # Reuse adapter if provided (shares session & cookies), else create new
         detail_adapter = adapter
@@ -457,19 +451,19 @@ async def update_job_detail(
             detail_adapter = _create_adapter(platform)
 
         # Skip detail fetching only when both fields already exist
-        if job.description and job.address:
+        if job_obj.description and job_obj.address:
             return {
                 "success": True,
                 "detail": {
-                    "description": job.description,
-                    "address": job.address,
+                    "description": job_obj.description,
+                    "address": job_obj.address,
                 }
             }
 
         # crawl_detail is available on both BossZhipinAdapter and Job51Adapter
         if not hasattr(detail_adapter, "crawl_detail"):
             return {"success": False, "error": f"Adapter for {platform} has no crawl_detail"}
-        result = await detail_adapter.crawl_detail(job.job_id)
+        result = await detail_adapter.crawl_detail(job_obj.job_id)
 
         if not result.get("success"):
             return result
@@ -477,9 +471,9 @@ async def update_job_detail(
         detail = result["detail"]
 
         # Update job record with detail data
-        job.description = detail.get("description", "")
-        job.address = detail.get("address", "")
-        job.last_updated_at = datetime.now(UTC)
+        job_obj.description = detail.get("description", "")
+        job_obj.address = detail.get("address", "")
+        job_obj.last_updated_at = datetime.now(UTC)
         if commit:
             await db_session.commit()
 

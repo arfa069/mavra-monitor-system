@@ -16,12 +16,18 @@ from app.services.notification import send_feishu_notification
 logger = logging.getLogger(__name__)
 
 
-async def get_active_products() -> list[Product]:
-    """Fetch all active products from database."""
+async def get_active_products(
+    user_id: int | None = None,
+    platform: str | None = None,
+) -> list[Product]:
+    """Fetch active products from database, optionally filtered."""
+    stmt = select(Product).where(Product.active)
+    if user_id is not None:
+        stmt = stmt.where(Product.user_id == user_id)
+    if platform is not None:
+        stmt = stmt.where(Product.platform == platform)
     async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Product).where(Product.user_id == 1, Product.active)
-        )
+        result = await db.execute(stmt)
         return list(result.scalars().all())
 
 

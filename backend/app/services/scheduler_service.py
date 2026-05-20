@@ -303,8 +303,8 @@ async def _run_crawl_in_lock(task: CrawlTask, crawl_lock: asyncio.Semaphore) -> 
         await _cleanup_all_shared_browsers()
 
 
-async def crawl_products_by_platform(platform: str) -> None:
-    """Crawl all active products for a specific platform.
+async def crawl_products_by_platform(user_id: int, platform: str) -> None:
+    """Crawl all active products for a specific user + platform.
 
     Called by ProductCronScheduler cron jobs. Respects concurrency
     limits and logs results.
@@ -312,22 +312,21 @@ async def crawl_products_by_platform(platform: str) -> None:
     from app.services.crawl import get_active_products
 
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
-    products = await get_active_products()
-    platform_products = [p for p in products if p.platform == platform]
+    products = await get_active_products(user_id=user_id, platform=platform)
 
-    if not platform_products:
-        logger.info("No active %s products to crawl", platform)
+    if not products:
+        logger.info("No active %s products to crawl for user %s", platform, user_id)
         return
 
     tasks = [
         _crawl_one_with_semaphore(p.id, semaphore, False)
-        for p in platform_products
+        for p in products
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     success = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "success")
     errors = sum(1 for r in results if isinstance(r, Exception) or (isinstance(r, dict) and r.get("status") == "error"))
-    logger.info("Crawl %s: %d products, %d success, %d errors", platform, len(platform_products), success, errors)
+    logger.info("Crawl user=%s %s: %d products, %d success, %d errors", user_id, platform, len(products), success, errors)
 
 
 async def _cleanup_all_shared_browsers() -> None:

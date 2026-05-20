@@ -129,7 +129,9 @@ async def get_current_user(
 ) -> User:
     """Dependency to get current authenticated user from JWT token.
 
-    This is the single source of truth for user authentication across all routers.
+    Validates the token AND checks that a corresponding session exists.
+    This ensures logout, device session deletion, and max-session eviction
+    take effect immediately (not just on token expiry).
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -154,6 +156,27 @@ async def get_current_user(
 
     if user is None or not user.is_active:
         raise credentials_exception
+
+    # ── Session validation ──────────────────────────────────
+    # Check that this token's session still exists in the database.
+    # A missing session means the user logged out, their session was
+    # deleted, or they were evicted due to max-session limit.
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    from app.models.session import Session
+
+    session_result = await db.execute(
+        select(Session).where(
+            Session.user_id == user.id,
+            Session.token_hash == token_hash,
+        )
+    )
+    active_session = session_result.scalar_one_or_none()
+    if active_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：会话已失效或已在其他地方退出",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return user
 

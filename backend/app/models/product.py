@@ -1,5 +1,13 @@
 """Product model for tracked items."""
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, TimestampMixin
@@ -27,9 +35,17 @@ class ProductPlatformCron(Base, TimestampMixin):
     """Per-platform cron configuration for product crawling."""
     __tablename__ = "products_platform_crons"
 
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "platform",
+            name="uq_products_platform_crons_user_platform",
+        ),
+    )
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    platform = Column(String(20), nullable=False, unique=True)  # 'taobao', 'jd', 'amazon'
+    platform = Column(String(20), nullable=False)  # 'taobao', 'jd', 'amazon'
     cron_expression = Column(
         String(100), nullable=True,
         comment="5-segment crontab expression. Null means no scheduled crawl for this platform.",

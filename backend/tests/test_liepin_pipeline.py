@@ -113,8 +113,9 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
 
     assert result["updated_count"] == 1
     update_detail.assert_awaited_once()
+    # Now passes Job objects, not raw ints
+    assert update_detail.await_args.args[0] is existing_job
     _, kwargs = update_detail.await_args
-    assert update_detail.await_args.args == (99,)
     assert kwargs["adapter"] is None
     assert kwargs["platform"] == "liepin"
     assert "db" not in kwargs
