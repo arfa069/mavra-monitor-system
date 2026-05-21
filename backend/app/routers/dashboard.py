@@ -77,8 +77,9 @@ async def stream_dashboard_events(
 
     async def event_generator():
         try:
-            # Push initial data immediately on connection
             service = DashboardService(db)
+
+            # Push initial data immediately on connection
             user_kpi = await service.calculate_user_kpi(user_id)
 
             initial_payload = {
@@ -100,7 +101,6 @@ async def stream_dashboard_events(
                 if await request.is_disconnected():
                     break
 
-                service = DashboardService(db)
                 user_kpi = await service.calculate_user_kpi(user_id)
 
                 event_payload = {
@@ -195,7 +195,11 @@ async def get_recent_alerts(
             "id": alert.id,
             "product_id": alert.product_id,
             "alert_type": alert.alert_type,
-            "message": f"Threshold: {alert.threshold_percent}%",
+            "message": (
+                f"Threshold: {alert.threshold_percent}%"
+                if alert.threshold_percent is not None
+                else alert.alert_type
+            ),
             "active": alert.active,
             "created_at": (
                 alert.created_at.isoformat() if alert.created_at else None

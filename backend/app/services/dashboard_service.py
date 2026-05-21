@@ -79,7 +79,10 @@ class DashboardService:
         match_q = (
             select(func.count())
             .select_from(MatchResult)
-            .where(MatchResult.created_at >= today_start)
+            .where(
+                MatchResult.user_id == user_id,
+                MatchResult.created_at >= today_start,
+            )
         )
 
         # Crawl counts today (parallel)

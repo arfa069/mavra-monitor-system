@@ -111,7 +111,7 @@ export default function DashboardPage() {
             title="今日降价"
             value={userKPI?.price_drops_today ?? 0}
             prefix={<FallOutlined />}
-            styles={{ content: { color: "#e5484d" } }}
+            valueStyle={{ color: "#e5484d" }}
           />
         </Col>
         <Col xs={12} sm={12} md={8} lg={4}>
@@ -257,10 +257,8 @@ export default function DashboardPage() {
                 title="活跃告警"
                 value={systemKPI.active_alerts}
                 prefix={<AlertOutlined />}
-                styles={{
-                  content: {
-                    color: systemKPI.active_alerts > 0 ? "#e5484d" : "#1ea64a",
-                  },
+                valueStyle={{
+                  color: systemKPI.active_alerts > 0 ? "#e5484d" : "#1ea64a",
                 }}
               />
             </Col>
