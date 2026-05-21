@@ -20,29 +20,50 @@ def _user(role: str):
     return u
 
 
+def _role_perm_result(has_permission: bool):
+    """Create a mock result for role_has_permission DB query."""
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = 1 if has_permission else None
+    return result
+
+
 class TestRoleAllowsPermission:
     """Test role_allows_permission only grants explicit global resource permissions."""
 
-    def test_product_read_forbidden_for_user(self):
+    @pytest.mark.asyncio
+    async def test_product_read_forbidden_for_user(self):
         u = _user("user")
-        assert role_allows_permission(u, "product", "read") is False
+        mock_db = AsyncMock(spec=AsyncSession)
+        mock_db.execute.return_value = _role_perm_result(False)
+        assert await role_allows_permission(mock_db, u, "product", "read") is False
 
-    def test_product_delete_forbidden_for_user(self):
+    @pytest.mark.asyncio
+    async def test_product_delete_forbidden_for_user(self):
         u = _user("user")
-        assert role_allows_permission(u, "product", "delete") is False
+        mock_db = AsyncMock(spec=AsyncSession)
+        mock_db.execute.return_value = _role_perm_result(False)
+        assert await role_allows_permission(mock_db, u, "product", "delete") is False
 
-    def test_product_delete_forbidden_for_admin(self):
+    @pytest.mark.asyncio
+    async def test_product_delete_forbidden_for_admin(self):
         u = _user("admin")
-        assert role_allows_permission(u, "product", "delete") is False
+        mock_db = AsyncMock(spec=AsyncSession)
+        mock_db.execute.return_value = _role_perm_result(False)
+        assert await role_allows_permission(mock_db, u, "product", "delete") is False
 
-    def test_product_delete_allowed_for_super_admin(self):
+    @pytest.mark.asyncio
+    async def test_product_delete_allowed_for_super_admin(self):
         u = _user("super_admin")
-        assert role_allows_permission(u, "product", "delete") is True
+        mock_db = AsyncMock(spec=AsyncSession)
+        mock_db.execute.return_value = _role_perm_result(True)
+        assert await role_allows_permission(mock_db, u, "product", "delete") is True
 
-    def test_unknown_resource_type_returns_false(self):
+    @pytest.mark.asyncio
+    async def test_unknown_resource_type_returns_false(self):
         u = _user("admin")
+        mock_db = AsyncMock(spec=AsyncSession)
         with pytest.raises(ValueError):
-            role_allows_permission(u, "unknown_type", "read")
+            await role_allows_permission(mock_db, u, "unknown_type", "read")
 
 
 class TestCheckResourcePermission:
@@ -92,7 +113,9 @@ class TestCheckResourcePermission:
         u = _user("user")
         no_result = MagicMock()
         no_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = no_result
+        role_result = MagicMock()
+        role_result.scalar_one_or_none.return_value = None
+        mock_db.execute.side_effect = [no_result, no_result, role_result]
 
         result = await check_resource_permission(mock_db, u, "product", "read", "456")
         assert result is False
@@ -114,7 +137,9 @@ class TestCheckResourcePermission:
         u = _user("admin")
         no_result = MagicMock()
         no_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = no_result
+        role_result = MagicMock()
+        role_result.scalar_one_or_none.return_value = None
+        mock_db.execute.side_effect = [no_result, no_result, role_result]
 
         result = await check_resource_permission(mock_db, u, "product", "delete", "123")
         assert result is False
@@ -125,7 +150,9 @@ class TestCheckResourcePermission:
         u = _user("super_admin")
         no_result = MagicMock()
         no_result.scalar_one_or_none.return_value = None
-        mock_db.execute.return_value = no_result
+        role_result = MagicMock()
+        role_result.scalar_one_or_none.return_value = 1
+        mock_db.execute.side_effect = [no_result, no_result, role_result]
 
         result = await check_resource_permission(mock_db, u, "product", "delete", "123")
         assert result is True

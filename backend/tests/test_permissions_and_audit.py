@@ -3,13 +3,12 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import HTTPException, status
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.sql import visitors
 
 from app.core.security import get_current_user
 from app.database import get_db
 from app.main import app
-from app.models.user import User
 
 
 def create_mock_user(user_id, username, email, role, is_active=True, deleted_at=None):
@@ -33,15 +32,90 @@ def setup_mock_current_user(user):
     app.dependency_overrides[get_current_user] = mock_get_current_user
 
 
-def setup_mock_db():
-    """Create and register a mock DB session."""
+# Static permission matrix for mock DB responses
+ALL_PERMISSIONS = [
+    "user:read", "user:manage", "user:delete",
+    "crawl:execute", "crawl:read_logs",
+    "schedule:read", "schedule:configure",
+    "config:read", "config:write",
+    "product:read", "product:write", "product:delete",
+    "job:read", "job:write", "job:delete",
+    "rbac:read", "rbac:manage",
+]
+
+ROLE_PERMISSIONS = {
+    "user": {"crawl:execute", "crawl:read_logs", "schedule:read", "config:write"},
+    "admin": {"user:read", "user:manage", "user:delete", "crawl:read_logs", "schedule:read", "config:read", "config:write"},
+    "super_admin": set(ALL_PERMISSIONS),
+}
+
+
+def _extract_permission_from_stmt(stmt) -> str | None:
+    """Extract permission name from a SQLAlchemy select statement.
+
+    Uses visitor traversal to avoid triggering model mapper compilation.
+    """
+    found_values = []
+
+    def _visit_bindparam(element):
+        if hasattr(element, "value"):
+            found_values.append(element.value)
+
+    try:
+        visitors.traverse(stmt, {}, {"bindparam": _visit_bindparam})
+    except Exception:
+        pass
+
+    for perm in ALL_PERMISSIONS:
+        if perm in found_values:
+            return perm
+
+    # Fallback: search in raw statement string
+    try:
+        stmt_str = str(stmt)
+        for perm in ALL_PERMISSIONS:
+            if perm in stmt_str:
+                return perm
+    except Exception:
+        pass
+    return None
+
+
+def setup_mock_db(user_role: str = "user"):
+    """Create and register a mock DB session that responds to permission queries."""
     mock_session = AsyncMock()
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
-    mock_result.scalar.return_value = 0
-    mock_result.scalars.return_value = MagicMock()
-    mock_result.scalars.return_value.all.return_value = []
-    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    def _execute_side_effect(stmt):
+        """Inspect SQL statement and return appropriate mock result."""
+        result = MagicMock()
+        stmt_str = str(stmt)
+        perm = _extract_permission_from_stmt(stmt)
+
+        # Check for role_has_permission query FIRST (join users_roles + users_permissions)
+        if "users_roles" in stmt_str and "users_permissions" in stmt_str:
+            if perm:
+                has_perm = perm in ROLE_PERMISSIONS.get(user_role, set())
+                result.scalar_one_or_none.return_value = 1 if has_perm else None
+                return result
+            result.scalar_one_or_none.return_value = None
+            return result
+
+        # Check for permission_exists query (only users_permissions, no users_roles)
+        if "users_permissions" in stmt_str:
+            if perm:
+                result.scalar_one_or_none.return_value = 1
+                return result
+            result.scalar_one_or_none.return_value = None
+            return result
+
+        # Default for other queries
+        result.scalar_one_or_none.return_value = None
+        result.scalar.return_value = 0
+        result.scalars.return_value = MagicMock()
+        result.scalars.return_value.all.return_value = []
+        return result
+
+    mock_session.execute = AsyncMock(side_effect=_execute_side_effect)
     mock_session.commit = AsyncMock()
     mock_session.add = MagicMock()
 
@@ -75,7 +149,7 @@ class TestAdminSelfPromotionPrevention:
         """Admin creating user with super_admin role should get 403."""
         admin_user = create_mock_user(1, "admin", "admin@example.com", "admin")
         setup_mock_current_user(admin_user)
-        setup_mock_db()
+        setup_mock_db(user_role="admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -93,7 +167,7 @@ class TestAdminSelfPromotionPrevention:
         target_user = create_mock_user(2, "target", "target@example.com", "user")
         setup_mock_current_user(admin_user)
 
-        mock_session = setup_mock_db()
+        mock_session = setup_mock_db(user_role="admin")
         # First execute: find user by id; second: no conflict
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = target_user
@@ -115,7 +189,7 @@ class TestAdminSelfPromotionPrevention:
         super_user = create_mock_user(2, "super", "super@example.com", "super_admin")
         setup_mock_current_user(admin_user)
 
-        mock_session = setup_mock_db()
+        mock_session = setup_mock_db(user_role="admin")
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = super_user
         mock_session.execute = AsyncMock(return_value=mock_result)
@@ -140,7 +214,7 @@ class TestAdminCannotDeleteSuperAdmin:
         super_user = create_mock_user(2, "super", "super@example.com", "super_admin")
         setup_mock_current_user(admin_user)
 
-        mock_session = setup_mock_db()
+        mock_session = setup_mock_db(user_role="admin")
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = super_user
         mock_session.execute = AsyncMock(return_value=mock_result)
@@ -160,6 +234,7 @@ class TestCrawlPermissionDeniedForAdmin:
         """Admin calling POST /products/crawl/crawl-now should get 403."""
         admin_user = create_mock_user(1, "admin", "admin@example.com", "admin")
         setup_mock_current_user(admin_user)
+        setup_mock_db(user_role="admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -171,6 +246,7 @@ class TestCrawlPermissionDeniedForAdmin:
         """Admin calling POST /jobs/crawl-now should get 403."""
         admin_user = create_mock_user(1, "admin", "admin@example.com", "admin")
         setup_mock_current_user(admin_user)
+        setup_mock_db(user_role="admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -186,7 +262,7 @@ class TestScheduleConfigPermissionDeniedForAdmin:
         """Admin calling POST /products/cron-configs should get 403."""
         admin_user = create_mock_user(1, "admin", "admin@example.com", "admin")
         setup_mock_current_user(admin_user)
-        setup_mock_db()
+        setup_mock_db(user_role="admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -201,7 +277,7 @@ class TestScheduleConfigPermissionDeniedForAdmin:
         """Admin calling PATCH /products/cron-configs/{platform} should get 403."""
         admin_user = create_mock_user(1, "admin", "admin@example.com", "admin")
         setup_mock_current_user(admin_user)
-        setup_mock_db()
+        setup_mock_db(user_role="admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -241,7 +317,7 @@ class TestAuditLogEndpoint:
         """super_admin should be able to list audit logs."""
         super_user = create_mock_user(1, "super", "super@example.com", "super_admin")
         setup_mock_current_user(super_user)
-        setup_mock_db()
+        setup_mock_db(user_role="super_admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -254,6 +330,7 @@ class TestAuditLogEndpoint:
         """Regular user should get 403 on /admin/audit-logs."""
         regular_user = create_mock_user(1, "user", "user@example.com", "user")
         setup_mock_current_user(regular_user)
+        setup_mock_db(user_role="user")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -269,7 +346,7 @@ class TestSuperAdminCanPerformAdminActions:
         """super_admin creating a regular user should succeed (not 403)."""
         super_user = create_mock_user(1, "super", "super@example.com", "super_admin")
         setup_mock_current_user(super_user)
-        setup_mock_db()
+        setup_mock_db(user_role="super_admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -285,7 +362,7 @@ class TestSuperAdminCanPerformAdminActions:
         """super_admin creating another super_admin should succeed (not 403)."""
         super_user = create_mock_user(1, "super", "super@example.com", "super_admin")
         setup_mock_current_user(super_user)
-        setup_mock_db()
+        setup_mock_db(user_role="super_admin")
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
