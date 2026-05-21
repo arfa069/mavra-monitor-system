@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
@@ -672,7 +673,9 @@ async def get_role_permission_matrix(
 
     Returns all roles with their assigned permissions, plus the list of all permissions.
     """
-    roles_result = await db.execute(select(Role).order_by(Role.name))
+    roles_result = await db.execute(
+        select(Role).options(selectinload(Role.permissions)).order_by(Role.name)
+    )
     roles = roles_result.scalars().all()
 
     perms_result = await db.execute(select(Permission).order_by(Permission.name))
@@ -680,12 +683,11 @@ async def get_role_permission_matrix(
 
     role_responses = []
     for role in roles:
-        role_perms = [p.name for p in role.permissions]
         role_responses.append(
             RolePermissionResponse(
                 role=role.name,
                 description=role.description,
-                permissions=sorted(role_perms),
+                permissions=sorted(p.name for p in role.permissions),
             )
         )
 
@@ -734,6 +736,7 @@ async def update_role_permissions(
         role.permissions = list(perms)
     else:
         role.permissions = []
+        perms = []
 
     await db.commit()
 
@@ -751,5 +754,5 @@ async def update_role_permissions(
 
     return {
         "role": role_name,
-        "permissions": [p.name for p in role.permissions],
+        "permissions": [p.name for p in perms],
     }
