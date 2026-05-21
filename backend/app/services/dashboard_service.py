@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import psutil
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 
 from app.models.alert import Alert
 from app.models.crawl_log import CrawlLog
@@ -367,7 +367,7 @@ class DashboardService:
 
     async def get_system_health_trends(self, days: int) -> TrendResponse:
         """Get system health trend (success rate over time)."""
-        from sqlalchemy import Date, cast
+        from sqlalchemy import Date, case, cast
 
         start_date = datetime.now(UTC) - timedelta(days=days)
 
@@ -376,7 +376,7 @@ class DashboardService:
                 cast(CrawlLog.timestamp, Date).label("date"),
                 func.count().label("total"),
                 func.sum(
-                    func.case((CrawlLog.status == "SUCCESS", 1), else_=0)
+                    case((CrawlLog.status == "SUCCESS", 1), else_=0)
                 ).label("success"),
             )
             .where(CrawlLog.timestamp >= start_date)
@@ -412,7 +412,7 @@ class DashboardService:
                 CrawlLog.platform,
                 func.count().label("total"),
                 func.sum(
-                    func.case((CrawlLog.status == "SUCCESS", 1), else_=0)
+                    case((CrawlLog.status == "SUCCESS", 1), else_=0)
                 ).label("success"),
             )
             .where(CrawlLog.platform.isnot(None))
@@ -426,17 +426,21 @@ class DashboardService:
             rate = (row.success or 0) / row.total if row.total > 0 else 1.0
             rates.append(round(rate, 2))
 
-        # Job platforms
+        # Job platforms (join through JobSearchConfig)
+        from app.models.job import JobSearchConfig
+
         job_result = await self.db.execute(
             select(
-                JobCrawlLog.platform,
+                JobSearchConfig.platform,
                 func.count().label("total"),
                 func.sum(
-                    func.case((JobCrawlLog.status == "SUCCESS", 1), else_=0)
+                    case((JobCrawlLog.status == "SUCCESS", 1), else_=0)
                 ).label("success"),
             )
-            .where(JobCrawlLog.platform.isnot(None))
-            .group_by(JobCrawlLog.platform)
+            .select_from(JobCrawlLog)
+            .join(JobSearchConfig, JobCrawlLog.search_config_id == JobSearchConfig.id)
+            .where(JobSearchConfig.platform.isnot(None))
+            .group_by(JobSearchConfig.platform)
         )
 
         for row in job_result.all():
