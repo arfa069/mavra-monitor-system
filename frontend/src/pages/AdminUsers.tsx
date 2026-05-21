@@ -565,35 +565,41 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
                 ([group, permissions]) => (
                   <div key={group} style={{ minWidth: 160 }}>
                     <Typography.Text strong>{group}</Typography.Text>
-                    <Checkbox.Group
+                    <div
                       style={{
                         display: "flex",
                         flexDirection: "column",
                         gap: 8,
                         marginTop: 8,
                       }}
-                      value={value}
-                      disabled={!canEdit}
-                      onChange={(next) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [roleInfo.role]: next as Permission[],
-                        }))
-                      }
                     >
                       {permissions.map((permission) => (
                         <Checkbox
                           key={permission.name}
-                          value={permission.name}
+                          checked={value.includes(permission.name)}
                           disabled={
                             !canEdit ||
                             disabledSuperAdminCore.includes(permission.name)
                           }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setDrafts((prev) => {
+                              const current =
+                                prev[roleInfo.role] ?? roleInfo.permissions;
+                              const next = checked
+                                ? [...current, permission.name]
+                                : current.filter((p) => p !== permission.name);
+                              return {
+                                ...prev,
+                                [roleInfo.role]: next as Permission[],
+                              };
+                            });
+                          }}
                         >
                           {permission.name}
                         </Checkbox>
                       ))}
-                    </Checkbox.Group>
+                    </div>
                   </div>
                 ),
               )}
