@@ -493,6 +493,7 @@ async def crawl_single_config(
     adapter: BasePlatformAdapter | None = None,
     *,
     _lock_already_held: bool = False,
+    **kwargs,
 ) -> dict:
     """Crawl a single JobSearchConfig and process results.
 
@@ -513,6 +514,7 @@ async def crawl_single_config(
                 config_id,
                 adapter=adapter,
                 _lock_already_held=True,
+                **kwargs,
             )
 
     async with AsyncSessionLocal() as db:
@@ -526,31 +528,45 @@ async def crawl_single_config(
             return {"status": "error", "error": str(exc)}
         url = config.url
 
-    if adapter is None:
-        adapter = _create_adapter(platform)
-    result = await adapter.crawl(url)
+    try:
+        if adapter is None:
+            adapter = _create_adapter(platform)
+        result = await adapter.crawl(url)
 
-    if result.get("success"):
-        stats = await process_job_results(
-            config_id=config_id,
-            jobs=result["jobs"],
-            total_scraped=result["count"],
-            adapter=adapter,
-            platform=platform,
-        )
-        return {"status": "success", **stats}
-    else:
-        # Log error
+        if result.get("success"):
+            stats = await process_job_results(
+                config_id=config_id,
+                jobs=result["jobs"],
+                total_scraped=result["count"],
+                adapter=adapter,
+                platform=platform,
+            )
+            return {"status": "success", **stats}
+        else:
+            # Log error
+            async with AsyncSessionLocal() as db:
+                log = JobCrawlLog(
+                    search_config_id=config_id,
+                    status="ERROR",
+                    error_message=result.get("error", "Unknown error"),
+                    scraped_at=datetime.now(UTC),
+                )
+                db.add(log)
+                await db.commit()
+            return {"status": "error", "error": result.get("error")}
+    except Exception as exc:
+        import logging
+        logging.getLogger("app.services.job_crawl").exception("Unexpected error crawling config_id %d", config_id)
         async with AsyncSessionLocal() as db:
             log = JobCrawlLog(
                 search_config_id=config_id,
                 status="ERROR",
-                error_message=result.get("error", "Unknown error"),
+                error_message=f"Unhandled error: {str(exc)}",
                 scraped_at=datetime.now(UTC),
             )
             db.add(log)
             await db.commit()
-        return {"status": "error", "error": result.get("error")}
+        return {"status": "error", "error": str(exc)}
 
 
 async def crawl_all_job_searches(

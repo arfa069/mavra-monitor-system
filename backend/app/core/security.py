@@ -44,6 +44,7 @@ from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
 from app.core.tokens import (  # noqa: F401  # re-exported for compatibility
     ACCESS_TOKEN_EXPIRE_MINUTES,
     ALGORITHM,
+    SECRET_KEY,
     create_access_token,
     decode_access_token,
 )

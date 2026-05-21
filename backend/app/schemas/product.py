@@ -117,6 +117,10 @@ class ProductPlatformCronResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+import zoneinfo
+from apscheduler.triggers.cron import CronTrigger
+
+
 class ProductPlatformCronCreate(BaseModel):
     """Create per-platform cron config."""
     platform: str = Field(..., pattern="^(taobao|jd|amazon)$", description="平台")
@@ -127,6 +131,34 @@ class ProductPlatformCronCreate(BaseModel):
     cron_timezone: str | None = Field(
         default=None, max_length=50, description="时区",
     )
+
+    @field_validator("cron_expression")
+    @classmethod
+    def validate_cron(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        val = v.strip()
+        if not val:
+            return None
+        try:
+            CronTrigger.from_crontab(val)
+        except Exception as exc:
+            raise ValueError(f"Invalid cron expression: {exc}")
+        return val
+
+    @field_validator("cron_timezone")
+    @classmethod
+    def validate_timezone(cls, v: str | None) -> str | None:
+        if not v:
+            return v
+        val = v.strip()
+        if not val:
+            return None
+        try:
+            zoneinfo.ZoneInfo(val)
+        except Exception:
+            raise ValueError(f"Invalid timezone: {v}")
+        return val
 
 
 class ProductPlatformCronUpdate(BaseModel):
@@ -139,3 +171,31 @@ class ProductPlatformCronUpdate(BaseModel):
         default=None, max_length=50,
         description="时区，默认 Asia/Shanghai",
     )
+
+    @field_validator("cron_expression")
+    @classmethod
+    def validate_cron(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        val = v.strip()
+        if not val:
+            return None
+        try:
+            CronTrigger.from_crontab(val)
+        except Exception as exc:
+            raise ValueError(f"Invalid cron expression: {exc}")
+        return val
+
+    @field_validator("cron_timezone")
+    @classmethod
+    def validate_timezone(cls, v: str | None) -> str | None:
+        if not v:
+            return v
+        val = v.strip()
+        if not val:
+            return None
+        try:
+            zoneinfo.ZoneInfo(val)
+        except Exception:
+            raise ValueError(f"Invalid timezone: {v}")
+        return val

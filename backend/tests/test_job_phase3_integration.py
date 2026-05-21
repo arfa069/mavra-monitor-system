@@ -50,7 +50,7 @@ def test_job_config_scheduler_registers_platform_agnostic_config_job():
     assert len(calls) == 1
     _, kwargs = calls[0]
     assert kwargs["id"] == "job_config_cron_42"
-    assert kwargs["kwargs"] == {"config_id": 42}
+    assert kwargs["kwargs"] == {"config_id": 42, "cron_expression": "*/5 * * * *"}
     assert kwargs["max_instances"] == 1
 
 

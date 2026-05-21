@@ -149,7 +149,7 @@ class TestProductCronSchedulerUserIsolation:
             assert "1:taobao" not in times, (
                 "Key should not include user_id prefix like '1:taobao'"
             )
-            assert times["taobao"]["cron_expression"] == "cron[month='*', day='*', day_of_week='*', hour='6', minute='0']"
+            assert times["taobao"]["cron_expression"] == "0 6 * * *"
             assert times["taobao"]["next_run_at"] is not None
         finally:
             scheduler.shutdown(wait=False)
@@ -169,10 +169,10 @@ class TestProductCronSchedulerUserIsolation:
             user1_times = mgr.get_next_run_times(user_id=1)
             assert "taobao" in user1_times
             # Verify it's user 1's schedule (6 AM), not user 2's (12 PM)
-            assert "hour='6'" in user1_times["taobao"]["cron_expression"]
+            assert user1_times["taobao"]["cron_expression"] == "0 6 * * *"
 
             user2_times = mgr.get_next_run_times(user_id=2)
             assert "taobao" in user2_times
-            assert "hour='12'" in user2_times["taobao"]["cron_expression"]
+            assert user2_times["taobao"]["cron_expression"] == "0 12 * * *"
         finally:
             scheduler.shutdown(wait=False)

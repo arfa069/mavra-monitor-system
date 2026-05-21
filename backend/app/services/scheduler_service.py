@@ -52,6 +52,34 @@ class CrawlTask:
 _crawl_tasks: dict[str, CrawlTask] = {}
 
 
+def _gc_expired_tasks() -> None:
+    """Evict completed/failed tasks older than 24 hours to prevent memory leaks."""
+    try:
+        loop = asyncio.get_running_loop()
+        now = loop.time()
+    except RuntimeError:
+        return
+
+    expired_ids = []
+    for tid, task in _crawl_tasks.items():
+        if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
+            if now - task.created_at > 86400:  # 24 hours
+                expired_ids.append(tid)
+
+    for tid in expired_ids:
+        _crawl_tasks.pop(tid, None)
+
+    # Hard cap of 1000 tasks to prevent memory issues under massive concurrency
+    if len(_crawl_tasks) > 1000:
+        finished_tasks = sorted(
+            [t for t in _crawl_tasks.values() if t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)],
+            key=lambda t: t.created_at
+        )
+        to_evict = len(_crawl_tasks) - 1000
+        for i in range(min(to_evict, len(finished_tasks))):
+            _crawl_tasks.pop(finished_tasks[i].task_id, None)
+
+
 def _set_scheduler_state(state: dict) -> None:
     """Called once by main.py lifespan startup."""
     global _scheduler_state
@@ -71,6 +99,7 @@ def create_task(
     entity_id: str | None = None,
 ) -> CrawlTask:
     """Create a new crawl task and return its info."""
+    _gc_expired_tasks()
     task_id = str(uuid.uuid4())[:8]
     task = CrawlTask(
         task_id=task_id,
@@ -303,30 +332,50 @@ async def _run_crawl_in_lock(task: CrawlTask, crawl_lock: asyncio.Semaphore) -> 
         await _cleanup_all_shared_browsers()
 
 
-async def crawl_products_by_platform(user_id: int, platform: str) -> None:
+async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> None:
     """Crawl all active products for a specific user + platform.
 
     Called by ProductCronScheduler cron jobs. Respects concurrency
     limits and logs results.
     """
-    from app.services.crawl import get_active_products
-
-    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
-    products = await get_active_products(user_id=user_id, platform=platform)
-
-    if not products:
-        logger.info("No active %s products to crawl for user %s", platform, user_id)
+    if _scheduler_state is None:
+        logger.error("Scheduler state not initialized in crawl_products_by_platform")
         return
 
-    tasks = [
-        _crawl_one_with_semaphore(p.id, semaphore, False)
-        for p in products
-    ]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    crawl_lock: asyncio.Semaphore = _scheduler_state.get("crawl_lock")
+    if crawl_lock is None:
+        logger.error("crawl_lock not initialized in crawl_products_by_platform")
+        return
 
-    success = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "success")
-    errors = sum(1 for r in results if isinstance(r, Exception) or (isinstance(r, dict) and r.get("status") == "error"))
-    logger.info("Crawl user=%s %s: %d products, %d success, %d errors", user_id, platform, len(products), success, errors)
+    if crawl_lock.locked():
+        logger.warning(
+            "Crawl skipped for platform %s user %d: another crawl task is in progress",
+            platform, user_id
+        )
+        return
+
+    try:
+        async with crawl_lock:
+            from app.services.crawl import get_active_products
+
+            semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+            products = await get_active_products(user_id=user_id, platform=platform)
+
+            if not products:
+                logger.info("No active %s products to crawl for user %s", platform, user_id)
+                return
+
+            tasks = [
+                _crawl_one_with_semaphore(p.id, semaphore, False)
+                for p in products
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            success = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "success")
+            errors = sum(1 for r in results if isinstance(r, Exception) or (isinstance(r, dict) and r.get("status") == "error"))
+            logger.info("Crawl user=%s %s: %d products, %d success, %d errors", user_id, platform, len(products), success, errors)
+    finally:
+        await _cleanup_all_shared_browsers()
 
 
 async def _cleanup_all_shared_browsers() -> None:
@@ -336,5 +385,5 @@ async def _cleanup_all_shared_browsers() -> None:
     for adapter_class in [TaobaoAdapter, JDAdapter, AmazonAdapter]:
         try:
             await adapter_class._close_shared_browser()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to close shared browser for class %s: %s", adapter_class.__name__, exc)

@@ -12,19 +12,19 @@ class TestRedisSessionStore:
     @pytest.mark.asyncio
     async def test_session_rate_limit_uses_redis(self):
         """Rate limiting checks Redis for session count."""
-        from app.core.security import _get_redis, _redis_client
+        from app.core.login_lockout import _get_redis, _redis_client
 
         # Reset global state
-        import app.core.security as security_module
-        security_module._redis_client = None
+        import app.core.login_lockout as lockout_module
+        lockout_module._redis_client = None
 
         mock_redis = AsyncMock()
         mock_redis.get = AsyncMock(return_value=b"5")
         mock_redis.incr = AsyncMock()
         mock_redis.expire = AsyncMock()
 
-        with patch("app.core.security._get_redis", AsyncMock(return_value=mock_redis)):
-            from app.core.security import _get_redis
+        with patch("app.core.login_lockout._get_redis", AsyncMock(return_value=mock_redis)):
+            from app.core.login_lockout import _get_redis
 
             redis_client = await _get_redis()
             key = "rate_limit:test_user"
@@ -34,7 +34,7 @@ class TestRedisSessionStore:
             mock_redis.get.assert_called_once_with(key)
 
         # Restore
-        security_module._redis_client = None
+        lockout_module._redis_client = None
 
 
 class TestRedisConfig:

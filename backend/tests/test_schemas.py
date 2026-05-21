@@ -173,3 +173,70 @@ class TestProductPlatformCronCreate:
 
         with pytest.raises(ValidationError):
             ProductPlatformCronCreate(platform="jd", cron_expression="x" * 101)
+
+    def test_invalid_cron_expression(self):
+        from app.schemas.product import ProductPlatformCronCreate
+
+        with pytest.raises(ValidationError):
+            ProductPlatformCronCreate(platform="jd", cron_expression="invalid_cron_here")
+
+    def test_invalid_timezone(self):
+        from app.schemas.product import ProductPlatformCronCreate
+
+        with pytest.raises(ValidationError):
+            ProductPlatformCronCreate(platform="jd", cron_expression="0 9 * * *", cron_timezone="Invalid/Timezone")
+
+    def test_valid_timezone_and_cron(self):
+        from app.schemas.product import ProductPlatformCronCreate
+
+        config = ProductPlatformCronCreate(platform="jd", cron_expression="0 9 * * *", cron_timezone="Asia/Shanghai")
+        assert config.cron_timezone == "Asia/Shanghai"
+
+
+class TestJobSearchConfigSchemas:
+    def test_valid_job_create(self):
+        from app.schemas.job import JobSearchConfigCreate
+
+        config = JobSearchConfigCreate(
+            name="Test Boss Python",
+            platform="boss",
+            url="https://example.com/boss",
+            cron_expression="0/5 * * * *",
+            cron_timezone="Asia/Shanghai"
+        )
+        assert config.cron_expression == "0/5 * * * *"
+        assert config.cron_timezone == "Asia/Shanghai"
+
+    def test_invalid_cron(self):
+        from app.schemas.job import JobSearchConfigCreate
+
+        with pytest.raises(ValidationError):
+            JobSearchConfigCreate(
+                name="Test",
+                url="https://example.com",
+                cron_expression="invalid_cron"
+            )
+
+    def test_invalid_timezone(self):
+        from app.schemas.job import JobSearchConfigCreate
+
+        with pytest.raises(ValidationError):
+            JobSearchConfigCreate(
+                name="Test",
+                url="https://example.com",
+                cron_expression="0 9 * * *",
+                cron_timezone="Invalid/Timezone"
+            )
+
+    def test_update_validation(self):
+        from app.schemas.job import JobSearchConfigUpdate
+
+        with pytest.raises(ValidationError):
+            JobSearchConfigUpdate(cron_expression="bad_cron")
+
+        with pytest.raises(ValidationError):
+            JobSearchConfigUpdate(cron_timezone="bad_tz")
+
+        update = JobSearchConfigUpdate(cron_expression="0 12 * * *", cron_timezone="UTC")
+        assert update.cron_expression == "0 12 * * *"
+        assert update.cron_timezone == "UTC"

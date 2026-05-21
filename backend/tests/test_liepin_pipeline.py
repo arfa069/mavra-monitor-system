@@ -118,5 +118,5 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     _, kwargs = update_detail.await_args
     assert kwargs["adapter"] is None
     assert kwargs["platform"] == "liepin"
-    assert "db" not in kwargs
+    assert kwargs["db"] is mock_db
     assert "commit" not in kwargs
