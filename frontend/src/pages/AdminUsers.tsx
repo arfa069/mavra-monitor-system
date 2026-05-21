@@ -283,7 +283,13 @@ export default function AdminUsersPage() {
         },
       },
     ],
-    [isSuperAdmin, canManageUsers, canDeleteUsers, handleExpandEdit, handleDelete],
+    [
+      isSuperAdmin,
+      canManageUsers,
+      canDeleteUsers,
+      handleExpandEdit,
+      handleDelete,
+    ],
   );
 
   const expandable = useMemo(
@@ -499,7 +505,11 @@ export default function AdminUsersPage() {
         />
       </Modal>
       {canReadRbac && (
-        <Card title="Role Permissions" size="small" style={{ marginBottom: 16 }}>
+        <Card
+          title="Role Permissions"
+          size="small"
+          style={{ marginBottom: 16 }}
+        >
           <RolePermissionsMatrix canEdit={hasPermission("rbac:manage")} />
         </Card>
       )}
@@ -524,12 +534,15 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
   if (isLoading) return <Spin />;
   if (!data) return null;
 
-  const groupedPermissions = data.all_permissions.reduce((groups, permission) => {
-    const group = permission.name.split(":")[0];
-    groups[group] = groups[group] || [];
-    groups[group].push(permission);
-    return groups;
-  }, {} as Record<string, PermissionInfo[]>);
+  const groupedPermissions = data.all_permissions.reduce(
+    (groups, permission) => {
+      const group = permission.name.split(":")[0];
+      groups[group] = groups[group] || [];
+      groups[group].push(permission);
+      return groups;
+    },
+    {} as Record<string, PermissionInfo[]>,
+  );
 
   const saveRole = async (role: string, original: Permission[]) => {
     const permissions = drafts[role] ?? original;
@@ -541,39 +554,59 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
     <Tabs
       items={data.roles.map((roleInfo) => {
         const value = drafts[roleInfo.role] ?? roleInfo.permissions;
-        const disabledSuperAdminCore = roleInfo.role === "super_admin" ? ["rbac:read", "rbac:manage"] : [];
+        const disabledSuperAdminCore =
+          roleInfo.role === "super_admin" ? ["rbac:read", "rbac:manage"] : [];
         return {
           key: roleInfo.role,
           label: roleInfo.role,
           children: (
-            <Space direction="vertical" style={{ width: "100%" }} size={16}>
-              {Object.entries(groupedPermissions).map(([group, permissions]) => (
-                <div key={group}>
-                  <Typography.Text strong>{group}</Typography.Text>
-                  <Checkbox.Group
-                    style={{ display: "grid", gap: 8, marginTop: 8 }}
-                    value={value}
-                    disabled={!canEdit}
-                    onChange={(next) => setDrafts((prev) => ({ ...prev, [roleInfo.role]: next as Permission[] }))}
-                  >
-                    {permissions.map((permission) => (
-                      <Checkbox
-                        key={permission.name}
-                        value={permission.name}
-                        disabled={!canEdit || disabledSuperAdminCore.includes(permission.name)}
-                      >
-                        {permission.name}
-                      </Checkbox>
-                    ))}
-                  </Checkbox.Group>
-                </div>
-              ))}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 32 }}>
+              {Object.entries(groupedPermissions).map(
+                ([group, permissions]) => (
+                  <div key={group} style={{ minWidth: 160 }}>
+                    <Typography.Text strong>{group}</Typography.Text>
+                    <Checkbox.Group
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        marginTop: 8,
+                      }}
+                      value={value}
+                      disabled={!canEdit}
+                      onChange={(next) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [roleInfo.role]: next as Permission[],
+                        }))
+                      }
+                    >
+                      {permissions.map((permission) => (
+                        <Checkbox
+                          key={permission.name}
+                          value={permission.name}
+                          disabled={
+                            !canEdit ||
+                            disabledSuperAdminCore.includes(permission.name)
+                          }
+                        >
+                          {permission.name}
+                        </Checkbox>
+                      ))}
+                    </Checkbox.Group>
+                  </div>
+                ),
+              )}
               {canEdit && (
-                <Button type="primary" loading={update.isPending} onClick={() => saveRole(roleInfo.role, roleInfo.permissions)}>
+                <Button
+                  type="primary"
+                  loading={update.isPending}
+                  onClick={() => saveRole(roleInfo.role, roleInfo.permissions)}
+                >
                   Save
                 </Button>
               )}
-            </Space>
+            </div>
           ),
         };
       })}
