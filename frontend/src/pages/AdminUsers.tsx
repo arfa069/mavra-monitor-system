@@ -14,6 +14,9 @@ import {
   Tag,
   Tabs,
   Spin,
+  Card,
+  Checkbox,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -30,8 +33,12 @@ import {
   useResourcePermissions,
   useRevokeResourcePermission,
   useUpdateResourcePermission,
+  useRolePermissionMatrix,
+  useUpdateRolePermissions,
 } from "@/hooks/api";
 import type {
+  Permission,
+  PermissionInfo,
   ResourcePermission,
   ResourcePermissionUpdate,
   User,
@@ -68,9 +75,13 @@ function isFormValidationError(error: unknown): error is FormValidationError {
 
 export default function AdminUsersPage() {
   const message = App.useApp().message;
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, hasPermission } = useAuth();
   const stagger = useStaggerAnimation(0.05, 0.05);
   const isSuperAdmin = currentUser?.role === "super_admin";
+  const canReadRbac = hasPermission("rbac:read");
+  const canManageUsers = hasPermission("user:manage");
+  const canDeleteUsers = hasPermission("user:delete");
+  // Resource permission controls inline editor uses same gate as user:manage
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -240,27 +251,29 @@ export default function AdminUsersPage() {
         title: "Actions",
         render: (_value: unknown, record: User) => {
           // Admin cannot edit/delete super_admin users
-          const canEdit = isSuperAdmin || record.role !== "super_admin";
+          const canEditRow = isSuperAdmin || record.role !== "super_admin";
+          const canEditUser = canManageUsers && canEditRow;
+          const canDeleteUser = canDeleteUsers && canEditRow;
           return (
             <Space size={4}>
               <Button
                 size="small"
                 icon={<EditOutlined />}
                 onClick={() => handleExpandEdit(record)}
-                disabled={!canEdit}
+                disabled={!canEditUser}
               >
                 Edit
               </Button>
               <Popconfirm
                 title={`Delete user ${record.username}? This action cannot be undone.`}
                 onConfirm={() => handleDelete(record.id)}
-                disabled={!canEdit}
+                disabled={!canDeleteUser}
               >
                 <Button
                   size="small"
                   danger
                   icon={<DeleteOutlined />}
-                  disabled={!canEdit}
+                  disabled={!canDeleteUser}
                 >
                   Delete
                 </Button>
@@ -270,7 +283,7 @@ export default function AdminUsersPage() {
         },
       },
     ],
-    [isSuperAdmin, handleExpandEdit, handleDelete],
+    [isSuperAdmin, canManageUsers, canDeleteUsers, handleExpandEdit, handleDelete],
   );
 
   const expandable = useMemo(
@@ -367,13 +380,15 @@ export default function AdminUsersPage() {
             <Select.Option value="user">User</Select.Option>
             <Select.Option value="admin">Admin</Select.Option>
           </Select>
-          <Button
-            icon={<PlusOutlined style={{ fontSize: 14 }} />}
-            onClick={handleCreate}
-            className="fg-btn-secondary"
-          >
-            New User
-          </Button>
+          {canManageUsers && (
+            <Button
+              icon={<PlusOutlined style={{ fontSize: 14 }} />}
+              onClick={handleCreate}
+              className="fg-btn-secondary"
+            >
+              New User
+            </Button>
+          )}
           <div style={{ flex: 1 }} />
         </motion.div>
 
@@ -483,6 +498,12 @@ export default function AdminUsersPage() {
           ]}
         />
       </Modal>
+      {canReadRbac && (
+        <Card title="Role Permissions" size="small" style={{ marginBottom: 16 }}>
+          <RolePermissionsMatrix canEdit={hasPermission("rbac:manage")} />
+        </Card>
+      )}
+
       {grantTargetUser && (
         <GrantPermissionModal
           userId={grantTargetUser.id}
@@ -491,6 +512,72 @@ export default function AdminUsersPage() {
         />
       )}
     </div>
+  );
+}
+
+function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
+  const message = App.useApp().message;
+  const { data, isLoading } = useRolePermissionMatrix();
+  const update = useUpdateRolePermissions();
+  const [drafts, setDrafts] = useState<Record<string, Permission[]>>({});
+
+  if (isLoading) return <Spin />;
+  if (!data) return null;
+
+  const groupedPermissions = data.all_permissions.reduce((groups, permission) => {
+    const group = permission.name.split(":")[0];
+    groups[group] = groups[group] || [];
+    groups[group].push(permission);
+    return groups;
+  }, {} as Record<string, PermissionInfo[]>);
+
+  const saveRole = async (role: string, original: Permission[]) => {
+    const permissions = drafts[role] ?? original;
+    await update.mutateAsync({ role, permissions });
+    message.success("Role permissions updated");
+  };
+
+  return (
+    <Tabs
+      items={data.roles.map((roleInfo) => {
+        const value = drafts[roleInfo.role] ?? roleInfo.permissions;
+        const disabledSuperAdminCore = roleInfo.role === "super_admin" ? ["rbac:read", "rbac:manage"] : [];
+        return {
+          key: roleInfo.role,
+          label: roleInfo.role,
+          children: (
+            <Space direction="vertical" style={{ width: "100%" }} size={16}>
+              {Object.entries(groupedPermissions).map(([group, permissions]) => (
+                <div key={group}>
+                  <Typography.Text strong>{group}</Typography.Text>
+                  <Checkbox.Group
+                    style={{ display: "grid", gap: 8, marginTop: 8 }}
+                    value={value}
+                    disabled={!canEdit}
+                    onChange={(next) => setDrafts((prev) => ({ ...prev, [roleInfo.role]: next as Permission[] }))}
+                  >
+                    {permissions.map((permission) => (
+                      <Checkbox
+                        key={permission.name}
+                        value={permission.name}
+                        disabled={!canEdit || disabledSuperAdminCore.includes(permission.name)}
+                      >
+                        {permission.name}
+                      </Checkbox>
+                    ))}
+                  </Checkbox.Group>
+                </div>
+              ))}
+              {canEdit && (
+                <Button type="primary" loading={update.isPending} onClick={() => saveRole(roleInfo.role, roleInfo.permissions)}>
+                  Save
+                </Button>
+              )}
+            </Space>
+          ),
+        };
+      })}
+    />
   );
 }
 

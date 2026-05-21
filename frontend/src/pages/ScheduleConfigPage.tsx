@@ -47,8 +47,8 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 export default function ScheduleConfigPage() {
-  const { user } = useAuth();
-  const isReadOnly = user?.role === "admin";
+  const { hasPermission } = useAuth();
+  const isReadOnly = !hasPermission("schedule:configure");
   const message = App.useApp().message;
   const { data: config, isLoading, isError, refetch } = useConfig();
   const updateMutation = useUpdateConfig();

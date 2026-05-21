@@ -36,6 +36,7 @@ export default function LoginPage() {
         username: "",
         email: "",
         role: "user" as const,
+        permissions: [],
       });
 
       const meResponse = await authApi.getMe();
@@ -45,6 +46,7 @@ export default function LoginPage() {
         username: user.username,
         email: user.email,
         role: user.role || "user",
+        permissions: user.permissions || [],
       });
 
       message.success(`Welcome back, ${user.username}!`);

@@ -11,6 +11,7 @@ import {
 } from "react-router-dom";
 import { App as AntdApp, ConfigProvider, Spin, theme } from "antd";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import type { Permission } from "@/types";
 import AppLayout from "@/components/AppLayout";
 import { ThemeProvider, useThemeContext } from "@/components/ThemeProvider";
 import JobsPage from "@/pages/JobsPage";
@@ -130,9 +131,9 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// Admin route - requires admin or super_admin role
-function AdminRoute({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth();
+// Permission route - requires specific permission
+function PermissionRoute({ permission, children }: { permission: Permission; children: ReactNode }) {
+  const { user, isLoading, hasPermission } = useAuth();
 
   if (isLoading) {
     return (
@@ -150,7 +151,7 @@ function AdminRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+  if (!user || !hasPermission(permission)) {
     return <Navigate to="/jobs" replace />;
   }
 
@@ -289,17 +290,17 @@ function AppRoutes() {
                 <Route
                   path="/admin/users"
                   element={
-                    <AdminRoute>
+                    <PermissionRoute permission="user:read">
                       <AdminUsersPage />
-                    </AdminRoute>
+                    </PermissionRoute>
                   }
                 />
                 <Route
                   path="/admin/audit-logs"
                   element={
-                    <AdminRoute>
+                    <PermissionRoute permission="user:read">
                       <AdminAuditLogsPage />
-                    </AdminRoute>
+                    </PermissionRoute>
                   }
                 />
               </Route>
