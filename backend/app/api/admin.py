@@ -712,7 +712,11 @@ async def update_role_permissions(
 
     Only super_admin can modify role permissions.
     """
-    role_result = await db.execute(select(Role).where(Role.name == role_name))
+    role_result = await db.execute(
+        select(Role)
+        .where(Role.name == role_name)
+        .options(selectinload(Role.permissions))
+    )
     role = role_result.scalar_one_or_none()
     if not role:
         raise HTTPException(
