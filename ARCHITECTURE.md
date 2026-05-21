@@ -109,6 +109,45 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 | created_at          | TIMESTAMPTZ | Creation timestamp               |
 | updated_at          | TIMESTAMPTZ | Last update timestamp            |
 
+### users_roles
+
+| Column      | Type         | Description                                 |
+| ----------- | ------------ | ------------------------------------------- |
+| id          | BIGSERIAL    | Primary key                                 |
+| name        | VARCHAR(50)  | Role name: `user` / `admin` / `super_admin` |
+| description | VARCHAR(200) | Human-readable description                  |
+| created_at  | TIMESTAMPTZ  | Creation timestamp                          |
+| updated_at  | TIMESTAMPTZ  | Last update timestamp                       |
+
+### users_permissions
+
+| Column      | Type         | Description                        |
+| ----------- | ------------ | ---------------------------------- |
+| id          | BIGSERIAL    | Primary key                        |
+| name        | VARCHAR(50)  | Permission name (e.g. `user:read`) |
+| description | VARCHAR(200) | Human-readable description         |
+| created_at  | TIMESTAMPTZ  | Creation timestamp                 |
+| updated_at  | TIMESTAMPTZ  | Last update timestamp              |
+
+### users_roles_permissions
+
+| Column        | Type   | Description             |
+| ------------- | ------ | ----------------------- |
+| role_id       | BIGINT | FK to users_roles       |
+| permission_id | BIGINT | FK to users_permissions |
+
+### users_resource_permissions
+
+| Column        | Type         | Description                               |
+| ------------- | ------------ | ----------------------------------------- |
+| id            | BIGSERIAL    | Primary key                               |
+| subject_id    | BIGINT       | FK to users (grantee)                     |
+| resource_type | VARCHAR(50)  | Resource type (e.g. `product`, `job`)     |
+| resource_id   | VARCHAR(100) | Resource identifier                       |
+| permission    | VARCHAR(50)  | Permission level (`manage`/`edit`/`read`) |
+| granted_by    | BIGINT       | FK to users (granter)                     |
+| created_at    | TIMESTAMPTZ  | Grant timestamp                           |
+
 ### products
 
 | Column   | Type        | Description                  |
@@ -260,6 +299,8 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 | GET             | /admin/resource-permissions       | List resource permissions                        |
 | PATCH           | /admin/resource-permissions/{id}  | Update resource permission                       |
 | DELETE          | /admin/resource-permissions/{id}  | Revoke resource permission                       |
+| GET             | /admin/roles/permissions          | Query role-permission matrix                     |
+| PATCH           | /admin/roles/{role}/permissions   | Update role permissions                          |
 
 ## Notification System
 

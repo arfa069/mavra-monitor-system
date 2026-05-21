@@ -46,8 +46,9 @@ backend/
 │   │   ├── job_crawl_log.py    # JobCrawlLog 模型（职位爬取日志）
 │   │   ├── job.py              # Job / JobSearchConfig 模型
 │   │   ├── job_match.py        # UserResume / MatchResult 模型
-│   │   ├── permission.py       # DB RBAC 权限模型，供 require_permission 运行时查询
-│   │   └── role.py             # DB RBAC 角色模型，供 require_permission 运行时查询
+│   │   ├── permission.py       # Permission 模型（DB RBAC 运行时查询）
+│   │   ├── role.py             # Role + role_permissions 关联表（DB RBAC 运行时查询）
+│   │   └── resource_permission.py # 资源级 ACL（users_resource_permissions）
 │   ├── platforms/
 │   │   ├── base.py             # BasePlatformAdapter（ABC）
 │   │   ├── taobao.py           # TaobaoAdapter
@@ -159,18 +160,22 @@ User (1) ──────< Product (多)
 
 ### 5.3 关键表说明
 
-| 表名                      | 说明                           | 隔离方式                              |
-| ------------------------- | ------------------------------ | ------------------------------------- |
-| `users`                   | 用户账户（含飞书 Webhook URL） | 无（全局）                            |
-| `products`                | 监控的商品                     | user_id 隔离                          |
-| `products_price_history`  | 价格历史记录                   | 通过 product_id 间接隔离              |
-| `products_alerts`         | 降价告警配置                   | 通过 product_id 间接隔离              |
-| `crawl_logs`              | 爬取日志                       | product_id nullable（系统日志无归属） |
-| `products_platform_crons` | per-platform 商品爬取 cron     | user_id 隔离                          |
-| `jobs_search_configs`     | BOSS 搜索配置                  | user_id 隔离                          |
-| `jobs`                    | 爬取的职位                     | 通过 search_config_id 间接隔离        |
-| `jobs_resumes`            | 用户简历                       | user_id 隔离                          |
-| `jobs_match_results`      | LLM 匹配结果                   | user_id 隔离                          |
+| 表名                         | 说明                           | 隔离方式                               |
+| ---------------------------- | ------------------------------ | -------------------------------------- |
+| `users`                      | 用户账户（含飞书 Webhook URL） | 无（全局）                             |
+| `users_roles`                | RBAC 角色定义                  | 无（全局）                             |
+| `users_permissions`          | RBAC 权限定义                  | 无（全局）                             |
+| `users_roles_permissions`    | RBAC 角色-权限多对多关联       | 无（全局）                             |
+| `users_resource_permissions` | 资源级 ACL（跨用户资源授权）   | subject_id + resource_type/resource_id |
+| `products`                   | 监控的商品                     | user_id 隔离                           |
+| `products_price_history`     | 价格历史记录                   | 通过 product_id 间接隔离               |
+| `products_alerts`            | 降价告警配置                   | 通过 product_id 间接隔离               |
+| `crawl_logs`                 | 爬取日志                       | product_id nullable（系统日志无归属）  |
+| `products_platform_crons`    | per-platform 商品爬取 cron     | user_id 隔离                           |
+| `jobs_search_configs`        | BOSS 搜索配置                  | user_id 隔离                           |
+| `jobs`                       | 爬取的职位                     | 通过 search_config_id 间接隔离         |
+| `jobs_resumes`               | 用户简历                       | user_id 隔离                           |
+| `jobs_match_results`         | LLM 匹配结果                   | user_id 隔离                           |
 
 **数据隔离原则**：所有包含 `user_id` 的表均通过 `user_id = current_user.id` 过滤查询。
 
@@ -178,16 +183,16 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 前缀                | 路由文件            | 说明                                     |
-| ------------------- | ------------------- | ---------------------------------------- |
-| `/auth`             | api/auth.py         | 注册/登录/登出/当前用户                  |
-| `/config`           | routers/config.py   | 用户配置（飞书 Webhook、数据保留期）     |
-| `/products`         | routers/products.py | 商品 CRUD + 批量操作                     |
-| `/alerts`           | routers/alerts.py   | 告警管理                                 |
-| `/products/crawl`   | routers/crawl.py    | 商品爬取触发 + 日志查询                  |
-| `/jobs`             | routers/jobs.py     | 职位搜索配置 + 爬取 + 匹配分析           |
-| `/admin`            | api/admin.py        | 用户管理 + 审计日志（admin/super_admin） |
-| `/scheduler/status` | main.py             | APScheduler 状态（admin/super_admin）    |
+| 前缀                | 路由文件            | 说明                                                 |
+| ------------------- | ------------------- | ---------------------------------------------------- |
+| `/auth`             | api/auth.py         | 注册/登录/登出/当前用户                              |
+| `/config`           | routers/config.py   | 用户配置（飞书 Webhook、数据保留期）                 |
+| `/products`         | routers/products.py | 商品 CRUD + 批量操作                                 |
+| `/alerts`           | routers/alerts.py   | 告警管理                                             |
+| `/products/crawl`   | routers/crawl.py    | 商品爬取触发 + 日志查询                              |
+| `/jobs`             | routers/jobs.py     | 职位搜索配置 + 爬取 + 匹配分析                       |
+| `/admin`            | api/admin.py        | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
+| `/scheduler/status` | main.py             | APScheduler 状态（admin/super_admin）                |
 
 ### 6.2 认证系统
 

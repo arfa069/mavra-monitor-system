@@ -179,18 +179,20 @@ curl -X GET http://localhost:8000/auth/me \
 
 > 详见 `doc/permission-architecture.md` 完整权限矩阵。
 
-| Method | Path                             | 说明           | 所需权限          |
-| ------ | -------------------------------- | -------------- | ----------------- |
-| GET    | /admin/users                     | 列出所有用户   | admin/super_admin |
-| POST   | /admin/users                     | 创建用户       | admin/super_admin |
-| GET    | /admin/users/{id}                | 获取用户详情   | admin/super_admin |
-| PATCH  | /admin/users/{id}                | 更新用户信息   | admin/super_admin |
-| DELETE | /admin/users/{id}                | 软删除用户     | admin/super_admin |
-| GET    | /admin/audit-logs                | 查询审计日志   | admin/super_admin |
-| POST   | /admin/resource-permissions      | 授予资源级权限 | admin/super_admin |
-| GET    | /admin/resource-permissions      | 列出资源级权限 | admin/super_admin |
-| PATCH  | /admin/resource-permissions/{id} | 更新资源级权限 | admin/super_admin |
-| DELETE | /admin/resource-permissions/{id} | 撤销资源级权限 | admin/super_admin |
+| Method | Path                             | 说明             | 所需权限          |
+| ------ | -------------------------------- | ---------------- | ----------------- |
+| GET    | /admin/users                     | 列出所有用户     | admin/super_admin |
+| POST   | /admin/users                     | 创建用户         | admin/super_admin |
+| GET    | /admin/users/{id}                | 获取用户详情     | admin/super_admin |
+| PATCH  | /admin/users/{id}                | 更新用户信息     | admin/super_admin |
+| DELETE | /admin/users/{id}                | 软删除用户       | admin/super_admin |
+| GET    | /admin/audit-logs                | 查询审计日志     | admin/super_admin |
+| POST   | /admin/resource-permissions      | 授予资源级权限   | admin/super_admin |
+| GET    | /admin/resource-permissions      | 列出资源级权限   | admin/super_admin |
+| PATCH  | /admin/resource-permissions/{id} | 更新资源级权限   | admin/super_admin |
+| DELETE | /admin/resource-permissions/{id} | 撤销资源级权限   | admin/super_admin |
+| GET    | /admin/roles/permissions         | 查询角色权限矩阵 | super_admin       |
+| PATCH  | /admin/roles/{role}/permissions  | 修改角色权限     | super_admin       |
 
 **角色边界**：admin 不能创建/修改/删除 super_admin；super_admin 不能删除自己或最后一个活跃的 super_admin。
 

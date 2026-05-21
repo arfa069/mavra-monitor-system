@@ -1,6 +1,6 @@
 # 权限架构
 
-> 最后更新：2026-05-11（permission-fixes plan 完成时）
+> 最后更新：2026-05-22（db-driven-rbac 功能完成时）
 
 ## 概览
 
@@ -29,6 +29,14 @@
 | `schedule:configure` |  ❌  |  ❌   |     ✅      |
 | `config:read`        |  ❌  |  ✅   |     ✅      |
 | `config:write`       |  ✅  |  ✅   |     ✅      |
+| `product:read`       |  ❌  |  ❌   |     ✅      |
+| `product:write`      |  ❌  |  ❌   |     ✅      |
+| `product:delete`     |  ❌  |  ❌   |     ✅      |
+| `job:read`           |  ❌  |  ❌   |     ✅      |
+| `job:write`          |  ❌  |  ❌   |     ✅      |
+| `job:delete`         |  ❌  |  ❌   |     ✅      |
+| `rbac:read`          |  ❌  |  ❌   |     ✅      |
+| `rbac:manage`        |  ❌  |  ❌   |     ✅      |
 
 ## 端点 → 权限映射
 
@@ -44,18 +52,20 @@
 
 ### 用户管理 (admin.py)
 
-| 端点                                      | 权限          |
-| ----------------------------------------- | ------------- |
-| `GET /admin/users`                        | `user:read`   |
-| `POST /admin/users`                       | `user:manage` |
-| `GET /admin/users/{id}`                   | `user:read`   |
-| `PATCH /admin/users/{id}`                 | `user:manage` |
-| `DELETE /admin/users/{id}`                | `user:delete` |
-| `GET /admin/audit-logs`                   | `user:read`   |
-| `POST /admin/resource-permissions`        | `user:manage` |
-| `GET /admin/resource-permissions`         | `user:read`   |
-| `PATCH /admin/resource-permissions/{id}`  | `user:manage` |
-| `DELETE /admin/resource-permissions/{id}` | `user:manage` |
+| 端点                                         | 权限          |
+| -------------------------------------------- | ------------- |
+| `GET /admin/users`                           | `user:read`   |
+| `POST /admin/users`                          | `user:manage` |
+| `GET /admin/users/{id}`                      | `user:read`   |
+| `PATCH /admin/users/{id}`                    | `user:manage` |
+| `DELETE /admin/users/{id}`                   | `user:delete` |
+| `GET /admin/audit-logs`                      | `user:read`   |
+| `POST /admin/resource-permissions`           | `user:manage` |
+| `GET /admin/resource-permissions`            | `user:read`   |
+| `PATCH /admin/resource-permissions/{id}`     | `user:manage` |
+| `DELETE /admin/resource-permissions/{id}`    | `user:manage` |
+| `GET /admin/roles/permissions`               | `rbac:read`   |
+| `PATCH /admin/roles/{role_name}/permissions` | `rbac:manage` |
 
 ### 商品 (products.py)
 
@@ -127,24 +137,25 @@
 
 - `user.register`, `user.create`, `user.update`, `user.delete`
 - `auth.login`, `auth.logout`, `user.password_change`
+- `rbac.role_permissions_update`
 
 仅 `user:read` 权限可查询审计日志。
 
 ## 前端路由守卫
 
-| 守卫             | 保护范围                                                   | 行为                           |
-| ---------------- | ---------------------------------------------------------- | ------------------------------ |
-| `ProtectedRoute` | `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`              |
-| `PermissionRoute`| `/admin/users`, `/admin/audit-logs`                        | 无 `user:read` 权限 → `/jobs`  |
-| `PublicRoute`    | `/login`, `/register`                                      | 已登录 → `/jobs`               |
+| 守卫              | 保护范围                                                   | 行为                          |
+| ----------------- | ---------------------------------------------------------- | ----------------------------- |
+| `ProtectedRoute`  | `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`             |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                        | 无 `user:read` 权限 → `/jobs` |
+| `PublicRoute`     | `/login`, `/register`                                      | 已登录 → `/jobs`              |
 
 > 前端守卫仅做 UX 级别保护，**真正的安全边界在后端 API**。
 
 ## 两个授权 helper 的分工
 
-| Helper                     | 来源                      | 适用场景                                                |
-| -------------------------- | ------------------------- | ------------------------------------------------------- |
-| `require_permission(name)` | `app/core/permissions.py` | 业务端点；运行时查询 DB RBAC 表                         |
-| `require_role(*roles)`     | `app/core/security.py`    | 运维型端点和少数 role-string UI/系统视图                 |
+| Helper                     | 来源                      | 适用场景                                 |
+| -------------------------- | ------------------------- | ---------------------------------------- |
+| `require_permission(name)` | `app/core/permissions.py` | 业务端点；运行时查询 DB RBAC 表          |
+| `require_role(*roles)`     | `app/core/security.py`    | 运维型端点和少数 role-string UI/系统视图 |
 
 新业务端点优先使用 `require_permission`，权限通过 DB RBAC 表管理；`require_role` 仅在不希望污染权限矩阵的纯运维场景使用。
