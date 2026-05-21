@@ -27,7 +27,7 @@ export function useDashboardSSE(token: string | null): SSEState {
 
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
     const es = new EventSource(
-      `${apiUrl}/dashboard/events?token=${encodeURIComponent(token)}`
+      `${apiUrl}/dashboard/events?token=${encodeURIComponent(token)}`,
     );
     eventSourceRef.current = es;
 
