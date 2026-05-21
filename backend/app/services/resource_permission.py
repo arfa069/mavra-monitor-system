@@ -6,7 +6,7 @@ from sqlalchemy import String, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from app.core.permissions import PERMISSIONS
+from app.core.permissions import role_has_permission
 from app.models.resource_permission import ResourcePermission
 from app.models.user import User
 
@@ -34,11 +34,13 @@ def _validate_resource_action(resource_type: str, action: str) -> None:
         raise ValueError(f"无效资源权限: {resource_type}:{action}")
 
 
-def role_allows_permission(user: User, resource_type: str, action: str) -> bool:
+async def role_allows_permission(
+    db: AsyncSession, user: User, resource_type: str, action: str
+) -> bool:
     """Return whether the user's role has explicit global resource permission."""
     _validate_resource_action(resource_type, action)
     permission_key = RESOURCE_TO_PERMISSION_KEY[(resource_type, action)]
-    return user.role in PERMISSIONS.get(permission_key, set())
+    return await role_has_permission(db, user.role, permission_key)
 
 
 async def check_resource_permission(
@@ -81,7 +83,7 @@ async def check_resource_permission(
     if wildcard_result.scalar_one_or_none() is not None:
         return True
 
-    return role_allows_permission(user, resource_type, action)
+    return await role_allows_permission(db, user, resource_type, action)
 
 
 async def get_user_permitted_resource_ids(
@@ -119,8 +121,6 @@ def accessible_resource_condition(
 ) -> Any:
     """Build a SQLAlchemy condition for owner OR ACL access."""
     _validate_resource_action(resource_type, action)
-    if role_allows_permission(user, resource_type, action):
-        return True
 
     acl_exists = exists().where(
         ResourcePermission.subject_id == user.id,
@@ -147,9 +147,9 @@ async def build_resource_permissions_map(
     resource_list = list(resources)
     ids = [str(item.id) for item in resource_list]
     global_flags = {
-        "read": role_allows_permission(user, resource_type, "read"),
-        "write": role_allows_permission(user, resource_type, "write"),
-        "delete": role_allows_permission(user, resource_type, "delete"),
+        "read": await role_allows_permission(db, user, resource_type, "read"),
+        "write": await role_allows_permission(db, user, resource_type, "write"),
+        "delete": await role_allows_permission(db, user, resource_type, "delete"),
     }
     grant_map: dict[str, set[str]] = {rid: set() for rid in ids}
     grant_map["*"] = set()
@@ -199,9 +199,7 @@ def apply_accessible_filter(
     owner_column: Any,
     resource_id_column: Any,
 ) -> Select:
-    """Apply owner OR ACL filter to a query unless role has global access."""
-    if role_allows_permission(user, resource_type, action):
-        return query
+    """Apply owner OR ACL filter to a query."""
     return query.where(
         accessible_resource_condition(
             user, resource_type, action, owner_column, resource_id_column

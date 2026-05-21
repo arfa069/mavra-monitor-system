@@ -115,3 +115,27 @@ class ResourcePermissionListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class PermissionResponse(BaseModel):
+    """Schema for a permission entry."""
+    name: str
+    description: str | None = None
+
+
+class RolePermissionResponse(BaseModel):
+    """Schema for a role with its permissions."""
+    role: str
+    description: str | None = None
+    permissions: list[str]
+
+
+class RolePermissionMatrixResponse(BaseModel):
+    """Schema for the full role-permission matrix."""
+    roles: list[RolePermissionResponse]
+    all_permissions: list[PermissionResponse]
+
+
+class RolePermissionUpdate(BaseModel):
+    """Schema for updating a role's permissions."""
+    permissions: list[str] = Field(default_factory=list)

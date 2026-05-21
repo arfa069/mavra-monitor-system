@@ -412,14 +412,30 @@ class TestManualCrawlRegression:
     @pytest.mark.asyncio
     async def test_c08_crawl_now_endpoint_exists(self, mock_get_current_user):
         """C-08: /products/crawl/crawl-now 端点存在"""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/products/crawl/crawl-now")
-        # 可能返回 200 (ok) 或 500 (scheduler not init)
-        assert response.status_code in [200, 500], f"Unexpected status: {response.status_code}"
-        data = response.json()
-        assert "status" in data
-        print(f"[C-08] PASS: /products/crawl/crawl-now exists, status={data.get('status')}")
+        from app.database import get_db
+
+        # Mock DB for require_permission DB lookup
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = 1  # permission exists
+        mock_result.scalars.return_value.all.return_value = ["crawl:execute"]
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        async def _override():
+            yield mock_session
+
+        app.dependency_overrides[get_db] = _override
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.post("/products/crawl/crawl-now")
+            # 可能返回 200 (ok) 或 500 (scheduler not init)
+            assert response.status_code in [200, 500], f"Unexpected status: {response.status_code}"
+            data = response.json()
+            assert "status" in data
+            print(f"[C-08] PASS: /products/crawl/crawl-now exists, status={data.get('status')}")
+        finally:
+            app.dependency_overrides.pop(get_db, None)
 
 
 # =============================================================================

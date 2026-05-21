@@ -446,8 +446,10 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     mock_result_none = MagicMock()
     mock_result_none.scalar_one_or_none.return_value = None
 
+    mock_result_permissions = MagicMock()
+    mock_result_permissions.scalars.return_value.all.return_value = []
     mock_get_db.execute.side_effect = [
-        mock_result_user, mock_result_session, mock_result_none, mock_result_none
+        mock_result_user, mock_result_session, mock_result_none, mock_result_none, mock_result_permissions
     ]
 
     transport = ASGITransport(app=app)

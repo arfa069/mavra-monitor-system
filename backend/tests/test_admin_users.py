@@ -7,10 +7,68 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.sql import visitors
 
 from app.core.security import get_current_user
 from app.database import get_db
 from app.main import app
+
+# --- Permission helpers for DB-backed RBAC mock ---
+
+ALL_PERMISSIONS = [
+    "user:read", "user:manage", "user:delete",
+    "crawl:execute", "crawl:read_logs",
+    "schedule:read", "schedule:configure",
+    "config:read", "config:write",
+    "product:read", "product:write", "product:delete",
+    "job:read", "job:write", "job:delete",
+    "rbac:read", "rbac:manage",
+]
+
+ROLE_PERMISSIONS = {
+    "user": {"crawl:execute", "crawl:read_logs", "schedule:read", "config:write"},
+    "admin": {"user:read", "user:manage", "user:delete", "crawl:read_logs", "schedule:read", "config:read", "config:write"},
+    "super_admin": set(ALL_PERMISSIONS),
+}
+
+
+def _extract_permission_from_stmt(stmt):
+    found_values = []
+    def _visit_bindparam(element):
+        if hasattr(element, "value"):
+            found_values.append(element.value)
+    try:
+        visitors.traverse(stmt, {}, {"bindparam": _visit_bindparam})
+    except Exception:
+        pass
+    for perm in ALL_PERMISSIONS:
+        if perm in found_values:
+            return perm
+    return None
+
+
+def _make_permission_result(user_role: str, stmt) -> MagicMock:
+    """Return a mock result for permission DB queries."""
+    result = MagicMock()
+    stmt_str = str(stmt)
+    perm = _extract_permission_from_stmt(stmt)
+
+    # role_has_permission query
+    if "users_roles" in stmt_str and "users_permissions" in stmt_str:
+        if perm:
+            has_perm = perm in ROLE_PERMISSIONS.get(user_role, set())
+            result.scalar_one_or_none.return_value = 1 if has_perm else None
+        else:
+            result.scalar_one_or_none.return_value = None
+        return result
+
+    # permission_exists query
+    if "users_permissions" in stmt_str:
+        result.scalar_one_or_none.return_value = 1 if perm else None
+        return result
+
+    return None
+
 
 # --- Fixtures ---
 
@@ -19,7 +77,41 @@ from app.main import app
 def mock_db_session():
     """Mock database session for admin tests."""
     session = AsyncMock()
-    session.execute = AsyncMock()
+
+    # Business results queue: tests can append results for non-permission queries
+    session._business_results = []
+
+    def _is_permission_query(stmt_str: str) -> bool:
+        return "users_permissions" in stmt_str or "users_roles" in stmt_str
+
+    async def _smart_execute(stmt):
+        """Handle permission queries automatically; use business_results for others."""
+        stmt_str = str(stmt)
+        perm = _extract_permission_from_stmt(stmt)
+        result = MagicMock()
+
+        # role_has_permission query
+        if "users_roles" in stmt_str and "users_permissions" in stmt_str:
+            result.scalar_one_or_none.return_value = 1 if perm else None
+            return result
+
+        # permission_exists query
+        if "users_permissions" in stmt_str:
+            result.scalar_one_or_none.return_value = 1 if perm else None
+            return result
+
+        # Business query: use queued results if available
+        if session._business_results:
+            return session._business_results.pop(0)
+
+        # Default fallback
+        result.scalar_one_or_none.return_value = None
+        result.scalar.return_value = 0
+        result.scalars.return_value = MagicMock()
+        result.scalars.return_value.all.return_value = []
+        return result
+
+    session.execute = _smart_execute
     session.commit = AsyncMock()
     session.add = MagicMock()
     session.refresh = AsyncMock()
@@ -104,7 +196,7 @@ async def test_admin_list_users_returns_200(admin_user, mock_get_db):
         mock_list_result = MagicMock()
         mock_list_result.scalars.return_value.all.return_value = [user1, user2]
 
-        mock_get_db.execute.side_effect = [mock_count_result, mock_list_result]
+        mock_get_db._business_results = [mock_count_result, mock_list_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -134,7 +226,7 @@ async def test_admin_list_users_with_search(admin_user, mock_get_db):
         mock_list_result = MagicMock()
         mock_list_result.scalars.return_value.all.return_value = [user]
 
-        mock_get_db.execute.side_effect = [mock_count_result, mock_list_result]
+        mock_get_db._business_results = [mock_count_result, mock_list_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -184,15 +276,16 @@ async def test_admin_create_user_returns_201(admin_user, mock_get_db):
     setup_admin_mock(admin_user)
 
     try:
-        # Mock no existing user
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = None
-        mock_get_db.execute.return_value = mock_result
+        # Mock no existing user (username check and email check)
+        mock_no_user = MagicMock()
+        mock_no_user.scalar_one_or_none.return_value = None
 
         def mock_refresh(user):
             user.id = 3
             user.created_at = datetime.now(UTC)
         mock_get_db.refresh.side_effect = mock_refresh
+
+        mock_get_db._business_results = [mock_no_user, mock_no_user]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -227,7 +320,7 @@ async def test_create_duplicate_username_returns_400(admin_user, mock_get_db):
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = existing
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -256,7 +349,7 @@ async def test_admin_get_user_returns_200(admin_user, regular_user, mock_get_db)
     try:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = regular_user
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -278,7 +371,7 @@ async def test_get_nonexistent_user_returns_404(admin_user, mock_get_db):
     try:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -305,7 +398,7 @@ async def test_admin_update_user_returns_200(admin_user, regular_user, mock_get_
         mock_result2 = MagicMock()
         mock_result2.scalar_one_or_none.return_value = None  # No conflict
 
-        mock_get_db.execute.side_effect = [mock_result1, mock_result2]
+        mock_get_db._business_results = [mock_result1, mock_result2]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -329,7 +422,7 @@ async def test_admin_soft_delete_user_via_patch_returns_200(admin_user, regular_
     try:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = regular_user
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -356,7 +449,7 @@ async def test_admin_restore_user_via_patch_returns_200(admin_user, mock_get_db)
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = deleted_user
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -383,7 +476,7 @@ async def test_admin_delete_user_returns_200(admin_user, regular_user, mock_get_
     try:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = regular_user
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -417,7 +510,7 @@ async def test_delete_nonexistent_user_returns_404(admin_user, mock_get_db):
     try:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
-        mock_get_db.execute.return_value = mock_result
+        mock_get_db._business_results = [mock_result]
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -513,7 +606,7 @@ async def test_admin_role_change_deletes_target_sessions(admin_user, regular_use
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user
-            mock_get_db.execute.return_value = mock_result
+            mock_get_db._business_results = [mock_result]
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -538,7 +631,7 @@ async def test_admin_disable_deletes_target_sessions(admin_user, regular_user, m
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user
-            mock_get_db.execute.return_value = mock_result
+            mock_get_db._business_results = [mock_result]
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -563,7 +656,7 @@ async def test_admin_delete_deletes_target_sessions(admin_user, regular_user, mo
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user
-            mock_get_db.execute.return_value = mock_result
+            mock_get_db._business_results = [mock_result]
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:

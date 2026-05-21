@@ -36,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const { theme, toggleTheme, motionSpeed } = useThemeContext();
 
   const handleLogout = () => {
@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       label: "Account Settings",
       onClick: () => navigate("/settings"),
     },
-    ...(user?.role === "admin" || user?.role === "super_admin"
+    ...(hasPermission("user:read")
       ? [
           {
             key: "admin/users",
@@ -137,7 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
       label: "Schedule Config",
     },
-    ...(user?.role === "admin" || user?.role === "super_admin"
+    ...(hasPermission("user:read")
       ? [
           {
             key: "/admin/users",

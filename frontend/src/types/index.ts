@@ -1,8 +1,28 @@
+export type Permission =
+  | "user:read"
+  | "user:manage"
+  | "user:delete"
+  | "crawl:execute"
+  | "crawl:read_logs"
+  | "schedule:read"
+  | "schedule:configure"
+  | "config:read"
+  | "config:write"
+  | "product:read"
+  | "product:write"
+  | "product:delete"
+  | "job:read"
+  | "job:write"
+  | "job:delete"
+  | "rbac:read"
+  | "rbac:manage";
+
 export interface User {
   id: number;
   username: string;
   email: string;
   role: "user" | "admin" | "super_admin";
+  permissions: Permission[];
   is_active?: boolean;
   created_at?: string;
   feishu_webhook_url?: string;
@@ -405,4 +425,24 @@ export interface EventCenterQuery {
   end_at?: string;
   page?: number;
   page_size?: number;
+}
+
+export interface PermissionInfo {
+  name: Permission;
+  description: string | null;
+}
+
+export interface RolePermissionInfo {
+  role: "user" | "admin" | "super_admin";
+  description: string | null;
+  permissions: Permission[];
+}
+
+export interface RolePermissionMatrix {
+  roles: RolePermissionInfo[];
+  all_permissions: PermissionInfo[];
+}
+
+export interface RolePermissionUpdate {
+  permissions: Permission[];
 }

@@ -12,6 +12,7 @@ import type {
   JobCrawlLog,
   JobSearchConfigUpdate,
   MatchAnalyzeRequest,
+  Permission,
   ResourcePermissionGrant,
   ResourcePermissionUpdate,
   UserResumeCreateRequest,
@@ -482,6 +483,23 @@ export const useUpdateResourcePermission = () => {
     }) => adminApi.updateResourcePermission(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["resource-permissions"] });
+    },
+  });
+};
+
+export const useRolePermissionMatrix = () =>
+  useQuery({
+    queryKey: ["role-permission-matrix"],
+    queryFn: () => adminApi.getRolePermissionMatrix(),
+  });
+
+export const useUpdateRolePermissions = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ role, permissions }: { role: string; permissions: Permission[] }) =>
+      adminApi.updateRolePermissions(role, { permissions }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["role-permission-matrix"] });
     },
   });
 };

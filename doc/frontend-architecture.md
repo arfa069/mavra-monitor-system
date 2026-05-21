@@ -155,8 +155,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  hasPermission: (permission: Permission) => boolean;
+  hasAnyPermission: (permissions: Permission[]) => boolean;
+  hasAllPermissions: (permissions: Permission[]) => boolean;
 }
 ```
+
+前端使用 AuthContext 暴露的 `hasPermission()` / `hasAnyPermission()` / `hasAllPermissions()` 进行 UX 级别权限控制。`user.role` 仅用于展示和少数角色边界提示；菜单、路由、按钮和只读态以 `user.permissions` 为准。
 
 **持久化策略**：Token 和用户信息存储在 `localStorage`，初始化时通过 `/auth/me` 验证 Token 有效性。
 
@@ -309,7 +314,7 @@ server: {
 - `/profile` — 个人信息（UserOutlined）
 - `/settings` — 账号设置（SettingOutlined）
 - `/admin/users` — 用户管理（TeamOutlined，仅 admin/super_admin）
-- `/admin/users` — 用户管理（仅 admin/super_admin 可见）
+- `/admin/users` — 用户管理（仅 admin/super_admin 可见，含 Role Permissions 矩阵编辑）
 
 ### 7.2 业务组件
 

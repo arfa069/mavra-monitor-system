@@ -23,9 +23,9 @@ import { useStaggerAnimation } from "@/hooks/useStaggerAnimation";
 import type { Job, JobCrawlLog, JobSearchConfigCreate } from "@/types";
 
 export default function JobsPage() {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const stagger = useStaggerAnimation(0.05, 0.05);
-  const canCrawl = user?.role !== "admin";
+  const canCrawl = hasPermission("crawl:execute");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [keyword, setKeyword] = useState("");

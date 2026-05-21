@@ -87,9 +87,9 @@ const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unknown error";
 
 export default function ProductsPage() {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const stagger = useStaggerAnimation(0.05, 0.05);
-  const canCrawl = user?.role !== "admin";
+  const canCrawl = hasPermission("crawl:execute");
   const message = App.useApp().message;
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(15);

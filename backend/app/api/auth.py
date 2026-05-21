@@ -53,6 +53,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_audit
+from app.core.permissions import get_role_permissions
 from app.core.security import (
     clear_login_attempts,
     create_access_token,
@@ -311,7 +312,10 @@ async def logout(
 
 
 @router.get("/me", response_model=UserResponse, tags=["auth"])
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Get current user information.
 
     Returns the authenticated user's profile information.
@@ -320,13 +324,22 @@ async def get_me(current_user: User = Depends(get_current_user)):
         current_user: Authenticated user (from JWT token)
 
     Returns:
-        UserResponse: Current user profile
+        UserResponse: Current user profile with permissions
 
     Example:
         curl -X GET http://localhost:8000/auth/me \\
             -H "Authorization: Bearer <token>"
     """
-    return current_user
+    permissions = await get_role_permissions(db, current_user.role)
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role,
+        "permissions": permissions,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+    }
 
 
 @router.patch("/me", response_model=UserResponse, tags=["auth"])
@@ -413,7 +426,16 @@ async def update_me(
         )
 
     logger.info(f"Profile updated for user: {current_user.username}")
-    return current_user
+    permissions = await get_role_permissions(db, current_user.role)
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role,
+        "permissions": permissions,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+    }
 
 
 @router.post("/me/password", response_model=MessageResponse, tags=["auth"])

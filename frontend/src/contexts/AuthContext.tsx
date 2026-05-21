@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { authApi } from "@/api/auth";
-import type { User } from "@/types";
+import type { Permission, User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  hasPermission: (permission: Permission) => boolean;
+  hasAnyPermission: (permissions: Permission[]) => boolean;
+  hasAllPermissions: (permissions: Permission[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,6 +70,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const hasPermission = (permission: Permission) =>
+    Boolean(user?.permissions?.includes(permission));
+
+  const hasAnyPermission = (permissions: Permission[]) =>
+    permissions.some((permission) => hasPermission(permission));
+
+  const hasAllPermissions = (permissions: Permission[]) =>
+    permissions.every((permission) => hasPermission(permission));
+
   return (
     <AuthContext.Provider
       value={{
@@ -76,6 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
       }}
     >
       {children}

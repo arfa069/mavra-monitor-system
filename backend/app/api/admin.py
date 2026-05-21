@@ -6,13 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.core.security import get_password_hash, stage_delete_user_sessions
 from app.database import get_db
 from app.models.audit_log import UserAuditLog
+from app.models.permission import Permission
 from app.models.resource_permission import ResourcePermission
+from app.models.role import Role
 from app.models.user import User
 from app.schemas.admin import (
     AdminUserListResponse,
@@ -20,10 +23,14 @@ from app.schemas.admin import (
     AdminUserUpdate,
     AuditLogListResponse,
     AuditLogResponse,
+    PermissionResponse,
     ResourcePermissionGrant,
     ResourcePermissionListResponse,
     ResourcePermissionResponse,
     ResourcePermissionUpdate,
+    RolePermissionMatrixResponse,
+    RolePermissionResponse,
+    RolePermissionUpdate,
     UserCreate,
 )
 from app.schemas.auth import MessageResponse
@@ -653,3 +660,103 @@ async def update_resource_permission(
     )
 
     return ResourcePermissionResponse.model_validate(permission)
+
+
+# ── RBAC Role-Permission Matrix Endpoints ─────────────────────────
+
+@admin_router.get("/roles/permissions", response_model=RolePermissionMatrixResponse)
+async def get_role_permission_matrix(
+    current_user: User = Depends(require_permission("rbac:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the full role-permission matrix.
+
+    Returns all roles with their assigned permissions, plus the list of all permissions.
+    """
+    roles_result = await db.execute(
+        select(Role).options(selectinload(Role.permissions)).order_by(Role.name)
+    )
+    roles = roles_result.scalars().all()
+
+    perms_result = await db.execute(select(Permission).order_by(Permission.name))
+    all_permissions = perms_result.scalars().all()
+
+    role_responses = []
+    for role in roles:
+        role_responses.append(
+            RolePermissionResponse(
+                role=role.name,
+                description=role.description,
+                permissions=sorted(p.name for p in role.permissions),
+            )
+        )
+
+    return RolePermissionMatrixResponse(
+        roles=role_responses,
+        all_permissions=[
+            PermissionResponse(name=p.name, description=p.description)
+            for p in all_permissions
+        ],
+    )
+
+
+@admin_router.patch("/roles/{role_name}/permissions")
+async def update_role_permissions(
+    role_name: str,
+    update_data: RolePermissionUpdate,
+    request: Request,
+    current_user: User = Depends(require_permission("rbac:manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update permissions for a given role.
+
+    Only super_admin can modify role permissions.
+    """
+    role_result = await db.execute(
+        select(Role)
+        .where(Role.name == role_name)
+        .options(selectinload(Role.permissions))
+    )
+    role = role_result.scalar_one_or_none()
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="角色不存在",
+        )
+
+    # Fetch all permissions referenced in the update
+    if update_data.permissions:
+        perm_result = await db.execute(
+            select(Permission).where(Permission.name.in_(update_data.permissions))
+        )
+        perms = perm_result.scalars().all()
+        found_names = {p.name for p in perms}
+        missing = set(update_data.permissions) - found_names
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"未知权限: {', '.join(sorted(missing))}",
+            )
+        role.permissions = list(perms)
+    else:
+        role.permissions = []
+        perms = []
+
+    await db.commit()
+
+    await log_audit(
+        db=db,
+        action="rbac.role_permissions_update",
+        actor_user_id=current_user.id,
+        target_type="role",
+        target_id=role.id,
+        details={"role": role_name, "permissions": update_data.permissions},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")[:512],
+        commit=True,
+    )
+
+    return {
+        "role": role_name,
+        "permissions": [p.name for p in perms],
+    }
