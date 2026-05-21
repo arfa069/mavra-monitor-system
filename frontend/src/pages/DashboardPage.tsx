@@ -27,8 +27,10 @@ const TIME_RANGE_OPTIONS = [
 
 export default function DashboardPage() {
   const { user, token } = useAuth();
-  const [days, setDays] = useState<TimeRange>(7);
-  const [initialData, setInitialData] = useState<DashboardKPIResponse | null>(null);
+  const [days, setDays] = useState<TimeRange>(30);
+  const [initialData, setInitialData] = useState<DashboardKPIResponse | null>(
+    null,
+  );
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
   // Fetch initial KPI data via HTTP
@@ -153,7 +155,11 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="价格趋势" variant="borderless" style={{ borderRadius: 16 }}>
+          <Card
+            title="价格趋势"
+            variant="borderless"
+            style={{ borderRadius: 16 }}
+          >
             {priceTrends.loading ? (
               <Spin />
             ) : priceTrends.data ? (
