@@ -46,8 +46,8 @@ backend/
 │   │   ├── job_crawl_log.py    # JobCrawlLog 模型（职位爬取日志）
 │   │   ├── job.py              # Job / JobSearchConfig 模型
 │   │   ├── job_match.py        # UserResume / MatchResult 模型
-│   │   ├── permission.py       # 权限定义表（保留，未接入）
-│   │   └── role.py             # 角色定义表（保留，未接入）
+│   │   ├── permission.py       # DB RBAC 权限模型，供 require_permission 运行时查询
+│   │   └── role.py             # DB RBAC 角色模型，供 require_permission 运行时查询
 │   ├── platforms/
 │   │   ├── base.py             # BasePlatformAdapter（ABC）
 │   │   ├── taobao.py           # TaobaoAdapter

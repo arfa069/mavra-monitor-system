@@ -4,7 +4,7 @@
 
 ## 概览
 
-价格监控系统使用三层权限模型：**认证 → 角色 → 细粒度权限**，加上**审计日志**作为可追溯性保障。所有授权决策最终由 `app/core/permissions.py` 中的 `PERMISSIONS` 字典作为单一真相来源。
+价格监控系统使用三层权限模型：**认证 → 数据库 RBAC → 资源级 ACL**，加上**审计日志**作为可追溯性保障。运行时业务权限由 `users_roles`、`users_permissions`、`users_roles_permissions` 三张表作为单一真相来源；`users.role` 保存用户当前角色名。
 
 ## 角色
 
@@ -135,7 +135,7 @@
 | 守卫             | 保护范围                                                   | 行为                           |
 | ---------------- | ---------------------------------------------------------- | ------------------------------ |
 | `ProtectedRoute` | `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`              |
-| `AdminRoute`     | `/admin/users`, `/admin/audit-logs`                        | 非 admin/super_admin → `/jobs` |
+| `PermissionRoute`| `/admin/users`, `/admin/audit-logs`                        | 无 `user:read` 权限 → `/jobs`  |
 | `PublicRoute`    | `/login`, `/register`                                      | 已登录 → `/jobs`               |
 
 > 前端守卫仅做 UX 级别保护，**真正的安全边界在后端 API**。
@@ -144,7 +144,7 @@
 
 | Helper                     | 来源                      | 适用场景                                                |
 | -------------------------- | ------------------------- | ------------------------------------------------------- |
-| `require_permission(name)` | `app/core/permissions.py` | 业务端点（用户/爬取/调度/审计/配置）                    |
-| `require_role(*roles)`     | `app/core/security.py`    | 运维型端点（如 `/scheduler/status`）—— 不需要新增权限位 |
+| `require_permission(name)` | `app/core/permissions.py` | 业务端点；运行时查询 DB RBAC 表                         |
+| `require_role(*roles)`     | `app/core/security.py`    | 运维型端点和少数 role-string UI/系统视图                 |
 
-新业务端点优先使用 `require_permission` 并维护 `PERMISSIONS` 字典；`require_role` 仅在不希望污染权限矩阵的纯运维场景使用。
+新业务端点优先使用 `require_permission`，权限通过 DB RBAC 表管理；`require_role` 仅在不希望污染权限矩阵的纯运维场景使用。

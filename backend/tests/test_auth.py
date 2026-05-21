@@ -396,7 +396,9 @@ class TestGetMe:
         session_result = MagicMock()
         session_result.scalar_one_or_none.return_value = mock_session_obj
 
-        mock_session.execute = AsyncMock(side_effect=[user_result, session_result])
+        permissions_result = MagicMock()
+        permissions_result.scalars.return_value.all.return_value = []
+        mock_session.execute = AsyncMock(side_effect=[user_result, session_result, permissions_result])
 
         async def _override_get_db():
             yield mock_session
