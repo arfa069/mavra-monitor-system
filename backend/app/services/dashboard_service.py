@@ -291,11 +291,11 @@ class DashboardService:
                 .group_by(Product.platform)
             )
         elif entity == "jobs":
-            from app.models.job import Job
-            from app.models.job_search_config import JobSearchConfig
+            from app.models.job import Job, JobSearchConfig
 
             result = await self.db.execute(
                 select(JobSearchConfig.platform, func.count())
+                .select_from(JobSearchConfig)
                 .join(Job, Job.search_config_id == JobSearchConfig.id)
                 .where(JobSearchConfig.user_id == user_id)
                 .group_by(JobSearchConfig.platform)
@@ -345,7 +345,7 @@ class DashboardService:
                     Job.salary_min < max_val,
                 )
 
-            query = query.join(
+            query = query.select_from(Job).join(
                 JobSearchConfig, Job.search_config_id == JobSearchConfig.id
             ).where(JobSearchConfig.user_id == user_id)
 
