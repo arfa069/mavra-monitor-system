@@ -314,7 +314,7 @@ server: {
 - `/profile` — 个人信息（UserOutlined）
 - `/settings` — 账号设置（SettingOutlined）
 - `/admin/users` — 用户管理（TeamOutlined，仅 admin/super_admin）
-- `/admin/users` — 用户管理（仅 admin/super_admin 可见，含 Role Permissions 矩阵编辑）
+- `/admin/roles` — 角色权限矩阵（仅 super_admin 可见）
 
 ### 7.2 业务组件
 

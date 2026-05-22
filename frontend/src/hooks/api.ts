@@ -496,8 +496,13 @@ export const useRolePermissionMatrix = () =>
 export const useUpdateRolePermissions = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ role, permissions }: { role: string; permissions: Permission[] }) =>
-      adminApi.updateRolePermissions(role, { permissions }),
+    mutationFn: ({
+      role,
+      permissions,
+    }: {
+      role: string;
+      permissions: Permission[];
+    }) => adminApi.updateRolePermissions(role, { permissions }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["role-permission-matrix"] });
     },

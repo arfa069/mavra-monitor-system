@@ -128,12 +128,20 @@ export const adminApi = {
   },
 
   getRolePermissionMatrix: async (): Promise<RolePermissionMatrix> => {
-    const response = await api.get<RolePermissionMatrix>("/admin/roles/permissions");
+    const response = await api.get<RolePermissionMatrix>(
+      "/admin/roles/permissions",
+    );
     return response.data;
   },
 
-  updateRolePermissions: async (role: string, data: RolePermissionUpdate): Promise<RolePermissionInfo> => {
-    const response = await api.patch<RolePermissionInfo>(`/admin/roles/${role}/permissions`, data);
+  updateRolePermissions: async (
+    role: string,
+    data: RolePermissionUpdate,
+  ): Promise<RolePermissionInfo> => {
+    const response = await api.patch<RolePermissionInfo>(
+      `/admin/roles/${role}/permissions`,
+      data,
+    );
     return response.data;
   },
 };

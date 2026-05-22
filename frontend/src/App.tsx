@@ -132,7 +132,13 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 }
 
 // Permission route - requires specific permission
-function PermissionRoute({ permission, children }: { permission: Permission; children: ReactNode }) {
+function PermissionRoute({
+  permission,
+  children,
+}: {
+  permission: Permission;
+  children: ReactNode;
+}) {
   const { user, isLoading, hasPermission } = useAuth();
 
   if (isLoading) {
