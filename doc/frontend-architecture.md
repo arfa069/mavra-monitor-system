@@ -19,45 +19,58 @@
 
 ```
 frontend/src/
-├── api/                      # API 封装层
-│   ├── client.ts            # Axios 实例（拦截器 + 错误处理）
-│   ├── auth.ts              # 认证 API
-│   ├── products.ts          # 商品 API
-│   ├── alerts.ts            # 告警 API
-│   ├── crawl.ts             # 爬取 API
-│   ├── config.ts            # 配置 API
-│   ├── jobs.ts              # 职位 API
-│   ├── admin.ts            # 管理员 API
-│   └── job_match.ts         # 匹配分析 API
-├── components/              # 可复用组件
-│   ├── AppLayout.tsx        # 布局组件（Figma 风格：白色顶栏 + 灰卡侧栏）
-│   ├── BatchImportModal.tsx # 批量导入弹窗
-│   ├── ProductFormModal.tsx # 商品表单弹窗
-│   ├── PriceTrendModal.tsx  # 价格趋势弹窗
-│   ├── JobConfigList.tsx    # 职位搜索配置列表
-│   ├── JobConfigForm.tsx    # 职位搜索配置表单
-│   ├── JobList.tsx          # 职位列表
-│   ├── JobDrawer.tsx         # 职位详情抽屉
-│   ├── MatchResultList.tsx  # 匹配结果列表
-│   └── ResumeManager.tsx    # 简历管理器
-├── contexts/
-│   └── AuthContext.tsx      # 认证上下文（用户状态 + Token 管理）
-├── hooks/
-│   └── api.ts               # React Query hooks（所有业务数据获取）
-├── pages/
-│   ├── Login.tsx            # 登录页（Figma 风格：左侧品牌 + 右侧白卡表单）
-│   ├── Register.tsx         # 注册页（同风格）
-│   ├── ProductsPage.tsx     # 商品管理页（lime 色块标题 + 胶囊工具栏）
-│   ├── JobsPage.tsx         # 职位管理页（cream 色块标题）
-│   ├── ScheduleConfigPage.tsx # 定时配置页（lime 色块标题）
-│   ├── Profile.tsx          # 个人信息页（cream 色块）
-│   ├── Settings.tsx        # 账号设置页（mint 色块）
-│   └── AdminUsers.tsx      # 用户管理页（surface-soft 色块）
+├── features/                # feature-first 业务模块
+│   ├── auth/
+│       ├── LoginPage.tsx    # 登录页
+│       ├── RegisterPage.tsx # 注册页
+│       ├── ProfilePage.tsx  # 个人资料页
+│       └── api/auth.ts      # 认证 API client
+│   ├── admin/
+│       ├── AdminUsersPage.tsx # 用户、角色、资源权限管理
+│       ├── AdminAuditLogsPage.tsx # 审计日志页
+│       ├── api/admin.ts     # 管理端 API client
+│       └── hooks/useAdmin.ts # RBAC 和资源权限 hooks
+│   ├── alerts/
+│       ├── api/alerts.ts    # 告警 API client
+│       └── hooks/useAlerts.ts # 告警 query/mutation hooks
+│   ├── dashboard/
+│       ├── DashboardPage.tsx # Dashboard 页面编排
+│       ├── components/      # Dashboard KPI / 图表组件
+│       ├── hooks/           # Dashboard SSE / trends hooks
+│       └── types.ts         # Dashboard 业务类型
+│   ├── events/
+│       ├── EventCenterPage.tsx # 事件中心页面编排
+│       ├── api/events.ts    # 事件中心 API 与 SSE URL helper
+│       └── types.ts         # EventCenter 业务类型
+│   ├── products/
+│       ├── ProductsPage.tsx # 商品管理页编排
+│       ├── api/             # 商品 CRUD 与商品爬取 API client
+│       ├── components/      # 商品表单、批量导入、价格趋势弹窗
+│       ├── hooks/           # 商品列表、历史、爬取日志与 Crawl Now hooks
+│       └── types.ts         # 商品 feature 类型入口
+│   ├── jobs/
+│       ├── JobsPage.tsx     # 职位管理页编排
+│       ├── api/             # 职位、简历、匹配分析 API client
+│       ├── components/      # 搜索配置、职位列表、详情抽屉、简历、匹配结果
+│       ├── hooks/           # 职位配置、职位列表、爬取、简历、匹配 hooks
+│       └── types.ts         # 职位 feature 类型入口
+│   ├── schedule/
+│       ├── ScheduleConfigPage.tsx # 商品/职位定时配置页
+│       ├── components/CronGenerator.tsx
+│       └── hooks/useScheduleConfig.ts
+│   └── settings/
+│       ├── SettingsPage.tsx # 账号设置页
+│       └── api/config.ts    # 用户配置与 scheduler status API
+├── shared/
+│   ├── api/client.ts        # Axios 实例（拦截器 + 错误处理）
+│   ├── components/          # 全局布局、主题、过渡、权限标识组件
+│   ├── contexts/
+│       └── AuthContext.tsx  # 全局认证上下文（用户状态 + Token 管理）
+│   ├── hooks/               # 通用 UI hooks
+│   └── types/               # 通用权限、用户、动效类型
 ├── styles/                  # Figma 设计系统
 │   ├── design-tokens.css   # CSS 变量（颜色/排版/间距/圆角 token）
 │   └── components.css       # Ant Design 组件全局覆盖（Figma 风格）
-├── types/
-│   └── index.ts             # TypeScript 类型定义
 ├── App.tsx                  # 根组件 + 路由配置
 ├── main.tsx                 # 入口文件
 └── index.css                # 全局样式（导入 design-tokens + components）
@@ -173,17 +186,17 @@ interface AuthContextType {
 
 ### 4.2 服务端状态（React Query）
 
-所有业务数据通过 `hooks/api.ts` 中的 hooks 管理和缓存：
+业务数据通过 TanStack React Query 管理。已拆分的 feature 在各自 `features/*/hooks` 中维护 query/mutation hooks；`hooks/api.ts` 已删除，避免继续形成新的共享热点文件。业务页面和 feature 内部组件从本 feature 的 `types.ts` 导入类型，跨 feature 只通过对方 `index.ts` 暴露的稳定入口或共享基础设施导入。
 
 | Hook                | 用途             | 缓存策略               |
 | ------------------- | ---------------- | ---------------------- |
-| `useProducts()`     | 商品列表 + 分页  | `staleTime: 10s`       |
-| `useJobs()`         | 职位列表 + 分页  | `staleTime: 30s`       |
-| `useJobConfigs()`   | 职位搜索配置列表 | 无持久化               |
-| `useMatchResults()` | LLM 匹配结果     | 无持久化               |
-| `useCrawlLogs()`    | 爬取日志         | `refetchInterval: 60s` |
-| `useResumes()`      | 用户简历列表     | 无持久化               |
-| `useConfig()`       | 用户配置         | 无持久化               |
+| `features/products/useProducts()` | 商品列表 + 分页  | `staleTime: 10s`       |
+| `features/jobs/useJobs()` | 职位列表 + 分页  | `staleTime: 30s`       |
+| `features/jobs/useJobConfigs()` | 职位搜索配置列表 | 无持久化               |
+| `features/jobs/useMatchResults()` | LLM 匹配结果     | 无持久化               |
+| `features/products/useCrawlLogs()` | 商品爬取日志     | `refetchInterval: 60s` |
+| `features/jobs/useResumes()` | 用户简历列表     | 无持久化               |
+| `features/schedule/useScheduleConfig()` | 用户配置         | 无持久化               |
 
 **Mutation 后自动失效**：`useMutation` 的 `onSuccess` 回调中调用 `qc.invalidateQueries` 刷新相关缓存。
 
@@ -193,7 +206,7 @@ interface AuthContextType {
 
 ```ts
 const api = axios.create({
-  baseURL: "/api", // Vite 代理到后端 /api 前缀
+  baseURL: "/api", // Vite 代理到后端；业务模块使用 /v1/... 路径
   timeout: 300000, // 5 分钟超时（爬取操作耗时长）
 });
 ```
@@ -213,11 +226,13 @@ const api = axios.create({
 
 ```ts
 export const productsApi = {
-  list: (params) => api.get<ProductListResponse>("/products", { params }),
-  create: (data) => api.post<Product>("/products", data),
+  list: (params) => api.get<ProductListResponse>("/v1/products", { params }),
+  create: (data) => api.post<Product>("/v1/products", data),
   // ...
 };
 ```
+
+业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api`，各 API 模块写 `/v1/...`，经 Vite proxy 去掉 `/api` 后到达后端 `/v1/...`。直接访问后端时也支持 `/api/v1/...` 作为等价入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 不再作为前端主调用路径。
 
 **Vite 代理配置**（vite.config.ts）：
 
@@ -330,52 +345,16 @@ server: {
 | `MatchResultList`  | 列表   | 匹配结果 + 分数筛选         |
 | `ResumeManager`    | 管理器 | 简历 CRUD                   |
 
-## 8. 类型定义（types/index.ts）
+## 8. 类型定义
 
-所有接口类型按域划分：
+`frontend/src/types/index.ts` 已删除，避免继续形成跨域类型热点文件。类型按所有权拆分：
 
-```ts
-// 商品域
-(Product,
-  ProductListResponse,
-  ProductCreateRequest,
-  ProductUpdateRequest,
-  ProductPlatformCron,
-  ProductPlatformCronSchedule,
-  PriceHistoryRecord,
-  BatchImportRow,
-  BatchCreateItem,
-  BatchOperationResult,
-  // 告警域
-  Alert,
-  AlertCreateRequest,
-  AlertUpdateRequest,
-  // 爬取域
-  CrawlLog,
-  // 职位域
-  JobSearchConfig,
-  JobSearchConfigCreate,
-  JobSearchConfigUpdate,
-  Job,
-  JobListResponse,
-  JobCrawlResult,
-  JobConfigScheduleInfo,
-  JobConfigCronUpdate,
-  // 匹配域
-  UserResume,
-  UserResumeCreateRequest,
-  UserResumeUpdateRequest,
-  MatchResultWithJob,
-  MatchResultListResponse,
-  MatchAnalyzeRequest,
-  MatchAnalyzeResponse,
-  // 配置域
-  UserConfig,
-  SchedulerStatusResponse,
-  SchedulerJobStatus,
-  // 认证域（单独在 auth.ts 中）
-  User);
-```
+- `frontend/src/shared/types/permissions.ts`：权限枚举和 `PermissionLevel`。
+- `frontend/src/shared/types/user.ts`：认证用户基础结构。
+- `frontend/src/shared/types/motion.ts`：全局动效速度 `MotionSpeed`。
+- `frontend/src/features/*/types.ts`：各 feature 自己的业务 DTO、表单值和响应类型。
+
+业务 feature 内部优先从本 feature 的 `types.ts` 导入类型；跨 feature 复用只通过对方 `index.ts` 暴露的稳定入口或 `shared/types`。`MotionSpeed` 不是业务类型，归入 `shared/types/motion.ts`，由主题和过渡组件、设置页类型入口复用。
 
 ## 9. 关键交互模式
 

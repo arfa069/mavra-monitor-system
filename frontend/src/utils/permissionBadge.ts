@@ -1,4 +1,4 @@
-import type { PermissionLevel } from "@/types";
+import type { PermissionLevel } from "@/shared/types";
 
 export function getBadgeLevel(
   permissions?: Record<string, boolean> | null,

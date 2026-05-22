@@ -4,29 +4,31 @@ import logging
 import sys
 from contextlib import asynccontextmanager
 
-from fastapi.responses import JSONResponse
-
 # Windows requires ProactorEventLoop for subprocess support (Playwright spawns browser drivers)
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.admin import admin_router
-from app.api.admin import router as admin_users_router
-from app.api.auth import router as auth_router
-from app.api.events import router as events_router
 from app.api.wechat import router as wechat_router
 from app.config import settings
-from app.core.security import decode_access_token, require_role
+from app.core.security import decode_access_token
 from app.core.system_log import emit_system_log_detached
 from app.database import engine
-from app.routers import alerts, config, crawl, products
-from app.routers.dashboard import router as dashboard_router
-from app.routers.jobs import router as jobs_router
+from app.domains.admin import admin_router
+from app.domains.admin import router as admin_users_router
+from app.domains.alerts import router as alerts_router
+from app.domains.auth import router as auth_router
+from app.domains.config import router as config_router
+from app.domains.crawling import router as crawl_router
+from app.domains.dashboard import router as dashboard_router
+from app.domains.events import router as events_router
+from app.domains.jobs import router as jobs_router
+from app.domains.products import router as products_router
+from app.domains.scheduling import router as scheduling_router
 
 logger = logging.getLogger(__name__)
 
@@ -123,18 +125,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(config.router)
-app.include_router(products.router)
-app.include_router(alerts.router)
-app.include_router(crawl.router)
-app.include_router(jobs_router)
-app.include_router(auth_router)
-app.include_router(wechat_router)
-app.include_router(events_router)
-app.include_router(admin_users_router)
-app.include_router(admin_router)
-app.include_router(dashboard_router)
+_APPLICATION_ROUTERS = (
+    config_router,
+    products_router,
+    alerts_router,
+    jobs_router,
+    auth_router,
+    wechat_router,
+    events_router,
+    admin_users_router,
+    admin_router,
+    dashboard_router,
+    scheduling_router,
+)
+
+
+def _include_application_routers(prefix: str = "") -> None:
+    for router in _APPLICATION_ROUTERS:
+        app.include_router(router, prefix=prefix)
+
+
+# Include legacy routes and v1 routes. The frontend dev proxy strips /api, so
+# /api/v1/... in the browser reaches /v1/... on the backend.
+_include_application_routers()
+app.include_router(crawl_router, prefix="/products")
+_include_application_routers(prefix="/v1")
+app.include_router(crawl_router, prefix="/v1")
+_include_application_routers(prefix="/api/v1")
+app.include_router(crawl_router, prefix="/api/v1")
 
 
 def _extract_token_user_id(request: Request) -> int | None:
@@ -209,34 +227,6 @@ async def platform_event_logging_middleware(request: Request, call_next):
         )
 
     return response
-
-# Scheduler status endpoint
-@app.get("/scheduler/status", tags=["scheduler"])
-async def get_scheduler_status(
-    current_user=Depends(require_role("admin", "super_admin")),
-):
-    """Get APScheduler status and next run times for all cron jobs."""
-    scheduler = getattr(app.state, "scheduler", None)
-
-    if scheduler is None:
-        return JSONResponse(
-            status_code=503,
-            content={"scheduler": "not_started"},
-        )
-
-    from app.services.scheduler_job import JobConfigScheduler, ProductCronScheduler
-    job_config_scheduler: JobConfigScheduler = getattr(app.state, "job_config_scheduler", None)
-    product_cron_scheduler: ProductCronScheduler = getattr(app.state, "product_cron_scheduler", None)
-
-    return JSONResponse(content={
-        "scheduler": "running",
-        "timezone": "Asia/Shanghai",
-        "jobs": {
-            "product_platforms": product_cron_scheduler.get_next_run_times() if product_cron_scheduler else {},
-            "job_configs": job_config_scheduler.get_next_run_times() if job_config_scheduler else {},
-        },
-    })
-
 
 @app.get("/health")
 async def health_check():

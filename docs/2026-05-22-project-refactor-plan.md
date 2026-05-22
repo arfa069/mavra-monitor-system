@@ -1,0 +1,293 @@
+# Price Monitor 全项目重构计划
+
+> **目标文件：** `docs/2026-05-22-project-refactor-plan.md`
+
+## 目标
+
+对 `price-monitor` 做一次允许破坏性调整的架构重组，把当前“大路由、大页面、大服务、大类型文件”的结构改为清晰的后端领域模块和前端 feature 模块。
+
+本次重构不是只做格式整理，而是为后续长期维护建立稳定边界。核心业务能力必须保留：认证/RBAC、商品监控、职位监控、爬取、调度、事件中心、Dashboard、飞书通知。
+
+## 当前问题
+
+- 后端热点文件过大：`jobs.py`、`job_crawl.py`、`admin.py`、`products.py` 同时承担路由、查询、业务规则、审计、调度联动等职责。
+- 前端热点文件过大：`AdminUsers.tsx`、`ScheduleConfigPage.tsx`、`ProductsPage.tsx`、`AppLayout.tsx`、`hooks/api.ts`、`types/index.ts`。
+- API、schema、service、query hook、类型定义分层不够稳定，后续功能容易继续堆叠。
+- `docs/` 最近已清理为空，长期架构真相应继续维护在 `doc/`，本文件作为执行计划和进度追踪使用。
+
+## 后端重构方案
+
+- 新建领域模块结构：
+  - `app/domains/auth`
+  - `app/domains/admin`
+  - `app/domains/products`
+  - `app/domains/jobs`
+  - `app/domains/crawling`
+  - `app/domains/scheduling`
+  - `app/domains/events`
+  - `app/domains/dashboard`
+- 每个领域模块内部包含 router、schema、service、repository/query helper、测试。
+- 测试仍保留在 `backend/tests/` 集中目录，不在本次重构中搬到领域目录；如后续决定改为 domain-local tests，必须先修改 `backend/pyproject.toml` 的 pytest 配置并单独验证。
+- 路由层只负责参数校验、权限依赖、调用 service、返回 response schema。
+- 业务规则从路由文件迁移到 service。
+- 数据查询和复杂 SQLAlchemy 语句迁移到 repository/query helper。
+- 商品爬取和职位爬取保持分离。
+- 职位爬取拆分为：调度编排、结果入库、详情补全、通知发送、平台适配器。
+- Boss 反爬策略保持保守，默认不提高并发。
+- 猎聘正常路径保持 HTTP-first，不打开浏览器 tab。
+- 新 API 统一迁移到 `/api/v1/*`。旧 API 可在迁移期存在，但最终以前端使用 `/api/v1` 为准。
+- 数据库 schema 默认不变。只有在本计划明确列入 migration 清单的表、字段、索引或约束可以调整；任何 migration 必须包含 Alembic 文件、回归测试和回滚说明。
+
+## API v1 路由矩阵
+
+迁移前必须先补齐现有路由到新路由的映射，并按下表执行。所有旧路由只能作为迁移期兼容层，不能继续作为前端主调用路径。
+
+| 当前路由 | 新路由 | 主要前端调用点 | 迁移策略 |
+| --- | --- | --- | --- |
+| `/auth/*` | `/api/v1/auth/*` | `frontend/src/api/auth.ts`, `AuthContext.tsx`, 登录/注册/个人资料页 | 先注册 v1 路由，再更新前端 client，最后删除旧路径依赖。 |
+| `/admin/*` | `/api/v1/admin/*` | `frontend/src/api/admin.ts`, `AdminUsers.tsx`, `AdminAuditLogs.tsx` | 保持权限语义不变，先补 admin API contract tests。 |
+| `/products/*` | `/api/v1/products/*` | `frontend/src/api/products.ts`, `ProductsPage.tsx`, `PriceTrendModal.tsx` | 商品 CRUD、批量操作、价格历史和 cron config 一起迁移。 |
+| `/alerts/*` | `/api/v1/alerts/*` | `frontend/src/api/alerts.ts`, 商品相关组件 | 跟随 products 迁移，保持响应 schema 不变。 |
+| `/crawl/*` | `/api/v1/crawl/*` | `frontend/src/api/crawl.ts`, `ProductsPage.tsx` | 任务状态和结果轮询必须同阶段切换。 |
+| `/jobs/*` | `/api/v1/jobs/*` | `frontend/src/api/jobs.ts`, `frontend/src/api/job_match.ts`, `JobsPage.tsx`, `ResumeManager.tsx`, `MatchResultList.tsx` | 职位配置、爬取、简历、匹配分析同域迁移。 |
+| `/config/*` | `/api/v1/config/*` | `frontend/src/api/config.ts`, `ScheduleConfigPage.tsx`, `Settings.tsx`, `Profile.tsx` | 保持用户配置缓存失效逻辑不变。 |
+| `/events`, `/events/stream` | `/api/v1/events`, `/api/v1/events/stream` | `frontend/src/api/events.ts`, `EventCenter.tsx` | SSE 不能遗漏；硬编码 `/api/events/stream` 必须改为 v1 helper。 |
+| `/dashboard/*` | `/api/v1/dashboard/*` | `DashboardPage.tsx`, dashboard hooks/components | 跟随 dashboard domain 迁移。 |
+| `/scheduler/status` | `/api/v1/scheduler/status` | `frontend/src/api/config.ts`, `ScheduleConfigPage.tsx` | 保持 admin/super_admin 运维权限边界。 |
+| `/health` | `/health` | 运维探活 | 暂不迁移，保持公开健康检查路径稳定。 |
+
+Vite 代理仍保留 `/api -> http://127.0.0.1:8000` 的开发入口；前端 Axios `baseURL` 保持 `/api`，各 API 模块调用路径改为 `/v1/...`，避免把 `/api` 写进业务模块。
+
+## 前端重构方案
+
+- 改为 feature-first 结构：
+  - `features/auth`
+  - `features/admin`
+  - `features/products`
+  - `features/jobs`
+  - `features/schedule`
+  - `features/dashboard`
+  - `features/events`
+  - `features/settings`
+- 拆分 `hooks/api.ts`，每个 feature 拥有自己的 query/mutation hooks 和 query key factory。
+- 拆分 `types/index.ts`，业务类型进入各 feature，通用类型进入 `shared/types`。
+- 每个 feature 使用固定目录结构：
+  - `api.ts`：封装该 feature 的 HTTP 调用。
+  - `queries.ts`：封装 React Query hooks 和 query key factory。
+  - `types.ts`：只放该 feature 的业务类型。
+  - `components/`：只放 feature-local 组件。
+  - `index.ts`：只导出页面或外部需要的稳定入口。
+- 通用基础设施进入 `shared/`：`shared/api/client.ts`、`shared/types`、`shared/components`、`shared/hooks`。
+- 禁止 feature 之间直接 import 对方内部文件；跨 feature 只能通过对方 `index.ts` 暴露的稳定入口，或上移到 `shared/`。
+- 拆分大页面：
+  - 管理员页面拆成用户列表、行内编辑器、权限矩阵、资源权限编辑器。
+  - 商品页面拆成表格、筛选、批量导入、表单、趋势查看、爬取反馈。
+  - 定时配置页面拆成商品 cron、职位 cron、cron 生成器、状态展示。
+  - `AppLayout` 只保留导航、布局、权限菜单和页面容器职责。
+- UI 风格必须遵守 `doc/DESIGN.md`，不借重构改变视觉方向。
+- UI 拆分必须覆盖关键状态：loading、empty、error、permission denied、表格横向滚动、移动端 Drawer、modal/inline editor 打开关闭、SSE 连接/断开提示。
+
+## 实施阶段
+
+### 1. 基线冻结
+
+- 记录当前 `git status` 和最新提交。
+- 跑后端目标测试和前端 lint/build，确认当前基线。
+- 梳理当前 API 路由、权限依赖、前端调用点。
+- 对将修改的函数、类、方法先跑 GitNexus impact；如索引过期，先刷新索引。
+- 输出并提交一份只读基线记录到本计划的执行日志区：当前 HEAD、当前路由清单、已跑命令、失败项、已知环境问题。
+
+### 2. 后端领域拆分
+
+- 按 auth、admin、products、jobs、crawling、scheduling、events、dashboard 逐个迁移。
+- 每个领域先补或确认测试，再迁移代码。
+- 每迁移一个领域，运行对应 pytest。
+- 保持数据库行为一致，除非该阶段明确引入 migration。
+- 每个领域迁移结束必须满足：
+  - 新 domain router 已注册。
+  - 旧 router 只剩兼容转发或已删除。
+  - 前端还未切换时旧路径可继续工作。
+  - 该领域目标测试通过。
+  - `ruff check` 至少覆盖改动文件，最终阶段再跑全量。
+
+### 3. API v1 迁移
+
+- 在 `backend/app/main.py` 注册 `/api/v1` 路由。
+- 更新前端 API client 指向 `/api/v1/*`。
+- 删除前端对旧 API 路径的依赖。
+- 更新 `doc/backend-architecture.md` 和 `doc/frontend-architecture.md`。
+- API v1 迁移结束必须满足：
+  - API route matrix 中除 `/health` 外的前端主调用路径均已切到 `/api/v1`。
+  - `rg '"/api|/events/stream|/scheduler/status|/jobs|/products|/admin' frontend/src` 无旧硬编码业务路径，测试 fixtures 除外。
+  - 旧路由删除或明确保留为兼容层，并有删除条件。
+
+### 4. 前端 feature 拆分
+
+- 先拆 hooks/types，再拆页面组件。
+- 每拆一个 feature，运行 `npm run lint` 和 `npm run build`。
+- 涉及 UI 的页面用浏览器真实验证。
+- 每个 feature 拆分结束必须满足：
+  - 不再从 `@/hooks/api` 读取该 feature 的 hooks。
+  - 不再从 `@/types` 读取该 feature 的业务类型。
+  - 页面文件只负责编排，不承载大段表格列定义、表单提交、权限矩阵或轮询逻辑。
+  - 浏览器验收覆盖该 feature 的 loading、empty、error 和权限状态。
+
+### 5. 收尾清理
+
+- 删除旧导出、废弃兼容层、重复类型、死代码。
+- 更新 `doc/permission-architecture.md`。
+- 运行完整后端、前端、浏览器 QA。
+- 提交前运行 `gitnexus_detect_changes(scope="all")` 和 `git diff --check`。
+
+## 破坏性变更
+
+- 新公共 API 前缀为 `/api/v1`。
+- 前端 API 调用统一迁移到 `/api/v1`。
+- 允许调整模块路径、路由组织和类型导出。
+- 数据库 schema 默认不变；只有被列入 migration 清单的变更才允许执行。
+- migration 清单初始为空。如执行中发现必须调整 schema，先修订本计划，再实现 migration。
+- 权限仍以 DB-driven RBAC + resource ACL 为边界。
+- 新业务端点默认使用 `require_permission`，运维型状态端点才允许使用 `require_role`。
+
+## 不在本次范围
+
+- 不更换 FastAPI、SQLAlchemy、React、Vite、Ant Design、React Query 等核心技术栈。
+- 不提高 Boss 默认并发，不改强反爬平台的节奏策略。
+- 不把 pytest 测试搬入 domain-local 目录。
+- 不重写设计系统，不改变 `doc/DESIGN.md` 定义的视觉方向。
+- 不把 `/health` 改到 `/api/v1`，避免破坏运维探活路径。
+
+## 验证计划
+
+后端分域验证：
+
+```powershell
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_auth.py tests/test_auth_api.py tests/test_admin_users.py tests/test_admin_permissions.py tests/test_db_rbac_permissions.py"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_api.py tests/test_product_cron_multi_user.py tests/test_scheduler_config.py tests/test_scheduler_status_auth.py"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_job_crawl.py tests/test_jobs_api.py tests/test_liepin_adapter.py tests/test_liepin_pipeline.py"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_event_center.py tests/test_dashboard.py"
+```
+
+最终后端门禁：
+
+```powershell
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
+```
+
+前端门禁：
+
+```powershell
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run lint"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run build"
+```
+
+浏览器验收：
+
+- 使用 `default123 / 123456` 登录。
+- 验证 Dashboard、职位、商品、定时配置、事件中心、个人设置、管理员用户、审计日志。
+- 验证无权限用户不能访问受限页面。
+- 验证爬取触发 UI、任务状态轮询、错误提示。
+- 验证 Boss 不因重构提高默认并发。
+- 验证猎聘正常爬取路径不打开浏览器 tab。
+- 验证 loading、empty、error、permission denied、移动端导航、表格横向滚动、modal/drawer/inline editor 状态。
+
+## 执行约束
+
+- 建议在独立 `codex/` 分支或 worktree 中执行。
+- 每个领域单独提交，避免一次提交混合多个系统。
+- 任何函数、类、方法修改前必须做 GitNexus impact。
+- commit 前必须做 GitNexus detect changes。
+- 未跑过的测试不得声明通过。
+- UI 相关改动必须浏览器真实验证。
+
+## 执行日志
+
+执行时按阶段补充。
+
+| 阶段 | HEAD | 命令 | 结果 | 后续动作 |
+| --- | --- | --- | --- | --- |
+| 基线冻结 | `3c2d859f` | `git status --short` | worktree 中只有 `?? docs/`，即本计划文件。主 checkout 中也保留了同名未跟踪计划文件。 | 后续实现均在 `.worktrees/project-refactor` 的 `codex/project-refactor` 分支执行。 |
+| 基线冻结 | `3c2d859f` | `git show --name-status --oneline -1 HEAD` | 最新提交为 `3c2d859f chore: remove outdated docs/plans and format RBAC frontend code`，清理了旧 `docs/` 计划并修改了 RBAC 前端相关代码。 | 本计划避免重新堆旧式泛化计划，`docs/` 只保留当前执行计划。 |
+| 基线冻结 | `3c2d859f` | `rg "APIRouter\|@router\.\|@app\." backend/app -n` | 已确认当前后端路由前缀：`/auth`、`/auth/wechat`、`/admin/users`、`/admin`、`/products`、`/products/crawl`、`/alerts`、`/jobs`、`/config`、`/events`、`/dashboard`、`/scheduler/status`、`/health`。 | API v1 迁移时必须覆盖除 `/health` 外的业务路由，并处理 `/products/crawl` 与计划矩阵中 `/crawl` 命名差异。 |
+| 基线冻结 | `3c2d859f` | `rg "baseURL\|/api\|/events/stream\|/scheduler/status\|/jobs\|/products\|/admin\|/auth\|/config\|/dashboard\|/crawl" frontend/src -n` | 已确认前端 API 调用集中在 `frontend/src/api/*.ts`、dashboard SSE/fetch hooks、`events.ts` SSE helper；页面路由仍使用 `/jobs`、`/products`、`/dashboard`、`/admin/*`。 | API v1 只改变后端 API 调用路径，不改变浏览器页面路由。 |
+| 基线冻结 | `3c2d859f` | `pytest tests/test_auth.py tests/test_auth_api.py tests/test_admin_users.py tests/test_admin_permissions.py tests/test_db_rbac_permissions.py` with temporary `JWT_SECRET_KEY` | 通过：87 passed, 1 skipped, 16 warnings。直接运行时会因默认 `JWT_SECRET_KEY` 被拒绝而失败，必须设置临时测试密钥。 | 后续后端验证命令都需要显式设置 `JWT_SECRET_KEY`。 |
+| 基线冻结 | `3c2d859f` | `pytest tests/test_api.py tests/test_product_cron_multi_user.py tests/test_scheduler_config.py tests/test_scheduler_status_auth.py` with temporary `JWT_SECRET_KEY` | 通过：26 passed, 1 warning。 | Products/Scheduler 基线可用。 |
+| 基线冻结 | `3c2d859f` | `pytest tests/test_job_crawl.py tests/test_jobs_api.py tests/test_liepin_adapter.py tests/test_liepin_pipeline.py` with temporary `JWT_SECRET_KEY` | 通过：55 passed, 1 warning。Liepin HTTP-first 和不打开浏览器 tab 的测试已覆盖。 | Jobs/Crawling 重构不得提高 Boss 默认并发，不得破坏 Liepin HTTP-first 路径。 |
+| 基线冻结 | `3c2d859f` | `pytest tests/test_event_center.py tests/test_dashboard.py` with temporary `JWT_SECRET_KEY` | 通过：10 passed, 1 warning。 | Events/Dashboard 基线可用。 |
+| 基线冻结 | `3c2d859f` | `npm install` in `frontend/` | 通过：安装 393 packages。 | worktree 本地依赖已就绪，`node_modules` 不进入 git 跟踪。 |
+| 基线冻结 | `3c2d859f` | `npm run lint` | 失败：`frontend/src/hooks/useDashboardSSE.ts:69`，`connect()` 在声明前被闭包访问，触发 `react-hooks/immutability`。 | 进入代码重构前先修复该前端 lint 基线问题，避免后续无法区分新旧问题。 |
+| 基线冻结 | `3c2d859f` | `npm run build` | 通过；Vite 提示部分 chunk 超过 500 kB，这是基线 warning。 | build 基线可用，chunk size warning 暂不作为本次阻断项。 |
+| 基线修复 | `3c2d859f` | GitNexus impact for `useDashboardSSE`; `rg "useDashboardSSE" frontend/src -n`; `npm run lint`; `npm run build` | GitNexus MCP 无法通过 impact 返回该 hook，但 GitNexus 相关符号提示和 `rg` 均显示唯一调用者为 `DashboardPage`。修复后 `npm run lint` 通过，`npm run build` 通过并保留 chunk size warning。 | Phase 1 基线完成，可进入 Phase 2。 |
+| Auth domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/api/auth.py")`; `gitnexus impact(target="router", file_path="backend/app/api/auth.py")` | Auth API impact 为 LOW；8 个 auth routes，无直接消费者，主要影响 register/login/logout/change-password 审计与会话流程。 | 允许做机械迁移，但必须保留旧 `app.api.auth` patch/import 兼容。 |
+| Auth domain 迁移 | `3c2d859f` | `git mv backend/app/api/auth.py backend/app/domains/auth/router.py`; add compatibility `backend/app/api/auth.py`; update `backend/app/main.py` import | 已创建 `app.domains.auth`，`main.py` 从 domain 注册 auth router；旧 `app.api.auth` 作为模块别名指向 `app.domains.auth.router`，保持旧测试 patch 路径有效。 | 后续 domain 迁移可沿用“先移动 canonical 文件，再保留旧模块兼容别名”的模式。 |
+| Auth domain 迁移 | `3c2d859f` | `pytest tests/test_audit_best_effort.py::test_login_audit_failure_does_not_break_business_success tests/test_auth.py tests/test_auth_api.py tests/test_admin_users.py tests/test_admin_permissions.py tests/test_db_rbac_permissions.py tests/test_sessions.py` with temporary `JWT_SECRET_KEY` | 通过：96 passed, 1 skipped, 16 warnings。第一次运行发现旧 patch 路径不影响新 domain 模块，已用 `sys.modules[__name__]` 模块别名修复兼容。 | Auth domain 边界迁移测试通过。 |
+| Auth domain 迁移 | `3c2d859f` | `ruff check app/api/auth.py app/domains/auth app/main.py` | 通过：All checks passed。 | Auth domain 第一阶段完成。 |
+| Admin domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/api/admin.py")`; `gitnexus impact(target="router", file_path="backend/app/api/admin.py")`; `gitnexus impact(target="admin_router", file_path="backend/app/api/admin.py")` | Admin API impact 为 LOW；5 个 route 组，无直接消费者，主要影响用户管理、审计日志、资源权限和 RBAC 流程。 | 允许做机械迁移，必须保留旧 `app.api.admin` patch/import 兼容。 |
+| Admin domain 迁移 | `3c2d859f` | `git mv backend/app/api/admin.py backend/app/domains/admin/router.py`; add compatibility `backend/app/api/admin.py`; update `backend/app/main.py` imports | 已创建 `app.domains.admin`，`main.py` 从 domain 注册 `router` 和 `admin_router`；旧 `app.api.admin` 作为模块别名指向 `app.domains.admin.router`。 | 保持 `tests/test_admin_users.py` 中旧 patch 路径有效。 |
+| Admin domain 迁移 | `3c2d859f` | `pytest tests/test_admin_users.py tests/test_admin_permissions.py tests/test_audit_logs_listing.py tests/test_audit_best_effort.py tests/test_permissions_and_audit.py tests/test_resource_permission.py tests/test_db_rbac_permissions.py` with temporary `JWT_SECRET_KEY` | 通过：82 passed, 5 warnings。 | Admin domain 边界迁移测试通过。 |
+| Admin domain 迁移 | `3c2d859f` | `ruff check app/api/auth.py app/api/admin.py app/domains/auth app/domains/admin app/main.py` | 通过：All checks passed。 | Admin domain 第一阶段完成。 |
+| Events domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/api/events.py")`; `gitnexus impact(target="router", file_path="backend/app/api/events.py")` | Events API impact 为 LOW；`/events/stream` 和列表查询影响 6 个流程，无直接消费者。 | 允许做机械迁移，必须保留 SSE 路径行为。 |
+| Events domain 迁移 | `3c2d859f` | `git mv backend/app/api/events.py backend/app/domains/events/router.py`; add compatibility `backend/app/api/events.py`; update `backend/app/main.py` import | 已创建 `app.domains.events`，`main.py` 从 domain 注册 events router；旧 `app.api.events` 作为模块别名指向 `app.domains.events.router`。 | 后续 API v1 阶段再改公开路径，当前阶段只改内部模块边界。 |
+| Events domain 迁移 | `3c2d859f` | `pytest tests/test_event_center.py tests/test_dashboard.py` with temporary `JWT_SECRET_KEY` | 通过：10 passed, 1 warning。 | Events domain 边界迁移测试通过。 |
+| Events domain 迁移 | `3c2d859f` | `ruff check app/api/auth.py app/api/admin.py app/api/events.py app/domains/auth app/domains/admin app/domains/events app/main.py` | 通过：All checks passed。 | Events domain 第一阶段完成。 |
+| Products domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/products.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/products.py")` | Products API impact 为 LOW；8 个 route 组，主要影响商品 CRUD、批量操作、cron config、价格历史、审计和调度流程。 | 允许做机械迁移，必须保留旧 `app.routers.products` patch/import 兼容。 |
+| Products domain 迁移 | `3c2d859f` | `git mv backend/app/routers/products.py backend/app/domains/products/router.py`; add compatibility `backend/app/routers/products.py`; update `backend/app/main.py` import | 已创建 `app.domains.products`，`main.py` 从 domain 注册 products router；旧 `app.routers.products` 作为模块别名指向 `app.domains.products.router`。 | 保持 `tests/test_audit_best_effort.py` 中旧 patch 路径有效。 |
+| Products domain 迁移 | `3c2d859f` | `pytest tests/test_api.py tests/test_product_cron_multi_user.py tests/test_scheduler_config.py tests/test_scheduler_status_auth.py tests/test_audit_best_effort.py::test_delete_product_audit_success_path_calls_log_audit tests/test_audit_best_effort.py::test_delete_product_audit_failure_does_not_break_business_success tests/test_permissions_and_audit.py::TestScheduleConfigPermissionDeniedForAdmin` with temporary `JWT_SECRET_KEY` | 通过：30 passed, 1 warning。 | Products domain 边界迁移测试通过。 |
+| Products domain 迁移 | `3c2d859f` | `ruff check app/domains/products/router.py --fix`; normalize `backend/app/domains/products/router.py` line endings; `ruff check app/routers/products.py app/domains/products app/main.py`; `git diff --check` | 通过：All checks passed；`git diff --check` 无错误。`--fix` 仅用于整理移动后文件顶部 import 空行，随后规范化该文件换行并重跑目标测试。 | Products domain 第一阶段完成。 |
+| Config domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/config.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/config.py")` | `api_impact` 未识别该文件的 route 节点；`router` upstream impact 为 LOW，0 direct callers，0 affected processes。 | 允许做机械迁移，必须保留旧 `app.routers.config` import 兼容。 |
+| Config domain 迁移 | `3c2d859f` | `git mv backend/app/routers/config.py backend/app/domains/config/router.py`; add compatibility `backend/app/routers/config.py`; update `backend/app/main.py` import | 已创建 `app.domains.config`，`main.py` 从 domain 注册 config router；旧 `app.routers.config` 作为模块别名指向 `app.domains.config.router`。 | 后续 API v1 阶段再改公开 `/config` 路径。 |
+| Config domain 迁移 | `3c2d859f` | `ruff check app/routers/config.py app/domains/config app/main.py`; `git diff --check` | 通过：All checks passed；`git diff --check` 无错误。 | Config domain lint/空白检查通过。 |
+| Config domain 迁移 | `3c2d859f` | `pytest tests/test_api.py::test_get_config_returns_user_config tests/test_phase_c_integration.py::TestScheduleConfigRealReadWrite tests/test_phase_c_integration.py::TestConfigMissingDefaults` with temporary `JWT_SECRET_KEY` | 通过：3 passed, 2 skipped, 1 warning。第一次运行使用了错误 pytest selector，未收集到测试；已更正为真实类名后通过。 | Config domain 第一阶段完成。 |
+| Dashboard domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/dashboard.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/dashboard.py")`; `gitnexus impact(target="get_dashboard_kpi", file_path="backend/app/routers/dashboard.py")` | GitNexus 未识别 dashboard route/symbol 节点，未返回 HIGH/CRITICAL 风险。 | 保持纯机械迁移，不改公开 `/dashboard/*` 行为。 |
+| Dashboard domain 迁移 | `3c2d859f` | `git mv backend/app/routers/dashboard.py backend/app/domains/dashboard/router.py`; add compatibility `backend/app/routers/dashboard.py`; update `backend/app/main.py` import | 已创建 `app.domains.dashboard`，`main.py` 从 domain 注册 dashboard router；旧 `app.routers.dashboard` 作为模块别名指向 `app.domains.dashboard.router`。 | 保持前端 dashboard SSE/fetch 旧路径兼容。 |
+| Dashboard domain 迁移 | `3c2d859f` | `pytest tests/test_dashboard.py tests/test_event_center.py` with temporary `JWT_SECRET_KEY` | 通过：10 passed, 1 warning。 | Dashboard/Events 相关测试通过。 |
+| Dashboard domain 迁移 | `3c2d859f` | `ruff check app/routers/dashboard.py app/domains/dashboard app/main.py`; remove unused `UTC` import exposed by targeted lint; rerun `ruff check`; `git diff --check` | 通过：All checks passed；`git diff --check` 无错误。 | Dashboard domain 第一阶段完成。 |
+| Alerts domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/alerts.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/alerts.py")` | Alerts impact 为 LOW；0 direct consumers，0 affected flows。 | 允许做机械迁移，必须保留旧 `app.routers.alerts` import 兼容。 |
+| Alerts domain 迁移 | `3c2d859f` | `git mv backend/app/routers/alerts.py backend/app/domains/alerts/router.py`; add compatibility `backend/app/routers/alerts.py`; update `backend/app/main.py` import | 已创建 `app.domains.alerts`，`main.py` 从 domain 注册 alerts router；旧 `app.routers.alerts` 作为模块别名指向 `app.domains.alerts.router`。 | 公开 `/alerts/*` 行为不变。 |
+| Alerts domain 迁移 | `3c2d859f` | `ruff check app/routers/alerts.py app/domains/alerts app/main.py`; `git diff --check`; `pytest tests/test_alerts.py tests/test_dashboard.py` with temporary `JWT_SECRET_KEY` | 通过：lint All checks passed；`git diff --check` 无错误；16 passed, 1 warning。 | Alerts domain 第一阶段完成。 |
+| Crawling domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/crawl.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/crawl.py")` | Crawl API impact 为 LOW；5 个 route 组，涉及 9 条 `Crawl_now` 相关流程，无直接消费者。 | 只做路由模块迁移，不改适配器、并发、任务状态或浏览器清理逻辑。 |
+| Crawling domain 迁移 | `3c2d859f` | `git mv backend/app/routers/crawl.py backend/app/domains/crawling/router.py`; add compatibility `backend/app/routers/crawl.py`; update `backend/app/main.py` import | 已创建 `app.domains.crawling`，`main.py` 从 domain 注册 crawl router；旧 `app.routers.crawl` 作为模块别名指向 `app.domains.crawling.router`。 | 公开 `/products/crawl/*` 行为不变。 |
+| Crawling domain 迁移 | `3c2d859f` | `ruff check app/routers/crawl.py app/domains/crawling app/main.py`; `git diff --check`; `pytest tests/test_job_crawl.py tests/test_api.py::test_scheduler_status_returns_503_when_not_started` with temporary `JWT_SECRET_KEY` | 通过：lint All checks passed；`git diff --check` 无错误；33 passed, 1 warning。 | Crawling domain 第一阶段完成。 |
+| Jobs domain 迁移 | `3c2d859f` | `gitnexus api_impact(file="backend/app/routers/jobs.py")`; `gitnexus impact(target="router", file_path="backend/app/routers/jobs.py")` | Jobs API impact 为 LOW；15 个 route 组，涉及 48 条 jobs/crawl/match/scheduler/audit 流程，无直接消费者。 | 允许做机械迁移，但不得改 job crawl 并发、Liepin HTTP-first、匹配分析或 scheduler 行为。 |
+| Jobs domain 迁移 | `3c2d859f` | `git mv backend/app/routers/jobs.py backend/app/domains/jobs/router.py`; add compatibility `backend/app/routers/jobs.py`; update `backend/app/main.py` import | 已创建 `app.domains.jobs`，`main.py` 从 domain 注册 jobs router；旧 `app.routers.jobs` 作为模块别名指向 `app.domains.jobs.router`。 | 公开 `/jobs/*` 行为不变，旧 patch/import 路径保持可用。 |
+| Jobs domain 迁移 | `3c2d859f` | `ruff check app/routers/jobs.py app/domains/jobs app/main.py`; normalize `backend/app/domains/jobs/router.py` import block; `git diff --check`; `pytest tests/test_jobs_api.py tests/test_job_crawl.py tests/test_liepin_adapter.py tests/test_liepin_pipeline.py tests/test_job_phase3_integration.py tests/test_audit_best_effort.py::test_create_job_config_audit_success_path_calls_log_audit tests/test_audit_best_effort.py::test_update_job_config_audit_failure_does_not_break_business_success tests/test_audit_best_effort.py::test_delete_job_config_audit_success_path_calls_log_audit` with temporary `JWT_SECRET_KEY` | 通过：lint All checks passed；`git diff --check` 无错误；63 passed, 1 warning。 | Jobs domain 第一阶段完成。 |
+| Scheduling domain 迁移 | `3c2d859f` | `gitnexus impact(target="get_scheduler_status", file_path="backend/app/main.py")` | `get_scheduler_status` upstream impact 为 LOW；0 direct callers，0 affected processes。 | 只迁移 `/scheduler/status` endpoint；FastAPI lifespan 中 scheduler startup/shutdown 仍留在 `main.py`。 |
+| Scheduling domain 迁移 | `3c2d859f` | add `backend/app/domains/scheduling/router.py`; update `backend/app/main.py` import/include; remove inline `@app.get("/scheduler/status")` from `main.py` | 已创建 `app.domains.scheduling`，`main.py` 注册 scheduling router；endpoint 改用 `request.app.state` 读取 scheduler/job schedulers。 | 公开 `/scheduler/status` 行为不变。 |
+| Scheduling domain 迁移 | `3c2d859f` | `ruff check app/domains/scheduling app/main.py`; `git diff --check`; `pytest tests/test_scheduler_config.py tests/test_scheduler_status_auth.py tests/test_product_cron_multi_user.py::TestProductCronSchedulerUserIsolation tests/test_job_phase3_integration.py::test_job_config_scheduler_registers_platform_agnostic_config_job` with temporary `JWT_SECRET_KEY` | 通过：lint All checks passed；`git diff --check` 无错误；15 passed, 1 warning。 | Scheduling domain 第一阶段完成。 |
+| Phase 2 回归 | `3c2d859f` | `ruff check app/api app/routers app/domains app/main.py`; `pytest tests/test_auth.py tests/test_auth_api.py tests/test_admin_users.py tests/test_admin_permissions.py tests/test_db_rbac_permissions.py tests/test_api.py tests/test_product_cron_multi_user.py tests/test_scheduler_config.py tests/test_scheduler_status_auth.py tests/test_alerts.py tests/test_jobs_api.py tests/test_job_crawl.py tests/test_liepin_adapter.py tests/test_liepin_pipeline.py tests/test_event_center.py tests/test_dashboard.py` with temporary `JWT_SECRET_KEY` | 通过：lint All checks passed；189 passed, 1 skipped, 16 warnings。 | Phase 2 后端 domain 迁移完成，可进入 API v1 迁移。 |
+| API v1 迁移 | `3c2d859f` | `gitnexus impact(target="app", file_path="backend/app/main.py")` | `app` upstream impact 为 LOW；0 direct callers，0 affected processes。 | 允许修改 router 注册方式；旧路径必须继续可用。 |
+| API v1 迁移 | `3c2d859f` | update `backend/app/main.py`; update `backend/app/domains/crawling/router.py`; add `backend/tests/test_api_v1_routes.py` | `main.py` 同时注册 legacy、`/v1`、`/api/v1` 三套业务路由；Vite 代理下浏览器 `/api/v1/...` 对应后端 `/v1/...`；商品爬取新路径为 `/v1/crawl/*`，旧 `/products/crawl/*` 保留。 | `/health` 未迁移，保持运维探活稳定。 |
+| API v1 迁移 | `3c2d859f` | update `frontend/src/api/*.ts`, dashboard hooks/pages | Axios `baseURL` 保持 `/api`，业务 API 模块改为 `/v1/...`；EventCenter SSE 改为 `/api/v1/events/stream`；Dashboard 直接 axios/EventSource 默认 base 改为 `/api/v1`。 | 页面路由 `/jobs`、`/products`、`/dashboard`、`/admin/*` 不变。 |
+| API v1 迁移 | `3c2d859f` | update `doc/backend-architecture.md`; update `doc/frontend-architecture.md` | 已同步 domain router、v1/legacy 路由、Vite proxy 与前端 API 路径约定。 | 架构文档与当前实现一致。 |
+| API v1 迁移 | `3c2d859f` | `ruff check app/main.py app/domains/crawling tests/test_api_v1_routes.py`; `pytest tests/test_api_v1_routes.py tests/test_api.py::test_get_config_returns_user_config tests/test_api.py::test_scheduler_status_returns_503_when_not_started tests/test_job_crawl.py::TestAdapterSharing::test_crawl_single_config_skips_when_job_crawl_lock_is_held` with temporary `JWT_SECRET_KEY`; `npm run lint`; `npm run build`; `git diff --check`; `rg '(/products/crawl\|/api/events\|http://localhost:8000)' frontend/src -n` | 通过：backend lint All checks passed；4 passed, 1 warning；frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误；旧前端硬编码检查仅剩 `EventCenter.tsx` 的 import 路径命中。 | Phase 3 核心迁移完成；后续 Phase 4 可继续前端 feature 拆分。 |
+| Dashboard feature 拆分 | `3c2d859f` | `gitnexus impact(target="DashboardPage", file_path="frontend/src/pages/DashboardPage.tsx")`; move dashboard page/hooks/components/types to `frontend/src/features/dashboard`; update imports; update `doc/frontend-architecture.md` | GitNexus 未识别该前端 symbol，未返回 HIGH/CRITICAL 风险。已建立 `features/dashboard`，App 从 `@/features/dashboard` 引入页面；dashboard hooks/types/components 改为 feature-local 引用。 | Dashboard 不再从 `@/hooks/useDashboard*` 或 `@/types/dashboard` 读取 feature 内部依赖。 |
+| Dashboard feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check`; Playwright 访问 `http://127.0.0.1:3000/dashboard` with `default123` / `123456` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误；浏览器验证页面显示“数据看板”、18 个 Ant Card、无 console error。 | Dashboard feature 拆分完成；本地服务保持运行在前端 3000、后端 8000。 |
+| Events feature 拆分 | `3c2d859f` | `gitnexus impact(target="EventCenterPage", file_path="frontend/src/pages/EventCenter.tsx")`; move event center page/API/types to `frontend/src/features/events`; update imports; update `doc/frontend-architecture.md` | `EventCenterPage` upstream impact 为 LOW；0 direct callers，0 affected processes。已建立 `features/events`，App 从 `@/features/events` 引入页面；events API 和 EventCenter 类型改为 feature-local。 | EventCenter 不再从 `@/api/events` 或 `@/types` 读取 feature 内部依赖。 |
+| Events feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; Playwright 访问 `http://127.0.0.1:3000/events` with `default123` / `123456`; replace deprecated Drawer `width` with `size="large"` and rerun validation | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；浏览器验证页面显示 Event Center、20 行表格、12 个筛选输入/选择控件、无 console error。 | Events feature 拆分完成。 |
+| Auth feature 拆分 | `3c2d859f` | `gitnexus impact(target="LoginPage", file_path="frontend/src/pages/Login.tsx")`; move auth API/Login/Register/Profile to `frontend/src/features/auth`; update `AuthContext`, `App.tsx`, and page imports; update `doc/frontend-architecture.md` | `LoginPage` upstream impact 为 LOW；0 direct callers，0 affected processes。已建立 `features/auth`，认证 API 和登录/注册/个人资料页面迁入 feature；`Settings` 保留原位置，因为其职责是 config API。 | Auth 不再从 `@/api/auth` 或 `@/pages/{Login,Register,Profile}` 读取 feature 内部依赖。 |
+| Auth feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; restart local services; Playwright 访问 `http://127.0.0.1:3000/login` then `http://127.0.0.1:3000/profile` with `default123` / `123456` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；浏览器验证登录页显示 Welcome Back，登录后 profile 显示 default123，无 console error。 | Auth feature 拆分完成；本地服务保持运行在前端 3000、后端 8000。 |
+| Settings/config feature 拆分 | `3c2d859f` | `gitnexus impact(target="SettingsPage", file_path="frontend/src/pages/Settings.tsx")`; move Settings page and config API to `frontend/src/features/settings`; update `App.tsx`, `hooks/api.ts`, `ScheduleConfigPage.tsx`; update `doc/frontend-architecture.md` | `SettingsPage` upstream impact 为 LOW；0 direct callers，0 affected processes。已建立 `features/settings`，`configApi` 迁入该 feature，并保留给 schedule/shared hooks 复用。 | Settings 不再从 `@/api/config` 或 `@/pages/Settings` 读取 feature 内部依赖。 |
+| Settings/config feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; Playwright 访问 `http://127.0.0.1:3000/settings` and `http://127.0.0.1:3000/schedule` with `default123` / `123456` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；浏览器验证 Settings 页面显示 Account Settings，Schedule 页面显示 2 个表格，无 console error。 | Settings/config 切片完成。 |
+| Schedule feature 拆分 | `3c2d859f` | `gitnexus impact(target="ScheduleConfigPage", file_path="frontend/src/pages/ScheduleConfigPage.tsx")`; move Schedule page and CronGenerator to `frontend/src/features/schedule`; add local `useScheduleConfig` hooks; update `App.tsx`; update `doc/frontend-architecture.md` | `ScheduleConfigPage` upstream impact 为 LOW；0 direct callers，0 affected processes。已建立 `features/schedule`，页面不再从 `@/hooks/api` 或 `@/components/CronGenerator` 读取 feature 内部依赖。 | Schedule feature 边界完成，仍复用 products/jobs/settings API clients。 |
+| Schedule feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; Playwright 访问 `http://127.0.0.1:3000/schedule`; click cron generator icon button | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；浏览器验证 Schedule 页面显示 2 个表格，Cron Expression Generator 可打开，无 console error。 | Schedule feature 拆分完成。 |
+| Products feature 拆分 | `3c2d859f` | `gitnexus impact` for `ProductsPage`, `productsApi`, `crawlApi`, `useProducts`; move product page/API/components to `frontend/src/features/products`; add product-local hooks; update `App.tsx`, `ScheduleConfigPage.tsx`, `doc/frontend-architecture.md` | GitNexus 风险均为 LOW；`useProducts` 只有 `ProductsPage` 一个直接上游调用。`ProductsPage` 不再从 `@/hooks/api` 读取产品 hooks，也不再从共享 `components/` 读取商品弹窗；`ScheduleConfigPage` 通过 `@/features/products` 稳定入口复用商品 cron API。 | 继续运行 build 和浏览器验证 `/products`。 |
+| Products feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误，仅有既有 LF/CRLF 工作区提示。 | 待浏览器验证商品页加载、空态/表格、爬取日志区域和 console。 |
+| Products feature 拆分 | `3c2d859f` | Playwright 访问 `http://127.0.0.1:3000/products` with `default123` / `123456`; open Add Product, Batch Import, and first Trend modal | 通过：页面显示 Product Management，2 个表格、Add Product、Recent Crawl Logs 可见；Add Product、Batch Import Products、Price Trend 弹窗均可打开；无 console error。 | Products feature 拆分完成。 |
+| Jobs feature 拆分 | `3c2d859f` | `gitnexus impact` for `JobsPage`, `jobsApi`, `jobMatchApi`, `useJobs`; move jobs page/API/components to `frontend/src/features/jobs`; add job-local hooks; update `App.tsx`, `ScheduleConfigPage.tsx`, `doc/frontend-architecture.md` | GitNexus 风险均为 LOW；`useJobs` 只有 `JobsPage` 一个直接上游调用。`JobsPage` 不再从 `@/hooks/api` 读取 jobs hooks，也不再从共享 `components/` 读取职位组件；`ScheduleConfigPage` 通过 `@/features/jobs` 稳定入口复用职位 cron API。 | 继续浏览器验证 `/jobs`。 |
+| Jobs feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误，仅有既有 LF/CRLF 工作区提示。 | 待浏览器验证职位页加载、tabs、表格和 console。 |
+| Jobs feature 拆分 | `3c2d859f` | Playwright 访问 `http://127.0.0.1:3000/jobs` with `default123` / `123456`; switch Search Config, Resume Management, Match Results, Crawl Logs tabs | 通过：页面显示 Job Management，4 个 tab、Search Config 表格、Resume Management、Match Results、Recent Job Crawl Logs 可见；无 console error。 | Jobs feature 拆分完成。 |
+| Admin feature 拆分 | `3c2d859f` | `gitnexus impact` for `AdminUsersPage`, `AdminAuditLogsPage`, `adminApi`, `useResourcePermissions`; move admin pages/API to `frontend/src/features/admin`; add admin-local RBAC/resource hooks; update `App.tsx`, `doc/frontend-architecture.md` | GitNexus 风险均为 LOW；`useResourcePermissions` 的直接影响只在 `AdminUsersPage` 内部。`AdminUsersPage` 和 `AdminAuditLogsPage` 不再从 `@/api/admin` 或 `@/hooks/api` 读取 admin 依赖。 | 继续浏览器验证 admin 页面。 |
+| Admin feature 拆分 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误，仅有既有 LF/CRLF 工作区提示。 | 待浏览器验证用户管理、审计日志和 console。 |
+| Admin feature 拆分 | `3c2d859f` | Playwright 访问 `http://127.0.0.1:3000/admin/users` and `/admin/audit-logs` with `default123` / `123456` | 通过：User Management 页面显示用户表格和 Role Permissions；Audit Logs 页面显示审计表格和 Total records；无 console error。 | Admin feature 拆分完成。 |
+| Alerts feature 拆分与 hooks 清理 | `3c2d859f` | `gitnexus impact` for `alertsApi`, `useAllAlerts`, `useCreateAlert`, `useUpdateAlert`; move alerts API to `frontend/src/features/alerts`; add alert-local hooks; update `ProductsPage`; delete unused `frontend/src/hooks/api.ts`; update `doc/frontend-architecture.md` | GitNexus 风险均为 LOW；alert hooks 的直接影响只有 `ProductsPage`。`@/hooks/api` 已无消费者并删除，前端 API 根目录仅保留通用 `client.ts`。 | 继续运行 lint/build/diff 和 products 回归浏览器验证。 |
+| Alerts feature 拆分与 hooks 清理 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check`; Playwright 访问 `http://127.0.0.1:3000/products` with `default123` / `123456` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误；Product Management、2 个表格、Alert 列、Add Product 可见；无 console error。 | Alerts feature 拆分完成，Phase 4 主要 feature 拆分完成。 |
+| Feature 类型入口收口 | `3c2d859f` | add feature-local `types.ts` files for auth/admin/alerts/products/jobs/settings/schedule; update feature internals to import local type entries instead of `@/types`; update `doc/frontend-architecture.md` | 通过：feature 内部业务文件不再直接从 `@/types` 导入；类型定义暂通过 feature-local type facade 暴露，避免本阶段同时改字段定义和运行时逻辑。 | 继续做 Phase 4 汇总验证。 |
+| Feature 类型入口收口 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误，仅有既有 LF/CRLF 工作区提示。 | Phase 4 前端拆分可进入汇总验证。 |
+| Phase 5 文档同步 | `3c2d859f` | update `doc/permission-architecture.md`; update `doc/frontend-architecture.md`; `rg` scan old frontend path imports | 已同步权限文档到 `/api/v1/*` 主路径，并注明 legacy routes 只作为迁移期兼容层。前端业务源码无 `@/hooks/api`、旧 `@/api/*` 业务模块、旧 `@/pages/*` 引用；feature 内部只通过本地 `types.ts` 入口读取业务类型。 | 继续最终验证。 |
+| Phase 5 最终验证 | `3c2d859f` | backend `pytest -q` with temporary `JWT_SECRET_KEY`; backend targeted `ruff check app/api app/routers app/domains app/main.py tests/test_api_v1_routes.py`; frontend `npm run lint`; frontend `npm run build`; `git diff --check` | 通过：backend pytest `362 passed, 18 skipped, 21 warnings`；targeted backend ruff All checks passed；frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误。全量 `ruff check .` 仍失败在既有 Alembic/旧脚本/旧 schema lint 债，本次未顺手修改无关文件。 | 继续浏览器主页面回归。 |
+| Phase 5 浏览器回归 | `3c2d859f` | Playwright with `default123` / `123456`: `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/settings`, `/profile`, `/admin/users`, `/admin/audit-logs` | 通过：各页面可加载；Dashboard h1 为“数据看板”，Profile h1 为 Personal Info，其余页面标题/表格/tab 可见；无 console error。 | 当前阶段实现与验证完成，待最终代码审查/提交策略。 |
+| Shared/app 结构收口 | `3c2d859f` | `gitnexus impact` for `AppLayout`, `AuthProvider`, `useAuth`, `useTheme`; move `api/client.ts` to `shared/api/client.ts`; move global components to `shared/components`; move common hooks to `shared/hooks`; move `AuthContext` to `app/contexts`; remove empty old `api/`, `components/`, `contexts/`, `hooks/` directories; update imports and `doc/frontend-architecture.md` | `useAuth` impact 为 HIGH，影响路由守卫、布局和多个 feature；本步骤只做路径迁移，不改行为。旧共享目录已清空移除，`frontend/src/shared` 和 `frontend/src/app` 成为新的全局基础设施入口。 | 用户选择继续做结构清理后，`AuthContext` 将从 `app/contexts` 再迁入 `shared/contexts`。 |
+| Shared/app 结构收口 | `3c2d859f` | `npm run lint`; `npm run build`; `git diff --check`; Playwright login then visit `/dashboard`, `/jobs`, `/products`, `/settings`, `/admin/users` | 通过：frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误；主要页面 h1 可见，无 console error。Dashboard 的文本断言受 PowerShell 编码影响，但 h1 读取为“数据看板”。 | Shared/app 迁移完成。 |
+| Shared/类型最终收口 | `3c2d859f` | `gitnexus impact(target="useAuth")`; move `app/contexts/AuthContext.tsx` to `shared/contexts/AuthContext.tsx`; move `types/motion.ts` to `shared/types/motion.ts`; split `types/index.ts` into `shared/types/{permissions,user,motion,index}.ts` and feature-local `features/*/types.ts`; delete old `frontend/src/types/index.ts`; update `doc/frontend-architecture.md` | `useAuth` impact 为 HIGH，影响路由守卫、布局和多个页面；本步骤只做路径与类型所有权迁移，不改认证行为。`MotionSpeed` 作为全局 UI 动效类型保留在 `shared/types/motion.ts`，不放入业务 feature。 | 继续运行前端 lint/build、`git diff --check` 和浏览器回归。 |
+| Shared/类型最终收口 | `3c2d859f` | `rg '@/types\|@/app/contexts/AuthContext\|app/contexts\|frontend/src/types' frontend/src doc/frontend-architecture.md docs/2026-05-22-project-refactor-plan.md`; `npm run lint`; `npm run build`; `git diff --check`; Playwright login then visit `/dashboard`, `/jobs`, `/products`, `/settings`, `/admin/users` | 通过：前端源码无旧 `@/types`、旧 `@/app/contexts/AuthContext` 或 `app/contexts` 引用；`frontend/src/app` 和 `frontend/src/types` 已移除。frontend lint 通过；frontend build 通过并保留既有 chunk size warning；`git diff --check` 无错误，仅有既有 LF/CRLF 工作区提示；浏览器回归页面 h1 可见且无 console error。 | Shared/类型最终收口完成；下一步可进入最终 review / detect changes / 提交策略。 |

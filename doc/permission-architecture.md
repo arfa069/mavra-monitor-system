@@ -1,6 +1,6 @@
 # 权限架构
 
-> 最后更新：2026-05-22（db-driven-rbac 功能完成时）
+> 最后更新：2026-05-23（project-refactor API v1 / feature 拆分后）
 
 ## 概览
 
@@ -40,73 +40,75 @@
 
 ## 端点 → 权限映射
 
-### 认证 (auth.py)
+除 `/health` 外，前端主调用路径使用 `/api/v1/*`。后端在迁移期仍保留 legacy 路由兼容层；权限语义以 `/api/v1` 主路径为准。
+
+### 认证 (`app.domains.auth.router`)
 
 | 端点                  | 依赖                       |
 | --------------------- | -------------------------- |
-| `POST /auth/register` | 公开                       |
-| `POST /auth/login`    | 公开（5 次失败锁 15 分钟） |
-| `POST /auth/logout`   | `get_current_user`         |
-| `GET /auth/me`        | `get_current_user`         |
-| `GET /auth/sessions`  | `get_current_user`         |
+| `POST /api/v1/auth/register` | 公开                       |
+| `POST /api/v1/auth/login`    | 公开（5 次失败锁 15 分钟） |
+| `POST /api/v1/auth/logout`   | `get_current_user`         |
+| `GET /api/v1/auth/me`        | `get_current_user`         |
+| `GET /api/v1/auth/sessions`  | `get_current_user`         |
 
-### 用户管理 (admin.py)
+### 用户管理 (`app.domains.admin.router`)
 
 | 端点                                         | 权限          |
 | -------------------------------------------- | ------------- |
-| `GET /admin/users`                           | `user:read`   |
-| `POST /admin/users`                          | `user:manage` |
-| `GET /admin/users/{id}`                      | `user:read`   |
-| `PATCH /admin/users/{id}`                    | `user:manage` |
-| `DELETE /admin/users/{id}`                   | `user:delete` |
-| `GET /admin/audit-logs`                      | `user:read`   |
-| `POST /admin/resource-permissions`           | `user:manage` |
-| `GET /admin/resource-permissions`            | `user:read`   |
-| `PATCH /admin/resource-permissions/{id}`     | `user:manage` |
-| `DELETE /admin/resource-permissions/{id}`    | `user:manage` |
-| `GET /admin/roles/permissions`               | `rbac:read`   |
-| `PATCH /admin/roles/{role_name}/permissions` | `rbac:manage` |
+| `GET /api/v1/admin/users`                           | `user:read`   |
+| `POST /api/v1/admin/users`                          | `user:manage` |
+| `GET /api/v1/admin/users/{id}`                      | `user:read`   |
+| `PATCH /api/v1/admin/users/{id}`                    | `user:manage` |
+| `DELETE /api/v1/admin/users/{id}`                   | `user:delete` |
+| `GET /api/v1/admin/audit-logs`                      | `user:read`   |
+| `POST /api/v1/admin/resource-permissions`           | `user:manage` |
+| `GET /api/v1/admin/resource-permissions`            | `user:read`   |
+| `PATCH /api/v1/admin/resource-permissions/{id}`     | `user:manage` |
+| `DELETE /api/v1/admin/resource-permissions/{id}`    | `user:manage` |
+| `GET /api/v1/admin/roles/permissions`               | `rbac:read`   |
+| `PATCH /api/v1/admin/roles/{role_name}/permissions` | `rbac:manage` |
 
-### 商品 (products.py)
+### 商品 (`app.domains.products.router`)
 
 | 端点                                       | 权限                 |
 | ------------------------------------------ | -------------------- |
-| 商品 CRUD（增删改查）                      | `get_current_user`   |
-| `POST /products/cron-configs`              | `schedule:configure` |
-| `PATCH /products/cron-configs/{platform}`  | `schedule:configure` |
-| `DELETE /products/cron-configs/{platform}` | `schedule:configure` |
+| `/api/v1/products` 商品 CRUD（增删改查）                      | `get_current_user`   |
+| `POST /api/v1/products/cron-configs`              | `schedule:configure` |
+| `PATCH /api/v1/products/cron-configs/{platform}`  | `schedule:configure` |
+| `DELETE /api/v1/products/cron-configs/{platform}` | `schedule:configure` |
 
-### 职位 (jobs.py)
+### 职位 (`app.domains.jobs.router`)
 
 | 端点                               | 权限                 |
 | ---------------------------------- | -------------------- |
-| 职位/简历/匹配 CRUD                | `get_current_user`   |
-| `POST /jobs/crawl-now`             | `crawl:execute`      |
-| `POST /jobs/crawl-now/{config_id}` | `crawl:execute`      |
-| `PATCH /jobs/configs/{id}/cron`    | `schedule:configure` |
+| `/api/v1/jobs` 职位/简历/匹配 CRUD                | `get_current_user`   |
+| `POST /api/v1/jobs/crawl-now`             | `crawl:execute`      |
+| `POST /api/v1/jobs/crawl-now/{config_id}` | `crawl:execute`      |
+| `PATCH /api/v1/jobs/configs/{id}/cron`    | `schedule:configure` |
 
-### 爬取 (crawl.py)
+### 爬取 (`app.domains.crawling.router`)
 
 | 端点                    | 权限               |
 | ----------------------- | ------------------ |
-| `POST /crawl/crawl-now` | `crawl:execute`    |
-| `POST /crawl/cleanup`   | `crawl:execute`    |
-| `GET /crawl/logs` 等    | `get_current_user` |
+| `POST /api/v1/crawl/crawl-now` | `crawl:execute`    |
+| `POST /api/v1/crawl/cleanup`   | `crawl:execute`    |
+| `GET /api/v1/crawl/logs` 等    | `get_current_user` |
 
-### 配置 (config.py)
+### 配置 (`app.domains.config.router`)
 
 | 端点            | 权限           |
 | --------------- | -------------- |
-| `GET /config`   | `config:read`  |
-| `POST /config`  | `config:write` |
-| `PATCH /config` | `config:write` |
+| `GET /api/v1/config`   | `config:read`  |
+| `POST /api/v1/config`  | `config:write` |
+| `PATCH /api/v1/config` | `config:write` |
 
-### 系统 (main.py)
+### 系统 (`main.py` / `app.domains.scheduling.router`)
 
 | 端点                    | 权限                                   |
 | ----------------------- | -------------------------------------- |
-| `GET /health`           | 公开（仅返回 status）                  |
-| `GET /scheduler/status` | `require_role("admin", "super_admin")` |
+| `GET /health`                    | 公开（仅返回 status）                  |
+| `GET /api/v1/scheduler/status`   | `require_role("admin", "super_admin")` |
 
 ## Token 策略
 

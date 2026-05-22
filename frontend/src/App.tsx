@@ -10,21 +10,18 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { App as AntdApp, ConfigProvider, Spin, theme } from "antd";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import type { Permission } from "@/types";
-import AppLayout from "@/components/AppLayout";
-import { ThemeProvider, useThemeContext } from "@/components/ThemeProvider";
-import JobsPage from "@/pages/JobsPage";
-import ProductsPage from "@/pages/ProductsPage";
-import ScheduleConfigPage from "@/pages/ScheduleConfigPage";
-import ProfilePage from "@/pages/Profile";
-import SettingsPage from "@/pages/Settings";
-import LoginPage from "@/pages/Login";
-import RegisterPage from "@/pages/Register";
-import AdminUsersPage from "@/pages/AdminUsers";
-import AdminAuditLogsPage from "@/pages/AdminAuditLogs";
-import EventCenterPage from "@/pages/EventCenter";
-import DashboardPage from "@/pages/DashboardPage";
+import { AuthProvider, useAuth } from "@/shared/contexts/AuthContext";
+import type { Permission } from "@/shared/types";
+import AppLayout from "@/shared/components/AppLayout";
+import { ThemeProvider, useThemeContext } from "@/shared/components/ThemeProvider";
+import JobsPage from "@/features/jobs";
+import ProductsPage from "@/features/products";
+import { AdminAuditLogsPage, AdminUsersPage } from "@/features/admin";
+import { LoginPage, ProfilePage, RegisterPage } from "@/features/auth";
+import { EventCenterPage } from "@/features/events";
+import { DashboardPage } from "@/features/dashboard";
+import { SettingsPage } from "@/features/settings";
+import { ScheduleConfigPage } from "@/features/schedule";
 
 // Error Fallback component (uses hooks, must be inside Router)
 function ErrorFallback() {

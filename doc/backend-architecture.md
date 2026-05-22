@@ -26,8 +26,9 @@ backend/
 │   ├── config.py               # Pydantic Settings（环境变量）
 │   ├── database.py             # 异步 SQLAlchemy 引擎 + 会话
 │   ├── api/
-│   │   ├── auth.py             # 认证 API（注册/登录/登出/会话）
-│   │   ├── admin.py            # 用户管理 + 审计日志 API
+│   │   ├── auth.py             # 兼容模块别名 -> domains/auth/router.py
+│   │   ├── admin.py            # 兼容模块别名 -> domains/admin/router.py
+│   │   ├── events.py           # 兼容模块别名 -> domains/events/router.py
 │   │   └── wechat.py           # 微信登录（feature flag，默认关闭）
 │   ├── core/
 │   │   ├── security.py         # JWT / 密码加密 / 会话管理
@@ -57,13 +58,24 @@ backend/
 │   │   ├── boss.py             # BossZhipinAdapter
 │   │   ├── job51.py            # Job51Adapter
 │   │   └── liepin.py           # LiepinAdapter
-│   ├── routers/
-│   │   ├── __init__.py
-│   │   ├── config.py           # 配置管理 API
-│   │   ├── products.py         # 商品管理 API
-│   │   ├── alerts.py           # 告警管理 API
-│   │   ├── crawl.py            # 爬取触发 API
-│   │   └── jobs.py             # 职位管理 API
+│   ├── domains/
+│   │   ├── admin/router.py     # 用户管理 + 审计日志 + RBAC
+│   │   ├── alerts/router.py    # 告警管理 API
+│   │   ├── auth/router.py      # 认证 API（注册/登录/登出/会话）
+│   │   ├── config/router.py    # 用户配置 API
+│   │   ├── crawling/router.py  # 商品爬取触发 API
+│   │   ├── dashboard/router.py # Dashboard KPI / 趋势 / SSE
+│   │   ├── events/router.py    # 事件中心 API / SSE
+│   │   ├── jobs/router.py      # 职位管理 API
+│   │   ├── products/router.py  # 商品管理 API
+│   │   └── scheduling/router.py # Scheduler status API
+│   ├── routers/                # 旧 import 路径兼容模块别名
+│   │   ├── config.py
+│   │   ├── products.py
+│   │   ├── alerts.py
+│   │   ├── crawl.py
+│   │   ├── dashboard.py
+│   │   └── jobs.py
 │   ├── schemas/
 │   │   ├── user.py
 │   │   ├── product.py
@@ -183,16 +195,20 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 前缀                | 路由文件            | 说明                                                 |
-| ------------------- | ------------------- | ---------------------------------------------------- |
-| `/auth`             | api/auth.py         | 注册/登录/登出/当前用户                              |
-| `/config`           | routers/config.py   | 用户配置（飞书 Webhook、数据保留期）                 |
-| `/products`         | routers/products.py | 商品 CRUD + 批量操作                                 |
-| `/alerts`           | routers/alerts.py   | 告警管理                                             |
-| `/products/crawl`   | routers/crawl.py    | 商品爬取触发 + 日志查询                              |
-| `/jobs`             | routers/jobs.py     | 职位搜索配置 + 爬取 + 匹配分析                       |
-| `/admin`            | api/admin.py        | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
-| `/scheduler/status` | main.py             | APScheduler 状态（admin/super_admin）                |
+| 兼容前缀            | v1 前缀                    | 路由文件                            | 说明                                                 |
+| ------------------- | -------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| `/auth`             | `/v1/auth`, `/api/v1/auth` | `domains/auth/router.py`            | 注册/登录/登出/当前用户                              |
+| `/config`           | `/v1/config`, `/api/v1/config` | `domains/config/router.py`       | 用户配置（飞书 Webhook、数据保留期）                 |
+| `/products`         | `/v1/products`, `/api/v1/products` | `domains/products/router.py` | 商品 CRUD + 批量操作                                 |
+| `/alerts`           | `/v1/alerts`, `/api/v1/alerts` | `domains/alerts/router.py`       | 告警管理                                             |
+| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl` | `domains/crawling/router.py`     | 商品爬取触发 + 日志查询                              |
+| `/jobs`             | `/v1/jobs`, `/api/v1/jobs` | `domains/jobs/router.py`            | 职位搜索配置 + 爬取 + 匹配分析                       |
+| `/admin`            | `/v1/admin`, `/api/v1/admin` | `domains/admin/router.py`        | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
+| `/events`           | `/v1/events`, `/api/v1/events` | `domains/events/router.py`      | 事件中心列表和 SSE                                   |
+| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard` | `domains/dashboard/router.py` | Dashboard KPI / 趋势 / SSE                           |
+| `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py` | APScheduler 状态（admin/super_admin）                |
+
+`main.py` 同时注册旧路径、`/v1` 和 `/api/v1`。前端开发环境中 Vite 代理会去掉浏览器 URL 的 `/api` 前缀，因此浏览器请求 `/api/v1/...` 到达后端时对应 `/v1/...`。
 
 ### 6.2 认证系统
 
@@ -272,7 +288,7 @@ JWT payload 结构：
 
 `get_active_products()` — 查询当前用户所有 `active=True` 的商品，返回 `List[Product]`。
 
-实际抓取逻辑在 `routers/crawl.py:_crawl_one()` 中，流程：
+实际抓取逻辑在 `domains/crawling/router.py:_crawl_one()` 中，流程：
 
 1. 根据 platform 路由到对应 Adapter
 2. 调用 `adapter.crawl(url)` 执行 Playwright 自动化
