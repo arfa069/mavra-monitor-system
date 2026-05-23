@@ -65,7 +65,7 @@ frontend/src/
 │   ├── api/client.ts        # Axios 实例（拦截器 + 错误处理）
 │   ├── components/          # 全局布局、主题、过渡、权限标识组件
 │   ├── contexts/
-│       └── AuthContext.tsx  # 全局认证上下文（用户状态 + Token 管理）
+│       └── AuthContext.tsx  # 全局认证上下文（用户状态 + 权限）
 │   ├── hooks/               # 通用 UI hooks
 │   └── types/               # 通用权限、用户、动效类型
 ├── styles/                  # Figma 设计系统
@@ -166,7 +166,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
+  login: (user: User) => void;
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
   hasAnyPermission: (permissions: Permission[]) => boolean;
@@ -176,11 +176,11 @@ interface AuthContextType {
 
 前端使用 AuthContext 暴露的 `hasPermission()` / `hasAnyPermission()` / `hasAllPermissions()` 进行 UX 级别权限控制。`user.role` 仅用于展示和少数角色边界提示；菜单、路由、按钮和只读态以 `user.permissions` 为准。
 
-**持久化策略**：Token 和用户信息存储在 `localStorage`，初始化时通过 `/auth/me` 验证 Token 有效性。
+**认证方式**：HttpOnly Cookie 传递 access/refresh token。前端不管理 token 字符串。初始化时通过 `GET /auth/me` 验证登录状态（Cookie 自动携带）。
 
 **登出流程**：
 
-1. 清除 `localStorage` 中的 Token 和用户数据
+1. 调用 `POST /auth/logout`，后端清除 Cookie 并删除 session
 2. 重置 `user` 状态
 3. 跳转到 `/login`
 
@@ -211,7 +211,9 @@ const api = axios.create({
 });
 ```
 
-**请求拦截器**：自动在 `Authorization` header 添加 `Bearer {token}`。
+**请求拦截器**：Axios 自动携带凭据（`withCredentials: true`），不安全方法（POST/PATCH/PUT/DELETE）自动注入 `X-CSRF-Token` 请求头（从 `pm_csrf_token` Cookie 读取）。
+
+**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /auth/refresh` 刷新 access token。刷新成功后重试原始请求；失败后重定向到 /login。排除 `/auth/login` 的刷新循环。
 
 **响应拦截器**：
 
@@ -301,7 +303,7 @@ server: {
 - 装饰色块：`#dceeb1` lime（登录页）/ `#c5b0f4` lilac（注册页），定位在面板右侧边缘
 - 右侧表单面板：`#f7f7f5` 浅灰背景，白色圆角卡片（24px 边框半径），黑色胶囊提交按钮
 - 移动端（< 768px）：左右分栏 → 上下布局，装饰色块隐藏
-- 公开路由，注册/登录成功后调用 `login(token, userData)` 写入 AuthContext
+- 公开路由，注册/登录成功后调用 `login(userData)` 写入 AuthContext
 
 ## 7. 组件设计
 

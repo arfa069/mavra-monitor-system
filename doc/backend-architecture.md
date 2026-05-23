@@ -11,7 +11,7 @@
 | 爬虫     | Playwright（商品）+ curl_cffi（BOSS 直聘）  |
 | 定时调度 | APScheduler（AsyncIOScheduler）             |
 | 通知     | 飞书 Webhook                                |
-| 认证     | JWT（python-jose + bcrypt）                 |
+| 认证     | HttpOnly Cookie + JWT + Refresh Token（python-jose + bcrypt + secrets.token_urlsafe） |
 
 ## 2. 项目结构
 
@@ -26,7 +26,8 @@ backend/
 │   ├── config.py               # Pydantic Settings（环境变量）
 │   ├── database.py             # 异步 SQLAlchemy 引擎 + 会话
 │   ├── core/
-│   │   ├── security.py         # JWT / 密码加密 / 会话管理
+│   │   ├── security.py         # 认证依赖（get_current_user_cookie / csrf_protect / require_role）
+│   │   ├── tokens.py           # JWT create/decode + opaque refresh/CSRF helpers
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
 │   │   ├── resource_permission.py # 资源级 ACL 权限判断
 │   │   ├── user_config_cache.py # Redis TTL 缓存用户配置（5min）
@@ -34,7 +35,7 @@ backend/
 │   ├── models/
 │   │   ├── base.py             # SQLAlchemy Base
 │   │   ├── user.py             # User 模型
-│   │   ├── session.py          # 用户会话（token_hash 绑定）
+│   │   ├── session.py          # 会话管理（refresh_token_hash + token_hash 双模式，stage_* 事务安全）
 │   │   ├── audit_log.py        # 审计日志（users_audit_logs）
 │   │   ├── login_log.py        # 登录历史
 │   │   ├── product.py          # Product / ProductPlatformCron 模型
@@ -85,7 +86,7 @@ backend/
 │   │   │   └── repository.py   # Dashboard 用户/告警查询
 │   │   ├── events/
 │   │   │   ├── router.py       # 事件中心 API / SSE 薄路由
-│   │   │   ├── service.py      # 事件列表查询编排与 SSE token 用户解析
+│   │   │   ├── service.py      # 事件列表查询编排
 │   │   │   └── repository.py   # 审计/系统日志 union 查询
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
@@ -236,8 +237,9 @@ User (1) ──────< Product (多)
 ### 6.2 认证系统
 
 - `POST /auth/register` — 用户注册
-- `POST /auth/login` — 用户登录（JWT token，60 分钟有效期）
-- `POST /auth/logout` — 登出
+- `POST /auth/login` — 用户登录（设置 HttpOnly Cookie：pm_access_token / pm_refresh_token / pm_csrf_token）
+- `POST /auth/refresh` — 刷新 access token（通过 pm_refresh_token Cookie）
+- `POST /auth/logout` — 登出（清除 Cookie + 删除 session）
 - `GET /auth/me` — 获取当前用户信息
 - `GET /auth/sessions` — 获取当前用户活跃会话列表
 - 密码 bcrypt 加密，登录失败锁定（5次失败锁定15分钟，Redis 持久化，重启不丢失）
@@ -246,22 +248,38 @@ User (1) ──────< Product (多)
 
 ### 6.3 认证流程
 
-所有 API（除 `/auth/*` 外）均通过 `Depends(get_current_user)` 强制认证：
+所有 API（除 `/auth/login`、`/auth/register` 外）均通过 `Depends(get_current_user_cookie)` 强制认证：
 
-```python
-async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    # 从请求头提取 Bearer Token
-    # 验证 JWT signature 和 expiry
-    # 返回 User 对象或抛出 401
-```
+1. 从 `pm_access_token` HttpOnly Cookie 读取 access JWT
+2. 验证 JWT signature、expiry、`typ="access"`、`sub`、`sid` 声明
+3. 通过 `sid` 查找 `users_sessions` 行，校验 `user_id` 匹配
+4. 校验用户 `deleted_at IS NULL`
+5. 不需要 `is_active` 检查（仅 API 兼容字段）
 
-JWT payload 结构：
+Access JWT payload 结构：
 
 ```json
-{"sub": '<username>', "user_id": 1, "exp": <timestamp>}
+{"sub": "1", "username": "testuser", "sid": 42, "typ": "access", "exp": 1712345678}
+```
+
+Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(48)）有效期 14 天，仅存储 SHA-256 哈希到 `users_sessions.refresh_token_hash`。
+
+不安全方法（POST/PATCH/PUT/DELETE）需额外通过 `Depends(csrf_protect)`：
+- 读取 `pm_csrf_token` Cookie（非 HttpOnly，前端可读取）
+- 比较 `X-CSRF-Token` 请求头
+- 不匹配返回 403；安全方法（GET/HEAD/OPTIONS）跳过
+
+变更摘要（从 Bearer token 迁移到 Cookie 认证）：
+
+| 项目 | 旧系统 | 新系统 |
+|------|--------|--------|
+| Token 存储 | localStorage (浏览器) | HttpOnly Cookie |
+| 请求方式 | `Authorization: Bearer <token>` | 自动携带 Cookie |
+| Access JWT 有效期 | 60 分钟 | 15 分钟 |
+| 会话标识 | token_hash (JWT 原文哈希) | sid (session ID claim) |
+| 登录返回 | `TokenResponse {access_token}` | `UserResponse` + 设置 Cookie |
+| Refresh 机制 | 无 | POST /auth/refresh，opaque token 轮换 |
+| CSRF 保护 | 无 | pm_csrf_token Cookie + X-CSRF-Token Header |
 ```
 
 ### 6.3 请求/响应模型（schemas/）
@@ -441,7 +459,7 @@ _shared_context: BrowserContext
 
 ### 9.1 认证与授权
 
-- JWT Token：60 分钟有效期（`ACCESS_TOKEN_EXPIRE_MINUTES = 60`）
+- JWT Access Token：15 分钟有效期（`access_token_expire_minutes = 15`）
 - 密码：bcrypt 加密
 - 登录失败锁定：5 次失败后锁定 15 分钟（Redis 持久化，重启不丢失）
 
