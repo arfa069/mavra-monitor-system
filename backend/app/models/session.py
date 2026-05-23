@@ -12,7 +12,7 @@ class Session(Base, TimestampMixin):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=True, index=True)
     refresh_token_hash = Column(String(64), unique=True, nullable=True)
     refresh_expires_at = Column(DateTime(timezone=True), nullable=False, default=_utc_now)
     device = Column(String(255))
