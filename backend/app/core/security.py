@@ -13,11 +13,12 @@ import hashlib
 import logging
 from typing import TYPE_CHECKING
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.login_lockout import (  # noqa: F401  # re-exported for compatibility
     LOCKOUT_DURATION_SECONDS,
     MAX_LOGIN_ATTEMPTS,
@@ -130,6 +131,129 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_user_cookie(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Dependency: authenticate via ``pm_access_token`` cookie.
+
+    Reads the access token from the ``pm_access_token`` cookie, validates
+    it with :func:`decode_access_token_strict` (which enforces ``typ``,
+    ``sub``, and ``sid`` claims), then verifies that:
+
+    - The ``users`` record exists and is not soft-deleted.
+    - A ``users_sessions`` row matching ``sid`` and ``user_id`` exists.
+
+    Returns 401 for:
+    - Missing cookie.
+    - Invalid / expired token.
+    - Wrong token type (missing ``typ="access"``).
+    - Malformed ``sub`` (user_id) claim.
+    - Malformed ``sid`` (session_id) claim.
+    - Deleted or non-existent user.
+    - Missing / deleted session.
+    """
+    from app.models.user import User
+
+    cookie_name = settings.auth_access_cookie_name
+    token = request.cookies.get(cookie_name)
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：未提供登录凭证",
+        )
+
+    payload = decode_access_token_strict(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：Token 无效或已过期",
+        )
+
+    # ── Validate sub (user_id) ──────────────────────────────────────
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：Token 无效或已过期",
+        )
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：Token 无效或已过期",
+        )
+
+    # ── Validate sid (session_id) ───────────────────────────────────
+    sid = payload.get("sid")
+    if sid is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：Token 无效或已过期",
+        )
+    try:
+        sid_int = int(sid)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：Token 无效或已过期",
+        )
+
+    # ── Look up user (exclude soft-deleted) ─────────────────────────
+    result = await db.execute(
+        select(User).where(
+            User.id == user_id_int,
+            User.deleted_at.is_(None),
+        )
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：用户不存在或已被删除",
+        )
+
+    # ── Look up session by sid ──────────────────────────────────────
+    session = await get_session_by_id(sid_int, user_id_int, db)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="认证失败：会话已失效或已在其他地方退出",
+        )
+
+    return user
+
+
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+async def csrf_protect(request: Request) -> None:
+    """CSRF protection dependency.
+
+    Compares the ``pm_csrf_token`` cookie with the ``X-CSRF-Token``
+    request header.  Validation is **skipped** for safe HTTP methods
+    (GET, HEAD, OPTIONS).
+
+    Returns 403 when:
+    - The CSRF cookie is missing.
+    - The CSRF header is missing.
+    - The cookie and header values do not match.
+    """
+    if request.method in SAFE_METHODS:
+        return
+
+    csrf_cookie = request.cookies.get(settings.auth_csrf_cookie_name)
+    csrf_header = request.headers.get(settings.auth_csrf_header_name)
+
+    if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="CSRF 验证失败：请求被拒绝",
+        )
 
 
 def parse_device(user_agent: str) -> str:
