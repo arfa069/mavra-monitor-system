@@ -142,7 +142,7 @@ async def _run_crawl_task(task: CrawlTask) -> None:
     )
 
     try:
-        from app.services.crawl import get_active_products
+        from app.domains.crawling.service import get_active_products
 
         products = await get_active_products(user_id=task.user_id)
         if not products:
@@ -280,7 +280,7 @@ async def crawl_all_products(
     async with crawl_lock:
         logger.info("Crawl started (source=%s, concurrency=%d)", source, CONCURRENCY_LIMIT)
         try:
-            from app.services.crawl import get_active_products
+            from app.domains.crawling.service import get_active_products
 
             products = await get_active_products(user_id=user_id)
             if not products:
@@ -356,7 +356,7 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
 
     try:
         async with crawl_lock:
-            from app.services.crawl import get_active_products
+            from app.domains.crawling.service import get_active_products
 
             semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
             products = await get_active_products(user_id=user_id, platform=platform)

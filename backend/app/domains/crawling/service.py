@@ -1,15 +1,24 @@
 """Product crawling business services."""
 
+import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.domains.crawling import repository
+from app.integrations.feishu import send_feishu_notification
+from app.models.alert import Alert
+from app.models.crawl_log import CrawlLog
+from app.models.price_history import PriceHistory
+from app.models.product import Product
+from app.models.user import User
 
 PLATFORM_ADAPTERS = {}
+logger = logging.getLogger(__name__)
 
 
 def _get_adapters():
@@ -29,12 +38,6 @@ def _get_adapters():
 
 async def crawl_one(product_id: int) -> dict:
     """Core crawl logic, run in the same event loop as the caller."""
-    from app.services.crawl import (
-        check_price_alerts,
-        save_crawl_log,
-        save_price_history,
-    )
-
     _get_adapters()
 
     async with AsyncSessionLocal() as db:
@@ -88,6 +91,141 @@ async def crawl_one(product_id: int) -> dict:
             platform_name = product.platform if product else "unknown"
             await save_crawl_log(product_id, platform_name, "ERROR", error_message=str(e))
             return {"status": "error", "product_id": product_id, "error": str(e)}
+
+
+async def get_active_products(
+    user_id: int | None = None,
+    platform: str | None = None,
+) -> list[Product]:
+    """Fetch active products from database, optionally filtered."""
+    stmt = select(Product).where(Product.active)
+    if user_id is not None:
+        stmt = stmt.where(Product.user_id == user_id)
+    if platform is not None:
+        stmt = stmt.where(Product.platform == platform)
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+
+async def save_price_history(
+    product_id: int,
+    price: Decimal,
+    currency: str,
+    scraped_at: datetime,
+) -> None:
+    """Save price to history."""
+    async with AsyncSessionLocal() as db:
+        history = PriceHistory(
+            product_id=product_id,
+            price=price,
+            currency=currency,
+            scraped_at=scraped_at,
+        )
+        db.add(history)
+        await db.commit()
+
+
+async def save_crawl_log(
+    product_id: int,
+    platform: str,
+    status: str,
+    price: Decimal | None = None,
+    currency: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Save crawl log entry."""
+    async with AsyncSessionLocal() as db:
+        log = CrawlLog(
+            product_id=product_id,
+            platform=platform,
+            status=status,
+            price=price,
+            currency=currency,
+            timestamp=datetime.now(UTC),
+            error_message=error_message,
+        )
+        db.add(log)
+        await db.commit()
+
+
+async def check_price_alerts(product_id: int, current_price: Decimal) -> None:
+    """Check and trigger price drop alerts."""
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Alert).where(Alert.product_id == product_id, Alert.active)
+        )
+        alerts = result.scalars().all()
+
+        if not alerts:
+            return
+
+        product_user_result = await db.execute(
+            select(Product, User)
+            .join(User, User.id == Product.user_id)
+            .where(Product.id == product_id)
+        )
+        row = product_user_result.one_or_none()
+
+        if not row:
+            return
+
+        product, user = row
+
+        if not user or not user.feishu_webhook_url:
+            return
+
+        latest_result = await db.execute(
+            select(PriceHistory)
+            .where(PriceHistory.product_id == product_id)
+            .order_by(PriceHistory.scraped_at.desc())
+            .limit(2)
+        )
+        price_records = list(latest_result.scalars().all())
+
+        if len(price_records) < 2:
+            return
+
+        previous_price = price_records[1].price
+        new_price = current_price
+
+        for alert in alerts:
+            if alert.threshold_percent is None:
+                continue
+
+            if previous_price > 0:
+                drop_percent = ((previous_price - new_price) / previous_price) * 100
+
+                if drop_percent >= alert.threshold_percent:
+                    if (
+                        alert.last_notified_price is not None
+                        and alert.last_notified_price <= new_price
+                    ):
+                        continue
+
+                    message = (
+                        f"Price Drop Alert: {product.title or product.url}\n"
+                        f"Platform: {product.platform}\n"
+                        f"Old Price: {previous_price} {price_records[1].currency}\n"
+                        f"New Price: {new_price} {price_records[1].currency}\n"
+                        f"Drop: {drop_percent:.2f}%\n"
+                        f"Link: {product.url}"
+                    )
+
+                    try:
+                        await send_feishu_notification(
+                            user.feishu_webhook_url,
+                            message,
+                        )
+
+                        alert.last_notified_at = datetime.now(UTC)
+                        alert.last_notified_price = new_price
+                        await db.commit()
+                    except Exception:
+                        logger.exception(
+                            "Failed to send price drop notification for product %s",
+                            product_id,
+                        )
 
 
 async def list_crawl_logs(

@@ -75,7 +75,7 @@ backend/
 │   │   │   └── repository.py   # 默认配置用户查询和持久化
 │   │   ├── crawling/
 │   │   │   ├── router.py       # 商品爬取触发 / 日志 / 清理 API 薄路由
-│   │   │   ├── service.py      # 单商品爬取、爬取日志和旧数据清理编排
+│   │   │   ├── service.py      # 单商品爬取、活跃商品查询、爬取日志和旧数据清理编排
 │   │   │   └── repository.py   # 商品、价格历史、爬取日志查询和持久化
 │   │   ├── dashboard/
 │   │   │   ├── router.py       # Dashboard KPI / 趋势 / SSE 薄路由
@@ -113,7 +113,6 @@ backend/
 │   ├── integrations/
 │   │   └── feishu.py           # 飞书 Webhook transport
 │   └── services/
-│       ├── crawl.py            # 商品爬取核心逻辑
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── scheduler_job.py    # APScheduler 任务注册管理
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
@@ -306,11 +305,11 @@ JWT payload 结构：
 - `remove_job(platform)` — 移除任务
 - `sync_all()` — 启动时从数据库恢复所有有 cron 的配置
 
-### 7.3 商品爬取服务（services/crawl.py）
+### 7.3 商品爬取服务（domains/crawling/service.py）
 
 `get_active_products()` — 查询当前用户所有 `active=True` 的商品，返回 `List[Product]`。
 
-实际抓取逻辑在 `domains/crawling/service.py:crawl_one()` 中，`domains/crawling/router.py:_crawl_one()` 仅作为旧 scheduler import/patch 路径的兼容包装。流程：
+实际抓取逻辑在 `crawl_one()` 中，`domains/crawling/router.py:_crawl_one()` 仅作为 scheduler import/patch 路径的兼容包装。流程：
 
 1. 根据 platform 路由到对应 Adapter
 2. 调用 `adapter.crawl(url)` 执行 Playwright 自动化

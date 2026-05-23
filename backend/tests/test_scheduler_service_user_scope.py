@@ -13,7 +13,7 @@ async def test_manual_crawl_task_fetches_only_requesting_users_products():
 
     with (
         patch("app.services.scheduler_service.emit_system_log_detached", new_callable=AsyncMock),
-        patch("app.services.crawl.get_active_products", new_callable=AsyncMock) as get_products,
+        patch("app.domains.crawling.service.get_active_products", new_callable=AsyncMock) as get_products,
     ):
         get_products.return_value = []
 
