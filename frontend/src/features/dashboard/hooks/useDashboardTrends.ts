@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/shared/api/client";
 import type { TrendResponse, TrendType, TimeRange } from "../types";
 
 interface TrendsState {
@@ -11,7 +11,6 @@ interface TrendsState {
 export function useDashboardTrends(
   type: TrendType,
   days: TimeRange,
-  token: string | null,
 ): TrendsState {
   const [state, setState] = useState<TrendsState>({
     data: null,
@@ -20,19 +19,12 @@ export function useDashboardTrends(
   });
 
   useEffect(() => {
-    if (!token) return;
-
     const fetchData = async () => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
-        const response = await axios.get<TrendResponse>(
-          `${apiUrl}/dashboard/trends`,
-          {
-            params: { type, days },
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const response = await api.get<TrendResponse>("/v1/dashboard/trends", {
+          params: { type, days },
+        });
         setState({ data: response.data, loading: false, error: null });
       } catch (err) {
         const message =
@@ -42,7 +34,7 @@ export function useDashboardTrends(
     };
 
     fetchData();
-  }, [type, days, token]);
+  }, [type, days]);
 
   return state;
 }

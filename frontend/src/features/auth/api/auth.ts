@@ -13,18 +13,13 @@ export interface RegisterRequest {
   password_confirm: string;
 }
 
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-  user_id: number;
-  username: string;
-}
-
 export const authApi = {
-  login: (data: LoginRequest) => api.post<AuthResponse>("/v1/auth/login", data),
+  login: (data: LoginRequest) => api.post<User>("/v1/auth/login", data),
 
   register: (data: RegisterRequest) =>
-    api.post<AuthResponse>("/v1/auth/register", data),
+    api.post<User>("/v1/auth/register", data),
+
+  logout: () => api.post("/v1/auth/logout"),
 
   getMe: () => api.get<User>("/v1/auth/me"),
 

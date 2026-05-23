@@ -1,8 +1,6 @@
 import api from "@/shared/api/client";
 import type { EventCenterListResponse, EventCenterQuery } from "../types";
 
-const TOKEN_KEY = "auth_token";
-
 export const eventsApi = {
   listEvents: async (
     params: EventCenterQuery,
@@ -14,7 +12,6 @@ export const eventsApi = {
   },
 
   buildStreamUrl: (params: EventCenterQuery) => {
-    const token = localStorage.getItem(TOKEN_KEY);
     const searchParams = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -23,10 +20,6 @@ export const eventsApi = {
       }
       searchParams.set(key, String(value));
     });
-
-    if (token) {
-      searchParams.set("token", token);
-    }
 
     return `/api/v1/events/stream?${searchParams.toString()}`;
   },

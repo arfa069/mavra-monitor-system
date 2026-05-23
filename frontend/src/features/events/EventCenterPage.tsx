@@ -131,7 +131,9 @@ export default function EventCenterPage() {
       page,
       page_size: pageSize,
     };
-    const eventSource = new EventSource(eventsApi.buildStreamUrl(query));
+    const eventSource = new EventSource(eventsApi.buildStreamUrl(query), {
+      withCredentials: true,
+    });
     eventSource.onmessage = (event) => {
       try {
         const nextItem = JSON.parse(event.data) as EventCenterItem;

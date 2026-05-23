@@ -30,26 +30,8 @@ export default function LoginPage() {
         username: values.username,
         password: values.password,
       });
-      const { access_token } = response.data;
-      login(access_token, {
-        id: 0,
-        username: "",
-        email: "",
-        role: "user" as const,
-        permissions: [],
-      });
-
-      const meResponse = await authApi.getMe();
-      const user = meResponse.data;
-      login(access_token, {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role || "user",
-        permissions: user.permissions || [],
-      });
-
-      message.success(`Welcome back, ${user.username}!`);
+      login(response.data);
+      message.success(`Welcome back, ${response.data.username}!`);
       navigate(from, { replace: true });
     } catch {
       message.error("Invalid username or password");

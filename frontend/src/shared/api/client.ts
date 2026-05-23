@@ -4,19 +4,28 @@ import axios, { AxiosError } from "axios";
 type ErrorDetailItem = { msg?: string } | string;
 type ErrorResponse = { detail?: ErrorDetailItem[] | string };
 
-const TOKEN_KEY = "auth_token";
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[2]) : null;
+}
 
 const api = axios.create({
   baseURL: "/api",
   timeout: 300000,
+  withCredentials: true,
 });
 
-// Request interceptor: add Authorization header
+// Request interceptor: add CSRF header for unsafe methods
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (
+      config.method &&
+      ["post", "patch", "put", "delete"].includes(config.method)
+    ) {
+      const csrfToken = getCookie("pm_csrf_token");
+      if (csrfToken && config.headers) {
+        config.headers["X-CSRF-Token"] = csrfToken;
+      }
     }
     return config;
   },
@@ -50,14 +59,51 @@ const formatDetail = (detail: ErrorResponse["detail"], fallback: string) => {
   return detail || fallback;
 };
 
+// Track retries to avoid infinite loops
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+}> = [];
+
 api.interceptors.response.use(
   (res) => res,
-  (err: AxiosError<ErrorResponse>) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      window.location.href = "/login";
-      return Promise.reject(err);
+  async (err: AxiosError<ErrorResponse>) => {
+    const originalRequest = err.config as AxiosError["config"] & {
+      _retry?: boolean;
+    };
+
+    if (
+      err.response?.status === 401 &&
+      !originalRequest._retry &&
+      originalRequest.url !== "/v1/auth/login"
+    ) {
+      if (isRefreshing) {
+        // Queue request until refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        await axios.post("/api/auth/refresh", {}, { withCredentials: true });
+        // Retry original request
+        failedQueue.forEach(({ resolve }) => resolve());
+        failedQueue = [];
+        return api(originalRequest);
+      } catch {
+        failedQueue.forEach(({ reject }) => reject());
+        failedQueue = [];
+        window.location.href = "/login";
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     if (err.response?.status && err.response.status >= 500) {
       handleServerError(err.response.status, err.message);
     } else if (err.response?.status && err.response.status >= 400) {

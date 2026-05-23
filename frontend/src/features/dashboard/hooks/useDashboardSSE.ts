@@ -9,7 +9,7 @@ interface SSEState {
 
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000, 30000];
 
-export function useDashboardSSE(token: string | null): SSEState {
+export function useDashboardSSE(): SSEState {
   const [state, setState] = useState<SSEState>({
     data: null,
     connected: false,
@@ -21,15 +21,14 @@ export function useDashboardSSE(token: string | null): SSEState {
 
   useEffect(() => {
     function connect() {
-      if (!token) return;
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
-      const es = new EventSource(
-        `${apiUrl}/dashboard/events?token=${encodeURIComponent(token)}`,
-      );
+      const es = new EventSource(`${apiUrl}/dashboard/events`, {
+        withCredentials: true,
+      });
       eventSourceRef.current = es;
 
       es.onopen = () => {
@@ -81,7 +80,7 @@ export function useDashboardSSE(token: string | null): SSEState {
         eventSourceRef.current.close();
       }
     };
-  }, [token]);
+  }, []);
 
   return state;
 }

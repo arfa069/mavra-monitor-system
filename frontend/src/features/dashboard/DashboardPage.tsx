@@ -26,7 +26,7 @@ const TIME_RANGE_OPTIONS = [
 ];
 
 export default function DashboardPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [days, setDays] = useState<TimeRange>(30);
   const [initialData, setInitialData] = useState<DashboardKPIResponse | null>(
     null,
@@ -35,13 +35,12 @@ export default function DashboardPage() {
 
   // Fetch initial KPI data via HTTP
   useEffect(() => {
-    if (!token) return;
     const fetchInitial = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
         const response = await axios.get<DashboardKPIResponse>(
           `${apiUrl}/dashboard/kpi`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          { withCredentials: true },
         );
         setInitialData(response.data);
       } catch {
@@ -49,25 +48,23 @@ export default function DashboardPage() {
       }
     };
     fetchInitial();
-  }, [token]);
+  }, []);
 
-  const { data: sseData, connected, error: sseError } = useDashboardSSE(token);
-  const priceTrends = useDashboardTrends("price", days, token);
-  const jobTrends = useDashboardTrends("jobs", days, token);
-  const productDist = useDashboardTrends("platform_products", days, token);
-  const jobDist = useDashboardTrends("platform_jobs", days, token);
-  const salaryDist = useDashboardTrends("salary", days, token);
+  const { data: sseData, connected, error: sseError } = useDashboardSSE();
+  const priceTrends = useDashboardTrends("price", days);
+  const jobTrends = useDashboardTrends("jobs", days);
+  const productDist = useDashboardTrends("platform_products", days);
+  const jobDist = useDashboardTrends("platform_jobs", days);
+  const salaryDist = useDashboardTrends("salary", days);
 
   // Admin-only trends
   const systemHealth = useDashboardTrends(
     "system_health",
     days,
-    isAdmin ? token : null,
   );
   const platformSuccess = useDashboardTrends(
     "platform_success",
     days,
-    isAdmin ? token : null,
   );
 
   // Prefer SSE data over initial data (real-time updates)

@@ -10,10 +10,9 @@ import type { Permission, User } from "@/shared/types";
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
+  login: (user: User) => void;
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
   hasAnyPermission: (permissions: Permission[]) => boolean;
@@ -22,33 +21,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "auth_user";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restore auth state from localStorage on init
+  // Restore auth state from server on init
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = localStorage.getItem(TOKEN_KEY);
-      const savedUser = localStorage.getItem(USER_KEY);
-
-      if (savedToken && savedUser) {
-        try {
-          // Try to fetch latest user info from server
-          const response = await authApi.getMe();
-          setUser(response.data);
-          setToken(savedToken);
-          // Update locally cached user info
-          localStorage.setItem(USER_KEY, JSON.stringify(response.data));
-        } catch {
-          // Token expired, clear storage
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-        }
+      try {
+        const response = await authApi.getMe();
+        setUser(response.data);
+      } catch {
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -56,17 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = (newToken: string, userData: User) => {
-    localStorage.setItem(TOKEN_KEY, newToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    setToken(newToken);
+  const login = (userData: User) => {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setToken(null);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Best-effort: cookies cleared server-side
+    }
     setUser(null);
   };
 
@@ -83,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         isLoading,
         isAuthenticated: !!user,
         login,
