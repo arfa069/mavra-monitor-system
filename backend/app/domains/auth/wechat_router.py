@@ -8,15 +8,25 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit
-from app.core.security import create_access_token, create_session_with_token, get_password_hash
+from app.core.permissions import get_role_permissions
+from app.core.security import (
+    create_access_token,
+    create_access_token_sid,
+    create_csrf_token,
+    create_refresh_token,
+    create_session,
+    get_password_hash,
+    parse_device,
+)
 from app.database import get_db
 from app.domains.auth import service as auth_service
-from app.schemas.auth import TokenResponse
+from app.models.user import User
+from app.schemas.auth import UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +38,83 @@ _state_cache: dict[str, datetime] = {}
 WECHAT_QR_CONNECT_URL = "https://open.weixin.qq.com/connect/qrconnect"
 WECHAT_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token"
 WECHAT_USERINFO_URL = "https://api.weixin.qq.com/sns/userinfo"
+
+
+# ── Cookie helpers ────────────────────────────────────────────────────────────
+
+
+def _set_auth_cookies(
+    response: Response,
+    access_token: str,
+    refresh_token: str,
+    csrf_token: str,
+) -> None:
+    """Set auth cookies (access, refresh, CSRF) on a response."""
+    response.set_cookie(
+        key=settings.auth_access_cookie_name,
+        value=access_token,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+        secure=settings.auth_cookie_secure,
+        path="/",
+    )
+    response.set_cookie(
+        key=settings.auth_refresh_cookie_name,
+        value=refresh_token,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+        secure=settings.auth_cookie_secure,
+        path="/",
+    )
+    response.set_cookie(
+        key=settings.auth_csrf_cookie_name,
+        value=csrf_token,
+        httponly=False,
+        samesite=settings.auth_cookie_samesite,
+        secure=settings.auth_cookie_secure,
+        path="/",
+    )
+
+
+async def _create_wechat_auth_session(
+    user: User,
+    request: Request,
+    response: Response,
+    db: AsyncSession,
+) -> UserResponse:
+    """Create refresh-token session, set auth cookies, and return user info."""
+    refresh_token = create_refresh_token()
+    device = parse_device(request.headers.get("user-agent", ""))
+    ip_address = request.client.host if request.client else ""
+
+    session = await create_session(
+        user_id=user.id,
+        refresh_token=refresh_token,
+        device=device,
+        ip_address=ip_address,
+        db=db,
+    )
+    await db.flush()
+
+    access_token = create_access_token_sid(
+        user_id=user.id,
+        username=user.username,
+        session_id=session.id,
+    )
+    csrf_token = create_csrf_token()
+
+    _set_auth_cookies(response, access_token, refresh_token, csrf_token)
+
+    permissions = await get_role_permissions(db, user.role)
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        permissions=permissions,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
 
 
 def _cleanup_expired_states() -> None:
@@ -83,12 +170,13 @@ async def wechat_callback(
     code: str,
     state: str,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """Handle WeChat OAuth callback.
 
     Exchanges code for access_token and openid.
-    If the openid is already bound to a user, logs them in.
+    If the openid is already bound to a user, logs them in (sets auth cookies).
     Otherwise, returns a temporary token for binding/registration.
     """
     _check_wechat_enabled()
@@ -132,27 +220,14 @@ async def wechat_callback(
     user = await auth_service.get_user_for_wechat_login(db, openid=openid)
 
     if user:
-        # Already bound - login
+        # Already bound - login (set auth cookies)
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="用户已被禁用",
             )
 
-        access_token = create_access_token(
-            data={"sub": str(user.id), "username": user.username},
-            expires_delta=timedelta(hours=1),
-        )
-
-        device = request.headers.get("user-agent", "")[:200]
-        ip_address = request.client.host if request.client else ""
-        await create_session_with_token(
-            user_id=user.id,
-            token=access_token,
-            device=device,
-            ip_address=ip_address,
-            db=db,
-        )
+        user_resp = await _create_wechat_auth_session(user, request, response, db)
 
         await log_audit(
             db=db,
@@ -161,12 +236,12 @@ async def wechat_callback(
             target_type="user",
             target_id=user.id,
             details={"username": user.username, "method": "wechat"},
-            ip_address=ip_address,
+            ip_address=request.client.host if request.client else "",
             user_agent=request.headers.get("user-agent", "")[:512],
             commit=True,
         )
 
-        return TokenResponse(access_token=access_token)
+        return user_resp
 
     # Not bound - return temporary token for binding
     temp_token = create_access_token(
@@ -180,12 +255,13 @@ async def wechat_callback(
     }
 
 
-@router.post("/bind", response_model=TokenResponse)
+@router.post("/bind", response_model=UserResponse)
 async def bind_wechat_account(
     temp_token: str,
     username: str,
     password: str,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """Bind WeChat account to an existing user.
@@ -236,21 +312,8 @@ async def bind_wechat_account(
             detail="该微信 openid 已绑定其他用户",
         ) from None
 
-    # Create session
-    access_token = create_access_token(
-        data={"sub": str(user.id), "username": user.username},
-        expires_delta=timedelta(hours=1),
-    )
-
-    device = request.headers.get("user-agent", "")[:200]
-    ip_address = request.client.host if request.client else ""
-    await create_session_with_token(
-        user_id=user.id,
-        token=access_token,
-        device=device,
-        ip_address=ip_address,
-        db=db,
-    )
+    # Create cookie-based auth session
+    user_resp = await _create_wechat_auth_session(user, request, response, db)
 
     await log_audit(
         db=db,
@@ -259,21 +322,22 @@ async def bind_wechat_account(
         target_type="user",
         target_id=user.id,
         details={"username": user.username, "method": "bind_existing"},
-        ip_address=ip_address,
+        ip_address=request.client.host if request.client else "",
         user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
-    return TokenResponse(access_token=access_token)
+    return user_resp
 
 
-@router.post("/register", response_model=TokenResponse)
+@router.post("/register", response_model=UserResponse)
 async def register_with_wechat(
     temp_token: str,
     username: str,
     email: str,
     password: str,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
     """Register a new user and bind WeChat account.
@@ -327,21 +391,8 @@ async def register_with_wechat(
             detail="该微信账号已绑定其他用户",
         ) from None
 
-    # Create session
-    access_token = create_access_token(
-        data={"sub": str(new_user.id), "username": new_user.username},
-        expires_delta=timedelta(hours=1),
-    )
-
-    device = request.headers.get("user-agent", "")[:200]
-    ip_address = request.client.host if request.client else ""
-    await create_session_with_token(
-        user_id=new_user.id,
-        token=access_token,
-        device=device,
-        ip_address=ip_address,
-        db=db,
-    )
+    # Create cookie-based auth session
+    user_resp = await _create_wechat_auth_session(new_user, request, response, db)
 
     await log_audit(
         db=db,
@@ -350,9 +401,9 @@ async def register_with_wechat(
         target_type="user",
         target_id=new_user.id,
         details={"username": new_user.username, "email": new_user.email, "method": "wechat"},
-        ip_address=ip_address,
+        ip_address=request.client.host if request.client else "",
         user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
-    return TokenResponse(access_token=access_token)
+    return user_resp

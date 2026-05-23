@@ -6,12 +6,12 @@ import json
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_stream import event_stream_broker
-from app.core.security import get_current_user
+from app.core.security import get_current_user, get_current_user_cookie
 from app.core.system_log import can_view_event
 from app.database import get_db
 from app.domains.events import service as event_service
@@ -101,8 +101,7 @@ async def list_events(
 @router.get("/stream")
 async def stream_events(
     request: Request,
-    token: str | None = Query(None),
-    authorization: str | None = Header(None, alias="Authorization"),
+    current_user: User = Depends(get_current_user_cookie),
     kind: str = Query("all", pattern="^(all|audit|system|platform)$"),
     event_type: str | None = Query(None),
     category: str | None = Query(None),
@@ -114,7 +113,6 @@ async def stream_events(
     db: AsyncSession = Depends(get_db),
 ):
     """Stream event-center updates over SSE."""
-    current_user = await event_service.get_stream_user(db, token, authorization)
     queue = await event_stream_broker.subscribe()
 
     async def event_generator():

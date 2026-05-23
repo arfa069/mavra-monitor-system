@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import require_role
+from app.core.security import get_current_user_cookie, require_role
 from app.database import get_db
 from app.domains.dashboard import service as dashboard_domain_service
 from app.domains.dashboard.dashboard_service import DashboardService
@@ -49,13 +49,12 @@ async def get_dashboard_kpi(
 @router.get("/events")
 async def stream_dashboard_events(
     request: Request,
-    token: str = Query(...),
+    current_user: User = Depends(get_current_user_cookie),
     db: AsyncSession = Depends(get_db),
 ):
     """Stream dashboard KPI updates over SSE."""
-    user = await dashboard_domain_service.get_stream_user(db, token=token)
-    user_id = user.id
-    is_admin = user.role in ("admin", "super_admin")
+    user_id = current_user.id
+    is_admin = current_user.role in ("admin", "super_admin")
 
     async def event_generator():
         try:
