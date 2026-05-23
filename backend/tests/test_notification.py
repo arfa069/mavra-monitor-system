@@ -10,7 +10,7 @@ class TestSendFeishuNotification:
     @pytest.mark.asyncio
     async def test_send_notification_success(self):
         """Successful webhook call returns response JSON."""
-        from app.services.notification import send_feishu_notification
+        from app.integrations.feishu import send_feishu_notification
 
         mock_response = MagicMock()
         mock_response.json.return_value = {"code": 0, "msg": "ok"}
@@ -38,7 +38,7 @@ class TestSendFeishuNotification:
         """Empty webhook URL raises after retries exhausted."""
         from tenacity import RetryError
 
-        from app.services.notification import send_feishu_notification
+        from app.integrations.feishu import send_feishu_notification
 
         with pytest.raises(RetryError):
             await send_feishu_notification("", "Hello")
@@ -46,7 +46,7 @@ class TestSendFeishuNotification:
     @pytest.mark.asyncio
     async def test_send_notification_http_error(self):
         """HTTP error raises after retries exhausted."""
-        from app.services.notification import send_feishu_notification
+        from app.integrations.feishu import send_feishu_notification
 
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = Exception("HTTP 400")
@@ -69,20 +69,20 @@ class TestSendNewJobNotification:
     @pytest.mark.asyncio
     async def test_send_new_job_notification_success(self):
         """User with webhook gets notification sent."""
-        from app.services.notification import send_new_job_notification
+        from app.domains.jobs.notification_service import send_new_job_notification
 
         mock_config = MagicMock()
         mock_config.name = "Python 后端"
 
         with patch(
-            "app.services.notification.get_cached_user_config",
+            "app.domains.jobs.notification_service.get_cached_user_config",
             new_callable=AsyncMock,
         ) as mock_get_config:
             mock_get_config.return_value = {
                 "feishu_webhook_url": "https://open.feishu.cn/hook/test",
             }
             with patch(
-                "app.services.notification.send_feishu_notification",
+                "app.domains.jobs.notification_service.send_feishu_notification",
                 new_callable=AsyncMock,
             ) as mock_send:
                 mock_send.return_value = {"code": 0, "msg": "ok"}
@@ -98,13 +98,13 @@ class TestSendNewJobNotification:
     @pytest.mark.asyncio
     async def test_send_new_job_notification_no_webhook_skips(self):
         """User without webhook returns skipped status."""
-        from app.services.notification import send_new_job_notification
+        from app.domains.jobs.notification_service import send_new_job_notification
 
         mock_config = MagicMock()
         mock_config.name = "Python 后端"
 
         with patch(
-            "app.services.notification.get_cached_user_config",
+            "app.domains.jobs.notification_service.get_cached_user_config",
             new_callable=AsyncMock,
         ) as mock_get_config:
             mock_get_config.return_value = {"feishu_webhook_url": ""}
@@ -116,13 +116,13 @@ class TestSendNewJobNotification:
     @pytest.mark.asyncio
     async def test_send_new_job_notification_no_user_skips(self):
         """No user found returns skipped status."""
-        from app.services.notification import send_new_job_notification
+        from app.domains.jobs.notification_service import send_new_job_notification
 
         mock_config = MagicMock()
         mock_config.name = "Python 后端"
 
         with patch(
-            "app.services.notification.get_cached_user_config",
+            "app.domains.jobs.notification_service.get_cached_user_config",
             new_callable=AsyncMock,
         ) as mock_get_config:
             mock_get_config.return_value = None

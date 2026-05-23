@@ -6,12 +6,12 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
+from app.integrations.feishu import send_feishu_notification
 from app.models.alert import Alert
 from app.models.crawl_log import CrawlLog
 from app.models.price_history import PriceHistory
 from app.models.product import Product
 from app.models.user import User
-from app.services.notification import send_feishu_notification
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,7 @@ import pytest
 )
 async def test_feishu_webhook_real_call():
     """Send a real message to Feishu webhook (manual verification only)."""
-    from app.services.notification import send_feishu_notification
+    from app.integrations.feishu import send_feishu_notification
 
     webhook_url = os.environ["FEISHU_WEBHOOK_URL"]
     test_message = "🔔 Price Monitor 测试消息\n⏰ 发送时间: 2026-05-07"
@@ -38,7 +38,7 @@ async def test_feishu_webhook_new_job_notification():
     """Test the new job notification with real webhook."""
     from unittest.mock import MagicMock
 
-    from app.services.notification import send_new_job_notification
+    from app.domains.jobs.notification_service import send_new_job_notification
 
     mock_config = MagicMock()
     mock_config.name = "测试搜索配置"

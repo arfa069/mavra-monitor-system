@@ -806,7 +806,7 @@ class TestAdapterSharing:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
-            with patch("app.services.notification.send_new_job_notification"):
+            with patch("app.domains.jobs.notification_service.send_new_job_notification"):
                 result = await crawl_single_config(1, adapter=mock_adapter)
 
         assert result["status"] == "success"

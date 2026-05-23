@@ -9,7 +9,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_new_job_notification_uses_51job_label(monkeypatch):
     """51job crawls should produce a platform-specific notification title."""
-    from app.services import notification
+    from app.domains.jobs import notification_service as notification
 
     sent_messages: list[str] = []
 

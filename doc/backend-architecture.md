@@ -89,6 +89,7 @@ backend/
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
 │   │   │   ├── match_service.py # LLM 简历-职位匹配分析
+│   │   │   ├── notification_service.py # 职位新发现通知编排
 │   │   │   ├── llm/            # 职位匹配 LLM provider
 │   │   │   │   ├── provider.py
 │   │   │   │   ├── anthropic.py
@@ -109,9 +110,10 @@ backend/
 │   │   ├── crawl_log.py
 │   │   ├── job.py
 │   │   └── job_match.py
+│   ├── integrations/
+│   │   └── feishu.py           # 飞书 Webhook transport
 │   └── services/
 │       ├── crawl.py            # 商品爬取核心逻辑
-│       ├── notification.py     # 飞书 Webhook 通知
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── scheduler_job.py    # APScheduler 任务注册管理
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
@@ -349,9 +351,11 @@ JWT payload 结构：
 3. 每个 Job 调用 `llm_provider.analyze(resume_text, job_description)`
 4. 将 `match_score`（0-100）、`match_reason`、`apply_recommendation` 存入 `jobs_match_results` 表
 
-### 7.6 通知服务（services/notification.py）
+### 7.6 通知服务（integrations/feishu.py + domains/jobs/notification_service.py）
 
-飞书 Webhook JSON 推送，格式：
+飞书 Webhook transport 位于 `integrations/feishu.py`，只负责发送 JSON；职位新发现通知文案位于 `domains/jobs/notification_service.py`。
+
+飞书 Webhook JSON 推送格式：
 
 ```json
 {

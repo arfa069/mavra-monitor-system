@@ -36,7 +36,7 @@ def test_create_adapter_supports_liepin(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_new_job_notification_uses_liepin_label(monkeypatch):
-    from app.services import notification
+    from app.domains.jobs import notification_service as notification
 
     sent_messages: list[str] = []
 
