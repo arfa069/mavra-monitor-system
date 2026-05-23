@@ -117,7 +117,7 @@ async def _crawl_one_with_semaphore(
 ) -> dict:
     """Crawl a single product with semaphore-controlled concurrency."""
     async with semaphore:
-        from app.routers.crawl import _crawl_one
+        from app.domains.crawling.router import _crawl_one
 
         result = await _crawl_one(product_id)
         await asyncio.sleep(random.uniform(CRAWL_INTERVAL_MIN, CRAWL_INTERVAL_MAX))

@@ -13,7 +13,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.wechat import router as wechat_router
 from app.config import settings
 from app.core.security import decode_access_token
 from app.core.system_log import emit_system_log_detached
@@ -22,6 +21,7 @@ from app.domains.admin import admin_router
 from app.domains.admin import router as admin_users_router
 from app.domains.alerts import router as alerts_router
 from app.domains.auth import router as auth_router
+from app.domains.auth.wechat_router import router as wechat_router
 from app.domains.config import router as config_router
 from app.domains.crawling import router as crawl_router
 from app.domains.dashboard import router as dashboard_router

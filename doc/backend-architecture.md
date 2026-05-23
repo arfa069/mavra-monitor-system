@@ -29,7 +29,7 @@ backend/
 │   │   ├── auth.py             # 兼容模块别名 -> domains/auth/router.py
 │   │   ├── admin.py            # 兼容模块别名 -> domains/admin/router.py
 │   │   ├── events.py           # 兼容模块别名 -> domains/events/router.py
-│   │   └── wechat.py           # 微信登录（feature flag，默认关闭）
+│   │   └── wechat.py           # 兼容模块别名 -> domains/auth/wechat_router.py
 │   ├── core/
 │   │   ├── security.py         # JWT / 密码加密 / 会话管理
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
@@ -69,6 +69,7 @@ backend/
 │   │   │   └── repository.py   # 告警和商品归属查询
 │   │   ├── auth/
 │   │   │   ├── router.py       # 认证 API（注册/登录/登出/会话）薄路由
+│   │   │   ├── wechat_router.py # 微信登录 API（feature flag，默认关闭）
 │   │   │   ├── service.py      # 注册、登录查询、资料更新和会话清理编排
 │   │   │   └── repository.py   # 用户、会话、登录日志查询和持久化
 │   │   ├── config/

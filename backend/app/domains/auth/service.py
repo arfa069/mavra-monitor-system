@@ -20,6 +20,10 @@ class EmailConflictError(AuthServiceError):
     """Raised when email is already used."""
 
 
+class WeChatOpenidConflictError(AuthServiceError):
+    """Raised when a WeChat openid is already bound."""
+
+
 async def register_user(
     db: AsyncSession, *, user_data: UserRegister, password_hash: str
 ) -> User:
@@ -41,6 +45,70 @@ async def register_user(
 
 async def get_user_for_login(db: AsyncSession, *, username: str) -> User | None:
     return await repository.get_user_by_username(db, username=username)
+
+
+async def get_user_for_wechat_login(
+    db: AsyncSession, *, openid: str
+) -> User | None:
+    return await repository.get_active_user_by_wechat_openid(db, openid=openid)
+
+
+async def bind_wechat_openid(
+    db: AsyncSession, *, user: User, openid: str
+) -> User:
+    if await repository.get_active_user_by_wechat_openid(db, openid=openid):
+        raise WeChatOpenidConflictError
+    if await repository.get_wechat_openid_conflict(
+        db, openid=openid, exclude_user_id=user.id
+    ):
+        raise WeChatOpenidConflictError
+
+    from datetime import UTC, datetime
+
+    user.wechat_openid = openid
+    user.wechat_bind_at = datetime.now(UTC)
+    await db.commit()
+    return user
+
+
+async def register_wechat_user(
+    db: AsyncSession,
+    *,
+    username: str,
+    email: str,
+    password_hash: str,
+    openid: str,
+) -> User:
+    if await repository.get_active_user_by_wechat_openid(db, openid=openid):
+        raise WeChatOpenidConflictError
+    if await repository.get_active_user_by_username_for_wechat(
+        db, username=username
+    ):
+        raise UsernameConflictError
+    if await repository.get_active_user_by_email_for_wechat(db, email=email):
+        raise EmailConflictError
+
+    from datetime import UTC, datetime
+
+    return await repository.add_user(
+        db,
+        user=User(
+            username=username,
+            email=email,
+            hashed_password=password_hash,
+            is_active=True,
+            wechat_openid=openid,
+            wechat_bind_at=datetime.now(UTC),
+        ),
+    )
+
+
+async def get_user_for_wechat_bind(
+    db: AsyncSession, *, username: str
+) -> User | None:
+    return await repository.get_active_user_by_username_for_wechat(
+        db, username=username
+    )
 
 
 async def add_login_log(
