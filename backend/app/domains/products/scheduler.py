@@ -30,7 +30,7 @@ class ProductCronScheduler(BaseScheduler):
         job_id = self._job_id(user_id, platform)
         tz = zoneinfo.ZoneInfo(timezone)
 
-        from app.services.scheduler_service import crawl_products_by_platform
+        from app.domains.crawling.scheduler_service import crawl_products_by_platform
 
         self._scheduler.add_job(
             crawl_products_by_platform,

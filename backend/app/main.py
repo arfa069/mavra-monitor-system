@@ -57,7 +57,7 @@ async def _start_scheduler(app: FastAPI) -> None:
     app.state.crawl_lock = asyncio.Semaphore(1)
 
     # Register state with scheduler service (shared by cron and manual crawl)
-    from app.services.scheduler_service import _set_scheduler_state
+    from app.domains.crawling.scheduler_service import _set_scheduler_state
     _set_scheduler_state({"crawl_lock": app.state.crawl_lock})
 
     scheduler = AsyncIOScheduler(timezone="UTC", job_defaults={"coalesce": True, "max_instances": 1})

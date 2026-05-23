@@ -801,8 +801,8 @@ class TestSchedulerConcurrencyProtection:
         mock_state.crawl_lock = MagicMock()
         mock_state.crawl_lock.locked.return_value = True  # 锁已被占用
 
-        with patch("app.services.scheduler_service._scheduler_state", mock_state):
-            from app.services.scheduler_service import crawl_all_products
+        with patch("app.domains.crawling.scheduler_service._scheduler_state", mock_state):
+            from app.domains.crawling.scheduler_service import crawl_all_products
             result = await crawl_all_products(source="manual")
 
         assert result["status"] == "skipped"

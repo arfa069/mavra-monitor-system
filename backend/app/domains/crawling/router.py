@@ -51,7 +51,7 @@ async def crawl_now(
     """
     if not current_user:
         raise HTTPException(status_code=401, detail="请先登录")
-    from app.services.scheduler_service import crawl_all_products
+    from app.domains.crawling.scheduler_service import crawl_all_products
 
     result = await crawl_all_products(
         source="manual",

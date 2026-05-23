@@ -75,6 +75,7 @@ backend/
 │   │   │   └── repository.py   # 默认配置用户查询和持久化
 │   │   ├── crawling/
 │   │   │   ├── router.py       # 商品爬取触发 / 日志 / 清理 API 薄路由
+│   │   │   ├── scheduler_service.py # 商品爬取协调（Semaphore 并发控制）
 │   │   │   ├── service.py      # 单商品爬取、活跃商品查询、爬取日志和旧数据清理编排
 │   │   │   └── repository.py   # 商品、价格历史、爬取日志查询和持久化
 │   │   ├── dashboard/
@@ -118,9 +119,6 @@ backend/
 │   ├── core/
 │   │   ├── scheduler.py        # APScheduler manager 共享基类
 │   │   └── task_registry.py    # 后台爬取/匹配任务状态注册表
-│   └── services/
-│       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
-│       └── __init__.py
 └── tests/                     # 单元/集成测试
 ```
 
@@ -277,7 +275,7 @@ JWT payload 结构：
 
 ## 7. 服务层架构
 
-### 7.1 爬取协调服务（scheduler_service.py）
+### 7.1 爬取协调服务（domains/crawling/scheduler_service.py）
 
 **职责**：作为 APScheduler cron 触发和手动爬取 API 的共享入口，提供并发保护。
 
