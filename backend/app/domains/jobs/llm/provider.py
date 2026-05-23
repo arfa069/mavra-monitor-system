@@ -40,15 +40,15 @@ class LLMProvider(ABC):
 def get_llm_provider() -> LLMProvider:
     provider = (settings.job_match_provider or "minimax").strip().lower()
     if provider in {"anthropic", "minimax"}:
-        from app.services.llm_anthropic import AnthropicProvider
+        from app.domains.jobs.llm.anthropic import AnthropicProvider
 
         return AnthropicProvider()
     if provider == "openai":
-        from app.services.llm_openai import OpenAIProvider
+        from app.domains.jobs.llm.openai import OpenAIProvider
 
         return OpenAIProvider()
     if provider == "ollama":
-        from app.services.llm_ollama import OllamaProvider
+        from app.domains.jobs.llm.ollama import OllamaProvider
 
         return OllamaProvider()
     raise ValueError(f"Unknown job_match_provider: {provider}")

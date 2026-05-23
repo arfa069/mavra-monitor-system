@@ -14,7 +14,7 @@ import pytest
 def test_get_llm_provider_returns_expected_provider(provider_name: str, expected_class_name: str):
     """Factory should instantiate the configured provider."""
     from app.config import settings
-    from app.services.llm_provider import get_llm_provider
+    from app.domains.jobs.llm.provider import get_llm_provider
 
     original_provider = settings.job_match_provider
     try:
@@ -28,7 +28,7 @@ def test_get_llm_provider_returns_expected_provider(provider_name: str, expected
 def test_get_llm_provider_rejects_unknown_provider():
     """Factory should fail fast for unknown providers."""
     from app.config import settings
-    from app.services.llm_provider import get_llm_provider
+    from app.domains.jobs.llm.provider import get_llm_provider
 
     original_provider = settings.job_match_provider
     try:

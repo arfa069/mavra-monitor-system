@@ -17,8 +17,8 @@ def test_should_notify_match_threshold():
 @pytest.mark.asyncio
 async def test_upsert_match_result_creates_new_record():
     """upsert_match_result inserts a new MatchResult when none exists."""
+    from app.domains.jobs.llm.provider import MatchAnalysis
     from app.domains.jobs.match_service import upsert_match_result
-    from app.services.llm_provider import MatchAnalysis
 
     # SELECT existence → not found
     select_result = MagicMock()
@@ -61,8 +61,8 @@ async def test_upsert_match_result_creates_new_record():
 @pytest.mark.asyncio
 async def test_upsert_match_result_updates_existing_record():
     """upsert_match_result updates an existing MatchResult in-place."""
+    from app.domains.jobs.llm.provider import MatchAnalysis
     from app.domains.jobs.match_service import upsert_match_result
-    from app.services.llm_provider import MatchAnalysis
 
     # SELECT existence → returns id 17
     select_result = MagicMock()

@@ -1,4 +1,4 @@
-"""Anthropic-compatible provider for job match analysis."""
+"""Ollama provider for job match analysis."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 import httpx
 
 from app.config import settings
-from app.services.llm_provider import LLMProvider, MatchAnalysis
+from app.domains.jobs.llm.provider import LLMProvider, MatchAnalysis
 
 
 def _extract_json(content: str) -> dict:
@@ -18,10 +18,10 @@ def _extract_json(content: str) -> dict:
     return json.loads(match.group(0))
 
 
-class AnthropicProvider(LLMProvider):
+class OllamaProvider(LLMProvider):
     @property
     def provider_name(self) -> str:
-        return (settings.job_match_provider or "anthropic").strip().lower()
+        return "ollama"
 
     async def analyze_match(
         self,
@@ -34,21 +34,7 @@ class AnthropicProvider(LLMProvider):
         job_education: str,
         job_description: str,
     ) -> MatchAnalysis:
-        provider_name = (settings.job_match_provider or "anthropic").strip().lower()
-        if provider_name == "minimax":
-            api_key = settings.minimax_api_key
-            base_url = settings.minimax_base_url.rstrip("/")
-            model = settings.job_match_model or "MiniMax-M2.7"
-        else:
-            api_key = settings.anthropic_api_key
-            base_url = (settings.anthropic_base_url or "https://api.anthropic.com").rstrip("/")
-            model = settings.job_match_model or "claude-3-5-sonnet-latest"
-
-        if not api_key:
-            if provider_name == "minimax":
-                raise ValueError("MINIMAX_API_KEY is required")
-            raise ValueError("ANTHROPIC_API_KEY is required")
-
+        model = settings.job_match_model or "qwen2.5:7b"
         prompt = (
             "你是职位匹配分析助手。只返回JSON，不要输出多余文本。\n"
             f"简历：{resume_text}\n"
@@ -59,21 +45,17 @@ class AnthropicProvider(LLMProvider):
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{base_url}/v1/messages",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
+                f"{settings.ollama_base_url.rstrip('/')}/api/chat",
                 json={
                     "model": model,
-                    "max_tokens": 1024,
                     "messages": [{"role": "user", "content": prompt}],
+                    "stream": False,
                 },
             )
             response.raise_for_status()
             data = response.json()
 
-        content = "".join(part.get("text", "") for part in data.get("content", []))
+        content = data.get("message", {}).get("content", "")
         result = _extract_json(content)
         return MatchAnalysis(
             match_score=int(result["match_score"]),

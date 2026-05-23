@@ -8,7 +8,7 @@ import re
 import httpx
 
 from app.config import settings
-from app.services.llm_provider import LLMProvider, MatchAnalysis
+from app.domains.jobs.llm.provider import LLMProvider, MatchAnalysis
 
 
 def _extract_json(content: str) -> dict:

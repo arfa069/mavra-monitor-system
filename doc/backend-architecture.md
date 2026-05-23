@@ -89,6 +89,11 @@ backend/
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
 │   │   │   ├── match_service.py # LLM 简历-职位匹配分析
+│   │   │   ├── llm/            # 职位匹配 LLM provider
+│   │   │   │   ├── provider.py
+│   │   │   │   ├── anthropic.py
+│   │   │   │   ├── openai.py
+│   │   │   │   └── ollama.py
 │   │   │   ├── service.py      # 职位配置、简历、匹配、列表查询业务边界
 │   │   │   └── repository.py   # 职位配置、职位、简历、匹配、爬取日志查询
 │   │   ├── products/
@@ -110,10 +115,7 @@ backend/
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── scheduler_job.py    # APScheduler 任务注册管理
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
-│       ├── llm_provider.py     # LLM Provider 工厂
-│       ├── llm_anthropic.py    # Anthropic Claude
-│       ├── llm_openai.py       # OpenAI GPT
-│       └── llm_ollama.py       # Ollama 本地模型
+│       └── __init__.py
 └── tests/                     # 单元/集成测试
 ```
 
@@ -335,9 +337,9 @@ JWT payload 结构：
 - 支持多 LLM provider：Anthropic、OpenAI、Ollama
 - 匹配结果记录到 `job_match` 表，高分职位发送飞书通知
 
-**Provider 工厂**（services/llm_provider.py）：
+**Provider 工厂**（domains/jobs/llm/provider.py）：
 
-- `LLMProviderFactory.create(provider_name)` — 根据配置创建 Provider
+- `get_llm_provider()` — 根据配置创建 Provider
 - 支持：minimax（默认）、anthropic、openai、ollama
 
 **分析流程：**

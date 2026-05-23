@@ -10,9 +10,9 @@ from sqlalchemy.orm import selectinload
 
 from app.core.user_config_cache import get_cached_user_config
 from app.database import AsyncSessionLocal
+from app.domains.jobs.llm.provider import MatchAnalysis, get_llm_provider
 from app.models.job import Job, JobSearchConfig
 from app.models.job_match import MatchResult, UserResume
-from app.services.llm_provider import MatchAnalysis, get_llm_provider
 from app.services.notification import send_feishu_notification
 
 
