@@ -1,11 +1,9 @@
 """Tests for dashboard service and API."""
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.schemas.dashboard import SystemKPI, UserKPI
-
 
 # --- Service Tests ---
 
@@ -32,7 +30,7 @@ class TestDashboardService:
     @pytest.fixture
     def service(self, mock_db):
         """Create dashboard service with mock redis."""
-        from app.services.dashboard_service import DashboardService
+        from app.domains.dashboard.dashboard_service import DashboardService
 
         return DashboardService(mock_db, redis_client=None)
 

@@ -28,6 +28,7 @@ backend/
 │   ├── core/
 │   │   ├── security.py         # JWT / 密码加密 / 会话管理
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
+│   │   ├── resource_permission.py # 资源级 ACL 权限判断
 │   │   └── audit.py            # 审计日志写入工具
 │   ├── models/
 │   │   ├── base.py             # SQLAlchemy Base
@@ -77,6 +78,7 @@ backend/
 │   │   │   └── repository.py   # 商品、价格历史、爬取日志查询和持久化
 │   │   ├── dashboard/
 │   │   │   ├── router.py       # Dashboard KPI / 趋势 / SSE 薄路由
+│   │   │   ├── dashboard_service.py # Dashboard KPI / 趋势聚合
 │   │   │   ├── service.py      # Dashboard SSE 用户解析和最近告警编排
 │   │   │   └── repository.py   # Dashboard 用户/告警查询
 │   │   ├── events/

@@ -13,9 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import require_role
 from app.database import get_db
 from app.domains.dashboard import service as dashboard_domain_service
+from app.domains.dashboard.dashboard_service import DashboardService
 from app.models.user import User
 from app.schemas.dashboard import DashboardKPIResponse, TrendResponse
-from app.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 

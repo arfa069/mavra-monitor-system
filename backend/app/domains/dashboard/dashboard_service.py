@@ -16,18 +16,16 @@ from app.models.price_history import PriceHistory
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.dashboard import (
-    DashboardKPIResponse,
     SystemKPI,
-    TrendDataset,
     TrendDataPoint,
+    TrendDataset,
     TrendResponse,
     UserKPI,
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
     import redis.asyncio as redis
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DashboardService:
@@ -236,8 +234,8 @@ class DashboardService:
                 TrendDataset(
                     label="平均价格",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(labels, avg_prices)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, avg_prices)
                     ],
                 )
             ],
@@ -245,8 +243,9 @@ class DashboardService:
 
     async def get_job_trends(self, user_id: int, days: int) -> TrendResponse:
         """Get job posting trend data for the last N days."""
-        from app.models.job import Job, JobSearchConfig
         from sqlalchemy import Date, cast
+
+        from app.models.job import Job, JobSearchConfig
 
         start_date = datetime.now(UTC) - timedelta(days=days)
 
@@ -276,8 +275,8 @@ class DashboardService:
                 TrendDataset(
                     label="新增职位",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(labels, counts)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, counts)
                     ],
                 )
             ],
@@ -318,8 +317,8 @@ class DashboardService:
                 TrendDataset(
                     label="数量",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(labels, counts)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, counts)
                     ],
                 )
             ],
@@ -361,8 +360,8 @@ class DashboardService:
                 TrendDataset(
                     label="职位数量",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(range_labels, counts)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(range_labels, counts)
                     ],
                 )
             ],
@@ -400,8 +399,8 @@ class DashboardService:
                 TrendDataset(
                     label="成功率",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(labels, success_rates)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, success_rates)
                     ],
                 )
             ],
@@ -457,8 +456,8 @@ class DashboardService:
                 TrendDataset(
                     label="成功率",
                     data=[
-                        TrendDataPoint(label=l, value=v)
-                        for l, v in zip(labels, rates)
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, rates)
                     ],
                 )
             ],

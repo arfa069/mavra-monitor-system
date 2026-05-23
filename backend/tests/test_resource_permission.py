@@ -4,12 +4,12 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
-from app.services.resource_permission import (
+from app.core.resource_permission import (
     check_resource_permission,
     get_user_permitted_resource_ids,
     role_allows_permission,
 )
+from app.models.user import User
 
 
 def _user(role: str):
