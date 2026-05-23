@@ -152,7 +152,7 @@ async def create_config(
 
             except Exception as exc:
 
-                logging.getLogger("app.routers.jobs").error("Failed to add job to scheduler: %s", exc)
+                logging.getLogger("app.domains.jobs").error("Failed to add job to scheduler: %s", exc)
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 
@@ -705,7 +705,7 @@ async def update_config(
 
             except Exception as exc:
 
-                logging.getLogger("app.routers.jobs").error("Failed to sync scheduler: %s", exc)
+                logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 
@@ -1184,7 +1184,7 @@ async def update_config_cron(
 
         except Exception as exc:
 
-            logging.getLogger("app.routers.jobs").error("Failed to sync scheduler: %s", exc)
+            logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
             raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 

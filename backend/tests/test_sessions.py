@@ -178,7 +178,7 @@ async def test_session_response_model():
     """Test SessionResponse model can be instantiated."""
     from datetime import UTC, datetime
 
-    from app.api.auth import SessionResponse
+    from app.domains.auth.router import SessionResponse
 
     session_data = {
         "id": 1,

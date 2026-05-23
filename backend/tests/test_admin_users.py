@@ -602,7 +602,7 @@ async def test_admin_role_change_deletes_target_sessions(admin_user, regular_use
     """PATCH /admin/users/{user_id} with role change calls stage_delete_user_sessions."""
     setup_admin_mock(admin_user)
 
-    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+    with patch("app.domains.admin.router.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user
@@ -627,7 +627,7 @@ async def test_admin_disable_deletes_target_sessions(admin_user, regular_user, m
     """PATCH /admin/users/{user_id} is_active=False calls stage_delete_user_sessions."""
     setup_admin_mock(admin_user)
 
-    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+    with patch("app.domains.admin.router.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user
@@ -652,7 +652,7 @@ async def test_admin_delete_deletes_target_sessions(admin_user, regular_user, mo
     """DELETE /admin/users/{user_id} calls stage_delete_user_sessions."""
     setup_admin_mock(admin_user)
 
-    with patch("app.api.admin.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
+    with patch("app.domains.admin.router.stage_delete_user_sessions", new_callable=AsyncMock) as mock_stage:
         try:
             mock_result = MagicMock()
             mock_result.scalar_one_or_none.return_value = regular_user

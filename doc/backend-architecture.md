@@ -25,11 +25,6 @@ backend/
 │   ├── main.py                 # FastAPI 应用工厂 + lifespan
 │   ├── config.py               # Pydantic Settings（环境变量）
 │   ├── database.py             # 异步 SQLAlchemy 引擎 + 会话
-│   ├── api/
-│   │   ├── auth.py             # 兼容模块别名 -> domains/auth/router.py
-│   │   ├── admin.py            # 兼容模块别名 -> domains/admin/router.py
-│   │   ├── events.py           # 兼容模块别名 -> domains/events/router.py
-│   │   └── wechat.py           # 兼容模块别名 -> domains/auth/wechat_router.py
 │   ├── core/
 │   │   ├── security.py         # JWT / 密码加密 / 会话管理
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
@@ -97,13 +92,6 @@ backend/
 │   │   │   ├── service.py      # 商品 CRUD、批量、cron 业务规则
 │   │   │   └── repository.py   # 商品、cron、价格历史查询
 │   │   └── scheduling/router.py # Scheduler status API
-│   ├── routers/                # 旧 import 路径兼容模块别名
-│   │   ├── config.py
-│   │   ├── products.py
-│   │   ├── alerts.py
-│   │   ├── crawl.py
-│   │   ├── dashboard.py
-│   │   └── jobs.py
 │   ├── schemas/
 │   │   ├── user.py
 │   │   ├── product.py

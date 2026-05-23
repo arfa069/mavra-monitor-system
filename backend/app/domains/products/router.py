@@ -28,7 +28,7 @@ from app.schemas.product import (
 from app.services.scheduler_job import ProductCronScheduler
 
 router = APIRouter(prefix="/products", tags=["products"])
-logger = logging.getLogger("app.routers.products")
+logger = logging.getLogger("app.domains.products")
 
 
 def _require_user(current_user: User | None) -> User:

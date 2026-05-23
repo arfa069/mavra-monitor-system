@@ -109,10 +109,13 @@ async def test_create_resume_returns_created_entity(mock_get_current_user):
 @pytest.mark.asyncio
 async def test_trigger_match_analysis_returns_serialized_results(mock_get_current_user):
     """POST /jobs/match-results/analyze returns match results payload."""
+    from importlib import import_module
+
     from app.database import get_db
     from app.models.job import Job
     from app.models.job_match import MatchResult, UserResume
-    from app.routers import jobs as jobs_router_module
+
+    jobs_router_module = import_module("app.domains.jobs.router")
 
     resume = MagicMock(spec=UserResume)
     resume.id = 1
@@ -179,13 +182,12 @@ async def test_trigger_match_analysis_returns_serialized_results(mock_get_curren
         app.dependency_overrides.clear()
 
 
-@pytest.mark.skip(reason="pre-existing bug: patches non-existent app.routers.jobs.create_task")
+@pytest.mark.skip(reason="pre-existing bug: patches non-existent app.domains.jobs.create_task")
 @pytest.mark.asyncio
 async def test_analyze_async_creates_task_when_jobs_need_analysis(mock_get_current_user):
     """POST /match-results/analyze-async should create a background task."""
     from app.database import get_db
     from app.models.job_match import UserResume
-    from app.routers import jobs as jobs_router_module
 
     resume = MagicMock(spec=UserResume)
     resume.id = 1
@@ -199,8 +201,8 @@ async def test_analyze_async_creates_task_when_jobs_need_analysis(mock_get_curre
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    with patch("app.routers.jobs._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter, \
-         patch("app.routers.jobs.create_task") as mock_create_task, \
+    with patch("app.domains.jobs.router._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter, \
+         patch("app.domains.jobs.router.create_task") as mock_create_task, \
          patch("asyncio.create_task") as mock_asyncio_create_task:
 
         # Mock a job needing analysis
@@ -247,7 +249,7 @@ async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_curr
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    with patch("app.routers.jobs._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter:
+    with patch("app.domains.jobs.router._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter:
         mock_filter.return_value = []
 
         try:
