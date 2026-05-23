@@ -8,40 +8,40 @@ class TestParseSalary:
     """Test salary string parsing."""
 
     def test_parse_salary_range_k(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("20-40K") == (20, 40)
         assert parse_salary("15-30k") == (15, 30)
 
     def test_parse_salary_with_bonus(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("20-40K·14薪") == (20, 40)
         assert parse_salary("30-50K·16薪") == (30, 50)
 
     def test_parse_salary_single_value(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("25K") == (25, 25)
         assert parse_salary("15k") == (15, 15)
 
     def test_parse_salary_negotiable(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("面议") == (None, None)
         assert parse_salary("薪资面议") == (None, None)
 
     def test_parse_salary_none(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary(None) == (None, None)
 
     def test_parse_salary_empty(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("") == (None, None)
 
     def test_parse_salary_invalid(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         assert parse_salary("面薪") == (None, None)
         assert parse_salary("未知格式") == (None, None)
 
     def test_parse_salary_edge_cases(self):
-        from app.services.job_crawl import parse_salary
+        from app.domains.jobs.crawl_service import parse_salary
         # Leading/trailing whitespace
         assert parse_salary("  20-40K  ") == (20, 40)
         # Mixed case K
@@ -58,7 +58,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_creates_new_jobs(self):
         """New jobs should be inserted with is_active=True."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 1
@@ -76,11 +76,11 @@ class TestProcessJobResults:
         mock_db.commit = AsyncMock()
         mock_db.flush = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
-            with patch("app.services.job_crawl.update_job_detail", new_callable=AsyncMock):
+            with patch("app.domains.jobs.crawl_service.update_job_detail", new_callable=AsyncMock):
                 result = await process_job_results(1, [{"job_id": "abc123", "title": "Dev"}], 1)
 
         assert result["new_count"] == 1
@@ -89,7 +89,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_skips_detail_wait_when_description_present(self):
         """Search results with descriptions should not pay detail fetch throttling cost."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 1
@@ -114,13 +114,13 @@ class TestProcessJobResults:
         mock_db.commit = AsyncMock()
         mock_db.flush = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
             with (
-                patch("app.services.job_crawl.update_job_detail", new_callable=AsyncMock) as update_detail,
-                patch("app.services.job_crawl.asyncio.sleep", new_callable=AsyncMock) as sleep,
+                patch("app.domains.jobs.crawl_service.update_job_detail", new_callable=AsyncMock) as update_detail,
+                patch("app.domains.jobs.crawl_service.asyncio.sleep", new_callable=AsyncMock) as sleep,
             ):
                 result = await process_job_results(
                     1,
@@ -136,7 +136,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_updates_existing_job(self):
         """Existing jobs should be updated and reactivated."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 1
@@ -161,7 +161,7 @@ class TestProcessJobResults:
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -175,7 +175,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_retries_failed_detail_items(self):
         """A transient detail failure should be retried after the first detail pass."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 1
@@ -208,13 +208,13 @@ class TestProcessJobResults:
             {"success": True, "detail": {"description": "D", "address": "A"}},
         ])
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
             with (
-                patch("app.services.job_crawl.update_job_detail", update_detail),
-                patch("app.services.job_crawl.asyncio.sleep", new_callable=AsyncMock) as sleep,
+                patch("app.domains.jobs.crawl_service.update_job_detail", update_detail),
+                patch("app.domains.jobs.crawl_service.asyncio.sleep", new_callable=AsyncMock) as sleep,
             ):
                 result = await process_job_results(
                     1,
@@ -234,7 +234,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_grace_period_deactivation(self):
         """Job should be deactivated when threshold reached (threshold=2, miss_count goes 1->2)."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 999
@@ -261,7 +261,7 @@ class TestProcessJobResults:
         mock_db.commit = AsyncMock()
         mock_db.flush = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -275,7 +275,7 @@ class TestProcessJobResults:
     @pytest.mark.asyncio
     async def test_process_job_results_grace_period_not_yet_deactivated(self):
         """Job should NOT be deactivated until threshold is reached (threshold=2, miss_count 0->1)."""
-        from app.services.job_crawl import process_job_results
+        from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
         mock_config.id = 999
@@ -302,7 +302,7 @@ class TestProcessJobResults:
         mock_db.commit = AsyncMock()
         mock_db.flush = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -645,7 +645,7 @@ class TestUpdateJobDetail:
     @pytest.mark.asyncio
     async def test_update_job_detail_success(self):
         """update_job_detail should update job record with detail data."""
-        from app.services.job_crawl import update_job_detail
+        from app.domains.jobs.crawl_service import update_job_detail
 
         mock_job = MagicMock()
         mock_job.id = 1
@@ -667,7 +667,7 @@ class TestUpdateJobDetail:
             },
         })
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -683,7 +683,7 @@ class TestUpdateJobDetail:
     @pytest.mark.asyncio
     async def test_update_job_detail_reuses_session_without_commit(self):
         """Batch detail updates can reuse the caller's session and defer commit."""
-        from app.services.job_crawl import update_job_detail
+        from app.domains.jobs.crawl_service import update_job_detail
 
         mock_job = MagicMock()
         mock_job.id = 1
@@ -704,7 +704,7 @@ class TestUpdateJobDetail:
             },
         })
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             result = await update_job_detail(
                 1,
                 adapter=mock_adapter,
@@ -720,12 +720,12 @@ class TestUpdateJobDetail:
     @pytest.mark.asyncio
     async def test_update_job_detail_not_found(self):
         """update_job_detail should return error if job not found."""
-        from app.services.job_crawl import update_job_detail
+        from app.domains.jobs.crawl_service import update_job_detail
 
         mock_db = MagicMock()
         mock_db.get = AsyncMock(return_value=None)
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -737,8 +737,8 @@ class TestUpdateJobDetail:
     @pytest.mark.asyncio
     async def test_update_job_detail_accepts_job_object_skips_db_get(self):
         """Passing a Job object should skip db.get()."""
+        from app.domains.jobs.crawl_service import update_job_detail
         from app.models.job import Job
-        from app.services.job_crawl import update_job_detail
 
         mock_job = MagicMock(spec=Job)
         mock_job.id = 1
@@ -774,7 +774,7 @@ class TestAdapterSharing:
     @pytest.mark.asyncio
     async def test_crawl_single_config_reuses_adapter(self):
         """When adapter is passed, it should not create a new one."""
-        from app.services.job_crawl import crawl_single_config
+        from app.domains.jobs.crawl_service import crawl_single_config
 
         mock_adapter = MagicMock()
         mock_adapter.crawl = AsyncMock(return_value={
@@ -802,7 +802,7 @@ class TestAdapterSharing:
         mock_db.flush = AsyncMock()
         mock_db.commit = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -815,7 +815,7 @@ class TestAdapterSharing:
     @pytest.mark.asyncio
     async def test_crawl_single_config_creates_adapter_when_none(self):
         """When no adapter is passed, a new BossZhipinAdapter should be created."""
-        from app.services.job_crawl import crawl_single_config
+        from app.domains.jobs.crawl_service import crawl_single_config
 
         mock_config = MagicMock()
         mock_config.id = 1
@@ -833,7 +833,7 @@ class TestAdapterSharing:
         mock_db.flush = AsyncMock()
         mock_db.commit = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
@@ -855,7 +855,7 @@ class TestAdapterSharing:
         Patches crawl_single_config at its import location to avoid DB internals,
         then verifies the shared adapter is passed correctly.
         """
-        from app.services.job_crawl import crawl_all_job_searches
+        from app.domains.jobs.crawl_service import crawl_all_job_searches
 
         # Mock result for: result.scalars().all() -> [3 configs]
         mock_scalars = MagicMock()
@@ -874,11 +874,11 @@ class TestAdapterSharing:
         mock_db.flush = AsyncMock()
         mock_db.commit = AsyncMock()
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session_cls:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session_cls:
             mock_session_cls.return_value.__aenter__.return_value = mock_db
             mock_session_cls.return_value.__aexit__.return_value = None
 
-            with patch("app.services.job_crawl.crawl_single_config") as mock_crawl_single:
+            with patch("app.domains.jobs.crawl_service.crawl_single_config") as mock_crawl_single:
                 mock_crawl_single.return_value = {
                     "status": "success", "new_count": 1, "updated_count": 0,
                     "deactivated_count": 0,
@@ -902,7 +902,7 @@ class TestAdapterSharing:
     @pytest.mark.asyncio
     async def test_crawl_all_searches_filters_by_user_id(self):
         """Manual all-config crawls should only select the current user's configs."""
-        from app.services.job_crawl import crawl_all_job_searches
+        from app.domains.jobs.crawl_service import crawl_all_job_searches
 
         async def execute(statement):
             assert "jobs_search_configs.user_id" in str(statement)
@@ -915,7 +915,7 @@ class TestAdapterSharing:
         mock_db = MagicMock()
         mock_db.execute = AsyncMock(side_effect=execute)
 
-        with patch("app.services.job_crawl.AsyncSessionLocal") as mock_session_cls:
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session_cls:
             mock_session_cls.return_value.__aenter__.return_value = mock_db
             mock_session_cls.return_value.__aexit__.return_value = None
 
@@ -927,7 +927,7 @@ class TestAdapterSharing:
     @pytest.mark.asyncio
     async def test_crawl_single_config_skips_when_job_crawl_lock_is_held(self):
         """Overlapping job crawls should be skipped instead of running concurrently."""
-        from app.services import job_crawl
+        from app.domains.jobs import crawl_service as job_crawl
 
         await job_crawl._JOB_CRAWL_LOCK.acquire()
         try:

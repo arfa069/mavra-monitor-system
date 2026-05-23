@@ -556,7 +556,9 @@ async def crawl_single_config(
             return {"status": "error", "error": result.get("error")}
     except Exception as exc:
         import logging
-        logging.getLogger("app.services.job_crawl").exception("Unexpected error crawling config_id %d", config_id)
+        logging.getLogger("app.domains.jobs.crawl_service").exception(
+            "Unexpected error crawling config_id %d", config_id
+        )
         async with AsyncSessionLocal() as db:
             log = JobCrawlLog(
                 search_config_id=config_id,

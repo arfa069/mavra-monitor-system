@@ -13,6 +13,10 @@ from app.core.system_log import emit_system_log_detached
 from app.core.task_registry import TaskStatus, get_task
 from app.database import get_db
 from app.domains.jobs import service as job_service
+from app.domains.jobs.crawl_service import (
+    crawl_all_job_searches_background,
+    crawl_single_config_background,
+)
 from app.domains.jobs.match_service import (
     _get_jobs_needing_analysis,
     analyze_resume_vs_jobs,
@@ -38,10 +42,6 @@ from app.schemas.job_match import (
     UserResumeCreate,
     UserResumeResponse,
     UserResumeUpdate,
-)
-from app.services.job_crawl import (
-    crawl_all_job_searches_background,
-    crawl_single_config_background,
 )
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

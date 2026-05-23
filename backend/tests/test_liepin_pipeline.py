@@ -18,7 +18,7 @@ def test_job_platform_accepts_liepin():
 
 
 def test_create_adapter_supports_liepin(monkeypatch):
-    from app.services import job_crawl
+    from app.domains.jobs import crawl_service as job_crawl
 
     class FakeLiepinAdapter:
         pass
@@ -63,7 +63,7 @@ async def test_new_job_notification_uses_liepin_label(monkeypatch):
 async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     from unittest.mock import MagicMock
 
-    from app.services.job_crawl import process_job_results
+    from app.domains.jobs.crawl_service import process_job_results
 
     mock_config = MagicMock()
     mock_config.id = 1
@@ -92,8 +92,8 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     mock_db.commit = AsyncMock()
 
     update_detail = AsyncMock(return_value={"success": True, "detail": {"description": "D", "address": "A"}})
-    monkeypatch.setattr("app.services.job_crawl.update_job_detail", update_detail)
-    monkeypatch.setattr("app.services.job_crawl.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("app.domains.jobs.crawl_service.update_job_detail", update_detail)
+    monkeypatch.setattr("app.domains.jobs.crawl_service.asyncio.sleep", AsyncMock())
 
     class FakeSession:
         async def __aenter__(self):
@@ -102,7 +102,7 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
         async def __aexit__(self, *_args):
             return None
 
-    monkeypatch.setattr("app.services.job_crawl.AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr("app.domains.jobs.crawl_service.AsyncSessionLocal", lambda: FakeSession())
 
     result = await process_job_results(
         1,

@@ -89,6 +89,7 @@ backend/
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
 │   │   │   ├── scheduler.py    # 职位配置 cron manager
+│   │   │   ├── crawl_service.py # 多平台职位爬取（Boss/51job/猎聘）
 │   │   │   ├── match_service.py # LLM 简历-职位匹配分析
 │   │   │   ├── notification_service.py # 职位新发现通知编排
 │   │   │   ├── llm/            # 职位匹配 LLM provider
@@ -119,7 +120,6 @@ backend/
 │   │   └── task_registry.py    # 后台爬取/匹配任务状态注册表
 │   └── services/
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
-│       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
 │       └── __init__.py
 └── tests/                     # 单元/集成测试
 ```
@@ -323,7 +323,7 @@ JWT payload 结构：
 4. 写入 `products_price_history` 表
 5. 调用 `check_price_alerts()` 检查是否触发通知
 
-### 7.4 职位爬取（services/job_crawl.py）
+### 7.4 职位爬取（domains/jobs/crawl_service.py）
 
 正常路径不使用 Playwright，改用 `curl_cffi` 的 TLS 指纹模拟；只有 Boss token 刷新等兜底路径会使用 CDP：
 
