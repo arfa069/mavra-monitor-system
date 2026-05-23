@@ -34,10 +34,14 @@ from app.core.passwords import (  # noqa: F401  # re-exported for compatibility
 )
 from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
     create_session,
+    create_session_with_token,
     delete_other_sessions,
     delete_session,
+    get_session_by_id,
+    get_session_by_refresh_token,
     get_session_by_token,
     get_user_sessions,
+    rotate_session_refresh_token,
     stage_delete_other_sessions,
     stage_delete_user_sessions,
 )

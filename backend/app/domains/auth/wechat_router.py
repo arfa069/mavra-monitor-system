@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit
-from app.core.security import create_access_token, create_session, get_password_hash
+from app.core.security import create_access_token, create_session_with_token, get_password_hash
 from app.database import get_db
 from app.domains.auth import service as auth_service
 from app.schemas.auth import TokenResponse
@@ -146,7 +146,7 @@ async def wechat_callback(
 
         device = request.headers.get("user-agent", "")[:200]
         ip_address = request.client.host if request.client else ""
-        await create_session(
+        await create_session_with_token(
             user_id=user.id,
             token=access_token,
             device=device,
@@ -244,7 +244,7 @@ async def bind_wechat_account(
 
     device = request.headers.get("user-agent", "")[:200]
     ip_address = request.client.host if request.client else ""
-    await create_session(
+    await create_session_with_token(
         user_id=user.id,
         token=access_token,
         device=device,
@@ -335,7 +335,7 @@ async def register_with_wechat(
 
     device = request.headers.get("user-agent", "")[:200]
     ip_address = request.client.host if request.client else ""
-    await create_session(
+    await create_session_with_token(
         user_id=new_user.id,
         token=access_token,
         device=device,

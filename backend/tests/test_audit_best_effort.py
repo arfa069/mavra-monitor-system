@@ -268,7 +268,7 @@ async def test_login_audit_failure_does_not_break_business_success():
         patch("app.domains.auth.router.verify_password", return_value=True),
         patch("app.domains.auth.router.clear_login_attempts", new=AsyncMock()),
         patch("app.domains.auth.router.create_access_token", return_value="token-abc"),
-        patch("app.domains.auth.router.create_session", new=AsyncMock()),
+        patch("app.domains.auth.router.create_session_with_token", new=AsyncMock()),
         patch("app.domains.auth.router.log_audit", new=AsyncMock(return_value=None)),
     ):
         transport = ASGITransport(app=app)

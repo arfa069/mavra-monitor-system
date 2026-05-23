@@ -55,7 +55,7 @@ from app.core.permissions import get_role_permissions
 from app.core.security import (
     clear_login_attempts,
     create_access_token,
-    create_session,
+    create_session_with_token,
     delete_other_sessions,
     delete_session,
     get_current_user,
@@ -207,7 +207,7 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
     device = parse_device(request.headers.get("user-agent", ""))
     ip_address = request.client.host if request.client else ""
 
-    await create_session(
+    await create_session_with_token(
         user_id=user.id,
         token=access_token,
         device=device,
