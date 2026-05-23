@@ -59,15 +59,42 @@ backend/
 │   │   ├── job51.py            # Job51Adapter
 │   │   └── liepin.py           # LiepinAdapter
 │   ├── domains/
-│   │   ├── admin/router.py     # 用户管理 + 审计日志 + RBAC
-│   │   ├── alerts/router.py    # 告警管理 API
-│   │   ├── auth/router.py      # 认证 API（注册/登录/登出/会话）
-│   │   ├── config/router.py    # 用户配置 API
-│   │   ├── crawling/router.py  # 商品爬取触发 API
-│   │   ├── dashboard/router.py # Dashboard KPI / 趋势 / SSE
-│   │   ├── events/router.py    # 事件中心 API / SSE
-│   │   ├── jobs/router.py      # 职位管理 API
-│   │   ├── products/router.py  # 商品管理 API
+│   │   ├── admin/
+│   │   │   ├── router.py       # 用户管理 / 审计日志 / 资源权限 / RBAC API
+│   │   │   ├── service.py      # 管理端用户 CRUD 与角色边界规则
+│   │   │   └── repository.py   # 管理端用户查询
+│   │   ├── alerts/
+│   │   │   ├── router.py       # 告警管理 API 薄路由
+│   │   │   ├── service.py      # 告警 CRUD 与商品归属校验
+│   │   │   └── repository.py   # 告警和商品归属查询
+│   │   ├── auth/
+│   │   │   ├── router.py       # 认证 API（注册/登录/登出/会话）薄路由
+│   │   │   ├── service.py      # 注册、登录查询、资料更新和会话清理编排
+│   │   │   └── repository.py   # 用户、会话、登录日志查询和持久化
+│   │   ├── config/
+│   │   │   ├── router.py       # 用户配置 API 薄路由
+│   │   │   ├── service.py      # 默认配置用户创建与配置更新
+│   │   │   └── repository.py   # 默认配置用户查询和持久化
+│   │   ├── crawling/
+│   │   │   ├── router.py       # 商品爬取触发 / 日志 / 清理 API 薄路由
+│   │   │   ├── service.py      # 单商品爬取、爬取日志和旧数据清理编排
+│   │   │   └── repository.py   # 商品、价格历史、爬取日志查询和持久化
+│   │   ├── dashboard/
+│   │   │   ├── router.py       # Dashboard KPI / 趋势 / SSE 薄路由
+│   │   │   ├── service.py      # Dashboard SSE 用户解析和最近告警编排
+│   │   │   └── repository.py   # Dashboard 用户/告警查询
+│   │   ├── events/
+│   │   │   ├── router.py       # 事件中心 API / SSE 薄路由
+│   │   │   ├── service.py      # 事件列表查询编排与 SSE token 用户解析
+│   │   │   └── repository.py   # 审计/系统日志 union 查询
+│   │   ├── jobs/
+│   │   │   ├── router.py       # 职位管理 API 薄路由
+│   │   │   ├── service.py      # 职位配置、简历、匹配、列表查询业务边界
+│   │   │   └── repository.py   # 职位配置、职位、简历、匹配、爬取日志查询
+│   │   ├── products/
+│   │   │   ├── router.py       # 商品管理 API 薄路由
+│   │   │   ├── service.py      # 商品 CRUD、批量、cron 业务规则
+│   │   │   └── repository.py   # 商品、cron、价格历史查询
 │   │   └── scheduling/router.py # Scheduler status API
 │   ├── routers/                # 旧 import 路径兼容模块别名
 │   │   ├── config.py
@@ -288,7 +315,7 @@ JWT payload 结构：
 
 `get_active_products()` — 查询当前用户所有 `active=True` 的商品，返回 `List[Product]`。
 
-实际抓取逻辑在 `domains/crawling/router.py:_crawl_one()` 中，流程：
+实际抓取逻辑在 `domains/crawling/service.py:crawl_one()` 中，`domains/crawling/router.py:_crawl_one()` 仅作为旧 scheduler import/patch 路径的兼容包装。流程：
 
 1. 根据 platform 路由到对应 Adapter
 2. 调用 `adapter.crawl(url)` 执行 Playwright 自动化

@@ -1,21 +1,14 @@
 """Admin API routes for user management."""
 import logging
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import and_, func, or_, select, true
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
-from app.core.security import get_password_hash, stage_delete_user_sessions
+from app.core.security import stage_delete_user_sessions
 from app.database import get_db
-from app.models.audit_log import UserAuditLog
-from app.models.permission import Permission
-from app.models.resource_permission import ResourcePermission
-from app.models.role import Role
+from app.domains.admin import service
 from app.models.user import User
 from app.schemas.admin import (
     AdminUserListResponse,
@@ -43,6 +36,44 @@ router = APIRouter(prefix="/admin/users", tags=["admin"])
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def _admin_user_error_response(exc: service.AdminUserError) -> HTTPException:
+    if isinstance(exc, service.UserNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+    if isinstance(exc, service.UsernameConflictError):
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户名已存在")
+    if isinstance(exc, service.EmailConflictError):
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱已被使用")
+    if isinstance(exc, service.LastSuperAdminError):
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="不能删除最后一个活跃的 super_admin",
+        )
+    if isinstance(exc, service.SelfDeleteError):
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能删除自己的账号")
+    if isinstance(exc, service.RoleBoundaryError):
+        detail = str(exc) or "权限不足：不能删除 super_admin 用户"
+        if "不能修改 super_admin 用户" in detail:
+            detail = "权限不足：不能修改 super_admin 用户"
+        elif "不能将用户提升为 super_admin" in detail:
+            detail = "权限不足：不能将用户提升为 super_admin"
+        elif "不能修改自己的角色" in detail:
+            detail = "权限不足：不能修改自己的角色"
+        elif not str(exc):
+            detail = "权限不足：不能删除 super_admin 用户"
+        return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+    if isinstance(exc, service.AdminUserIntegrityError):
+        error_msg = str(exc.original.orig).lower()
+        if "username" in error_msg:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="用户名已存在")
+        if "email" in error_msg:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="邮箱已被使用")
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="数据冲突，请检查用户名或邮箱是否已被使用",
+        )
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="请求处理失败")
+
+
 @router.get("", response_model=AdminUserListResponse)
 async def list_users(
     page: int = Query(1, ge=1, description="页码"),
@@ -53,36 +84,13 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ):
     """Get paginated list of users (non-deleted only)."""
-    # Build base query for non-deleted users
-    base_filter = User.deleted_at.is_(None)
-
-    if search:
-        search_filter = or_(
-            User.username.ilike(f"%{search}%"),
-            User.email.ilike(f"%{search}%"),
-        )
-        base_filter = and_(base_filter, search_filter)
-
-    if role:
-        base_filter = and_(base_filter, User.role == role)
-
-    # Count total
-    count_query = select(func.count(User.id)).where(base_filter)
-    count_result = await db.execute(count_query)
-    total = count_result.scalar_one_or_none() or 0
-
-    # Get paginated list
-    offset = (page - 1) * page_size
-    list_query = (
-        select(User)
-        .where(base_filter)
-        .order_by(User.created_at.desc())
-        .offset(offset)
-        .limit(page_size)
+    users, total = await service.list_users(
+        db,
+        search=search,
+        role=role,
+        page=page,
+        page_size=page_size,
     )
-    list_result = await db.execute(list_query)
-    users = list_result.scalars().all()
-
     return AdminUserListResponse(
         items=[AdminUserResponse.model_validate(u) for u in users],
         total=total,
@@ -99,47 +107,15 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new user (admin only)."""
-    # Check username uniqueness (non-deleted users)
-    username_query = select(User).where(
-        and_(User.username == user_data.username, User.deleted_at.is_(None))
-    )
-    username_result = await db.execute(username_query)
-    if username_result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="用户名已存在",
-        )
-
-    # Check email uniqueness (non-deleted users)
-    email_query = select(User).where(
-        and_(User.email == user_data.email, User.deleted_at.is_(None))
-    )
-    email_result = await db.execute(email_query)
-    if email_result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="邮箱已被使用",
-        )
-
-    # Role boundary: admin cannot create super_admin
-    if current_user.role == "admin" and user_data.role == "super_admin":
+    try:
+        new_user = await service.create_user(db, user_data=user_data, actor=current_user)
+    except service.RoleBoundaryError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="权限不足：仅 super_admin 可创建 super_admin 用户",
-        )
-
-    # Create user
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password,
-        role=user_data.role,
-        is_active=True,
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+        ) from exc
+    except service.AdminUserError as exc:
+        raise _admin_user_error_response(exc) from exc
 
     await log_audit(
         db=db,
@@ -168,17 +144,10 @@ async def get_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single user by ID (non-deleted only)."""
-    query = select(User).where(
-        and_(User.id == user_id, User.deleted_at.is_(None))
-    )
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="用户不存在",
-        )
+    try:
+        user = await service.get_user(db, user_id=user_id)
+    except service.AdminUserError as exc:
+        raise _admin_user_error_response(exc) from exc
 
     return AdminUserResponse.model_validate(user)
 
@@ -192,141 +161,19 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Update a user (admin only). Includes soft delete/restore via is_active."""
-    # Find user (non-deleted only)
-    query = select(User).where(
-        and_(User.id == user_id, User.deleted_at.is_(None))
-    )
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="用户不存在",
-        )
-
-    # Check username conflict if updating username
-    if update_data.username is not None and update_data.username != user.username:
-        username_query = select(User).where(
-            and_(
-                User.username == update_data.username,
-                User.deleted_at.is_(None),
-                User.id != user_id,
-            )
-        )
-        username_result = await db.execute(username_query)
-        if username_result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="用户名已存在",
-            )
-
-    # Check email conflict if updating email
-    if update_data.email is not None and update_data.email != user.email:
-        email_query = select(User).where(
-            and_(
-                User.email == update_data.email,
-                User.deleted_at.is_(None),
-                User.id != user_id,
-            )
-        )
-        email_result = await db.execute(email_query)
-        if email_result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="邮箱已被使用",
-            )
-
-    # Apply updates
-    update_dict = update_data.model_dump(exclude_unset=True)
-
-    # Role boundary checks for admin
-    if current_user.role == "admin":
-        # Admin cannot modify super_admin users
-        if user.role == "super_admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="权限不足：不能修改 super_admin 用户",
-            )
-        # Admin cannot promote any user to super_admin
-        if update_dict.get("role") == "super_admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="权限不足：不能将用户提升为 super_admin",
-            )
-        # Admin cannot promote themselves to super_admin
-        if current_user.id == user_id and "role" in update_dict:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="权限不足：不能修改自己的角色",
-            )
-
-    # Handle is_active special case (soft delete / restore)
-    if "is_active" in update_dict:
-        if update_data.is_active is False:
-            # Prevent disabling the last active super_admin (count non-deleted)
-            if user.role == "super_admin":
-                active_super_count_result = await db.execute(
-                    select(func.count(User.id)).where(
-                        User.role == "super_admin",
-                        User.deleted_at.is_(None),
-                    )
-                )
-                active_super_count = active_super_count_result.scalar_one_or_none() or 0
-                if active_super_count <= 1:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="不能禁用最后一个活跃的 super_admin",
-                    )
-            # Soft delete
-            user.deleted_at = datetime.now(UTC)
-            user.is_active = False
-            # Stage session deletion in same transaction
-            await stage_delete_user_sessions(user_id, db)
-        elif update_data.is_active is True:
-            # Restore
-            user.deleted_at = None
-            user.is_active = True
-        # Remove is_active from update_dict to avoid setting it twice
-        del update_dict["is_active"]
-
-    # Detect role change before applying fields
-    role_changed = (
-        "role" in update_dict
-        and update_dict["role"] is not None
-        and update_dict["role"] != user.role
-    )
-
-    # Apply remaining fields
-    for field, value in update_dict.items():
-        if value is not None:
-            setattr(user, field, value)
-
-    # Stage session deletion for role changes (same transaction)
-    if role_changed:
-        await stage_delete_user_sessions(user_id, db)
-
     try:
-        await db.commit()
-        await db.refresh(user)
-    except IntegrityError as e:
-        await db.rollback()
-        logger.error(f"IntegrityError in update_user: {e}")
-        error_msg = str(e.orig).lower()
-        if 'username' in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="用户名已存在",
-            )
-        elif 'email' in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="邮箱已被使用",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="数据冲突，请检查用户名或邮箱是否已被使用",
+        user, changed_fields = await service.update_user(
+            db,
+            user_id=user_id,
+            update_data=update_data,
+            actor=current_user,
+            stage_delete_sessions=stage_delete_user_sessions,
         )
+    except service.AdminUserIntegrityError as exc:
+        logger.error(f"IntegrityError in update_user: {exc.original}")
+        raise _admin_user_error_response(exc) from exc
+    except service.AdminUserError as exc:
+        raise _admin_user_error_response(exc) from exc
 
     await log_audit(
         db=db,
@@ -334,7 +181,7 @@ async def update_user(
         actor_user_id=current_user.id,
         target_type="user",
         target_id=user.id,
-        details={"changed_fields": list(update_dict.keys())},
+        details={"changed_fields": changed_fields},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
@@ -351,54 +198,15 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Soft delete a user and clean up their sessions (admin only)."""
-    # Prevent self-delete
-    if current_user.id == user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="不能删除自己的账号",
+    try:
+        user = await service.delete_user(
+            db,
+            user_id=user_id,
+            actor=current_user,
+            stage_delete_sessions=stage_delete_user_sessions,
         )
-
-    # Find user (non-deleted only)
-    query = select(User).where(
-        and_(User.id == user_id, User.deleted_at.is_(None))
-    )
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="用户不存在",
-        )
-
-    # Role boundary: admin cannot delete super_admin
-    if current_user.role == "admin" and user.role == "super_admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="权限不足：不能删除 super_admin 用户",
-        )
-
-    # Prevent deleting the last active super_admin (count non-deleted)
-    if user.role == "super_admin":
-        active_super_count_result = await db.execute(
-            select(func.count(User.id)).where(
-                User.role == "super_admin",
-                User.deleted_at.is_(None),
-            )
-        )
-        active_super_count = active_super_count_result.scalar_one_or_none() or 0
-        if active_super_count <= 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="不能删除最后一个活跃的 super_admin",
-            )
-
-    # Soft delete user + stage session deletion (same transaction)
-    user.deleted_at = datetime.now(UTC)
-    user.is_active = False
-    await stage_delete_user_sessions(user_id, db)
-
-    await db.commit()
+    except service.AdminUserError as exc:
+        raise _admin_user_error_response(exc) from exc
 
     await log_audit(
         db=db,
@@ -428,27 +236,13 @@ async def list_audit_logs(
     db: AsyncSession = Depends(get_db),
 ):
     """Get paginated audit logs."""
-    base_filter = true()
-    if actor_user_id is not None:
-        base_filter = and_(base_filter, UserAuditLog.actor_user_id == actor_user_id)
-    if action is not None:
-        base_filter = and_(base_filter, UserAuditLog.action == action)
-
-    count_query = select(func.count(UserAuditLog.id)).where(base_filter)
-    count_result = await db.execute(count_query)
-    total = count_result.scalar_one_or_none() or 0
-
-    offset = (page - 1) * page_size
-    list_query = (
-        select(UserAuditLog)
-        .where(base_filter)
-        .order_by(UserAuditLog.created_at.desc())
-        .offset(offset)
-        .limit(page_size)
+    logs, total = await service.list_audit_logs(
+        db,
+        actor_user_id=actor_user_id,
+        action=action,
+        page=page,
+        page_size=page_size,
     )
-    list_result = await db.execute(list_query)
-    logs = list_result.scalars().all()
-
     return AuditLogListResponse(
         items=[AuditLogResponse.model_validate(log) for log in logs],
         total=total,
@@ -467,38 +261,20 @@ async def grant_resource_permission(
     db: AsyncSession = Depends(get_db),
 ):
     """Grant one or more resource permissions to a user."""
-    subject_result = await db.execute(
-        select(User).where(User.id == grant.subject_id, User.deleted_at.is_(None))
-    )
-    subject_user = subject_result.scalar_one_or_none()
-    if not subject_user:
+    try:
+        granted_count = await service.grant_resource_permissions(
+            db, grant=grant, actor=current_user
+        )
+    except service.SubjectUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="目标用户不存在或已删除",
-        )
-
-    granted_count = 0
-    for resource_id in grant.resource_ids:
-        db.add(
-            ResourcePermission(
-                subject_id=grant.subject_id,
-                subject_type="user",
-                resource_type=grant.resource_type,
-                resource_id=resource_id,
-                permission=grant.permission,
-                granted_by=current_user.id,
-            )
-        )
-        granted_count += 1
-
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
+        ) from exc
+    except service.ResourcePermissionConflictError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="权限授予失败，所有变更已回滚",
-        )
+        ) from exc
 
     await log_audit(
         db=db,
@@ -534,25 +310,13 @@ async def list_resource_permissions(
     db: AsyncSession = Depends(get_db),
 ):
     """List resource permission grants."""
-    base_filter = true()
-    if user_id is not None:
-        base_filter = and_(base_filter, ResourcePermission.subject_id == user_id)
-    if resource_type is not None:
-        base_filter = and_(base_filter, ResourcePermission.resource_type == resource_type)
-
-    total_result = await db.execute(
-        select(func.count(ResourcePermission.id)).where(base_filter)
+    items, total = await service.list_resource_permissions(
+        db,
+        user_id=user_id,
+        resource_type=resource_type,
+        page=page,
+        page_size=page_size,
     )
-    total = total_result.scalar_one_or_none() or 0
-
-    result = await db.execute(
-        select(ResourcePermission)
-        .where(base_filter)
-        .order_by(ResourcePermission.created_at.desc(), ResourcePermission.id.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-    items = result.scalars().all()
     return ResourcePermissionListResponse(
         items=[ResourcePermissionResponse.model_validate(item) for item in items],
         total=total,
@@ -569,24 +333,15 @@ async def revoke_resource_permission(
     db: AsyncSession = Depends(get_db),
 ):
     """Revoke a resource permission grant."""
-    result = await db.execute(
-        select(ResourcePermission).where(ResourcePermission.id == permission_id)
-    )
-    permission = result.scalar_one_or_none()
-    if not permission:
+    try:
+        details = await service.revoke_resource_permission(
+            db, permission_id=permission_id
+        )
+    except service.ResourcePermissionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="资源权限不存在",
-        )
-
-    details = {
-        "subject_id": permission.subject_id,
-        "resource_type": permission.resource_type,
-        "resource_id": permission.resource_id,
-        "permission": permission.permission,
-    }
-    await db.delete(permission)
-    await db.commit()
+        ) from exc
 
     await log_audit(
         db=db,
@@ -615,37 +370,25 @@ async def update_resource_permission(
     db: AsyncSession = Depends(get_db),
 ):
     """Update an existing resource permission grant (resource_type, resource_id, permission)."""
-    result = await db.execute(
-        select(ResourcePermission).where(ResourcePermission.id == permission_id)
-    )
-    permission = result.scalar_one_or_none()
-    if not permission:
+    try:
+        permission, updated_fields = await service.update_resource_permission(
+            db, permission_id=permission_id, update_data=update_data
+        )
+    except service.ResourcePermissionNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="资源权限不存在",
-        )
-
-    update_dict = update_data.model_dump(exclude_unset=True)
-
-    if "resource_id" in update_dict and update_dict["resource_id"] == "":
+        ) from exc
+    except service.ResourcePermissionValidationError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="资源 ID 不能为空",
-        )
-
-    for field, value in update_dict.items():
-        if value is not None:
-            setattr(permission, field, value)
-
-    try:
-        await db.commit()
-        await db.refresh(permission)
-    except IntegrityError:
-        await db.rollback()
+        ) from exc
+    except service.ResourcePermissionConflictError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="资源权限已存在，修改失败",
-        )
+        ) from exc
 
     await log_audit(
         db=db,
@@ -653,7 +396,7 @@ async def update_resource_permission(
         actor_user_id=current_user.id,
         target_type="resource_permission",
         target_id=permission_id,
-        details={"updated_fields": list(update_dict.keys())},
+        details={"updated_fields": updated_fields},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
@@ -673,13 +416,7 @@ async def get_role_permission_matrix(
 
     Returns all roles with their assigned permissions, plus the list of all permissions.
     """
-    roles_result = await db.execute(
-        select(Role).options(selectinload(Role.permissions)).order_by(Role.name)
-    )
-    roles = roles_result.scalars().all()
-
-    perms_result = await db.execute(select(Permission).order_by(Permission.name))
-    all_permissions = perms_result.scalars().all()
+    roles, all_permissions = await service.get_role_permission_matrix(db)
 
     role_responses = []
     for role in roles:
@@ -712,37 +449,20 @@ async def update_role_permissions(
 
     Only super_admin can modify role permissions.
     """
-    role_result = await db.execute(
-        select(Role)
-        .where(Role.name == role_name)
-        .options(selectinload(Role.permissions))
-    )
-    role = role_result.scalar_one_or_none()
-    if not role:
+    try:
+        role, perms = await service.update_role_permissions(
+            db, role_name=role_name, update_data=update_data
+        )
+    except service.RoleNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="角色不存在",
-        )
-
-    # Fetch all permissions referenced in the update
-    if update_data.permissions:
-        perm_result = await db.execute(
-            select(Permission).where(Permission.name.in_(update_data.permissions))
-        )
-        perms = perm_result.scalars().all()
-        found_names = {p.name for p in perms}
-        missing = set(update_data.permissions) - found_names
-        if missing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"未知权限: {', '.join(sorted(missing))}",
-            )
-        role.permissions = list(perms)
-    else:
-        role.permissions = []
-        perms = []
-
-    await db.commit()
+        ) from exc
+    except service.UnknownPermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"未知权限: {', '.join(sorted(exc.missing))}",
+        ) from exc
 
     await log_audit(
         db=db,

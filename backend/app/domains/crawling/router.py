@@ -1,100 +1,22 @@
 """Crawl API router."""
-from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
-from app.database import AsyncSessionLocal, get_db
-from app.models.crawl_log import CrawlLog
-from app.models.price_history import PriceHistory
-from app.models.product import Product
+from app.database import get_db
+from app.domains.crawling import service as crawling_service
 from app.models.user import User
 from app.schemas.crawl_log import CrawlLogResponse
 
 router = APIRouter(prefix="/crawl", tags=["products-crawl"])
 
-PLATFORM_ADAPTERS = {}
-
-
-def _get_adapters():
-    """Lazy-load adapters to avoid circular imports."""
-    global PLATFORM_ADAPTERS
-    if not PLATFORM_ADAPTERS:
-        from app.platforms import AmazonAdapter, JDAdapter, TaobaoAdapter
-        PLATFORM_ADAPTERS.update({
-            "taobao": TaobaoAdapter,
-            "jd": JDAdapter,
-            "amazon": AmazonAdapter,
-        })
-
 
 async def _crawl_one(product_id: int) -> dict:
-    """Core crawl logic — runs in the same event loop as the caller."""
-    from decimal import Decimal
-
-    from app.services.crawl import (
-        check_price_alerts,
-        save_crawl_log,
-        save_price_history,
-    )
-
-    _get_adapters()
-
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Product).where(Product.id == product_id))
-        product = result.scalar_one_or_none()
-
-        if not product or not product.active:
-            return {"status": "skipped", "product_id": product_id}
-
-        adapter_class = PLATFORM_ADAPTERS.get(product.platform)
-        if not adapter_class:
-            await save_crawl_log(
-                product_id,
-                product.platform,
-                "ERROR",
-                error_message=f"Unknown platform: {product.platform}",
-            )
-            return {"status": "error", "product_id": product_id}
-
-        adapter = adapter_class()
-
-        try:
-            result_data = await adapter.crawl(product.url)
-
-            if result_data.get("success"):
-                price = Decimal(str(result_data["price"]))
-                currency = result_data.get("currency", "CNY")
-                scraped_at = datetime.now(UTC)
-
-                await save_price_history(product_id, price, currency, scraped_at)
-                await save_crawl_log(product_id, product.platform, "SUCCESS", price=price, currency=currency)
-                await check_price_alerts(product_id, price)
-
-                # Update product title if not set
-                new_title = result_data.get("title")
-                if new_title and not product.title:
-                    product.title = new_title
-                    await db.commit()
-
-                return {"status": "success", "product_id": product_id, "price": float(price)}
-            else:
-                await save_crawl_log(
-                    product_id,
-                    product.platform,
-                    "ERROR",
-                    error_message=result_data.get("error", "Unknown error"),
-                )
-                return {"status": "error", "product_id": product_id}
-
-        except Exception as e:
-            platform_name = product.platform if product else "unknown"
-            await save_crawl_log(product_id, platform_name, "ERROR", error_message=str(e))
-            return {"status": "error", "product_id": product_id, "error": str(e)}
+    """Compatibility wrapper used by scheduler_service."""
+    return await crawling_service.crawl_one(product_id)
 
 
 @router.get("/logs", response_model=list[CrawlLogResponse])
@@ -109,23 +31,14 @@ async def get_crawl_logs(
     """Get recent crawl logs."""
     if not current_user:
         raise HTTPException(status_code=401, detail="请先登录")
-    cutoff = datetime.now(UTC) - timedelta(hours=hours)
-    query = select(CrawlLog).where(CrawlLog.timestamp >= cutoff)
-
-    if product_id is not None:
-        query = query.where(CrawlLog.product_id == product_id)
-    if status is not None:
-        query = query.where(CrawlLog.status == status.upper())
-
-    query = query.order_by(desc(CrawlLog.timestamp)).limit(limit)
-    result = await db.execute(query)
-    logs = result.scalars().all()
-    # Filter by user_id via product relationship
-    user_product_ids_result = await db.execute(
-        select(Product.id).where(Product.user_id == current_user.id)
+    return await crawling_service.list_crawl_logs(
+        db,
+        user_id=current_user.id,
+        product_id=product_id,
+        status=status,
+        hours=hours,
+        limit=limit,
     )
-    user_product_ids = set(row[0] for row in user_product_ids_result.fetchall())
-    return [log for log in logs if log.product_id in user_product_ids]
 
 
 @router.post("/crawl-now")
@@ -222,62 +135,7 @@ async def cleanup_old_data(
     """Delete price history and crawl logs older than retention period."""
     if not current_user:
         raise HTTPException(status_code=401, detail="请先登录")
-    from app.config import settings
-
-    days = min(retention_days, settings.data_retention_days)
-    cutoff = datetime.now(UTC) - timedelta(days=days)
-
-    # Get user's product IDs for filtering
-    user_products_result = await db.execute(
-        select(Product.id).where(Product.user_id == current_user.id)
+    result = await crawling_service.cleanup_old_data(
+        db, user_id=current_user.id, retention_days=retention_days
     )
-    user_product_ids = [row[0] for row in user_products_result.fetchall()]
-
-    if not user_product_ids:
-        return JSONResponse(content={
-            "status": "completed",
-            "deleted_crawl_logs": 0,
-            "deleted_price_history": 0,
-            "cutoff_date": cutoff.isoformat(),
-            "retention_days": days,
-        })
-
-    # Count before deleting
-    log_count_result = await db.execute(
-        select(CrawlLog.id).where(
-            CrawlLog.timestamp < cutoff,
-            CrawlLog.product_id.in_(user_product_ids)
-        )
-    )
-    deleted_logs = len(list(log_count_result.scalars().all()))
-
-    price_count_result = await db.execute(
-        select(PriceHistory.id).where(
-            PriceHistory.scraped_at < cutoff,
-            PriceHistory.product_id.in_(user_product_ids)
-        )
-    )
-    deleted_prices = len(list(price_count_result.scalars().all()))
-
-    # Execute deletes (only user's data)
-    await db.execute(
-        delete(CrawlLog).where(
-            CrawlLog.timestamp < cutoff,
-            CrawlLog.product_id.in_(user_product_ids)
-        )
-    )
-    await db.execute(
-        delete(PriceHistory).where(
-            PriceHistory.scraped_at < cutoff,
-            PriceHistory.product_id.in_(user_product_ids)
-        )
-    )
-    await db.commit()
-
-    return JSONResponse(content={
-        "status": "completed",
-        "deleted_crawl_logs": deleted_logs,
-        "deleted_price_history": deleted_prices,
-        "cutoff_date": cutoff.isoformat(),
-        "retention_days": days,
-    })
+    return JSONResponse(content=result)

@@ -8,11 +8,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_access_token, require_role
+from app.core.security import require_role
 from app.database import get_db
+from app.domains.dashboard import service as dashboard_domain_service
 from app.models.user import User
 from app.schemas.dashboard import DashboardKPIResponse, TrendResponse
 from app.services.dashboard_service import DashboardService
@@ -53,26 +53,8 @@ async def stream_dashboard_events(
     db: AsyncSession = Depends(get_db),
 ):
     """Stream dashboard KPI updates over SSE."""
-    payload = decode_access_token(token)
-    if payload is None or payload.get("sub") is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing token",
-        )
-
-    user_id = int(payload["sub"])
-
-    # Fetch user from DB to check role
-    result = await db.execute(
-        select(User).where(User.id == user_id, User.deleted_at.is_(None))
-    )
-    user = result.scalar_one_or_none()
-    if user is None or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
-        )
-
+    user = await dashboard_domain_service.get_stream_user(db, token=token)
+    user_id = user.id
     is_admin = user.role in ("admin", "super_admin")
 
     async def event_generator():
@@ -183,27 +165,4 @@ async def get_recent_alerts(
     db: AsyncSession = Depends(get_db),
 ):
     """Get recent alerts (admin only)."""
-    from app.models.alert import Alert
-
-    result = await db.execute(
-        select(Alert).order_by(Alert.created_at.desc()).limit(limit)
-    )
-    alerts = result.scalars().all()
-
-    return [
-        {
-            "id": alert.id,
-            "product_id": alert.product_id,
-            "alert_type": alert.alert_type,
-            "message": (
-                f"Threshold: {alert.threshold_percent}%"
-                if alert.threshold_percent is not None
-                else alert.alert_type
-            ),
-            "active": alert.active,
-            "created_at": (
-                alert.created_at.isoformat() if alert.created_at else None
-            ),
-        }
-        for alert in alerts
-    ]
+    return await dashboard_domain_service.list_recent_alerts(db, limit=limit)

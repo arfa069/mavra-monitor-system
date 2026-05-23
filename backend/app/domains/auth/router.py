@@ -43,12 +43,10 @@ curl -X GET http://localhost:8000/auth/me \\
     -H "Authorization: Bearer <token>"
 ```
 """
-import hashlib
 import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +70,7 @@ from app.core.security import (
     verify_password,
 )
 from app.database import get_db
-from app.models.login_log import LoginLog
+from app.domains.auth import service as auth_service
 from app.models.user import User
 from app.schemas.auth import (
     BaseModel,
@@ -112,34 +110,22 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
             -H "Content-Type: application/json" \\
             -d '{"username": "testuser", "email": "test@example.com", "password": "123456"}'
     """
-    # Check if username already exists
-    result = await db.execute(select(User).where(User.username == user_data.username))
-    if result.scalar_one_or_none():
+    try:
+        new_user = await auth_service.register_user(
+            db,
+            user_data=user_data,
+            password_hash=get_password_hash(user_data.password),
+        )
+    except auth_service.UsernameConflictError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="用户名已注册",
-        )
-
-    # Check if email already exists
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    if result.scalar_one_or_none():
+        ) from None
+    except auth_service.EmailConflictError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="邮箱已注册",
-        )
-
-    # Create new user
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password,
-        is_active=True,
-    )
-
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+        ) from None
 
     await log_audit(
         db=db,
@@ -176,9 +162,7 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
             -H "Content-Type: application/json" \\
             -d '{"username": "testuser", "password": "123456"}'
     """
-    # Find user by username
-    result = await db.execute(select(User).where(User.username == login_data.username))
-    user = result.scalar_one_or_none()
+    user = await auth_service.get_user_for_login(db, username=login_data.username)
 
     if user is None:
         # Record failed attempt
@@ -231,13 +215,12 @@ async def login(login_data: UserLogin, request: Request, db: AsyncSession = Depe
         db=db,
     )
 
-    login_log = LoginLog(
+    await auth_service.add_login_log(
+        db,
         user_id=user.id,
         ip_address=ip_address,
-        user_agent=request.headers.get("user-agent", "")[:512],
+        user_agent=request.headers.get("user-agent", ""),
     )
-    db.add(login_log)
-    await db.commit()
 
     await log_audit(
         db=db,
@@ -279,19 +262,9 @@ async def logout(
     """
     # Delete current session (best-effort — must not fail the logout)
     try:
-        from app.models.session import Session
-
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        result = await db.execute(
-            select(Session).where(
-                Session.user_id == current_user.id,
-                Session.token_hash == token_hash,
-            )
+        await auth_service.delete_session_for_token(
+            db, user_id=current_user.id, token=token
         )
-        session = result.scalar_one_or_none()
-        if session:
-            await db.delete(session)
-            await db.commit()
     except Exception:
         logger.exception("Failed to delete session on logout")
         await db.rollback()
@@ -367,45 +340,20 @@ async def update_me(
             -H "Content-Type: application/json" \\
             -d '{"username": "new_username", "email": "new@example.com"}'
     """
-    # Check username conflict (only if username is being changed)
-    if update_data.username and update_data.username != current_user.username:
-        result = await db.execute(
-            select(User).where(
-                User.username == update_data.username,
-                User.id != current_user.id,
-                User.deleted_at.is_(None),
-            )
-        )
-        if result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="用户名已存在",
-            )
-
-    # Check email conflict (only if email is being changed)
-    if update_data.email and update_data.email != current_user.email:
-        result = await db.execute(
-            select(User).where(
-                User.email == update_data.email,
-                User.id != current_user.id,
-                User.deleted_at.is_(None),
-            )
-        )
-        if result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="邮箱已存在",
-            )
-
-    # Update fields
-    if update_data.username:
-        current_user.username = update_data.username
-    if update_data.email:
-        current_user.email = update_data.email
-
     try:
-        await db.commit()
-        await db.refresh(current_user)
+        current_user = await auth_service.update_profile(
+            db, user=current_user, update_data=update_data
+        )
+    except auth_service.UsernameConflictError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="用户名已存在",
+        ) from None
+    except auth_service.EmailConflictError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="邮箱已存在",
+        ) from None
     except IntegrityError as e:
         await db.rollback()
         logger.error(f"IntegrityError in update_me: {e}")
@@ -569,10 +517,4 @@ async def get_my_login_history(
         curl -X GET http://localhost:8000/auth/me/login-history \\
             -H "Authorization: Bearer <token>"
     """
-    result = await db.execute(
-        select(LoginLog)
-        .where(LoginLog.user_id == current_user.id)
-        .order_by(LoginLog.created_at.desc())
-        .limit(50)
-    )
-    return result.scalars().all()
+    return await auth_service.list_login_history(db, user_id=current_user.id)
