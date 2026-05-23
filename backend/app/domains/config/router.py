@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import require_permission
+from app.core.user_config_cache import invalidate_user_config_cache
 from app.database import get_db
 from app.domains.config import service as config_service
 from app.models.user import User
@@ -14,7 +15,6 @@ from app.schemas.user import (
     UserConfigResponse,
     UserConfigUpdate,
 )
-from app.services.user_config_cache import invalidate_user_config_cache
 
 logger = logging.getLogger(__name__)
 

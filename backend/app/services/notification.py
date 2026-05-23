@@ -4,8 +4,8 @@ from __future__ import annotations
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from app.core.user_config_cache import get_cached_user_config
 from app.models.job import JobSearchConfig
-from app.services.user_config_cache import get_cached_user_config
 
 
 @retry(

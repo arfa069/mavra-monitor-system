@@ -29,6 +29,7 @@ backend/
 │   │   ├── security.py         # JWT / 密码加密 / 会话管理
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
 │   │   ├── resource_permission.py # 资源级 ACL 权限判断
+│   │   ├── user_config_cache.py # Redis TTL 缓存用户配置（5min）
 │   │   └── audit.py            # 审计日志写入工具
 │   ├── models/
 │   │   ├── base.py             # SQLAlchemy Base
@@ -112,8 +113,7 @@ backend/
 │       ├── llm_provider.py     # LLM Provider 工厂
 │       ├── llm_anthropic.py    # Anthropic Claude
 │       ├── llm_openai.py       # OpenAI GPT
-│       ├── llm_ollama.py       # Ollama 本地模型
-│       └── user_config_cache.py # Redis TTL 缓存用户配置（5min）
+│       └── llm_ollama.py       # Ollama 本地模型
 └── tests/                     # 单元/集成测试
 ```
 

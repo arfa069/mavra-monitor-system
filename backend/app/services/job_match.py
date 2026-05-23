@@ -8,12 +8,12 @@ from collections.abc import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.user_config_cache import get_cached_user_config
 from app.database import AsyncSessionLocal
 from app.models.job import Job, JobSearchConfig
 from app.models.job_match import MatchResult, UserResume
 from app.services.llm_provider import MatchAnalysis, get_llm_provider
 from app.services.notification import send_feishu_notification
-from app.services.user_config_cache import get_cached_user_config
 
 
 async def _get_jobs_needing_analysis(
@@ -103,12 +103,12 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
     user = await get_cached_user_config(db)
 
     # 4. Analyze in batches of 3 (concurrent)
-    BATCH_SIZE = 10
+    batch_size = 10
     provider = get_llm_provider()
     notify_jobs = []  # 高分职位，汇总后发一条飞书
 
-    for i in range(0, len(jobs_to_analyze), BATCH_SIZE):
-        batch = jobs_to_analyze[i : i + BATCH_SIZE]
+    for i in range(0, len(jobs_to_analyze), batch_size):
+        batch = jobs_to_analyze[i : i + batch_size]
 
         # 过滤无内容的 job
         valid_jobs = [
@@ -226,7 +226,7 @@ async def analyze_resume_vs_jobs(
         created = 0
         updated = 0
         skipped = 0
-        BATCH_SIZE = 10
+        batch_size = 10
         notify_jobs = []
 
         # Batch valid jobs first
@@ -237,8 +237,8 @@ async def analyze_resume_vs_jobs(
         ]
         skipped = len(jobs) - len(valid_jobs)
 
-        for i in range(0, len(valid_jobs), BATCH_SIZE):
-            batch = valid_jobs[i : i + BATCH_SIZE]
+        for i in range(0, len(valid_jobs), batch_size):
+            batch = valid_jobs[i : i + batch_size]
 
             # Concurrent LLM analysis for the batch
             tasks = [
