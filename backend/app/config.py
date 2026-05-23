@@ -56,6 +56,20 @@ class Settings(BaseSettings):
     app_name: str = "Price Monitor"
     debug: bool = False
 
+    # Auth cookie settings
+    auth_access_cookie_name: str = "pm_access_token"
+    auth_refresh_cookie_name: str = "pm_refresh_token"
+    auth_csrf_cookie_name: str = "pm_csrf_token"
+    auth_csrf_header_name: str = "X-CSRF-Token"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 14
+    auth_cookie_samesite: str = "lax"
+
+    @property
+    def auth_cookie_secure(self) -> bool:
+        """Whether auth cookies should have the Secure flag."""
+        return not self.debug
+
     # WeChat login settings
     wechat_login_enabled: bool = False
     wechat_app_id: str | None = None
