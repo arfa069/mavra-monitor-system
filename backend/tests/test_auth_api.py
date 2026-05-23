@@ -21,8 +21,10 @@ def mock_db_session():
     session = AsyncMock()
     session.execute = AsyncMock()
     session.commit = AsyncMock()
+    session.flush = AsyncMock()
     session.add = MagicMock()
     session.refresh = AsyncMock()
+    session.delete = AsyncMock()
     return session
 
 
@@ -167,8 +169,8 @@ async def test_register_username_too_short_returns_422(mock_get_db):
 
 
 @pytest.mark.asyncio
-async def test_login_success_returns_200_and_token(test_user, mock_get_db):
-    """POST /auth/login with valid credentials returns 200 and access token."""
+async def test_login_success_returns_200_and_cookies(test_user, mock_get_db):
+    """POST /auth/login with valid credentials returns 200 and sets auth cookies."""
 
     from app.core.security import get_password_hash
 
@@ -180,10 +182,17 @@ async def test_login_success_returns_200_and_token(test_user, mock_get_db):
     mock_user.email = test_user["email"]
     mock_user.hashed_password = hashed
     mock_user.is_active = True
+    mock_user.role = "user"
     mock_user.deleted_at = None
+    mock_user.created_at = "2024-01-01T00:00:00+00:00"
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = mock_user
+    # Also handle scalars().all() for session count and permissions
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
+    mock_result.scalars.return_value = mock_scalars
+
     mock_get_db.execute.return_value = mock_result
 
     transport = ASGITransport(app=app)
@@ -198,8 +207,17 @@ async def test_login_success_returns_200_and_token(test_user, mock_get_db):
 
     assert response.status_code == 200
     data = response.json()
-    assert "access_token" in data
-    assert data.get("token_type") == "bearer"
+    # UserResponse shape — no access_token in body
+    assert data["username"] == test_user["username"]
+    assert data["email"] == test_user["email"]
+    assert data["role"] == "user"
+    assert "id" in data
+    assert "access_token" not in data
+    # Cookies set via Set-Cookie header
+    set_cookie = response.headers.get("set-cookie", "")
+    assert "pm_access_token=" in set_cookie
+    assert "pm_refresh_token=" in set_cookie
+    assert "pm_csrf_token=" in set_cookie
 
 
 @pytest.mark.asyncio
@@ -289,31 +307,153 @@ async def test_login_account_locked_after_5_failures(test_user, mock_get_db):
     clear_login_attempts(test_user["username"])
 
 
+# --- POST /auth/refresh Tests ---
+
+
+@pytest.mark.asyncio
+async def test_refresh_success_returns_200_and_new_cookies(test_user, mock_get_db):
+    """POST /auth/refresh with valid refresh token returns 200 and new cookies."""
+    from app.core.security import create_refresh_token
+
+    old_refresh = create_refresh_token()
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.role = "user"
+    mock_user.deleted_at = None
+    mock_user.created_at = "2024-01-01T00:00:00+00:00"
+
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
+
+    # get_session_by_refresh_token → mock_session_obj
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    # user query → mock_user
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+
+    # permissions query → empty list
+    mock_permissions = MagicMock()
+    mock_permissions.scalars.return_value.all.return_value = []
+
+    mock_get_db.execute.side_effect = [
+        mock_session_result,  # get_session_by_refresh_token
+        mock_user_result,     # user query
+        mock_permissions,     # get_role_permissions
+    ]
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/refresh",
+            cookies={
+                "pm_refresh_token": old_refresh,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == test_user["username"]
+    assert "access_token" not in data
+    # New cookies set
+    set_cookie = response.headers.get("set-cookie", "")
+    assert "pm_access_token=" in set_cookie
+    assert "pm_refresh_token=" in set_cookie
+    assert "pm_csrf_token=" in set_cookie
+
+
+@pytest.mark.asyncio
+async def test_refresh_without_cookie_returns_401():
+    """POST /auth/refresh without pm_refresh_token cookie returns 401."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/refresh",
+            cookies={"pm_csrf_token": "csrf-value"},
+            headers={"X-CSRF-Token": "csrf-value"},
+        )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_invalid_token_returns_401(mock_get_db):
+    """POST /auth/refresh with invalid refresh token returns 401."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_get_db.execute.return_value = mock_result
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/refresh",
+            cookies={
+                "pm_refresh_token": "invalid-token",
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
+        )
+    assert response.status_code == 401
+    assert "刷新令牌" in response.json().get("detail", "")
+
+
 # --- POST /auth/logout Tests ---
 
 
 @pytest.mark.asyncio
 async def test_logout_success(test_user, mock_get_db):
     """POST /auth/logout returns 200 on successful logout."""
-    from app.core.security import create_access_token
+    from app.core.security import create_access_token_sid
+
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock user found
     mock_user = MagicMock()
     mock_user.id = 1
     mock_user.username = test_user["username"]
     mock_user.is_active = True
+    mock_user.role = "user"
 
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    mock_get_db.execute.return_value = mock_result
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    # get_current_user_cookie: user query → found
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+    # get_current_user_cookie: session query → found
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_session_result,  # get_session_by_refresh_token
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/auth/logout",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_refresh_token": "test-refresh-token",
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
         )
 
     assert response.status_code == 200
@@ -321,19 +461,13 @@ async def test_logout_success(test_user, mock_get_db):
 
 
 @pytest.mark.asyncio
-async def test_logout_without_token_returns_401_or_422():
-    """POST /auth/logout without token returns 401 or 422.
-
-    FastAPI returns 422 for missing required header (validation error),
-    then our handler converts to 401 if needed.
-    """
+async def test_logout_without_cookies_returns_401():
+    """POST /auth/logout without cookies returns 401."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post("/auth/logout")
 
-    # 422 = FastAPI validation error for missing required header
-    # 401 = our handler converting to auth error
-    assert response.status_code in [401, 422]
+    assert response.status_code in [401, 403]
 
 
 # --- GET /auth/me Tests ---
@@ -341,12 +475,12 @@ async def test_logout_without_token_returns_401_or_422():
 
 @pytest.mark.asyncio
 async def test_me_with_valid_token_returns_user_info(test_user, mock_get_db):
-    """GET /auth/me with valid token returns user info."""
+    """GET /auth/me with valid pm_access_token cookie returns user info."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token
+    from app.core.security import create_access_token_sid
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock user found
     mock_user = MagicMock()
@@ -358,15 +492,30 @@ async def test_me_with_valid_token_returns_user_info(test_user, mock_get_db):
     mock_user.deleted_at = None
     mock_user.created_at = datetime.now(UTC)
 
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    mock_get_db.execute.return_value = mock_result
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
+
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_permissions = MagicMock()
+    mock_permissions.scalars.return_value.all.return_value = []
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_permissions,     # get_role_permissions
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={"pm_access_token": token},
         )
 
     assert response.status_code == 200
@@ -376,38 +525,38 @@ async def test_me_with_valid_token_returns_user_info(test_user, mock_get_db):
 
 
 @pytest.mark.asyncio
-async def test_me_without_token_returns_401_or_422():
-    """GET /auth/me without token returns 401 or 422.
-
-    FastAPI returns 422 for missing required header (validation error).
-    """
+async def test_me_without_cookie_returns_401():
+    """GET /auth/me without pm_access_token cookie returns 401."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/auth/me")
 
-    # 422 = FastAPI validation error for missing required header
-    # 401 = our handler converting to auth error
-    assert response.status_code in [401, 422]
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_me_with_expired_token_returns_401(mock_get_db):
-    """GET /auth/me with expired token returns 401."""
-    from datetime import timedelta
+    """GET /auth/me with expired pm_access_token cookie returns 401."""
+    from datetime import UTC, datetime, timedelta
 
-    from app.core.security import create_access_token
+    from jose import jwt
 
-    # Create expired token
-    token = create_access_token(
-        {"sub": "1", "username": "testuser"},
-        expires_delta=timedelta(seconds=-1),
-    )
+    from app.config import settings
+
+    payload = {
+        "sub": "1",
+        "username": "testuser",
+        "sid": 42,
+        "typ": "access",
+        "exp": datetime.now(UTC) - timedelta(hours=1),
+    }
+    expired_token = jwt.encode(payload, settings.jwt_secret_key, algorithm="HS256")
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={"pm_access_token": expired_token},
         )
 
     assert response.status_code == 401
@@ -421,9 +570,9 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     """PATCH /auth/me with valid data returns 200 and updated user info."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -432,31 +581,47 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     mock_user.email = test_user["email"]
     mock_user.is_active = True
     mock_user.created_at = datetime.now(UTC)
-    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.hashed_password = "hashed"
     mock_user.role = "user"
+    mock_user.deleted_at = None
 
-    # Mock results for execute calls: get_current_user (user + session),
-    # then username check, email check
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
+    # Results: get_current_user_cookie (user + session),
+    # then username check (None), email check (None), then permissions
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_none = MagicMock()
-    mock_result_none.scalar_one_or_none.return_value = None
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
 
-    mock_result_permissions = MagicMock()
-    mock_result_permissions.scalars.return_value.all.return_value = []
+    mock_none_result = MagicMock()
+    mock_none_result.scalar_one_or_none.return_value = None
+
+    mock_permissions = MagicMock()
+    mock_permissions.scalars.return_value.all.return_value = []
+
     mock_get_db.execute.side_effect = [
-        mock_result_user, mock_result_session, mock_result_none, mock_result_none, mock_result_permissions
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_none_result,     # username check — no conflict
+        mock_none_result,     # email check — no conflict
+        mock_permissions,     # get_role_permissions
     ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={
                 "username": "new_username",
                 "email": "new@example.com",
@@ -474,9 +639,9 @@ async def test_update_me_with_duplicate_username_returns_400(test_user, mock_get
     """PATCH /auth/me with existing username returns 400."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -485,28 +650,43 @@ async def test_update_me_with_duplicate_username_returns_400(test_user, mock_get
     mock_user.email = test_user["email"]
     mock_user.is_active = True
     mock_user.created_at = datetime.now(UTC)
-    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.hashed_password = "hashed"
     mock_user.role = "user"
+    mock_user.deleted_at = None
 
-    # Mock results: get_current_user (user + session), then duplicate username check
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
+    # Results: get_current_user_cookie (user + session), then duplicate username
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_duplicate = MagicMock()
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_duplicate = MagicMock()
     existing_user = MagicMock()
     existing_user.username = "existing_user"
-    mock_result_duplicate.scalar_one_or_none.return_value = existing_user
+    mock_duplicate.scalar_one_or_none.return_value = existing_user
 
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_duplicate]
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_duplicate,       # username check — conflict
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={"username": "existing_user"},
         )
 
@@ -519,9 +699,9 @@ async def test_update_me_with_duplicate_email_returns_400(test_user, mock_get_db
     """PATCH /auth/me with existing email returns 400."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -530,33 +710,45 @@ async def test_update_me_with_duplicate_email_returns_400(test_user, mock_get_db
     mock_user.email = test_user["email"]
     mock_user.is_active = True
     mock_user.created_at = datetime.now(UTC)
-    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.hashed_password = "hashed"
     mock_user.role = "user"
     mock_user.deleted_at = None
 
-    # Mock results: get_current_user (user + session), then email check returns duplicate
-    # Note: username check is SKIPPED because update_data.username is None
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
+    # Results: get_current_user_cookie (user + session), then email check returns duplicate
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_duplicate = MagicMock()
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_duplicate = MagicMock()
     duplicate_user = MagicMock()
-    duplicate_user.id = 999  # Different from mock_user.id = 1
+    duplicate_user.id = 999
     duplicate_user.username = "some_other_user"
     duplicate_user.deleted_at = None
-    mock_result_duplicate.scalar_one_or_none.return_value = duplicate_user
+    mock_duplicate.scalar_one_or_none.return_value = duplicate_user
 
-    # 3 execute calls: get_user, get_session, then email check
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_duplicate]
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_duplicate,       # email check — conflict
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={"email": "existing@example.com"},
         )
 
@@ -569,9 +761,9 @@ async def test_update_me_with_same_username_returns_200(test_user, mock_get_db):
     """PATCH /auth/me with same username as current user returns 200 (no conflict)."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -580,26 +772,40 @@ async def test_update_me_with_same_username_returns_200(test_user, mock_get_db):
     mock_user.email = test_user["email"]
     mock_user.is_active = True
     mock_user.created_at = datetime.now(UTC)
-    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.hashed_password = "hashed"
     mock_user.role = "user"
+    mock_user.deleted_at = None
 
-    # Mock results: get_current_user (user + session), then username check None (same username OK)
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session exists
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_none = MagicMock()
-    mock_result_none.scalar_one_or_none.return_value = None
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
 
-    mock_get_db.execute.side_effect = [mock_result_user, mock_result_session, mock_result_none]
+    mock_none_result = MagicMock()
+    mock_none_result.scalar_one_or_none.return_value = None
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+        mock_none_result,     # username check — no conflict (same name)
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
             "/auth/me",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={"username": test_user["username"]},
         )
 
@@ -614,9 +820,9 @@ async def test_change_password_with_wrong_old_password_returns_400(test_user, mo
     """POST /auth/me/password with wrong old password returns 400."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid, get_password_hash
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -628,15 +834,32 @@ async def test_change_password_with_wrong_old_password_returns_400(test_user, mo
     mock_user.hashed_password = get_password_hash("correct_password")
     mock_user.role = "user"
 
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    mock_get_db.execute.return_value = mock_result
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
+
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # get_current_user_cookie: user
+        mock_session_result,  # get_current_user_cookie: session
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/auth/me/password",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={
                 "old_password": "wrong_password",
                 "new_password": "new_secure_password",
@@ -652,9 +875,9 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
     """POST /auth/me/password with valid data returns 200."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid, get_password_hash
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock current user
     mock_user = MagicMock()
@@ -665,16 +888,43 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
     mock_user.created_at = datetime.now(UTC)
     mock_user.hashed_password = get_password_hash(test_user["password"])
     mock_user.role = "user"
+    mock_user.deleted_at = None
 
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_user
-    mock_get_db.execute.return_value = mock_result
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
+
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    # get_current_user_cookie: (1) user, (2) session
+    # get_session_by_refresh_token: (3) session
+    # stage_delete_other_sessions: (4) other sessions
+    mock_other_sessions = MagicMock()
+    mock_other_sessions.scalars.return_value.all.return_value = []
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,     # 1. get_current_user_cookie: user
+        mock_session_result,  # 2. get_current_user_cookie: session
+        mock_session_result,  # 3. get_session_by_refresh_token
+        mock_other_sessions,  # 4. stage_delete_other_sessions
+    ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/auth/me/password",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_refresh_token": "test-refresh-token",
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={
                 "old_password": test_user["password"],
                 "new_password": "new_secure_password",
@@ -683,11 +933,14 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
 
     assert response.status_code == 200
     assert "成功" in response.json().get("message", "")
+    # Cookies should be refreshed
+    set_cookie = response.headers.get("set-cookie", "")
+    assert "pm_access_token=" in set_cookie
 
 
 @pytest.mark.asyncio
-async def test_change_password_without_token_returns_401_or_422():
-    """POST /auth/me/password without token returns 401 or 422."""
+async def test_change_password_without_cookie_returns_401():
+    """POST /auth/me/password without cookies returns 401 or 403."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
@@ -698,7 +951,7 @@ async def test_change_password_without_token_returns_401_or_422():
             },
         )
 
-    assert response.status_code in [401, 422]
+    assert response.status_code == 401
 
 
 # --- Password Change Session Cleanup Tests ---
@@ -709,9 +962,9 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
     """POST /auth/me/password removes other sessions but keeps current."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid, get_password_hash
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     # Mock user
     mock_user = MagicMock()
@@ -729,30 +982,34 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
     mock_session_row.id = 42
     mock_session_row.user_id = 1
 
-    # get_current_user needs: user query + session query
-    # get_session_by_token needs: session query
-    # stage_delete_other_sessions needs: query to find other sessions
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = mock_session_row
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_row
 
-    mock_result_other_sessions = MagicMock()
-    mock_result_other_sessions.scalars.return_value.all.return_value = [MagicMock()]
+    mock_other_sessions_result = MagicMock()
+    mock_other_sessions_result.scalars.return_value.all.return_value = [MagicMock()]
 
     mock_get_db.execute.side_effect = [
-        mock_result_user,              # get_current_user: user lookup
-        mock_result_session,           # get_current_user: session lookup
-        mock_result_session,           # get_session_by_token: session lookup
-        mock_result_other_sessions,    # stage_delete_other_sessions: query
+        mock_user_result,              # 1. get_current_user_cookie: user
+        mock_session_result,           # 2. get_current_user_cookie: session
+        mock_session_result,           # 3. get_session_by_refresh_token
+        mock_other_sessions_result,    # 4. stage_delete_other_sessions
     ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/auth/me/password",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_refresh_token": "test-refresh-token",
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={
                 "old_password": test_user["password"],
                 "new_password": "new_secure_password",
@@ -769,9 +1026,9 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
     """POST /auth/me/password returns 401 when current session is missing."""
     from datetime import UTC, datetime
 
-    from app.core.security import create_access_token, get_password_hash
+    from app.core.security import create_access_token_sid, get_password_hash
 
-    token = create_access_token({"sub": "1", "username": test_user["username"]})
+    token = create_access_token_sid(1, test_user["username"], 42)
 
     mock_user = MagicMock()
     mock_user.id = 1
@@ -783,26 +1040,38 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
     mock_user.hashed_password = get_password_hash(test_user["password"])
     mock_user.role = "user"
 
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
 
-    mock_result_session = MagicMock()
-    mock_result_session.scalar_one_or_none.return_value = MagicMock()  # session for get_current_user
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
 
-    mock_result_no_session = MagicMock()
-    mock_result_no_session.scalar_one_or_none.return_value = None  # session missing for get_session_by_token
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    # get_session_by_refresh_token returns None
+    mock_no_session = MagicMock()
+    mock_no_session.scalar_one_or_none.return_value = None
 
     mock_get_db.execute.side_effect = [
-        mock_result_user,         # get_current_user: user lookup
-        mock_result_session,      # get_current_user: session lookup
-        mock_result_no_session,   # get_session_by_token: None
+        mock_user_result,     # 1. get_current_user_cookie: user
+        mock_session_result,  # 2. get_current_user_cookie: session
+        mock_no_session,      # 3. get_session_by_refresh_token → None
     ]
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/auth/me/password",
-            headers={"Authorization": f"Bearer {token}"},
+            cookies={
+                "pm_access_token": token,
+                "pm_refresh_token": "test-refresh-token",
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
             json={
                 "old_password": test_user["password"],
                 "new_password": "new_secure_password",
@@ -826,6 +1095,6 @@ async def test_auth_endpoints_exist():
     auth_routes = [r for r in routes if r.startswith("/auth")]
 
     # At minimum, these routes should be registered
-    expected_routes = ["/auth/register", "/auth/login", "/auth/logout", "/auth/me"]
+    expected_routes = ["/auth/register", "/auth/login", "/auth/logout", "/auth/me", "/auth/refresh"]
     for route in expected_routes:
         assert route in auth_routes, f"Route {route} not found in app routes"

@@ -256,10 +256,15 @@ async def test_login_audit_failure_does_not_break_business_success():
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = current_user
+    # Handle scalars().all() for session count and permissions
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
+    mock_result.scalars.return_value = mock_scalars
 
     mock_db = AsyncMock()
     mock_db.execute = AsyncMock(return_value=mock_result)
     mock_db.add = MagicMock()
+    mock_db.flush = AsyncMock()
     mock_db.commit = AsyncMock()
     setup_overrides(current_user, mock_db)
 
@@ -267,8 +272,6 @@ async def test_login_audit_failure_does_not_break_business_success():
         patch("app.domains.auth.router.is_account_locked", new=AsyncMock(return_value=(False, 0))),
         patch("app.domains.auth.router.verify_password", return_value=True),
         patch("app.domains.auth.router.clear_login_attempts", new=AsyncMock()),
-        patch("app.domains.auth.router.create_access_token", return_value="token-abc"),
-        patch("app.domains.auth.router.create_session_with_token", new=AsyncMock()),
         patch("app.domains.auth.router.log_audit", new=AsyncMock(return_value=None)),
     ):
         transport = ASGITransport(app=app)
@@ -279,16 +282,42 @@ async def test_login_audit_failure_does_not_break_business_success():
             )
 
     assert response.status_code == 200
-    assert response.json()["access_token"] == "token-abc"
+    # UserResponse shape, no access_token in body
+    data = response.json()
+    assert data["username"] == "loginuser"
+    assert "access_token" not in data
     mock_db.commit.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_logout_audit_failure_does_not_break_business_success():
     """Audit write failure must not fail logout."""
+    from app.core.security import create_access_token_sid
+
+    token = create_access_token_sid(505, "logoutuser", 42)
+
     current_user = create_mock_user(user_id=505, username="logoutuser")
 
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 505
+
     mock_db = AsyncMock()
+    mock_db.delete = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.rollback = AsyncMock()
+
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = current_user
+
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_db.execute = AsyncMock(side_effect=[
+        mock_user_result,     # get_current_user_cookie: user query
+        mock_session_result,  # get_current_user_cookie: session query
+        mock_session_result,  # get_session_by_refresh_token
+    ])
     setup_overrides(current_user, mock_db)
 
     with patch("app.domains.auth.router.log_audit", new=AsyncMock(return_value=None)):
@@ -296,7 +325,14 @@ async def test_logout_audit_failure_does_not_break_business_success():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
                 "/auth/logout",
-                headers={"Authorization": "Bearer dummy-token-for-test"},
+                cookies={
+                    "pm_access_token": token,
+                    "pm_refresh_token": "test-refresh-token",
+                    "pm_csrf_token": "csrf-value",
+                },
+                headers={
+                    "X-CSRF-Token": "csrf-value",
+                },
             )
 
     assert response.status_code == 200
