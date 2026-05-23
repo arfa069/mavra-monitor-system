@@ -14,7 +14,7 @@ async def scheduler():
 @pytest.mark.asyncio
 async def test_add_job(scheduler):
     """Should add an APScheduler job for a given config."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     mgr = JobConfigScheduler(scheduler)
     mgr.add_job(config_id=1, cron_expression="0 9 * * *", timezone="Asia/Shanghai")
@@ -26,7 +26,7 @@ async def test_add_job(scheduler):
 @pytest.mark.asyncio
 async def test_remove_job(scheduler):
     """Should remove the APScheduler job for a given config."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     mgr = JobConfigScheduler(scheduler)
     mgr.add_job(config_id=1, cron_expression="0 9 * * *", timezone="Asia/Shanghai")
@@ -39,7 +39,7 @@ async def test_remove_job(scheduler):
 @pytest.mark.asyncio
 async def test_replace_job(scheduler):
     """Should replace existing job when add_job called again."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     mgr = JobConfigScheduler(scheduler)
     mgr.add_job(config_id=1, cron_expression="0 9 * * *", timezone="Asia/Shanghai")
@@ -52,7 +52,7 @@ async def test_replace_job(scheduler):
 @pytest.mark.asyncio
 async def test_empty_cron_removes_job(scheduler):
     """Should remove job when add_job called with empty cron expression."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     mgr = JobConfigScheduler(scheduler)
     mgr.add_job(config_id=1, cron_expression="0 9 * * *", timezone="Asia/Shanghai")
@@ -65,7 +65,7 @@ async def test_empty_cron_removes_job(scheduler):
 @pytest.mark.asyncio
 async def test_get_next_run_times(scheduler):
     """Should return next run times for all config jobs."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     mgr = JobConfigScheduler(scheduler)
     mgr.add_job(config_id=1, cron_expression="0 9 * * *", timezone="Asia/Shanghai")

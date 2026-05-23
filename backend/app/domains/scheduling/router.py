@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.core.security import require_role
-from app.services.scheduler_job import JobConfigScheduler, ProductCronScheduler
+from app.domains.jobs.scheduler import JobConfigScheduler
+from app.domains.products.scheduler import ProductCronScheduler
 
 router = APIRouter(tags=["scheduler"])
 

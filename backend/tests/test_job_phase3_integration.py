@@ -35,7 +35,7 @@ async def test_new_job_notification_uses_51job_label(monkeypatch):
 
 def test_job_config_scheduler_registers_platform_agnostic_config_job():
     """Cron scheduling should dispatch by config id so 51job uses normal routing."""
-    from app.services.scheduler_job import JobConfigScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
 
     scheduler = SimpleNamespace(
         add_job=lambda *args, **kwargs: calls.append((args, kwargs)),

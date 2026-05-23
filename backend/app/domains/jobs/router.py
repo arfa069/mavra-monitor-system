@@ -17,6 +17,7 @@ from app.domains.jobs.match_service import (
     analyze_resume_vs_jobs,
     run_match_analysis_task,
 )
+from app.domains.jobs.scheduler import JobConfigScheduler
 from app.models.job_match import MatchResult
 from app.models.user import User
 from app.schemas.job import (
@@ -41,7 +42,6 @@ from app.services.job_crawl import (
     crawl_all_job_searches_background,
     crawl_single_config_background,
 )
-from app.services.scheduler_job import JobConfigScheduler
 from app.services.scheduler_service import TaskStatus, get_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

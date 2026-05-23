@@ -10,6 +10,7 @@ from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.database import get_db
 from app.domains.products import service
+from app.domains.products.scheduler import ProductCronScheduler
 from app.models.user import User
 from app.schemas.price_history import PriceHistoryResponse
 from app.schemas.product import (
@@ -25,7 +26,6 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
-from app.services.scheduler_job import ProductCronScheduler
 
 router = APIRouter(prefix="/products", tags=["products"])
 logger = logging.getLogger("app.domains.products")

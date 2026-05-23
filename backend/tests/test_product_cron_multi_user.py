@@ -52,7 +52,7 @@ class TestProductCronSchedulerUserIsolation:
     @pytest.mark.asyncio
     async def test_different_users_get_different_job_ids(self):
         """add_job with same platform but different users creates separate jobs."""
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         scheduler = AsyncIOScheduler()
         scheduler.start()
@@ -76,7 +76,7 @@ class TestProductCronSchedulerUserIsolation:
     @pytest.mark.asyncio
     async def test_remove_job_does_not_affect_other_user(self):
         """remove_job for one user should not remove other user's job."""
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         scheduler = AsyncIOScheduler()
         scheduler.start()
@@ -98,7 +98,7 @@ class TestProductCronSchedulerUserIsolation:
     @pytest.mark.asyncio
     async def test_next_run_times_for_user_are_keyed_by_platform(self):
         """UI-facing schedule map should use platform keys for the current user."""
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         scheduler = AsyncIOScheduler()
         scheduler.start()
@@ -119,7 +119,7 @@ class TestProductCronSchedulerUserIsolation:
         """sync_all's query should not filter user_id == 1."""
         import inspect
 
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         source = inspect.getsource(ProductCronScheduler.sync_all)
         # The old code had "user_id == 1" — ensure it's gone
@@ -130,7 +130,7 @@ class TestProductCronSchedulerUserIsolation:
     @pytest.mark.asyncio
     async def test_get_next_run_times_returns_platform_as_key(self):
         """get_next_run_times must use platform name (not user_id:platform) as dict key."""
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         scheduler = AsyncIOScheduler()
         scheduler.start()
@@ -157,7 +157,7 @@ class TestProductCronSchedulerUserIsolation:
     @pytest.mark.asyncio
     async def test_get_next_run_times_filters_by_user_id(self):
         """get_next_run_times with user_id should only return that user's jobs."""
-        from app.services.scheduler_job import ProductCronScheduler
+        from app.domains.products.scheduler import ProductCronScheduler
 
         scheduler = AsyncIOScheduler()
         scheduler.start()

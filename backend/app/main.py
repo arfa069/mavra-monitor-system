@@ -64,7 +64,8 @@ async def _start_scheduler(app: FastAPI) -> None:
     app.state.scheduler = scheduler
 
     # 职位爬取使用 per-config 独立 cron 调度
-    from app.services.scheduler_job import JobConfigScheduler, ProductCronScheduler
+    from app.domains.jobs.scheduler import JobConfigScheduler
+    from app.domains.products.scheduler import ProductCronScheduler
     job_config_scheduler = JobConfigScheduler(scheduler)
     app.state.job_config_scheduler = job_config_scheduler
     await job_config_scheduler.sync_all()

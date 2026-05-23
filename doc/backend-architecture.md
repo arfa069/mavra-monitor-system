@@ -88,6 +88,7 @@ backend/
 │   │   │   └── repository.py   # 审计/系统日志 union 查询
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
+│   │   │   ├── scheduler.py    # 职位配置 cron manager
 │   │   │   ├── match_service.py # LLM 简历-职位匹配分析
 │   │   │   ├── notification_service.py # 职位新发现通知编排
 │   │   │   ├── llm/            # 职位匹配 LLM provider
@@ -99,6 +100,7 @@ backend/
 │   │   │   └── repository.py   # 职位配置、职位、简历、匹配、爬取日志查询
 │   │   ├── products/
 │   │   │   ├── router.py       # 商品管理 API 薄路由
+│   │   │   ├── scheduler.py    # 商品平台 cron manager
 │   │   │   ├── service.py      # 商品 CRUD、批量、cron 业务规则
 │   │   │   └── repository.py   # 商品、cron、价格历史查询
 │   │   └── scheduling/router.py # Scheduler status API
@@ -114,7 +116,6 @@ backend/
 │   │   └── feishu.py           # 飞书 Webhook transport
 │   └── services/
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
-│       ├── scheduler_job.py    # APScheduler 任务注册管理
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
 │       └── __init__.py
 └── tests/                     # 单元/集成测试
@@ -289,20 +290,22 @@ JWT payload 结构：
 - `crawl_products_by_platform(platform)` — 按平台爬取（ProductCronScheduler 调用）
 - `get_task(task_id)` / `create_task(source)` — 任务状态追踪
 
-### 7.2 定时任务管理（scheduler_job.py）
+### 7.2 定时任务管理（domains/jobs/scheduler.py + domains/products/scheduler.py）
 
-**JobConfigScheduler** — 管理 per-config 的职位爬取 cron：
+共享 `BaseScheduler` 位于 `core/scheduler.py`。
+
+**JobConfigScheduler**（`domains/jobs/scheduler.py`）— 管理 per-config 的职位爬取 cron：
 
 - Job ID 格式：`job_config_cron_{config_id}`
 - `add_job(config_id, cron_expression, timezone)` — 注册或替换任务
 - `remove_job(config_id)` — 移除任务
 - `sync_all()` — 启动时从数据库恢复所有有 cron 的配置
 
-**ProductCronScheduler** — 管理 per-platform 的商品爬取 cron：
+**ProductCronScheduler**（`domains/products/scheduler.py`）— 管理 per-platform 的商品爬取 cron：
 
-- Job ID 格式：`product_cron_{platform}`
-- `add_job(platform, cron_expression, timezone)` — 注册或替换任务
-- `remove_job(platform)` — 移除任务
+- Job ID 格式：`product_cron_{user_id}:{platform}`
+- `add_job(user_id, platform, cron_expression, timezone)` — 注册或替换任务
+- `remove_job(user_id, platform)` — 移除任务
 - `sync_all()` — 启动时从数据库恢复所有有 cron 的配置
 
 ### 7.3 商品爬取服务（domains/crawling/service.py）
