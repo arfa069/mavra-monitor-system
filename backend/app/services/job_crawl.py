@@ -17,10 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.system_log import emit_system_log_detached
 from app.database import AsyncSessionLocal
+from app.domains.jobs.match_service import analyze_resume_vs_jobs
 from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import UserResume
-from app.services.job_match import analyze_resume_vs_jobs
 from app.services.notification import send_new_job_notification
 
 logger = logging.getLogger(__name__)

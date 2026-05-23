@@ -88,6 +88,7 @@ backend/
 │   │   │   └── repository.py   # 审计/系统日志 union 查询
 │   │   ├── jobs/
 │   │   │   ├── router.py       # 职位管理 API 薄路由
+│   │   │   ├── match_service.py # LLM 简历-职位匹配分析
 │   │   │   ├── service.py      # 职位配置、简历、匹配、列表查询业务边界
 │   │   │   └── repository.py   # 职位配置、职位、简历、匹配、爬取日志查询
 │   │   ├── products/
@@ -109,7 +110,6 @@ backend/
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── scheduler_job.py    # APScheduler 任务注册管理
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
-│       ├── job_match.py        # LLM 简历-职位匹配分析
 │       ├── llm_provider.py     # LLM Provider 工厂
 │       ├── llm_anthropic.py    # Anthropic Claude
 │       ├── llm_openai.py       # OpenAI GPT
@@ -328,7 +328,7 @@ JWT payload 结构：
 - Liepin 详情直接 HTTP 解析，依次尝试 `/job/<id>.shtml` 和 `/a/<id>.shtml`，无地址时标记为 `无地址`
 - 详情页串行获取，间隔 2-5s，连续 3 次 cookie 失败则熔断
 
-### 7.5 LLM 匹配分析（services/job_match.py）
+### 7.5 LLM 匹配分析（domains/jobs/match_service.py）
 
 - `POST /jobs/analyze` — 对职位进行 LLM 匹配分析
 - `POST /jobs/batch-analyze` — 批量并发分析（asyncio.gather batch=3）

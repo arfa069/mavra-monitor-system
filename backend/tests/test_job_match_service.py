@@ -7,7 +7,7 @@ import pytest
 
 def test_should_notify_match_threshold():
     """Scores above 70 should notify."""
-    from app.services.job_match import should_notify_match
+    from app.domains.jobs.match_service import should_notify_match
 
     assert should_notify_match(71) is True
     assert should_notify_match(100) is True
@@ -17,7 +17,7 @@ def test_should_notify_match_threshold():
 @pytest.mark.asyncio
 async def test_upsert_match_result_creates_new_record():
     """upsert_match_result inserts a new MatchResult when none exists."""
-    from app.services.job_match import upsert_match_result
+    from app.domains.jobs.match_service import upsert_match_result
     from app.services.llm_provider import MatchAnalysis
 
     # SELECT existence → not found
@@ -61,7 +61,7 @@ async def test_upsert_match_result_creates_new_record():
 @pytest.mark.asyncio
 async def test_upsert_match_result_updates_existing_record():
     """upsert_match_result updates an existing MatchResult in-place."""
-    from app.services.job_match import upsert_match_result
+    from app.domains.jobs.match_service import upsert_match_result
     from app.services.llm_provider import MatchAnalysis
 
     # SELECT existence → returns id 17

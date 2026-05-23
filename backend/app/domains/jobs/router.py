@@ -12,6 +12,11 @@ from app.core.security import get_current_user
 from app.core.system_log import emit_system_log_detached
 from app.database import get_db
 from app.domains.jobs import service as job_service
+from app.domains.jobs.match_service import (
+    _get_jobs_needing_analysis,
+    analyze_resume_vs_jobs,
+    run_match_analysis_task,
+)
 from app.models.job_match import MatchResult
 from app.models.user import User
 from app.schemas.job import (
@@ -35,11 +40,6 @@ from app.schemas.job_match import (
 from app.services.job_crawl import (
     crawl_all_job_searches_background,
     crawl_single_config_background,
-)
-from app.services.job_match import (
-    _get_jobs_needing_analysis,
-    analyze_resume_vs_jobs,
-    run_match_analysis_task,
 )
 from app.services.scheduler_job import JobConfigScheduler
 from app.services.scheduler_service import TaskStatus, get_task
