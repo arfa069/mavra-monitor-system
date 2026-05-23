@@ -74,7 +74,7 @@ async def crawl_now(
 @router.get("/status/{task_id}")
 async def get_crawl_status(task_id: str):
     """Get the status of a crawl task."""
-    from app.services.scheduler_service import get_task
+    from app.core.task_registry import get_task
 
     task = get_task(task_id)
     if not task:
@@ -93,7 +93,7 @@ async def get_crawl_status(task_id: str):
 @router.get("/result/{task_id}")
 async def get_crawl_result(task_id: str):
     """Get the final result of a completed crawl task."""
-    from app.services.scheduler_service import TaskStatus, get_task
+    from app.core.task_registry import TaskStatus, get_task
 
     task = get_task(task_id)
     if not task:

@@ -10,6 +10,7 @@ from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.core.system_log import emit_system_log_detached
+from app.core.task_registry import TaskStatus, get_task
 from app.database import get_db
 from app.domains.jobs import service as job_service
 from app.domains.jobs.match_service import (
@@ -42,7 +43,6 @@ from app.services.job_crawl import (
     crawl_all_job_searches_background,
     crawl_single_config_background,
 )
-from app.services.scheduler_service import TaskStatus, get_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -473,7 +473,7 @@ async def trigger_match_analysis_async(
 
 
 
-    from app.services.scheduler_service import create_task
+    from app.core.task_registry import create_task
 
 
 
@@ -579,7 +579,7 @@ async def get_match_analysis_task_status(task_id: str):
 
     """
 
-    from app.services.scheduler_service import get_task
+    from app.core.task_registry import get_task
 
 
 

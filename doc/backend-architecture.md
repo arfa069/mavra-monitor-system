@@ -114,6 +114,9 @@ backend/
 │   │   └── job_match.py
 │   ├── integrations/
 │   │   └── feishu.py           # 飞书 Webhook transport
+│   ├── core/
+│   │   ├── scheduler.py        # APScheduler manager 共享基类
+│   │   └── task_registry.py    # 后台爬取/匹配任务状态注册表
 │   └── services/
 │       ├── scheduler_service.py # 爬取任务协调（Semaphore 并发控制）
 │       ├── job_crawl.py        # 多平台职位爬取（Boss/51job/猎聘）
@@ -288,7 +291,7 @@ JWT payload 结构：
 
 - `crawl_all_products(source, background)` — 爬取所有活跃商品
 - `crawl_products_by_platform(platform)` — 按平台爬取（ProductCronScheduler 调用）
-- `get_task(task_id)` / `create_task(source)` — 任务状态追踪
+- `core/task_registry.py:get_task(task_id)` / `create_task(source)` — 任务状态追踪
 
 ### 7.2 定时任务管理（domains/jobs/scheduler.py + domains/products/scheduler.py）
 

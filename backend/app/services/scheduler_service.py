@@ -6,12 +6,10 @@ Provides a single entry point with concurrency protection.
 import asyncio
 import logging
 import random
-import uuid
-from dataclasses import dataclass, field
-from enum import Enum
 from typing import Literal
 
 from app.core.system_log import emit_system_log_detached
+from app.core.task_registry import CrawlTask, TaskStatus, create_task
 
 logger = logging.getLogger(__name__)
 
@@ -24,92 +22,10 @@ CRAWL_INTERVAL_MIN = 2.0  # Seconds between crawls (was 7-12s)
 CRAWL_INTERVAL_MAX = 3.0
 
 
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-@dataclass
-class CrawlTask:
-    """Represents a crawl task with its status and results."""
-    task_id: str
-    status: TaskStatus = TaskStatus.PENDING
-    source: str = "manual"
-    total: int = 0
-    success: int = 0
-    errors: int = 0
-    details: list = field(default_factory=list)
-    reason: str | None = None
-    user_id: int | None = None
-    entity_type: str | None = None
-    entity_id: str | None = None
-    created_at: float = field(default_factory=lambda: asyncio.get_event_loop().time())
-
-
-# In-memory task storage
-_crawl_tasks: dict[str, CrawlTask] = {}
-
-
-def _gc_expired_tasks() -> None:
-    """Evict completed/failed tasks older than 24 hours to prevent memory leaks."""
-    try:
-        loop = asyncio.get_running_loop()
-        now = loop.time()
-    except RuntimeError:
-        return
-
-    expired_ids = []
-    for tid, task in _crawl_tasks.items():
-        if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
-            if now - task.created_at > 86400:  # 24 hours
-                expired_ids.append(tid)
-
-    for tid in expired_ids:
-        _crawl_tasks.pop(tid, None)
-
-    # Hard cap of 1000 tasks to prevent memory issues under massive concurrency
-    if len(_crawl_tasks) > 1000:
-        finished_tasks = sorted(
-            [t for t in _crawl_tasks.values() if t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)],
-            key=lambda t: t.created_at
-        )
-        to_evict = len(_crawl_tasks) - 1000
-        for i in range(min(to_evict, len(finished_tasks))):
-            _crawl_tasks.pop(finished_tasks[i].task_id, None)
-
-
 def _set_scheduler_state(state: dict) -> None:
     """Called once by main.py lifespan startup."""
     global _scheduler_state
     _scheduler_state = state
-
-
-def get_task(task_id: str) -> CrawlTask | None:
-    """Get task by ID."""
-    return _crawl_tasks.get(task_id)
-
-
-def create_task(
-    source: Literal["cron", "manual"],
-    *,
-    user_id: int | None = None,
-    entity_type: str | None = None,
-    entity_id: str | None = None,
-) -> CrawlTask:
-    """Create a new crawl task and return its info."""
-    _gc_expired_tasks()
-    task_id = str(uuid.uuid4())[:8]
-    task = CrawlTask(
-        task_id=task_id,
-        source=source,
-        user_id=user_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
-    )
-    _crawl_tasks[task_id] = task
-    return task
 
 
 async def _crawl_one_with_semaphore(

@@ -64,7 +64,7 @@ async def run_match_analysis_task(
         job_ids: Candidate job IDs to consider
         db: Optional database session (for testing injection)
     """
-    from app.services.scheduler_service import TaskStatus
+    from app.core.task_registry import TaskStatus
 
     task.status = TaskStatus.RUNNING
 
@@ -81,7 +81,7 @@ async def run_match_analysis_task(
 
 async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
     """Internal: execute match analysis with an open db session."""
-    from app.services.scheduler_service import TaskStatus
+    from app.core.task_registry import TaskStatus
 
     # 1. Get the resume
     resume = await db.get(UserResume, resume_id)

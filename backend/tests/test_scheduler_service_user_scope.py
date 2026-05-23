@@ -7,7 +7,8 @@ import pytest
 @pytest.mark.asyncio
 async def test_manual_crawl_task_fetches_only_requesting_users_products():
     """A user-scoped crawl task must not fetch all active products."""
-    from app.services.scheduler_service import CrawlTask, _run_crawl_task
+    from app.core.task_registry import CrawlTask
+    from app.services.scheduler_service import _run_crawl_task
 
     task = CrawlTask(task_id="task-user-42", source="manual", user_id=42)
 

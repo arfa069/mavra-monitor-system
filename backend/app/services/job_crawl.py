@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from app.core.task_registry import CrawlTask
     from app.platforms.base import BasePlatformAdapter
-    from app.services.scheduler_service import CrawlTask
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -666,7 +666,7 @@ async def crawl_single_config_background(
     user_id: int | None = None,
 ) -> CrawlTask:
     """后台运行单配置爬取，立即返回 task 对象。"""
-    from app.services.scheduler_service import TaskStatus, create_task
+    from app.core.task_registry import TaskStatus, create_task
 
     task = create_task(
         "manual",
@@ -730,7 +730,7 @@ async def crawl_single_config_background(
 
 async def crawl_all_job_searches_background(*, user_id: int | None = None) -> CrawlTask:
     """后台运行全量爬取，立即返回 task 对象。"""
-    from app.services.scheduler_service import TaskStatus, create_task
+    from app.core.task_registry import TaskStatus, create_task
 
     task = create_task(
         "manual",

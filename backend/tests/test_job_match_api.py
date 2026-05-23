@@ -271,7 +271,7 @@ async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_curr
 @pytest.mark.asyncio
 async def test_get_task_status_returns_task_state():
     """GET /jobs/tasks/{task_id} should return task status."""
-    from app.services.scheduler_service import CrawlTask, TaskStatus, _crawl_tasks
+    from app.core.task_registry import CrawlTask, TaskStatus, _crawl_tasks
 
     task = CrawlTask(task_id="xyz789", status=TaskStatus.RUNNING, total=5, success=2, errors=1)
     _crawl_tasks["xyz789"] = task
