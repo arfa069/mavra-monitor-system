@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit
+from app.core.auth_cookies import set_auth_cookies
 from app.core.permissions import get_role_permissions
 from app.core.security import (
     create_access_token,
@@ -40,40 +41,7 @@ WECHAT_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token"
 WECHAT_USERINFO_URL = "https://api.weixin.qq.com/sns/userinfo"
 
 
-# ── Cookie helpers ────────────────────────────────────────────────────────────
-
-
-def _set_auth_cookies(
-    response: Response,
-    access_token: str,
-    refresh_token: str,
-    csrf_token: str,
-) -> None:
-    """Set auth cookies (access, refresh, CSRF) on a response."""
-    response.set_cookie(
-        key=settings.auth_access_cookie_name,
-        value=access_token,
-        httponly=True,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-    )
-    response.set_cookie(
-        key=settings.auth_refresh_cookie_name,
-        value=refresh_token,
-        httponly=True,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-    )
-    response.set_cookie(
-        key=settings.auth_csrf_cookie_name,
-        value=csrf_token,
-        httponly=False,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-    )
+# ── Cookie helpers (see app.core.auth_cookies) ─────────────────────────────
 
 
 async def _create_wechat_auth_session(
@@ -103,7 +71,7 @@ async def _create_wechat_auth_session(
     )
     csrf_token = create_csrf_token()
 
-    _set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
     permissions = await get_role_permissions(db, user.role)
     return UserResponse(

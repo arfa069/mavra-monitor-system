@@ -40,6 +40,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit
+from app.core.auth_cookies import clear_auth_cookies, set_auth_cookies
 from app.core.permissions import get_role_permissions
 from app.core.security import (
     clear_login_attempts,
@@ -81,52 +82,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-# ── Cookie helpers ────────────────────────────────────────────────────────────
-
-
-def _set_auth_cookies(
-    response: Response,
-    access_token: str,
-    refresh_token: str,
-    csrf_token: str,
-) -> None:
-    """Set auth cookies (access, refresh, CSRF) on a response."""
-    response.set_cookie(
-        key=settings.auth_access_cookie_name,
-        value=access_token,
-        httponly=True,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-        max_age=settings.access_token_expire_minutes * 60,
-    )
-    response.set_cookie(
-        key=settings.auth_refresh_cookie_name,
-        value=refresh_token,
-        httponly=True,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-        max_age=settings.refresh_token_expire_days * 86400,
-    )
-    response.set_cookie(
-        key=settings.auth_csrf_cookie_name,
-        value=csrf_token,
-        httponly=False,
-        samesite=settings.auth_cookie_samesite,
-        secure=settings.auth_cookie_secure,
-        path="/",
-    )
-
-
-def _clear_auth_cookies(response: Response) -> None:
-    """Clear all auth cookies on a response."""
-    for cookie_name in (
-        settings.auth_access_cookie_name,
-        settings.auth_refresh_cookie_name,
-        settings.auth_csrf_cookie_name,
-    ):
-        response.delete_cookie(key=cookie_name, path="/")
+# ── Cookie helpers (see app.core.auth_cookies for implementation) ──────────
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
@@ -259,7 +215,7 @@ async def login(
     csrf_token = create_csrf_token()
 
     # ── Set auth cookies on the response ──────────────────────────────────
-    _set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    set_auth_cookies(response, access_token, refresh_token, csrf_token)
 
     # ── Login log ─────────────────────────────────────────────────────────
     await auth_service.add_login_log(
@@ -305,7 +261,6 @@ async def refresh(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    _=Depends(csrf_protect),
 ):
     """Refresh auth tokens using the ``pm_refresh_token`` cookie.
 
@@ -356,7 +311,7 @@ async def refresh(
     csrf_token = create_csrf_token()
 
     # Set fresh cookies
-    _set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
+    set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
 
     await db.commit()
 
@@ -404,7 +359,7 @@ async def logout(
         await db.rollback()
 
     # Clear auth cookies regardless of session deletion success
-    _clear_auth_cookies(response)
+    clear_auth_cookies(response)
 
     await log_audit(
         db=db,
@@ -586,7 +541,7 @@ async def change_password(
     await db.commit()
 
     # Set fresh cookies after successful commit
-    _set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
+    set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
 
     logger.info(f"Password changed for user: {current_user.username}")
 
@@ -655,7 +610,7 @@ async def delete_a_session(
         raise HTTPException(status_code=404, detail="会话不存在")
 
     if current_session_id == session_id:
-        _clear_auth_cookies(response)
+        clear_auth_cookies(response)
 
     return MessageResponse(message="已登出该设备")
 
