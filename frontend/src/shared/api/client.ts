@@ -89,13 +89,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post("/api/auth/refresh", {}, { withCredentials: true });
-        // Retry original request
-        failedQueue.forEach(({ resolve }) => resolve());
+        await axios.post("/api/v1/auth/refresh", {}, { withCredentials: true });
+        // Retry all queued original requests
+        failedQueue.forEach(({ resolve, reject }) => {
+          api(originalRequest).then(resolve).catch(reject);
+        });
         failedQueue = [];
         return api(originalRequest);
       } catch {
-        failedQueue.forEach(({ reject }) => reject());
+        failedQueue.forEach(({ reject }) => reject(err));
         failedQueue = [];
         window.location.href = "/login";
         return Promise.reject(err);
