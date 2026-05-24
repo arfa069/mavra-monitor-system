@@ -52,6 +52,45 @@ class TestParseSalary:
         assert parse_salary("100-200K") == (100, 200)
 
 
+class TestCreateAdapter:
+    """Test job platform adapter selection."""
+
+    def test_create_adapter_uses_boss_cloak(self):
+        from app.domains.jobs import crawl_service
+        from app.platforms import BossCloakExperimentalAdapter
+
+        adapter = crawl_service._create_adapter("boss")
+
+        assert isinstance(adapter, BossCloakExperimentalAdapter)
+
+
+class TestBuildCrawlUrl:
+    """Test crawl URL normalization from stored config fields."""
+
+    def test_build_crawl_url_adds_keyword_and_city_when_missing(self):
+        from app.domains.jobs.crawl_service import _build_crawl_url
+
+        config = MagicMock()
+        config.url = "https://www.zhipin.com/web/geek/jobs"
+        config.keyword = "IT服务台"
+        config.city_code = "101280100"
+
+        assert _build_crawl_url(config) == (
+            "https://www.zhipin.com/web/geek/jobs?"
+            "query=IT%E6%9C%8D%E5%8A%A1%E5%8F%B0&city=101280100"
+        )
+
+    def test_build_crawl_url_preserves_existing_query_params(self):
+        from app.domains.jobs.crawl_service import _build_crawl_url
+
+        config = MagicMock()
+        config.url = "https://www.zhipin.com/web/geek/jobs?query=python&city=101280100"
+        config.keyword = "IT服务台"
+        config.city_code = "101280100"
+
+        assert _build_crawl_url(config) == config.url
+
+
 class TestProcessJobResults:
     """Test process_job_results dedup and grace period logic."""
 
@@ -671,7 +710,7 @@ class TestUpdateJobDetail:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
-            with patch("app.platforms.BossZhipinAdapter") as mock_adapter_cls:
+            with patch("app.platforms.BossCloakExperimentalAdapter") as mock_adapter_cls:
                 mock_adapter_cls.return_value = mock_adapter
                 result = await update_job_detail(1)
 
@@ -814,7 +853,7 @@ class TestAdapterSharing:
 
     @pytest.mark.asyncio
     async def test_crawl_single_config_creates_adapter_when_none(self):
-        """When no adapter is passed, a new BossZhipinAdapter should be created."""
+        """When no adapter is passed, a new BossCloakExperimentalAdapter should be created."""
         from app.domains.jobs.crawl_service import crawl_single_config
 
         mock_config = MagicMock()
@@ -837,7 +876,7 @@ class TestAdapterSharing:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
-            with patch("app.platforms.BossZhipinAdapter") as mock_cls:
+            with patch("app.platforms.BossCloakExperimentalAdapter") as mock_cls:
                 mock_adapter = MagicMock()
                 mock_adapter.crawl = AsyncMock(return_value={
                     "success": True, "jobs": [], "count": 0,
@@ -884,7 +923,7 @@ class TestAdapterSharing:
                     "deactivated_count": 0,
                 }
 
-                with patch("app.platforms.BossZhipinAdapter") as mock_adapter_cls:
+                with patch("app.platforms.BossCloakExperimentalAdapter") as mock_adapter_cls:
                     mock_adapter = MagicMock()
                     mock_adapter_cls.return_value = mock_adapter
 

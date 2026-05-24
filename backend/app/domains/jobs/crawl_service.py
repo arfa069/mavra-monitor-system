@@ -7,6 +7,7 @@ import random
 import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 if TYPE_CHECKING:
     from app.core.task_registry import CrawlTask
@@ -43,15 +44,30 @@ def _normalize_platform(platform: object) -> str:
 
 def _create_adapter(platform: str) -> BasePlatformAdapter:
     """Create the appropriate adapter for the given job platform."""
-    from app.platforms import BossZhipinAdapter, Job51Adapter, LiepinAdapter
+    from app.platforms import (
+        BossCloakExperimentalAdapter,
+        Job51Adapter,
+        LiepinAdapter,
+    )
 
     platform = _normalize_platform(platform)
     adapters: dict[str, type] = {
-        "boss": BossZhipinAdapter,
+        "boss": BossCloakExperimentalAdapter,
         "51job": Job51Adapter,
         "liepin": LiepinAdapter,
     }
     return adapters[platform]()
+
+
+def _build_crawl_url(config: JobSearchConfig) -> str:
+    """Add config keyword/city to crawl URL when the stored URL is generic."""
+    parsed = urlparse(config.url)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if getattr(config, "keyword", None) and not params.get("query"):
+        params["query"] = config.keyword
+    if getattr(config, "city_code", None) and not params.get("city"):
+        params["city"] = config.city_code
+    return urlunparse(parsed._replace(query=urlencode(params)))
 
 
 def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
@@ -526,7 +542,7 @@ async def crawl_single_config(
             platform = _normalize_platform(getattr(config, "platform", "boss"))
         except ValueError as exc:
             return {"status": "error", "error": str(exc)}
-        url = config.url
+        url = _build_crawl_url(config)
 
     try:
         if adapter is None:

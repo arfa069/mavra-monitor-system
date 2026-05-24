@@ -2,6 +2,7 @@
 from app.platforms.amazon import AmazonAdapter
 from app.platforms.base import BasePlatformAdapter
 from app.platforms.boss import BossZhipinAdapter
+from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
 from app.platforms.jd import JDAdapter
 from app.platforms.job51 import Job51Adapter
 from app.platforms.liepin import LiepinAdapter
@@ -13,7 +14,7 @@ __all__ = [
     "JDAdapter",
     "AmazonAdapter",
     "BossZhipinAdapter",
+    "BossCloakExperimentalAdapter",
     "Job51Adapter",
     "LiepinAdapter",
 ]
-
