@@ -22,7 +22,6 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.alter_column("users_sessions", "token_hash", nullable=False)
     op.alter_column("users_sessions", "token_hash", nullable=True)
 
 
