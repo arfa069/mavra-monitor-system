@@ -3,10 +3,9 @@
 此文件为提供代码库操作指南。
 
 <!-- gitnexus:start -->
-
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (4555 symbols, 8808 relationships, 203 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **price-monitor** (5429 symbols, 10296 relationships, 231 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -27,23 +26,23 @@ This project is indexed by GitNexus as **price-monitor** (4555 symbols, 8808 rel
 
 ## Resources
 
-| Resource                                       | Use for                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| `gitnexus://repo/price-monitor/context`        | Codebase overview, check index freshness |
-| `gitnexus://repo/price-monitor/clusters`       | All functional areas                     |
-| `gitnexus://repo/price-monitor/processes`      | All execution flows                      |
-| `gitnexus://repo/price-monitor/process/{name}` | Step-by-step execution trace             |
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/price-monitor/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/price-monitor/clusters` | All functional areas |
+| `gitnexus://repo/price-monitor/processes` | All execution flows |
+| `gitnexus://repo/price-monitor/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
 
@@ -59,6 +58,7 @@ Always load the `karpathy-guidelines` skill when coding.
 ## 2.项目概览
 
 淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
+
 **技术栈**：Python 3.11+ · FastAPI · PostgreSQL (async SQLAlchemy) · Redis · Playwright · 飞书 Webhook
 **前端**：React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）
 
@@ -114,8 +114,7 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
 
 ## 8. Design System
-
+- 未经用户明确批准，不得偏离设计系统。
 - 在做任何视觉或 UI 决策前，必须先阅读 `DESIGN.md`。
 - 字体、颜色、间距、组件风格和整体美学方向均以 `DESIGN.md` 为准。
-- 未经用户明确批准，不得偏离设计系统。
 - 进行 UI 审查或 QA 时，必须指出任何不符合 `DESIGN.md` 的实现。
