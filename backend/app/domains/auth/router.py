@@ -98,6 +98,7 @@ def _set_auth_cookies(
         samesite=settings.auth_cookie_samesite,
         secure=settings.auth_cookie_secure,
         path="/",
+        max_age=settings.access_token_expire_minutes * 60,
     )
     response.set_cookie(
         key=settings.auth_refresh_cookie_name,
@@ -106,6 +107,7 @@ def _set_auth_cookies(
         samesite=settings.auth_cookie_samesite,
         secure=settings.auth_cookie_secure,
         path="/",
+        max_age=settings.refresh_token_expire_days * 86400,
     )
     response.set_cookie(
         key=settings.auth_csrf_cookie_name,

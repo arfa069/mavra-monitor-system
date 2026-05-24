@@ -70,15 +70,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Dependency to get current authenticated user from JWT token.
+    """Unified auth dependency: cookie first, then Bearer header fallback.
 
-    Validates the token AND checks that:
-      - The user exists and is not soft-deleted (deleted_at IS NULL)
-      - A corresponding session exists in users_sessions
-    Does NOT check is_active (API compatibility field only).
+    1. If ``pm_access_token`` cookie is present → cookie-based auth with
+       ``decode_access_token_strict`` and ``sid``-based session lookup.
+    2. Otherwise → legacy ``Authorization: Bearer`` with ``token_hash``
+       session lookup (for API clients / scripts).
+
+    Returns 401 for missing or invalid credentials.
     """
     from app.models.user import User
 
@@ -87,6 +89,48 @@ async def get_current_user(
         detail="认证失败：Token 无效或已过期",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    access_token = request.cookies.get(settings.auth_access_cookie_name)
+
+    if access_token:
+        # ── Cookie-based auth (browser clients) ──
+        payload = decode_access_token_strict(access_token)
+        if payload is None:
+            raise credentials_exception
+
+        try:
+            user_id_int = int(payload["sub"])
+            sid_int = int(payload["sid"])
+        except (ValueError, TypeError, KeyError):
+            raise credentials_exception
+
+        result = await db.execute(
+            select(User).where(
+                User.id == user_id_int,
+                User.deleted_at.is_(None),
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise credentials_exception
+
+        from app.core.sessions import get_session_by_id
+
+        session = await get_session_by_id(sid_int, user.id, db)
+        if session is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="认证失败：会话已失效或已在其他地方退出",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return user
+
+    # ── Bearer header fallback (API clients / scripts) ──
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise credentials_exception
+
+    token = auth_header[7:]
     payload = decode_access_token(token)
     if payload is None:
         raise credentials_exception
@@ -95,7 +139,6 @@ async def get_current_user(
     if user_id is None:
         raise credentials_exception
 
-    # Convert sub to int; malformed subjects get 401, not 500
     try:
         user_id_int = int(user_id)
     except (ValueError, TypeError):
@@ -108,11 +151,9 @@ async def get_current_user(
         )
     )
     user = result.scalar_one_or_none()
-
     if user is None:
         raise credentials_exception
 
-    # ── Session validation ──────────────────────────────────
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     from app.models.session import Session
 
