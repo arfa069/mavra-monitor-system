@@ -76,7 +76,8 @@ api.interceptors.response.use(
     if (
       err.response?.status === 401 &&
       !originalRequest._retry &&
-      originalRequest.url !== "/v1/auth/login"
+      originalRequest.url !== "/v1/auth/login" &&
+      originalRequest.url !== "/v1/auth/me"
     ) {
       if (isRefreshing) {
         // Queue request until refresh completes
