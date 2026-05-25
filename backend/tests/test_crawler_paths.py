@@ -3,22 +3,13 @@ from pathlib import Path
 import pytest
 
 
-def test_default_price_monitor_home_windows(monkeypatch):
+def test_default_price_monitor_home_resolves_to_project_root():
     from app.core import crawler_paths
+    from pathlib import Path
 
-    monkeypatch.delenv("PRICE_MONITOR_HOME", raising=False)
-    monkeypatch.setattr(crawler_paths.os, "name", "nt")
-
-    assert crawler_paths.default_price_monitor_home() == Path("C:/price-monitor")
-
-
-def test_default_price_monitor_home_posix(monkeypatch):
-    from app.core import crawler_paths
-
-    monkeypatch.delenv("PRICE_MONITOR_HOME", raising=False)
-    monkeypatch.setattr(crawler_paths.os, "name", "posix")
-
-    assert crawler_paths.default_price_monitor_home() == Path("/price-monitor")
+    result = crawler_paths.default_price_monitor_home()
+    expected = Path(crawler_paths.__file__).resolve().parent.parent.parent.parent
+    assert result == expected
 
 
 def test_profile_dir_rejects_path_traversal(tmp_path):

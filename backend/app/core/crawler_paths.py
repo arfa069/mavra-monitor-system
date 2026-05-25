@@ -16,9 +16,8 @@ VALID_PLATFORMS = {
 
 
 def default_price_monitor_home() -> Path:
-    if os.name == "nt":
-        return Path("C:/price-monitor")
-    return Path("/price-monitor")
+    # Project root = backend/app/core/crawler_paths.py → ../../..
+    return Path(__file__).resolve().parent.parent.parent.parent
 
 
 def resolve_price_monitor_home(value: str | None = None) -> Path:
