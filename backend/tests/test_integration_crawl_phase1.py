@@ -10,6 +10,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.core.security import get_current_user
+from app.database import AsyncSessionLocal, get_db
 from app.main import app
 
 
@@ -47,7 +48,7 @@ class TestCrawlNowEndpoint:
         from app.database import get_db
         from app.domains.crawling import scheduler_service
 
-        async def _noop_run_crawl_in_lock(task, crawl_lock):
+        async def _noop_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
             return None
 
         monkeypatch.setattr(
@@ -95,64 +96,125 @@ class TestCrawlStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_unknown_task_returns_404(self):
         """Unknown task_id returns 404."""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products/crawl/status/nonexistent")
+        from app.database import get_db
 
-        assert response.status_code == 404
+        # Override get_db with a real session for the 404 case
+        async with AsyncSessionLocal() as db:
+
+            async def _override():
+                yield db
+
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get("/products/crawl/status/nonexistent")
+
+                assert response.status_code == 404
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
     @pytest.mark.asyncio
     async def test_status_pending_task(self, mock_user):
         """Pending task returns PENDING status."""
-        from app.core.task_registry import create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/products/crawl/status/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["task_id"] == task.task_id
-        assert data["status"] == "pending"
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/products/crawl/status/{record.task_id}")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["task_id"] == record.task_id
+                assert data["status"] == "pending"
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
     @pytest.mark.asyncio
     async def test_status_completed_task(self, mock_user):
         """Completed task returns COMPLETED status with counts."""
-        from app.core.task_registry import TaskStatus, create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
-        task.status = TaskStatus.COMPLETED
-        task.total = 5
-        task.success = 4
-        task.errors = 1
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
+            record.status = "completed"
+            record.total = 5
+            record.success = 4
+            record.errors = 1
+            await db.commit()
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/products/crawl/status/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "completed"
-        assert data["total"] == 5
-        assert data["success"] == 4
-        assert data["errors"] == 1
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/products/crawl/status/{record.task_id}")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["status"] == "completed"
+                assert data["total"] == 5
+                assert data["success"] == 4
+                assert data["errors"] == 1
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
     @pytest.mark.asyncio
     async def test_status_via_v1_prefix(self, mock_user):
         """Same endpoint accessible via /v1 prefix."""
-        from app.core.task_registry import create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/v1/crawl/status/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["task_id"] == task.task_id
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/v1/crawl/status/{record.task_id}")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["task_id"] == record.task_id
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
 
 # ============================================================
@@ -174,58 +236,108 @@ class TestCrawlResultEndpoint:
     @pytest.mark.asyncio
     async def test_result_pending_returns_202(self, mock_user):
         """Pending/running task returns 202."""
-        from app.core.task_registry import create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/products/crawl/result/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 202
-        data = response.json()
-        assert data["status"] == "pending"
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+
+                assert response.status_code == 202
+                data = response.json()
+                assert data["status"] == "pending"
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
     @pytest.mark.asyncio
     async def test_result_completed_returns_details(self, mock_user):
         """Completed task returns full result."""
-        from app.core.task_registry import TaskStatus, create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
-        task.status = TaskStatus.COMPLETED
-        task.total = 2
-        task.success = 2
-        task.errors = 0
-        task.details = [
-            {"status": "success", "product_id": 1},
-            {"status": "success", "product_id": 2},
-        ]
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
+            record.status = "completed"
+            record.total = 2
+            record.success = 2
+            record.errors = 0
+            record.details_json = [
+                {"status": "success", "product_id": 1},
+                {"status": "success", "product_id": 2},
+            ]
+            await db.commit()
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/products/crawl/result/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "completed"
-        assert len(data["details"]) == 2
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert data["status"] == "completed"
+                assert len(data["details"]) == 2
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
     @pytest.mark.asyncio
     async def test_result_failed_returns_500(self, mock_user):
         """Failed task returns 500 with reason."""
-        from app.core.task_registry import TaskStatus, create_task
+        from app.database import get_db
+        from app.domains.crawling.task_store import create_crawl_task_record
 
-        task = create_task("manual", user_id=1)
-        task.status = TaskStatus.FAILED
-        task.reason = "something_went_wrong"
+        async with AsyncSessionLocal() as db:
+            record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type="product_all",
+                user_id=1,
+                entity_type="crawl_task",
+                entity_id=None,
+            )
+            record.status = "failed"
+            record.reason = "something_went_wrong"
+            await db.commit()
 
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get(f"/products/crawl/result/{task.task_id}")
+            async def _override():
+                yield db
 
-        assert response.status_code == 500
-        data = response.json()
-        assert data["reason"] == "something_went_wrong"
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+
+                assert response.status_code == 500
+                data = response.json()
+                assert data["reason"] == "something_went_wrong"
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
 
 # ============================================================

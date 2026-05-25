@@ -72,57 +72,57 @@ async def crawl_now(
 
 
 @router.get("/status/{task_id}")
-async def get_crawl_status(task_id: str):
-    """Get the status of a crawl task."""
-    from app.core.task_registry import get_task
+async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Get the status of a crawl task from persistent store."""
+    from app.domains.crawling.task_store import get_crawl_task_record
 
-    task = get_task(task_id)
-    if not task:
+    record = await get_crawl_task_record(db, task_id)
+    if not record:
         return JSONResponse(content={"status": "error", "reason": "task_not_found"}, status_code=404)
 
     return JSONResponse(content={
-        "task_id": task.task_id,
-        "status": task.status.value,
-        "total": task.total,
-        "success": task.success,
-        "errors": task.errors,
-        "reason": task.reason,
+        "task_id": record.task_id,
+        "status": record.status,
+        "total": record.total,
+        "success": record.success,
+        "errors": record.errors,
+        "reason": record.reason,
     })
 
 
 @router.get("/result/{task_id}")
-async def get_crawl_result(task_id: str):
-    """Get the final result of a completed crawl task."""
-    from app.core.task_registry import TaskStatus, get_task
+async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Get the final result of a completed crawl task from persistent store."""
+    from app.domains.crawling.task_store import get_crawl_task_record
 
-    task = get_task(task_id)
-    if not task:
+    record = await get_crawl_task_record(db, task_id)
+    if not record:
         return JSONResponse(content={"status": "error", "reason": "task_not_found"}, status_code=404)
 
-    if task.status == TaskStatus.PENDING or task.status == TaskStatus.RUNNING:
+    if record.status in ("pending", "running"):
         return JSONResponse(content={
-            "status": task.status.value,
-            "task_id": task.task_id,
-            "total": task.total,
-            "success": task.success,
-            "errors": task.errors,
+            "status": record.status,
+            "task_id": record.task_id,
+            "total": record.total,
+            "success": record.success,
+            "errors": record.errors,
         }, status_code=202)
 
-    if task.status == TaskStatus.FAILED:
+    if record.status == "failed":
         return JSONResponse(content={
             "status": "error",
-            "task_id": task.task_id,
-            "reason": task.reason,
+            "task_id": record.task_id,
+            "reason": record.reason,
         }, status_code=500)
 
     # Completed
     return JSONResponse(content={
         "status": "completed",
-        "task_id": task.task_id,
-        "total": task.total,
-        "success": task.success,
-        "errors": task.errors,
-        "details": task.details,
+        "task_id": record.task_id,
+        "total": record.total,
+        "success": record.success,
+        "errors": record.errors,
+        "details": record.details_json,
     })
 
 

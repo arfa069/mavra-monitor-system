@@ -10,6 +10,13 @@ from typing import Literal
 
 from app.core.system_log import emit_system_log_detached
 from app.core.task_registry import CrawlTask, TaskStatus, create_task
+from app.database import AsyncSessionLocal
+from app.domains.crawling.task_store import (
+    CrawlTaskRecord,
+    create_crawl_task_record,
+    runtime_task_from_record,
+    sync_record_from_runtime_task,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +47,20 @@ async def _crawl_one_with_semaphore(
         return result
 
 
-async def _run_crawl_task(task: CrawlTask) -> None:
-    """Execute the actual crawl and update task status."""
+async def _run_crawl_task(task: CrawlTask, *, record_id: int | None = None) -> None:
+    """Execute the actual crawl and update task status.
+
+    When *record_id* is provided, persist task progress to the database.
+    """
+
+    async def _persist_progress(progress_task: CrawlTask) -> None:
+        if record_id is None:
+            return
+        async with AsyncSessionLocal() as db:
+            record = await db.get(CrawlTaskRecord, record_id)
+            if record is not None:
+                await sync_record_from_runtime_task(db, record, progress_task)
+
     task.status = TaskStatus.RUNNING
     logger.info(f"Task {task.task_id}: started (source={task.source})")
     await emit_system_log_detached(
@@ -60,7 +79,7 @@ async def _run_crawl_task(task: CrawlTask) -> None:
     try:
         from app.domains.crawling.task_runner import CrawlTaskRunner
 
-        result = await CrawlTaskRunner().run_all_products(task)
+        result = await CrawlTaskRunner(progress_callback=_persist_progress).run_all_products(task)
 
         if result.get("reason") == "no_active_products":
             logger.info(f"Task {task.task_id}: no active products")
@@ -154,17 +173,23 @@ async def crawl_all_products(
             "source": source,
         }
 
-    # Create task and start background execution
-    task = create_task(
-        source,
-        user_id=user_id,
-        entity_type="crawl_task",
-        entity_id=None,
-    )
+    # Create persistent task and start background execution
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source=source,
+            task_type="product_all",
+            platform=None,
+            profile_key=None,
+            user_id=user_id,
+            entity_type="crawl_task",
+            entity_id=None,
+        )
+        task = runtime_task_from_record(record)
 
     if background:
         # Create background task - it will acquire the lock when it runs
-        asyncio.create_task(_run_crawl_in_lock(task, crawl_lock))
+        asyncio.create_task(_run_crawl_in_lock(task, crawl_lock, record_id=record.id))
         return {
             "status": "pending",
             "task_id": task.task_id,
@@ -217,11 +242,11 @@ async def crawl_all_products(
             return {"status": "error", "reason": "internal_error", "source": source}
 
 
-async def _run_crawl_in_lock(task: CrawlTask, crawl_lock: asyncio.Semaphore) -> None:
+async def _run_crawl_in_lock(task: CrawlTask, crawl_lock: asyncio.Semaphore, *, record_id: int | None = None) -> None:
     """Run crawl task with lock protection."""
     try:
         async with crawl_lock:
-            await _run_crawl_task(task)
+            await _run_crawl_task(task, record_id=record_id)
     finally:
         # Clean up shared browsers after task completes
         await _cleanup_all_shared_browsers()
@@ -231,7 +256,7 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
     """Crawl all active products for a specific user + platform.
 
     Called by ProductCronScheduler cron jobs. Respects concurrency
-    limits and logs results.
+    limits and logs results. Persists task state to crawl_tasks.
     """
     if _scheduler_state is None:
         logger.error("Scheduler state not initialized in crawl_products_by_platform")
@@ -252,6 +277,7 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
     try:
         async with crawl_lock:
             from app.domains.crawling.service import get_active_products
+            from app.domains.crawling.task_runner import CrawlTaskRunner
 
             semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
             products = await get_active_products(user_id=user_id, platform=platform)
@@ -259,6 +285,23 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
             if not products:
                 logger.info("No active %s products to crawl for user %s", platform, user_id)
                 return
+
+            # Create persistent task record
+            async with AsyncSessionLocal() as db:
+                record = await create_crawl_task_record(
+                    db,
+                    source="cron",
+                    task_type="product_platform",
+                    platform=platform,
+                    profile_key=None,
+                    user_id=user_id,
+                    entity_type="product_platform",
+                    entity_id=platform,
+                )
+                from app.domains.crawling.task_store import mark_task_running
+
+                task = runtime_task_from_record(record)
+                await mark_task_running(db, record, owner="cron")
 
             tasks = [
                 _crawl_one_with_semaphore(p.id, semaphore, False)
@@ -269,6 +312,16 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
             success = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "success")
             errors = sum(1 for r in results if isinstance(r, Exception) or (isinstance(r, dict) and r.get("status") == "error"))
             logger.info("Crawl user=%s %s: %d products, %d success, %d errors", user_id, platform, len(products), success, errors)
+
+            # Persist final result
+            async with AsyncSessionLocal() as db:
+                record = await db.get(CrawlTaskRecord, record.id)
+                if record is not None:
+                    task.total = len(products)
+                    task.success = success
+                    task.errors = errors
+                    task.status = TaskStatus.COMPLETED
+                    await sync_record_from_runtime_task(db, record, task)
     finally:
         await _cleanup_all_shared_browsers()
 

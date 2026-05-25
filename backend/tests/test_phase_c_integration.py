@@ -416,7 +416,7 @@ class TestManualCrawlRegression:
         from app.database import get_db
         from app.domains.crawling import scheduler_service
 
-        async def _noop_run_crawl_in_lock(task, crawl_lock):
+        async def _noop_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
             return None
 
         monkeypatch.setattr(
