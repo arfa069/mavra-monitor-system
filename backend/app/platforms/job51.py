@@ -26,7 +26,6 @@ SEARCH_DOMAIN = "we.51job.com"
 BASE_URL = f"https://{SEARCH_DOMAIN}"
 # TODO: Confirm via browser DevTools packet capture
 SEARCH_API_PATH = "/api/job/search-pc"
-COOKIE_FILE = Path(__file__).resolve().parent / ".51job_cookies.json"
 DEFAULT_PROFILE_DIR = Path.home() / ".cloakbrowser" / "profiles" / "51job-test"
 API_PROPERTY_HEADER = json.dumps({"partner": "", "webId": "2", "clientType": "pc"}, separators=(",", ":"))
 
@@ -132,7 +131,6 @@ class Job51Adapter(BasePlatformAdapter):
             "property": API_PROPERTY_HEADER,
         }
         self._cookies_acquired_at = time.time()
-        self._save_cookies(session)
         logger.info("51job Cloak cookie refresh: %d cookies", len(cookies))
         return bool(cookies)
 
@@ -152,45 +150,17 @@ class Job51Adapter(BasePlatformAdapter):
                 page.wait_for_timeout(1000)
         raise last_error or RuntimeError("Failed to evaluate 51job Cloak page")
 
-    # ── Cookie persistence ─────────────────────────────────────────────
-
-    @staticmethod
-    def _load_cookies() -> dict[str, str]:
-        try:
-            if COOKIE_FILE.exists():
-                return json.loads(COOKIE_FILE.read_text())
-        except Exception:
-            pass
-        return {}
-
-    @staticmethod
-    def _save_cookies(cffi_session: CffiSession) -> None:
-        try:
-            COOKIE_FILE.write_text(json.dumps(
-                cffi_session.cookies.get_dict()
-            ))
-        except Exception:
-            pass
-
     # ── Cookie acquisition orchestrator ────────────────────────────────
 
     async def _acquire_cookies(self, session: CffiSession) -> bool:
         """Load cookies for 51job API calls.
 
-        Priority: in-memory/session → disk cache → CloakBrowser refresh →
-        anonymous homepage visit.
+        Priority: in-memory/session → CloakBrowser refresh → anonymous
+        homepage visit. Cookies are intentionally not copied to a JSON file.
         """
         logger.info("51job _acquire_cookies: START")
 
         if session.cookies.get_dict():
-            self._cookies_acquired_at = time.time()
-            return True
-
-        saved = self._load_cookies()
-        if saved:
-            for k, v in saved.items():
-                session.cookies.set(k, v, domain=f".{SEARCH_DOMAIN}", path="/")
-            logger.info("51job _acquire_cookies: using disk cache (%d)", len(saved))
             self._cookies_acquired_at = time.time()
             return True
 
@@ -420,7 +390,6 @@ class Job51Adapter(BasePlatformAdapter):
             if parsed.get("blocked"):
                 return self._crawl_detail_via_cloak_sync(job_id, detail_url, "Blocked by Aliyun WAF")
 
-            self._save_cookies(session)
             return {"success": True, "detail": parsed["detail"]}
 
         except Exception as e:
@@ -433,13 +402,6 @@ class Job51Adapter(BasePlatformAdapter):
 
         session = self._get_session()
         if session.cookies.get_dict():
-            self._cookies_acquired_at = time.time()
-            return True
-
-        saved = self._load_cookies()
-        if saved:
-            for k, v in saved.items():
-                session.cookies.set(k, v, domain=f".{SEARCH_DOMAIN}", path="/")
             self._cookies_acquired_at = time.time()
             return True
 
@@ -467,7 +429,6 @@ class Job51Adapter(BasePlatformAdapter):
                     if cookie.get("domain"):
                         kwargs["domain"] = cookie["domain"]
                     session.cookies.set(cookie["name"], cookie["value"], **kwargs)
-                self._save_cookies(session)
 
             parsed = self._parse_detail_html(job_id, page.content())
             if parsed.get("blocked"):
