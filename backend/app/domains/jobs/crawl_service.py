@@ -899,7 +899,7 @@ async def crawl_single_config_background(
                         profile_key="default",
                         owner=task.task_id,
                         task_id=task.task_id,
-                    ) as lease:
+                    ) as _lease:
                         await emit_system_log_detached(
                             category="runtime",
                             event_type="job_crawl.started",
@@ -1025,7 +1025,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                 return
 
             # Group by platform, create child tasks
-            from app.platforms.base import BasePlatformAdapter
 
             by_platform: dict[str, list] = {}
             for config in configs:
@@ -1068,7 +1067,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                         if record is not None:
                             await sync_record_from_runtime_task(db, record, progress_task)
 
-                adapter = _create_adapter(platform)
                 for config in platform_configs:
                     child_task = runtime_task_from_record(child_record)
                     from app.domains.crawling.task_runner import CrawlTaskRunner

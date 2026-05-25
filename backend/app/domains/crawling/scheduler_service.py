@@ -9,7 +9,7 @@ import random
 from typing import Literal
 
 from app.core.system_log import emit_system_log_detached
-from app.core.task_registry import CrawlTask, TaskStatus, create_task
+from app.core.task_registry import CrawlTask, TaskStatus
 from app.database import AsyncSessionLocal
 from app.domains.crawling.task_store import (
     CrawlTaskRecord,
@@ -277,7 +277,6 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
     try:
         async with crawl_lock:
             from app.domains.crawling.service import get_active_products
-            from app.domains.crawling.task_runner import CrawlTaskRunner
 
             semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
             products = await get_active_products(user_id=user_id, platform=platform)

@@ -10,7 +10,7 @@ from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.core.system_log import emit_system_log_detached
-from app.core.task_registry import TaskStatus, get_task
+from app.core.task_registry import get_task
 from app.database import get_db
 from app.domains.jobs import service as job_service
 from app.domains.jobs.crawl_service import (
@@ -508,7 +508,6 @@ async def get_match_analysis_task_status(task_id: str):
 
     """
 
-    from app.core.task_registry import get_task
 
     task = get_task(task_id)
 
