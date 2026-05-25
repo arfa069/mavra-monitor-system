@@ -183,3 +183,20 @@ def test_crawl_detail_refreshes_on_anti_bot_code(monkeypatch):
 
     assert result["success"] is True
     refresh.assert_called_once()
+
+
+def test_boss_default_profile_uses_configured_profile_root(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from app.platforms import boss_cloak_experimental
+    from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
+
+    monkeypatch.setattr(
+        boss_cloak_experimental,
+        "settings",
+        SimpleNamespace(resolved_crawler_profile_root=tmp_path),
+    )
+
+    adapter = BossCloakExperimentalAdapter()
+
+    assert adapter.profile_dir == tmp_path / "profiles" / "boss" / "default"
