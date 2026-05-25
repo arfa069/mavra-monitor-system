@@ -1,9 +1,9 @@
 """51job (前程无忧) platform adapter for job search crawling.
 
-Search crawling runs inside a real browser page via CDP. Each crawl opens a
-temporary we.51job.com search tab, executes the search-pc API fetch in that
-browser context so WAF cookies and browser state are preserved, then closes the
-temporary tab. Cookie helpers remain for detail-page fallback paths.
+Search crawling runs inside a CloakBrowser persistent profile. Each crawl opens
+or reloads a real we.51job.com search page, executes the search-pc API fetch in
+that browser context so WAF cookies and browser state are preserved, then closes
+the CloakBrowser context. Cookie helpers remain for detail-page fallback paths.
 """
 
 import asyncio
@@ -13,9 +13,8 @@ import random
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
-import websockets
 from curl_cffi.requests import Session as CffiSession
 
 from app.platforms.base import BasePlatformAdapter
@@ -27,21 +26,35 @@ SEARCH_DOMAIN = "we.51job.com"
 BASE_URL = f"https://{SEARCH_DOMAIN}"
 # TODO: Confirm via browser DevTools packet capture
 SEARCH_API_PATH = "/api/job/search-pc"
-CDP_BASE = "http://127.0.0.1:9222"
 COOKIE_FILE = Path(__file__).resolve().parent / ".51job_cookies.json"
+DEFAULT_PROFILE_DIR = Path.home() / ".cloakbrowser" / "profiles" / "51job-test"
+API_PROPERTY_HEADER = json.dumps({"partner": "", "webId": "2", "clientType": "pc"}, separators=(",", ":"))
 
 
 class Job51Adapter(BasePlatformAdapter):
     """Adapter for 51job (前程无忧) job search crawling.
 
-    Search results are fetched through a temporary CDP browser tab. The cookie
-    lifecycle is only used by detail fallback requests.
+    Search results are fetched through a CloakBrowser profile page. The cookie
+    lifecycle is shared by search and detail fallback requests.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        profile_dir: str | Path | None = None,
+        headless: bool = True,
+        max_pages: int = MAX_PAGES,
+    ):
         super().__init__()
+        self.profile_dir = Path(profile_dir) if profile_dir else DEFAULT_PROFILE_DIR
+        self.headless = headless
+        self.max_pages = max_pages
         self._session: CffiSession | None = None
         self._cookies_acquired_at: float = 0
+        self._headers: dict[str, str] = {}
+        self._search_page = BASE_URL
+        self._cloak_context = None
+        self._cloak_page = None
 
     def _get_session(self) -> CffiSession:
         if self._session is None:
@@ -56,116 +69,88 @@ class Job51Adapter(BasePlatformAdapter):
     async def extract_title(self, page) -> str:
         raise NotImplementedError("Job adapter does not extract titles")
 
-    # ── Cookie acquisition via raw WebSocket CDP ───────────────────────
+    # ── CloakBrowser lifecycle ────────────────────────────────────────
 
-    @staticmethod
-    async def _get_cookies_via_raw_cdp() -> dict[str, str]:
-        """Read 51job cookies via raw WebSocket CDP — only 2 commands."""
-        ws_url = await Job51Adapter._find_page_ws()
-        if not ws_url:
-            return {}
+    def _start_browser(self) -> None:
+        if self._cloak_context is not None:
+            return
+        from cloakbrowser import launch_persistent_context
 
-        try:
-            async with websockets.connect(ws_url, max_size=2 ** 24) as ws:
-                await ws.send(json.dumps({"id": 1, "method": "Network.enable"}))
-                await asyncio.wait_for(ws.recv(), timeout=2)
-
-                await ws.send(json.dumps({
-                    "id": 2, "method": "Network.getCookies",
-                    "params": {"urls": [f"https://{SEARCH_DOMAIN}/"]},
-                }))
-                raw = await asyncio.wait_for(ws.recv(), timeout=2)
-                result = json.loads(raw)
-
-            cookies = {}
-            for c in result.get("result", {}).get("cookies", []):
-                cookies[c["name"]] = c["value"]
-            logger.debug("51job Raw CDP: %d cookies", len(cookies))
-            return cookies
-
-        except Exception as e:
-            logger.warning("51job Raw CDP cookie read failed: %s", e)
-            return {}
-
-    @staticmethod
-    async def _find_page_ws() -> str | None:
-        """Find a 51job page's WebSocket CDP URL."""
-        import http.client
-
-        conn = None
-        try:
-            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
-            conn.request("GET", "/json")
-            resp = conn.getresponse()
-            targets = json.loads(resp.read())
-            conn.close()
-
-            # Prefer we.51job.com for search APIs to avoid CORS
-            for t in targets:
-                url = t.get("url", "")
-                if "we.51job.com" in url and "socket" not in url:
-                    return t["webSocketDebuggerUrl"]
-
-            logger.info("No 51job CDP page found")
-        except Exception:
-            if conn:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-        return None
-
-    @staticmethod
-    async def _open_search_page_ws(keyword: str, job_area: str) -> tuple[str | None, str | None]:
-        """Open a temporary 51job search tab and return its CDP URL and target id."""
-        import http.client
-
-        search_url = (
-            f"{BASE_URL}/pc/search?"
-            f"{urlencode({'keyword': keyword, 'searchType': '2', 'jobArea': job_area})}"
+        self._cloak_context = launch_persistent_context(
+            str(self.profile_dir),
+            headless=self.headless,
+            locale="zh-CN",
+            timezone="Asia/Shanghai",
+            humanize=True,
+            viewport={"width": 1440, "height": 1000},
         )
-        conn = None
+        self._cloak_page = self._cloak_context.new_page()
+
+    def _close_browser_sync(self) -> None:
+        if self._cloak_context is None:
+            return
         try:
-            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=5)
-            conn.request("PUT", f"/json/new?{quote(search_url, safe='')}")
-            resp = conn.getresponse()
-            target = json.loads(resp.read())
-            conn.close()
+            self._cloak_context.close()
+        except Exception:
+            logger.exception("Failed to close 51job CloakBrowser context")
+        finally:
+            self._cloak_context = None
+            self._cloak_page = None
 
-            ws_url = target.get("webSocketDebuggerUrl")
-            target_id = target.get("id")
-            if ws_url and target_id:
-                logger.info("Opened temporary 51job CDP page: %s", target_id)
-                await asyncio.sleep(2)
-                return ws_url, target_id
-        except Exception as e:
-            logger.warning("Failed to open temporary 51job CDP page: %s", e)
-            if conn:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
-        return None, None
+    def _refresh_cookies_sync(self, reason: str) -> bool:
+        logger.info("Refreshing 51job CloakBrowser cookies: %s", reason)
+        page = self._cloak_page
+        context = self._cloak_context
+        if page is None or context is None:
+            raise RuntimeError("CloakBrowser is not started")
 
-    @staticmethod
-    async def _close_page(target_id: str) -> None:
-        """Close a CDP target by id."""
-        import http.client
-
-        conn = None
+        if not page.url.startswith(BASE_URL):
+            page.goto(self._search_page, wait_until="domcontentloaded", timeout=45000)
+        else:
+            page.reload(wait_until="domcontentloaded", timeout=45000)
         try:
-            conn = http.client.HTTPConnection("127.0.0.1", 9222, timeout=3)
-            conn.request("GET", f"/json/close/{target_id}")
-            conn.getresponse()
-            conn.close()
-            logger.info("Closed temporary 51job CDP page: %s", target_id)
-        except Exception as e:
-            logger.warning("Failed to close temporary 51job CDP page %s: %s", target_id, e)
-            if conn:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
+            page.wait_for_load_state("domcontentloaded", timeout=10000)
+        except Exception:
+            logger.debug("51job Cloak page still navigating after refresh")
+        page.wait_for_timeout(1000)
+
+        cookies = context.cookies([f"{BASE_URL}/", "https://51job.com/"])
+        session = self._get_session()
+        for cookie in cookies:
+            kwargs = {"path": cookie.get("path") or "/"}
+            if cookie.get("domain"):
+                kwargs["domain"] = cookie["domain"]
+            session.cookies.set(cookie["name"], cookie["value"], **kwargs)
+
+        user_agent = self._evaluate_page_value("() => navigator.userAgent")
+        language = self._evaluate_page_value("() => navigator.language")
+        self._headers = {
+            "Referer": self._search_page,
+            "User-Agent": user_agent,
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": f"{language},zh-CN;q=0.9,zh;q=0.8,en;q=0.7",
+            "property": API_PROPERTY_HEADER,
+        }
+        self._cookies_acquired_at = time.time()
+        self._save_cookies(session)
+        logger.info("51job Cloak cookie refresh: %d cookies", len(cookies))
+        return bool(cookies)
+
+    def _evaluate_page_value(self, expression: str) -> str:
+        page = self._cloak_page
+        if page is None:
+            return ""
+        last_error: Exception | None = None
+        for _ in range(3):
+            try:
+                value = page.evaluate(expression)
+                return str(value or "")
+            except Exception as exc:
+                last_error = exc
+                if "Execution context was destroyed" not in str(exc):
+                    raise
+                page.wait_for_timeout(1000)
+        raise last_error or RuntimeError("Failed to evaluate 51job Cloak page")
 
     # ── Cookie persistence ─────────────────────────────────────────────
 
@@ -192,20 +177,15 @@ class Job51Adapter(BasePlatformAdapter):
     async def _acquire_cookies(self, session: CffiSession) -> bool:
         """Load cookies for 51job API calls.
 
-        Priority: CDP → disk cache → homepage visit.
+        Priority: in-memory/session → disk cache → CloakBrowser refresh →
+        anonymous homepage visit.
         """
         logger.info("51job _acquire_cookies: START")
 
-        # 1. CDP
-        cdp_cookies = await self._get_cookies_via_raw_cdp()
-        if cdp_cookies:
-            for k, v in cdp_cookies.items():
-                session.cookies.set(k, v, domain=f".{SEARCH_DOMAIN}", path="/")
-            logger.info("51job _acquire_cookies: using CDP cookies (%d)", len(cdp_cookies))
+        if session.cookies.get_dict():
             self._cookies_acquired_at = time.time()
             return True
 
-        # 2. Disk cache
         saved = self._load_cookies()
         if saved:
             for k, v in saved.items():
@@ -214,7 +194,11 @@ class Job51Adapter(BasePlatformAdapter):
             self._cookies_acquired_at = time.time()
             return True
 
-        # 3. Visit homepage to seed cookies
+        try:
+            return await asyncio.to_thread(self._refresh_cookies_for_detail_sync)
+        except Exception as e:
+            logger.warning("51job Cloak cookie refresh failed: %s", e)
+
         try:
             session.get(
                 f"{BASE_URL}/",
@@ -231,188 +215,198 @@ class Job51Adapter(BasePlatformAdapter):
         logger.warning("51job _acquire_cookies: ALL FAILED")
         return False
 
+    def _refresh_cookies_for_detail_sync(self) -> bool:
+        self._start_browser()
+        if not self._search_page:
+            self._search_page = BASE_URL
+        try:
+            return self._refresh_cookies_sync("detail_cookie_acquire")
+        finally:
+            self._close_browser_sync()
+
     async def _ensure_cookies(self) -> bool:
         """Ensure the adapter has valid cookies."""
         if self._cookies_acquired_at and time.time() - self._cookies_acquired_at < 300:
             return True
         return await self._acquire_cookies(self._get_session())
 
-    # ── Crawl via CDP ───────────────────────────────────────────────────
+    # ── Crawl via CloakBrowser ─────────────────────────────────────────
 
     async def crawl(self, url: str) -> dict[str, Any]:
-        """Crawl 51job search results using CDP to execute fetch in-browser.
+        """Crawl 51job search results using CloakBrowser page fetch.
 
         Since 51job uses strong Aliyun WAF, using curl_cffi often triggers
         a block if the TLS fingerprint or headers don't match exactly.
-        Executing fetch via the existing browser tab guarantees success.
+        Executing fetch via a CloakBrowser profile preserves browser state
+        without relying on Chrome remote debugging / CDP mode.
         """
+        return await asyncio.to_thread(self._crawl_sync, url)
+
+    def _crawl_sync(self, url: str) -> dict[str, Any]:
+        """Synchronous crawl body run in a worker thread."""
         try:
-            parsed = urlparse(url)
-            params = parse_qs(parsed.query, keep_blank_values=True)
-            keyword = params.get("keyword", [""])[0]
-            job_area = params.get("jobArea", ["000000"])[0]
-
-            ws_url, temporary_target_id = await self._open_search_page_ws(keyword, job_area)
-            if not ws_url:
-                return {"success": False, "error": "请启动已开启远程调试端口的浏览器，以便自动打开前程无忧搜索页"}
-
-            # If the user only has the detail page open, fetching the search API will fail due to CORS.
-            # We can't perfectly check ws_url's actual URL here without another CDP call,
-            # but if it fails with TypeError, we will return a helpful error.
+            keyword, job_area = self._parse_search(url)
+            self._search_page = self._build_search_page(keyword, job_area)
+            self._start_browser()
+            self._refresh_cookies_sync("crawl_start")
 
             all_jobs: list[dict] = []
             pages_fetched = 0
 
-            import time
-            import uuid
+            for page_num in range(1, self.max_pages + 1):
+                data = self._fetch_search_page_sync(keyword, job_area, page_num)
 
-            try:
-                async with websockets.connect(ws_url, max_size=2 ** 24) as ws:
-                    for page_num in range(1, MAX_PAGES + 1):
-                        api_params = {
-                            "api_key": "51job",
-                            "timestamp": str(int(time.time())),
-                            "keyword": keyword,
-                            "searchType": "2",
-                            "function": "",
-                            "industry": "",
-                            "jobArea": job_area,
-                            "jobArea2": "",
-                            "landmark": "",
-                            "metro": "",
-                            "salary": "",
-                            "workYear": "",
-                            "degree": "",
-                            "companyType": "",
-                            "companySize": "",
-                            "jobType": "",
-                            "issueDate": "",
-                            "sortType": "0",
-                            "pageNum": str(page_num),
-                            "requestId": uuid.uuid4().hex,
-                            "pageSize": "50",
-                            "source": "1",
-                            "accountId": "",
-                            "pageCode": "sou|sou|soulb",
-                            "scene": "7",
-                        }
-                        query = urlencode(api_params)
-                        api_url = f"{BASE_URL}{SEARCH_API_PATH}?{query}"
+                page_jobs = self._extract_page_jobs(data)
+                if page_jobs:
+                    all_jobs.extend(page_jobs)
+                    pages_fetched = page_num
+                else:
+                    break
 
-                        # Execute fetch inside the browser tab
-                        js_code = f"""
-                        new Promise((resolve, reject) => {{
-                            fetch('{api_url}', {{
-                                headers: {{
-                                    "Accept": "application/json, text/plain, */*",
-                                    "property": '{{\"partner\":\"\",\"webId\":\"2\",\"clientType\":\"pc\"}}'
-                                }}
-                            }})
-                            .then(r => r.json())
-                            .then(d => resolve(JSON.stringify(d)))
-                            .catch(e => resolve(JSON.stringify({{error: e.toString()}})));
-                        }})
-                        """
+                if not self._has_more_pages(data, page_jobs, page_num):
+                    break
 
-                        await ws.send(json.dumps({
-                            "id": page_num,
-                            "method": "Runtime.evaluate",
-                            "params": {
-                                "expression": js_code,
-                                "awaitPromise": True,
-                                "returnByValue": True
-                            }
-                        }))
-
-                        raw_resp = await asyncio.wait_for(ws.recv(), timeout=10)
-                        result_payload = json.loads(raw_resp)
-
-                        if "error" in result_payload:
-                            logger.warning("CDP Error: %s", result_payload["error"])
-                            break
-
-                        # Extract stringified JSON from CDP response
-                        try:
-                            value_str = result_payload.get("result", {}).get("result", {}).get("value", "{}")
-                            data = json.loads(value_str)
-                        except Exception as e:
-                            logger.warning("Failed to parse CDP fetch result: %s", e)
-                            break
-
-                        if data.get("error"):
-                            err_msg = data['error']
-                            if "Failed to fetch" in err_msg:
-                                logger.warning("CORS Error: Please ensure you are on we.51job.com")
-                                return {"success": False, "error": "请确保浏览器停留在前程无忧搜索页 (we.51job.com)，不要停留在详情页，否则会因跨域被拦截。"}
-                            logger.warning("Browser fetch failed: %s", err_msg)
-                            break
-
-                        # Common response structures
-                        page_jobs = (
-                            data.get("resultbody", {}).get("job", {}).get("items", [])
-                            or data.get("engine_jds", [])
-                            or data.get("jobList", [])
-                            or data.get("data", {}).get("jobList", [])
-                            or []
-                        )
-
-                        if page_jobs:
-                            all_jobs.extend(page_jobs)
-                            pages_fetched = page_num
-                        else:
-                            break
-
-                        # Check for more pages
-                        has_more = (
-                            data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
-                            or len(page_jobs) >= 50
-                        )
-                        if not has_more:
-                            break
-
-                        await asyncio.sleep(random.uniform(2.0, 4.0))
-            finally:
-                if temporary_target_id:
-                    await self._close_page(temporary_target_id)
+                time.sleep(random.uniform(2.0, 4.0))
 
             if all_jobs:
                 transformed = self._transform_jobs(all_jobs)
-                logger.info("51job CDP fetch: %d jobs from %d page(s)", len(transformed), pages_fetched)
+                logger.info("51job Cloak fetch: %d jobs from %d page(s)", len(transformed), pages_fetched)
                 return {"success": True, "jobs": transformed, "count": len(transformed)}
 
-            return {"success": False, "error": "No job data from 51job search API via CDP"}
+            return {"success": False, "error": "No job data from 51job search API via CloakBrowser"}
 
         except Exception as e:
             logger.exception("51job crawl failed")
             return {"success": False, "error": str(e)}
+        finally:
+            self._close_browser_sync()
 
-    async def crawl_detail(self, job_id: str) -> dict[str, Any]:
+    def _fetch_search_page_sync(self, keyword: str, job_area: str, page_num: int) -> dict[str, Any]:
+        """Fetch one search result page in the active CloakBrowser page."""
+        page = self._cloak_page
+        if page is None:
+            raise RuntimeError("CloakBrowser is not started")
+
+        api_url = f"{BASE_URL}{SEARCH_API_PATH}?{urlencode(self._build_api_params(keyword, job_area, page_num))}"
+        js_code = """
+        async ({ apiUrl, propertyHeader }) => {
+            const response = await fetch(apiUrl, {
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "property": propertyHeader
+                },
+                credentials: "include"
+            });
+            return {
+                ok: response.ok,
+                status: response.status,
+                contentType: response.headers.get("content-type") || "",
+                body: await response.text()
+            };
+        }
+        """
+        result = page.evaluate(js_code, {"apiUrl": api_url, "propertyHeader": API_PROPERTY_HEADER})
+        status = result.get("status")
+        if not result.get("ok"):
+            raise RuntimeError(f"51job search API HTTP {status}")
+
+        body = result.get("body") or "{}"
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError as exc:
+            logger.warning("51job search API returned non-JSON content-type=%s", result.get("contentType"))
+            raise RuntimeError("51job search API returned non-JSON response") from exc
+
+    @staticmethod
+    def _parse_search(url: str) -> tuple[str, str]:
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query, keep_blank_values=True)
+        keyword = params.get("keyword", [""])[0]
+        job_area = params.get("jobArea", ["000000"])[0]
+        return keyword, job_area
+
+    @staticmethod
+    def _build_search_page(keyword: str, job_area: str) -> str:
+        return (
+            f"{BASE_URL}/pc/search?"
+            f"{urlencode({'keyword': keyword, 'searchType': '2', 'jobArea': job_area})}"
+        )
+
+    @staticmethod
+    def _build_api_params(keyword: str, job_area: str, page_num: int) -> dict[str, str]:
+        import uuid
+
+        return {
+            "api_key": "51job",
+            "timestamp": str(int(time.time())),
+            "keyword": keyword,
+            "searchType": "2",
+            "function": "",
+            "industry": "",
+            "jobArea": job_area,
+            "jobArea2": "",
+            "landmark": "",
+            "metro": "",
+            "salary": "",
+            "workYear": "",
+            "degree": "",
+            "companyType": "",
+            "companySize": "",
+            "jobType": "",
+            "issueDate": "",
+            "sortType": "0",
+            "pageNum": str(page_num),
+            "requestId": uuid.uuid4().hex,
+            "pageSize": "50",
+            "source": "1",
+            "accountId": "",
+            "pageCode": "sou|sou|soulb",
+            "scene": "7",
+        }
+
+    @staticmethod
+    def _extract_page_jobs(data: dict[str, Any]) -> list[dict[str, Any]]:
+        return (
+            data.get("resultbody", {}).get("job", {}).get("items", [])
+            or data.get("engine_jds", [])
+            or data.get("jobList", [])
+            or data.get("data", {}).get("jobList", [])
+            or []
+        )
+
+    @staticmethod
+    def _has_more_pages(data: dict[str, Any], page_jobs: list[dict[str, Any]], page_num: int) -> bool:
+        return (
+            data.get("resultbody", {}).get("job", {}).get("total_page", 0) > page_num
+            or len(page_jobs) >= 50
+        )
+
+    async def crawl_detail(self, job_id: str, detail_url: str = "") -> dict[str, Any]:
         """Fetch 51job job detail using HTML parsing.
 
         Args:
             job_id: The 51job internal job ID.
+            detail_url: Optional full detail URL captured from search results.
 
         Returns:
             {"success": True, "detail": {...}} or {"success": False, "error": "..."}
         """
+        return await asyncio.to_thread(self._crawl_detail_sync, job_id, detail_url)
+
+    def _crawl_detail_sync(self, job_id: str, detail_url: str = "") -> dict[str, Any]:
+        """Fetch one 51job detail page, falling back to CloakBrowser on WAF."""
         try:
             session = self._get_session()
 
-            if not await self._ensure_cookies():
+            if not self._ensure_cookies_sync():
                 logger.warning("51job detail: proceeding without cookies")
 
-            # detail URL format: https://jobs.51job.com/{location}/{job_id}.html
-            # But the backend doesn't know location. However, 51job supports a generic detail URL:
-            # We can use the generic detail page or search for the exact URL.
-            # Actually, the database already stores the full URL in job.url.
-            # In our pipeline, `update_job_detail` calls `crawl_detail` with `job.job_id`.
-            # If we don't have the full URL, we can use a proxy search API or Playwright.
-            # Wait, 51job supports https://jobs.51job.com/all/{job_id}.html
-            detail_url = f"https://jobs.51job.com/all/{job_id}.html"
+            detail_url = detail_url or f"https://jobs.51job.com/all/{job_id}.html"
 
             resp = session.get(
                 detail_url,
                 impersonate="chrome124",
+                timeout=30,
                 headers={
                     "Referer": f"{BASE_URL}/",
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -420,46 +414,95 @@ class Job51Adapter(BasePlatformAdapter):
             )
 
             if resp.status_code != 200:
-                return {"success": False, "error": f"HTTP {resp.status_code}"}
+                return self._crawl_detail_via_cloak_sync(job_id, detail_url, f"HTTP {resp.status_code}")
 
-            import re
-
-            from bs4 import BeautifulSoup
-
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-            # WAF Check
-            if soup.find("meta", attrs={"name": "aliyun_waf_aa"}):
-                return {"success": False, "error": "Blocked by Aliyun WAF"}
-
-            # Extract data based on DOM
-            # Description
-            job_msg_div = soup.select_one("div.job_msg") or soup.select_one("div.bmsg.job_msg.inbox")
-            description = job_msg_div.get_text(strip=True, separator="\n") if job_msg_div else ""
-
-            # Remove trailing extra text like "分享 微信 邮件"
-            description = re.sub(r'分享\s*微信\s*邮件.*$', '', description, flags=re.DOTALL).strip()
-
-            # Address
-            address_div = soup.find("span", class_="label", string=re.compile(r"上班地址："))
-            address = ""
-            if address_div and address_div.parent:
-                address = address_div.parent.get_text(strip=True).replace("上班地址：", "")
+            parsed = self._parse_detail_html(job_id, resp.text)
+            if parsed.get("blocked"):
+                return self._crawl_detail_via_cloak_sync(job_id, detail_url, "Blocked by Aliyun WAF")
 
             self._save_cookies(session)
-
-            return {
-                "success": True,
-                "detail": {
-                    "job_id": job_id,
-                    "description": description,
-                    "address": address,
-                },
-            }
+            return {"success": True, "detail": parsed["detail"]}
 
         except Exception as e:
             logger.exception("51job detail crawl failed")
             return {"success": False, "error": str(e)}
+
+    def _ensure_cookies_sync(self) -> bool:
+        if self._cookies_acquired_at and time.time() - self._cookies_acquired_at < 300:
+            return True
+
+        session = self._get_session()
+        if session.cookies.get_dict():
+            self._cookies_acquired_at = time.time()
+            return True
+
+        saved = self._load_cookies()
+        if saved:
+            for k, v in saved.items():
+                session.cookies.set(k, v, domain=f".{SEARCH_DOMAIN}", path="/")
+            self._cookies_acquired_at = time.time()
+            return True
+
+        return self._refresh_cookies_for_detail_sync()
+
+    def _crawl_detail_via_cloak_sync(self, job_id: str, detail_url: str, reason: str) -> dict[str, Any]:
+        logger.info("51job detail falling back to CloakBrowser: %s", reason)
+        self._start_browser()
+        try:
+            page = self._cloak_page
+            if page is None:
+                raise RuntimeError("CloakBrowser is not started")
+            page.goto(detail_url, wait_until="domcontentloaded", timeout=45000)
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=10000)
+            except Exception:
+                logger.debug("51job detail page still navigating")
+            page.wait_for_timeout(1000)
+
+            context = self._cloak_context
+            if context is not None:
+                session = self._get_session()
+                for cookie in context.cookies([detail_url, f"{BASE_URL}/"]):
+                    kwargs = {"path": cookie.get("path") or "/"}
+                    if cookie.get("domain"):
+                        kwargs["domain"] = cookie["domain"]
+                    session.cookies.set(cookie["name"], cookie["value"], **kwargs)
+                self._save_cookies(session)
+
+            parsed = self._parse_detail_html(job_id, page.content())
+            if parsed.get("blocked"):
+                return {"success": False, "error": "Blocked by Aliyun WAF"}
+            return {"success": True, "detail": parsed["detail"]}
+        finally:
+            self._close_browser_sync()
+
+    @staticmethod
+    def _parse_detail_html(job_id: str, html: str) -> dict[str, Any]:
+        import re
+
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(html, "html.parser")
+        if soup.find("meta", attrs={"name": "aliyun_waf_aa"}):
+            return {"blocked": True}
+
+        job_msg_div = soup.select_one("div.job_msg") or soup.select_one("div.bmsg.job_msg.inbox")
+        description = job_msg_div.get_text(strip=True, separator="\n") if job_msg_div else ""
+        description = re.sub(r"分享\s*微信\s*邮件.*$", "", description, flags=re.DOTALL).strip()
+
+        address_div = soup.find("span", class_="label", string=re.compile(r"上班地址："))
+        address = ""
+        if address_div and address_div.parent:
+            address = address_div.parent.get_text(strip=True).replace("上班地址：", "")
+
+        return {
+            "blocked": False,
+            "detail": {
+                "job_id": job_id,
+                "description": description,
+                "address": address,
+            },
+        }
 
     # ── Data transformation ────────────────────────────────────────────
 

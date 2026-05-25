@@ -30,6 +30,9 @@ VALID_JOB_PLATFORMS = {"boss", "51job", "liepin"}
 _JOB_CRAWL_LOCK = asyncio.Lock()
 DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2
 DETAIL_RETRY_DELAY_SECONDS = (20.0, 40.0)
+DETAIL_FETCH_TIMEOUT_SECONDS = 15.0
+DETAIL_WAF_BLOCK_LIMIT = 1
+DETAIL_TIMEOUT_LIMIT = 3
 
 
 def _normalize_platform(platform: object) -> str:
@@ -125,6 +128,16 @@ async def process_job_results(
     deactivated_count = 0
     new_job_ids: list[int] = []
     detail_jobs: list[Job] = []
+    unique_jobs: dict[str, dict] = {}
+    for job in jobs:
+        job_id = job.get("job_id")
+        if job_id and job_id not in unique_jobs:
+            unique_jobs[job_id] = job
+    jobs = list(unique_jobs.values())
+    total_scraped = len(jobs)
+
+    def needs_initial_detail_fetch(job_data: dict) -> bool:
+        return not job_data.get("description")
 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
@@ -207,7 +220,7 @@ async def process_job_results(
                 job_obj.description = job_data["description"]
             if job_data.get("address"):
                 job_obj.address = job_data["address"]
-            if not job_obj.description or not job_obj.address:
+            if not job_obj.description:
                 detail_jobs.append(job_obj)
             updated_count += 1
 
@@ -274,11 +287,13 @@ async def process_job_results(
                         existing_dup.description = item["description"]
                     if item.get("address"):
                         existing_dup.address = item["address"]
+                    if not existing_dup.description:
+                        detail_jobs.append(existing_dup)
                     updated_count += 1
                 else:
                     # Insert new job
                     newly_inserted_job_ids.append(item["job_id"])
-                    if not item.get("description"):
+                    if needs_initial_detail_fetch(item):
                         newly_inserted_job_ids_needing_detail.add(item["job_id"])
                     new_job = Job(
                         job_id=item["job_id"],
@@ -343,23 +358,44 @@ async def process_job_results(
             detail_errors = 0
             detail_updates = 0
             consecutive_cookie_failures = 0
+            consecutive_waf_blocks = 0
+            consecutive_detail_timeouts = 0
             cookie_failure_cooldowns = 0
             retry_detail_jobs: list[Job] = []
             for job_obj in detail_jobs:
                 try:
-                    result = await update_job_detail(
-                        job_obj,
-                        adapter=adapter,
-                        platform=platform,
-                        db=db,
+                    logger.info("Fetching job detail: platform=%s job_id=%s db_id=%s", platform, job_obj.job_id, job_obj.id)
+                    result = await asyncio.wait_for(
+                        update_job_detail(
+                            job_obj,
+                            adapter=adapter,
+                            platform=platform,
+                            db=db,
+                        ),
+                        timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
                     )
                     if isinstance(result, Exception):
                         detail_errors += 1
                         retry_detail_jobs.append(job_obj)
                     elif isinstance(result, dict) and not result.get("success"):
                         detail_errors += 1
+                        err = str(result.get("error", ""))
+                        if "Blocked by Aliyun WAF" in err:
+                            consecutive_waf_blocks += 1
+                            logger.warning(
+                                "Detail fetch blocked by WAF: platform=%s job_id=%s db_id=%s consecutive=%d/%d",
+                                platform,
+                                job_obj.job_id,
+                                job_obj.id,
+                                consecutive_waf_blocks,
+                                DETAIL_WAF_BLOCK_LIMIT,
+                            )
+                            if platform == "51job" and consecutive_waf_blocks >= DETAIL_WAF_BLOCK_LIMIT:
+                                logger.warning("Bailing out of 51job detail fetch after repeated WAF blocks")
+                                break
+                            continue
                         retry_detail_jobs.append(job_obj)
-                        err = result.get("error", "")
+                        consecutive_waf_blocks = 0
                         if "code=37" in err or "code=36" in err or "Cookie expired" in err:
                             consecutive_cookie_failures += 1
                         else:
@@ -367,6 +403,22 @@ async def process_job_results(
                     else:
                         detail_updates += 1
                         consecutive_cookie_failures = 0
+                        consecutive_waf_blocks = 0
+                        consecutive_detail_timeouts = 0
+                except TimeoutError:
+                    logger.warning(
+                        "Detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
+                        DETAIL_FETCH_TIMEOUT_SECONDS,
+                        platform,
+                        job_obj.job_id,
+                        job_obj.id,
+                    )
+                    detail_errors += 1
+                    consecutive_cookie_failures += 1
+                    consecutive_detail_timeouts += 1
+                    if consecutive_detail_timeouts >= DETAIL_TIMEOUT_LIMIT:
+                        logger.warning("Bailing out of detail fetch after %d consecutive timeouts", consecutive_detail_timeouts)
+                        break
                 except Exception:
                     detail_errors += 1
                     retry_detail_jobs.append(job_obj)
@@ -409,14 +461,26 @@ async def process_job_results(
                 await asyncio.sleep(retry_delay)
                 for job_obj in retry_detail_jobs:
                     try:
-                        result = await update_job_detail(
-                            job_obj,
-                            adapter=adapter,
-                            platform=platform,
-                            db=db,
+                        logger.info("Retrying job detail: platform=%s job_id=%s db_id=%s", platform, job_obj.job_id, job_obj.id)
+                        result = await asyncio.wait_for(
+                            update_job_detail(
+                                job_obj,
+                                adapter=adapter,
+                                platform=platform,
+                                db=db,
+                            ),
+                            timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
                         )
                         if isinstance(result, dict) and result.get("success"):
                             detail_updates += 1
+                    except TimeoutError:
+                        logger.warning(
+                            "Retry detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
+                            DETAIL_FETCH_TIMEOUT_SECONDS,
+                            platform,
+                            job_obj.job_id,
+                            job_obj.id,
+                        )
                     except Exception:
                         logger.exception("Retry detail fetch failed for job %s", job_obj.id)
 
@@ -468,8 +532,9 @@ async def update_job_detail(
         if detail_adapter is None:
             detail_adapter = _create_adapter(platform)
 
-        # Skip detail fetching only when both fields already exist
-        if job_obj.description and job_obj.address:
+        # 51job search results usually include description but not precise address;
+        # do not hit the WAF-prone detail page only to backfill address.
+        if job_obj.description and (platform == "51job" or job_obj.address):
             return {
                 "success": True,
                 "detail": {
@@ -481,7 +546,10 @@ async def update_job_detail(
         # crawl_detail is available on both BossZhipinAdapter and Job51Adapter
         if not hasattr(detail_adapter, "crawl_detail"):
             return {"success": False, "error": f"Adapter for {platform} has no crawl_detail"}
-        result = await detail_adapter.crawl_detail(job_obj.job_id)
+        if platform == "51job":
+            result = await detail_adapter.crawl_detail(job_obj.job_id, job_obj.url or "")
+        else:
+            result = await detail_adapter.crawl_detail(job_obj.job_id)
 
         if not result.get("success"):
             return result

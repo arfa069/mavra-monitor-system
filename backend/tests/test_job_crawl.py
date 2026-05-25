@@ -126,8 +126,8 @@ class TestProcessJobResults:
         assert result["deactivated_count"] == 0
 
     @pytest.mark.asyncio
-    async def test_process_job_results_skips_detail_wait_when_description_present(self):
-        """Search results with descriptions should not pay detail fetch throttling cost."""
+    async def test_process_job_results_skips_detail_wait_when_boss_description_present(self):
+        """Boss search results with descriptions should not pay detail fetch throttling cost."""
         from app.domains.jobs.crawl_service import process_job_results
 
         mock_config = MagicMock()
@@ -165,12 +165,110 @@ class TestProcessJobResults:
                     1,
                     [{"job_id": "abc123", "title": "Dev", "description": "Already in search JSON"}],
                     1,
-                    platform="51job",
+                    platform="boss",
                 )
 
         assert result["new_count"] == 1
         update_detail.assert_not_called()
         sleep.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_process_job_results_skips_51job_detail_when_description_present(self):
+        """51job should not hit WAF-prone detail pages only to backfill address."""
+        from app.domains.jobs.crawl_service import process_job_results
+
+        mock_config = MagicMock()
+        mock_config.id = 1
+        mock_config.notify_on_new = False
+        mock_config.deactivation_threshold = 3
+        mock_config.enable_match_analysis = False
+
+        empty_result = MagicMock()
+        empty_result.scalars.return_value.all.return_value = []
+        inserted_result = MagicMock()
+        inserted_result.scalars.return_value.all.return_value = []
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock(return_value=mock_config)
+        mock_db.execute = AsyncMock(side_effect=[
+            empty_result,  # active jobs
+            empty_result,  # existing jobs by job_id
+            empty_result,  # dedup query
+            inserted_result,  # inserted jobs needing detail
+        ])
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.flush = AsyncMock()
+
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
+            mock_session.return_value.__aenter__.return_value = mock_db
+            mock_session.return_value.__aexit__.return_value = None
+
+            with (
+                patch("app.domains.jobs.crawl_service.update_job_detail", new_callable=AsyncMock) as update_detail,
+                patch("app.domains.jobs.crawl_service.asyncio.sleep", new_callable=AsyncMock),
+            ):
+                update_detail.return_value = {
+                    "success": True,
+                    "detail": {"description": "Already in search JSON", "address": "上海"},
+                }
+                result = await process_job_results(
+                    1,
+                    [{"job_id": "abc123", "title": "Dev", "description": "Already in search JSON"}],
+                    1,
+                    platform="51job",
+                )
+
+        assert result["new_count"] == 1
+        update_detail.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_process_job_results_deduplicates_current_batch_by_job_id(self):
+        """Duplicate job IDs in one crawl response should not violate DB uniqueness."""
+        from app.domains.jobs.crawl_service import process_job_results
+
+        mock_config = MagicMock()
+        mock_config.id = 1
+        mock_config.notify_on_new = False
+        mock_config.deactivation_threshold = 3
+        mock_config.enable_match_analysis = False
+
+        empty_result = MagicMock()
+        empty_result.scalars.return_value.all.return_value = []
+        id_result = MagicMock()
+        id_result.all.return_value = [(123, "abc123")]
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock(return_value=mock_config)
+        mock_db.execute = AsyncMock(side_effect=[
+            empty_result,
+            empty_result,
+            empty_result,
+            id_result,
+        ])
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.flush = AsyncMock()
+
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
+            mock_session.return_value.__aenter__.return_value = mock_db
+            mock_session.return_value.__aexit__.return_value = None
+
+            result = await process_job_results(
+                1,
+                [
+                    {"job_id": "abc123", "title": "First", "description": "D"},
+                    {"job_id": "abc123", "title": "Duplicate", "description": "D"},
+                ],
+                2,
+                platform="51job",
+            )
+
+        assert result["new_count"] == 1
+        assert mock_db.add.call_count == 2
+        added_records = [call.args[0] for call in mock_db.add.call_args_list]
+        crawl_log = added_records[-1]
+        assert crawl_log.total_jobs_count == 1
 
     @pytest.mark.asyncio
     async def test_process_job_results_updates_existing_job(self):
@@ -805,6 +903,44 @@ class TestUpdateJobDetail:
         assert result["success"] is True
         mock_db.get.assert_not_called()  # Key: no db.get() for loaded Job
         mock_db.commit.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_update_job_detail_passes_51job_url_to_adapter(self):
+        """51job detail fetch should use the exact URL captured from search results."""
+        from app.domains.jobs.crawl_service import update_job_detail
+        from app.models.job import Job
+
+        mock_job = MagicMock(spec=Job)
+        mock_job.id = 1
+        mock_job.job_id = "171250658"
+        mock_job.url = "https://jobs.51job.com/shanghai-jaq/171250658.html"
+        mock_job.description = None
+        mock_job.address = None
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock()
+        mock_db.commit = AsyncMock()
+
+        mock_adapter = MagicMock()
+        mock_adapter.crawl_detail = AsyncMock(return_value={
+            "success": True,
+            "detail": {"description": "岗位职责", "address": "上海"},
+        })
+
+        result = await update_job_detail(
+            mock_job,
+            adapter=mock_adapter,
+            platform="51job",
+            db=mock_db,
+            commit=False,
+        )
+
+        assert result["success"] is True
+        mock_adapter.crawl_detail.assert_awaited_once_with(
+            "171250658",
+            "https://jobs.51job.com/shanghai-jaq/171250658.html",
+        )
+        mock_db.get.assert_not_called()
 
 
 class TestAdapterSharing:
