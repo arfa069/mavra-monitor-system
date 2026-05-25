@@ -5,7 +5,7 @@
 | 类型                     | 执行方式                 | 依赖                          | 覆盖范围                                        |
 | ------------------------ | ------------------------ | ----------------------------- | ----------------------------------------------- |
 | **pytest 单元/集成测试** | `pytest -v --tb=short`   | 无需真实后端（ASGITransport） | API 逻辑、schema 验证、分页计算、权限与审计回归 |
-| **真实环境测试**         | 启动后端后用 curl/浏览器 | PostgreSQL + Redis + uvicorn  | CRUD 持久化、批量操作、UI 验证                  |
+| **真实环境测试**         | 启动后端后用 curl/浏览器 | PostgreSQL + Redis + uvicorn  | Cookie auth、CRUD 持久化、批量操作、Dashboard/SSE、UI 验证 |
 
 ---
 
@@ -51,14 +51,14 @@ pytest -v --tb=short
 ### 执行步骤
 
 ```powershell
-# 1. 检查数据库状态
-PGPASSWORD='Adminf8869!' psql -U postgres -d pricemonitor -c "\dt"
+# 1. 检查数据库状态（使用本地 .env / secret manager 中的密码）
+psql -U postgres -d pricemonitor -c "\dt"
 
 # 2. 确保数据库已迁移（如果需要）
 alembic upgrade head
 
-# 3. 启动后端
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+# 3. 启动后端（Windows 不建议 --reload）
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 # 4. 新开终端，启动前端
 cd frontend
@@ -68,26 +68,48 @@ npm run dev
 ### API 测试命令
 
 ```bash
+# Login first; browser auth is Cookie-first.
+curl -c cookies.txt -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"default123","password":"123456"}'
+
+# Current user
+curl -b cookies.txt http://127.0.0.1:8000/api/v1/auth/me
+
 # Config API
-curl http://127.0.0.1:8000/config
-curl -X PATCH http://127.0.0.1:8000/config -H "Content-Type: application/json" -d '{"crawl_cron":"0 10 * * *"}'
+curl -b cookies.txt http://127.0.0.1:8000/api/v1/config
 
 # Products API
-curl http://127.0.0.1:8000/products
-curl http://127.0.0.1:8000/products?page=1&size=5
+curl -b cookies.txt http://127.0.0.1:8000/api/v1/products
+curl -b cookies.txt "http://127.0.0.1:8000/api/v1/products?page=1&size=5"
+
+# Dashboard API
+curl -b cookies.txt http://127.0.0.1:8000/api/v1/dashboard/kpi
+curl -b cookies.txt "http://127.0.0.1:8000/api/v1/dashboard/trends?type=price&days=30"
+
+# Unsafe methods need X-CSRF-Token. Extract pm_csrf_token from cookies.txt before POST/PATCH/DELETE.
+CSRF_TOKEN=$(awk '/pm_csrf_token/ {print $7}' cookies.txt)
 
 # 创建商品
-curl -X POST http://127.0.0.1:8000/products \
+curl -b cookies.txt -X POST http://127.0.0.1:8000/api/v1/products \
   -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
   -d '{"platform":"jd","url":"https://item.jd.com/1000001.html","title":"测试商品"}'
 
 # 批量创建
-curl -X POST http://127.0.0.1:8000/products/batch-create \
+curl -b cookies.txt -X POST http://127.0.0.1:8000/api/v1/products/batch-create \
   -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
   -d '{"items":[{"platform":"jd","url":"https://item.jd.com/1.html"},{"platform":"taobao","url":"https://item.taobao.com/1.html"}]}'
 
 # Health check
 curl http://127.0.0.1:8000/health
+```
+
+PowerShell 提取 CSRF 示例：
+
+```powershell
+$csrf = (Select-String -Path .\cookies.txt -Pattern "pm_csrf_token").Line.Split("`t")[-1]
 ```
 
 ### 浏览器手动测试
@@ -104,8 +126,8 @@ curl http://127.0.0.1:8000/health
 Host:     localhost
 Port:     5432
 Database: pricemonitor
-User:     postgres
-Password: Adminf8869!
+User:     postgres or the user from DATABASE_URL
+Password: use the value from local .env / secret manager
 ```
 
 ---
@@ -117,5 +139,9 @@ Password: Adminf8869!
 | `test_api.py`                      | 单元测试，使用 mock 数据库 session                  |
 | `test_phase_c_integration.py`      | 集成测试，使用 ASGITransport 直接测试 FastAPI app   |
 | `test_audit_best_effort.py`        | 审计日志 best-effort 语义：审计失败不影响主业务成功 |
+| `test_dashboard.py`                | Dashboard KPI / trend / SSE 相关 API 回归           |
+| `test_db_rbac_permissions.py`      | DB-backed RBAC 权限矩阵回归                         |
+| `test_sessions.py`                 | Cookie auth session / refresh token 回归            |
+| `test_boss_cloak_experimental.py`  | Boss CloakBrowser adapter URL/cookie/detail 策略回归 |
 | `test_integration_realdb.py`       | 预留（因 pytest-asyncio 兼容性问题暂不可用）        |
 | `manual_verification_checklist.md` | 浏览器手动测试清单                                  |

@@ -54,113 +54,87 @@ def test_job_config_scheduler_registers_platform_agnostic_config_job():
     assert kwargs["max_instances"] == 1
 
 
-@pytest.mark.asyncio
-async def test_51job_cdp_page_lookup_does_not_fallback_to_other_domains(monkeypatch):
-    """51job search fetch must not run inside unrelated browser tabs."""
-    import http.client
-    import json
-
+def test_51job_search_page_targets_we_domain():
+    """51job crawl should create its own we.51job.com CloakBrowser page URL."""
     from app.platforms.job51 import Job51Adapter
 
-    class FakeResponse:
-        def read(self) -> bytes:
-            return json.dumps([
-                {
-                    "url": "https://www.taobao.com/",
-                    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/taobao",
-                },
-                {
-                    "url": "https://www.51job.com/",
-                    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/www-51job",
-                },
-                {
-                    "url": "edge://newtab/",
-                    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/newtab",
-                },
-            ]).encode()
+    assert Job51Adapter._build_search_page("python", "020000") == (
+        "https://we.51job.com/pc/search?keyword=python&searchType=2&jobArea=020000"
+    )
 
-    class FakeConnection:
-        def __init__(self, *_args, **_kwargs):
-            self.closed = False
 
-        def request(self, _method: str, _path: str) -> None:
+def test_51job_crawl_uses_cloakbrowser_without_cdp(monkeypatch):
+    """51job crawl should fetch through the CloakBrowser page, not a CDP endpoint."""
+    import sys
+    from types import SimpleNamespace
+
+    from app.platforms.job51 import SEARCH_API_PATH, Job51Adapter
+
+    calls: dict[str, list] = {"launch": [], "goto": [], "evaluate": [], "close": []}
+
+    class FakePage:
+        url = "about:blank"
+
+        def goto(self, url: str, **_kwargs):
+            calls["goto"].append(url)
+            self.url = url
+
+        def reload(self, **_kwargs):
+            calls["goto"].append("reload")
+
+        def wait_for_load_state(self, *_args, **_kwargs):
             return None
 
-        def getresponse(self) -> FakeResponse:
-            return FakeResponse()
+        def wait_for_timeout(self, *_args, **_kwargs):
+            return None
 
-        def close(self) -> None:
-            self.closed = True
+        def evaluate(self, expression, arg=None):
+            calls["evaluate"].append((expression, arg))
+            if expression == "() => navigator.userAgent":
+                return "Fake Chrome"
+            if expression == "() => navigator.language":
+                return "zh-CN"
+            assert SEARCH_API_PATH in arg["apiUrl"]
+            return {
+                "ok": True,
+                "status": 200,
+                "contentType": "application/json",
+                "body": (
+                    '{"resultbody":{"job":{"items":['
+                    '{"jobId":"j1","jobName":"Python","fullCompanyName":"Acme"}'
+                    '],"total_page":1}}}'
+                ),
+            }
 
-    monkeypatch.setattr(http.client, "HTTPConnection", FakeConnection)
+    class FakeContext:
+        def __init__(self):
+            self.page = FakePage()
 
-    assert await Job51Adapter._find_page_ws() is None
+        def new_page(self):
+            return self.page
 
+        def cookies(self, _urls):
+            return [{"name": "guid", "value": "cookie", "domain": ".51job.com", "path": "/"}]
 
-@pytest.mark.asyncio
-async def test_51job_can_open_temporary_search_tab(monkeypatch):
-    """51job crawl can create its own we.51job.com page when none is open."""
-    import http.client
-    import json
+        def close(self):
+            calls["close"].append(True)
 
-    from app.platforms.job51 import Job51Adapter
+    def launch_persistent_context(*args, **kwargs):
+        calls["launch"].append((args, kwargs))
+        return FakeContext()
 
-    requests: list[tuple[str, str]] = []
+    monkeypatch.setitem(
+        sys.modules,
+        "cloakbrowser",
+        SimpleNamespace(launch_persistent_context=launch_persistent_context),
+    )
 
-    class FakeResponse:
-        def read(self) -> bytes:
-            return json.dumps({
-                "id": "target-51job",
-                "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/target-51job",
-            }).encode()
+    result = Job51Adapter(profile_dir="profile", max_pages=1)._crawl_sync(
+        "https://we.51job.com/pc/search?keyword=python&jobArea=020000"
+    )
 
-    class FakeConnection:
-        def __init__(self, *_args, **_kwargs):
-            pass
-
-        def request(self, method: str, path: str) -> None:
-            requests.append((method, path))
-
-        def getresponse(self) -> FakeResponse:
-            return FakeResponse()
-
-        def close(self) -> None:
-            pass
-
-    monkeypatch.setattr(http.client, "HTTPConnection", FakeConnection)
-
-    ws_url, target_id = await Job51Adapter._open_search_page_ws("python", "020000")
-
-    assert ws_url == "ws://127.0.0.1:9222/devtools/page/target-51job"
-    assert target_id == "target-51job"
-    assert requests[0][0] == "PUT"
-    assert requests[0][1].startswith("/json/new?https%3A%2F%2Fwe.51job.com%2Fpc%2Fsearch")
-
-
-@pytest.mark.asyncio
-async def test_51job_closes_temporary_search_tab(monkeypatch):
-    """Only the temporary CDP tab created for crawling should be closed."""
-    import http.client
-
-    from app.platforms.job51 import Job51Adapter
-
-    requests: list[tuple[str, str]] = []
-
-    class FakeConnection:
-        def __init__(self, *_args, **_kwargs):
-            pass
-
-        def request(self, method: str, path: str) -> None:
-            requests.append((method, path))
-
-        def getresponse(self):
-            return object()
-
-        def close(self) -> None:
-            pass
-
-    monkeypatch.setattr(http.client, "HTTPConnection", FakeConnection)
-
-    await Job51Adapter._close_page("target-51job")
-
-    assert requests == [("GET", "/json/close/target-51job")]
+    assert result["success"] is True
+    assert result["count"] == 1
+    assert calls["launch"][0][0] == ("profile",)
+    assert calls["goto"] == ["https://we.51job.com/pc/search?keyword=python&searchType=2&jobArea=020000"]
+    assert calls["close"] == [True]

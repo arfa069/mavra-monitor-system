@@ -4,7 +4,7 @@
 
 A multi-user e-commerce price monitoring system that tracks product prices across Taobao, JD, and Amazon, plus job searches across Boss Zhipin, 51job, and Liepin. When price drops are detected, notifications are sent via Feishu Webhook.
 
-All API endpoints (except `/auth/register` and `/auth/login`) require JWT authentication. Data is isolated per user — each user can only access their own products, alerts, jobs, and configurations.
+Browser clients authenticate with HttpOnly access/refresh cookies, short-lived access JWTs, refresh-token rotation, and CSRF protection on unsafe methods. API clients/scripts can still use the legacy `Authorization: Bearer <token>` fallback through `get_current_user`. Data is isolated per user — each user can only access their own products, alerts, jobs, and configurations.
 
 ## Tech Stack
 
@@ -12,7 +12,7 @@ All API endpoints (except `/auth/register` and `/auth/login`) require JWT authen
 - **Web Framework**: FastAPI (async via asyncio)
 - **Database**: PostgreSQL (async via SQLAlchemy)
 - **Cache**: Redis
-- **Crawler**: Playwright for product pages; `curl_cffi` HTTP clients for job platforms
+- **Crawler**: Playwright for product pages; `curl_cffi` HTTP clients for job platforms; CloakBrowser for Boss cookie refresh
 - **Notification**: Feishu Webhook
 - **Frontend**: React + Vite + TypeScript + Ant Design (mobile-responsive, WCAG accessible)
 
@@ -90,7 +90,8 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 
 ### Anti-Bot Measures
 
-- CDP mode reuses real browser sessions (with login cookies)
+- CDP mode reuses real browser sessions for product/JD flows that need login cookies
+- Boss job crawling uses CloakBrowser only for profile cookie refresh; list/detail requests are serial `curl_cffi` calls
 - Randomized delays between page interactions
 - Disabled automation-controlled blink feature
 - Proxy support for rotating IPs
@@ -271,6 +272,10 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 | GET             | /products/crawl/logs              | Get recent crawl logs                            |
 | POST            | /products/crawl/cleanup           | Delete old data                                  |
 | GET             | /scheduler/status                 | Scheduler job state                              |
+| GET             | /dashboard/kpi                    | User KPI and admin system KPI                    |
+| GET             | /dashboard/events                 | SSE stream for KPI updates                       |
+| GET             | /dashboard/trends                 | Dashboard trends and distributions               |
+| GET             | /dashboard/alerts/recent          | Recent alerts for admin dashboard                |
 | GET/POST/DELETE | /jobs/resumes                     | List/Create/Delete resumes                       |
 | PATCH           | /jobs/resumes/{id}                | Update a resume                                  |
 | GET             | /jobs/match-results               | List LLM match results                           |
@@ -326,7 +331,8 @@ backend/app/platforms/base.py     — BasePlatformAdapter (ABC): _init_browser, 
 backend/app/platforms/taobao.py   — TaobaoAdapter
 backend/app/platforms/jd.py       — JDAdapter
 backend/app/platforms/amazon.py   — AmazonAdapter
-backend/app/platforms/boss.py    — BossZhipinAdapter (裸 WebSocket CDP + curl_cffi)
+backend/app/platforms/boss.py    — BossZhipinAdapter (legacy CDP + curl_cffi)
+backend/app/platforms/boss_cloak_experimental.py — BossCloakExperimentalAdapter (CloakBrowser cookies + curl_cffi)
 backend/app/platforms/job51.py   — Job51Adapter (curl_cffi)
 backend/app/platforms/liepin.py  — LiepinAdapter (curl_cffi)
 ```
@@ -337,16 +343,16 @@ Each product adapter implements `extract_price()` and `extract_title()`. The bas
 
 Unlike product adapters, job adapters do not use Playwright for their normal crawl paths. Instead:
 
-- **BossZhipinAdapter** uses `curl_cffi` with `impersonate="chrome124"` to call Boss search/detail APIs directly (TLS-level Chrome fingerprint)
-- **Cookies** acquired without search API test (test consumes token): CDP read → disk cache → background tab → homepage
-- **Token lifecycle**: `__zp_stoken__` lasts ~5-6 API calls then returns code=37. Automatically refreshed by opening a background tab to search page (~3s). Search/detail API responses only return `__zp_sseed__`, `__zp_sname__`, `__zp_sts__` — NOT new `__zp_stoken__`
-- **Cookie domain**: Must use `session.cookies.set(k,v,domain=".zhipin.com")` — `update()` without domain causes old/new token collision
-- **Detail fetching**: Sequential 2-5s intervals (no `asyncio.gather`). Retries once on code=37/36 after token refresh. 3 consecutive cookie failures triggers bailout
-- **Adapter sharing**: `crawl_all_job_searches` creates one adapter for all configs; `update_job_detail` reuses the passed adapter
+- **BossCloakExperimentalAdapter** is the active Boss path. It uses a logged-in CloakBrowser profile at `~/.cloakbrowser/profiles/boss-test` to refresh cookies, then calls Boss list/detail APIs through `curl_cffi` with `impersonate="chrome124"`.
+- **Boss request strategy**: list pages use `pageSize=30`; list delay is 2-5s; detail delay is 2-3s; list and detail are interleaved per page; no batch/concurrent detail requests.
+- **Boss anti-bot handling**: refresh cookies only when list/detail responses return code 36/37/38. Refresh is `reload` of the current search page, wait 1s, read full `.zhipin.com` cookie scope, then retry the current request.
+- **Boss data completeness**: the adapter fetches details during `crawl()`, so `process_job_results()` normally receives jobs with `description` and `address` already present. `crawl_detail(security_id)` remains for legacy/fallback paths.
+- **Boss observability**: each run writes JSONL progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` with `crawl_start`, `list_page`, `cookie_refresh`, `detail`, `sleep`, and `crawl_finish` events. `backend/logs/` is ignored by git.
+- **Validated Boss baseline**: on 2026-05-25, config `id=3` (`IT服务台`, Guangzhou `101280100`) crawled 200 jobs in 589.57s; the database had 200/200 rows with `description` and `address`.
 - **Job51Adapter** uses `curl_cffi` search and HTML detail parsing.
 - **LiepinAdapter** uses `curl_cffi` for both search and detail. Search posts to `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`, seeded by a search-page GET for cookies/XSRF. Detail parsing tries standard `/job/<id>.shtml` and anonymous `/a/<id>.shtml` URLs, so the normal Liepin path should not open browser tabs.
 
-This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot script triggers on detection.
+This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot script triggers on detection, while keeping Boss requests serial enough for its anti-bot sensitivity.
 
 ## Data Retention
 

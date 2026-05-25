@@ -66,7 +66,7 @@ curl -X POST http://localhost:8000/auth/register \
 
 ### 401: 认证失败
 
-**触发条件：** 用户名或密码错误、Token 无效或已过期
+**触发条件：** 用户名或密码错误、Cookie 缺失、Token 无效或已过期、refresh token 无效或会话已失效
 
 #### 场景 1: 登录时用户名或密码错误
 
@@ -86,20 +86,19 @@ curl -X POST http://localhost:8000/auth/login \
 }
 ```
 
-#### 场景 2: Token 无效或已过期
+#### 场景 2: Cookie 缺失、Token 无效或已过期
 
 **请求示例：**
 
 ```bash
-curl -X GET http://localhost:8000/auth/me \
-  -H "Authorization: Bearer invalid_or_expired_token"
+curl -X GET http://localhost:8000/auth/me
 ```
 
 **响应示例：**
 
 ```json
 {
-  "detail": "登录已过期"
+  "detail": "认证失败：未提供登录凭证"
 }
 ```
 
@@ -107,16 +106,57 @@ curl -X GET http://localhost:8000/auth/me \
 
 ```json
 {
-  "detail": "未提供认证信息"
+  "detail": "认证失败：Token 无效或已过期"
 }
 ```
 
 **解决方案：**
 
 - 登录失败：请检查用户名和密码是否正确
-- Token 过期：请重新登录获取新的 Token
+- Access Token 过期：浏览器端应先调用 `POST /auth/refresh` 轮换 Cookie；refresh 失败后重新登录
+- API 脚本：可使用 legacy `Authorization: Bearer <token>` fallback，但浏览器端不再从 localStorage 管理 bearer token
+
+#### 场景 3: Refresh Token 无效或已过期
+
+**请求示例：**
+
+```bash
+curl -X POST http://localhost:8000/auth/refresh
+```
+
+**响应示例：**
+
+```json
+{
+  "detail": "未提供刷新令牌"
+}
+```
+
+或
+
+```json
+{
+  "detail": "刷新令牌无效或已过期"
+}
+```
+
+**解决方案：** 重新登录。`/auth/refresh` 依赖 HttpOnly `pm_refresh_token` Cookie，不要求 `X-CSRF-Token`。
 
 ---
+
+### 403: CSRF 验证失败
+
+**触发条件：** 已登录用户发起 POST/PATCH/PUT/DELETE 等不安全方法时，缺少 `pm_csrf_token` Cookie、缺少 `X-CSRF-Token` 请求头，或二者不一致。
+
+**响应示例：**
+
+```json
+{
+  "detail": "CSRF 验证失败：请求被拒绝"
+}
+```
+
+**解决方案：** 前端从可读的 `pm_csrf_token` Cookie 读取值，并在不安全方法请求头中发送 `X-CSRF-Token`。安全方法 GET/HEAD/OPTIONS 不需要 CSRF；`POST /auth/refresh` 也不需要 CSRF。
 
 ### 422: 参数验证失败
 
@@ -220,9 +260,12 @@ curl -X POST http://localhost:8000/auth/login \
 | 400    | 用户名已注册                      | 用户名已被占用     | 使用其他用户名            |
 | 400    | 邮箱已注册                        | 邮箱已被占用       | 使用其他邮箱              |
 | 401    | 用户名或密码错误                  | 登录凭证不正确     | 检查用户名和密码          |
-| 401    | 登录已过期                        | Token 已过期       | 重新登录                  |
-| 401    | 未提供认证信息                    | 请求头缺少 Token   | 添加 Authorization header |
+| 401    | 认证失败：未提供登录凭证          | 缺少 access Cookie | 登录或 refresh            |
+| 401    | 认证失败：Token 无效或已过期      | Access Token 过期  | 调用 `/auth/refresh` 或重新登录 |
+| 401    | 未提供刷新令牌                    | 缺少 refresh Cookie | 重新登录                  |
+| 401    | 刷新令牌无效或已过期              | Refresh Token 失效 | 重新登录                  |
 | 401    | 用户不存在或已被禁用              | 用户被禁用或不存在 | 联系管理员                |
+| 403    | CSRF 验证失败：请求被拒绝         | CSRF 校验失败      | 携带正确 `X-CSRF-Token`   |
 | 422    | 密码必须至少6位                   | 密码长度不足       | 使用更长的密码            |
 | 422    | 邮箱格式错误                      | 邮箱格式不正确     | 使用有效的邮箱格式        |
 | 429    | 登录尝试次数过多，请 X 分钟后再试 | 账户被锁定         | 等待锁定解除              |
@@ -236,7 +279,7 @@ curl -X POST http://localhost:8000/auth/login \
 1. **显示友好的错误消息**：将 `detail` 字段的值展示给用户
 2. **区分不同错误类型**：根据状态码和错误信息进行不同处理
 3. **实现重试逻辑**：
-   - 401 错误：引导用户重新登录
+   - 401 错误：除登录和初始化 `/auth/me` 外，先尝试 `POST /auth/refresh`；失败后引导用户重新登录
    - 429 错误：显示倒计时并禁止登录按钮
 
 ### 示例代码
@@ -248,12 +291,12 @@ async function login(username: string, password: string) {
     const response = await fetch("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ username, password }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem("token", data.access_token);
       return { success: true };
     }
 

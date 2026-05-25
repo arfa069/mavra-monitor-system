@@ -97,19 +97,21 @@ frontend/src/
           </PublicRoute>
           <ProtectedRoute>
             <AppLayout>
+              <DashboardPage />
+              <EventCenterPage />
               <JobsPage />
-            </AppLayout>
-          </ProtectedRoute>
-          <ProtectedRoute>
-            <AppLayout>
               <ProductsPage />
-            </AppLayout>
-          </ProtectedRoute>
-          <ProtectedRoute>
-            <AppLayout>
               <ScheduleConfigPage />
+              <SettingsPage />
+              <ProfilePage />
             </AppLayout>
           </ProtectedRoute>
+          <PermissionRoute permission="user:read">
+            <AppLayout>
+              <AdminUsersPage />
+              <AdminAuditLogsPage />
+            </AppLayout>
+          </PermissionRoute>
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
@@ -121,6 +123,7 @@ frontend/src/
 
 - `ProtectedRoute` — 未登录重定向到 `/login`，登录后自动跳转首页
 - `PublicRoute` — 已登录用户访问自动跳转 `/jobs`
+- `PermissionRoute` — 已登录但权限不足时重定向到 `/jobs`
 - 根路径 `/` 和未知路径 `*` 重定向到 `/jobs`
 
 **Ant Design 主题配置（ConfigProvider）：**
@@ -208,16 +211,17 @@ interface AuthContextType {
 const api = axios.create({
   baseURL: "/api", // Vite 代理到后端；业务模块使用 /v1/... 路径
   timeout: 300000, // 5 分钟超时（爬取操作耗时长）
+  withCredentials: true,
 });
 ```
 
 **请求拦截器**：Axios 自动携带凭据（`withCredentials: true`），不安全方法（POST/PATCH/PUT/DELETE）自动注入 `X-CSRF-Token` 请求头（从 `pm_csrf_token` Cookie 读取）。
 
-**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /auth/refresh` 刷新 access token。刷新成功后重试原始请求；失败后重定向到 /login。排除 `/auth/login` 的刷新循环。
+**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。刷新成功后重试原始请求；失败后重定向到 /login。排除 `/v1/auth/login` 和 `/v1/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
 
 **响应拦截器**：
 
-- `401` — 清除 Token，重定向到 `/login`
+- `401` — 除登录和初始化 `/auth/me` 外，尝试 refresh；refresh 失败后重定向到 `/login`
 - `>= 500` — 全局错误提示（notification.error）
 - `>= 400` — 从 `response.data.detail` 提取错误信息
 - `ECONNABORTED` / 无响应 — 超时提示（notification.warning）

@@ -6,6 +6,13 @@
 
 **Architecture:** Authentication becomes Cookie-first and Cookie-only for browser clients. Access JWTs are short-lived and stored in HttpOnly cookies; refresh tokens are opaque random strings stored only as hashes in `users_sessions`. The session table remains the server-side revocation and device state source.
 
+**Final implementation notes (2026-05-25):**
+
+- Browser auth is Cookie-first and no longer stores bearer tokens in `localStorage`.
+- `get_current_user` keeps a legacy `Authorization: Bearer <token>` fallback for scripts/API clients; browser routes use Cookie auth.
+- `POST /auth/refresh` does not require CSRF. It relies on the HttpOnly `pm_refresh_token` plus `SameSite=Lax`, which also avoids refresh lockout when the readable CSRF cookie is lost and avoids concurrent CSRF rotation races.
+- The frontend 401 interceptor calls `POST /api/v1/auth/refresh`, replays queued requests, and excludes `/v1/auth/login` and `/v1/auth/me` from refresh loops.
+
 **Tech Stack:** FastAPI, SQLAlchemy async, Alembic, React, Vite, Axios, EventSource/SSE.
 
 ---
@@ -14,7 +21,7 @@
 
 The current browser auth path stores `auth_token` in `localStorage` and sends `Authorization: Bearer <token>`. This plan removes that browser risk surface in one cut:
 
-- No compatibility window for old Bearer/localStorage auth.
+- No browser compatibility window for old `localStorage` bearer-token auth.
 - Cookies use `SameSite=Lax`.
 - Unsafe requests require CSRF protection.
 - `users_sessions` manages refresh token hashes and device state.
@@ -54,6 +61,7 @@ After this change, existing sessions cannot be converted safely and users must l
   - Verifies `refresh_expires_at`.
   - Rotates refresh token and hash.
   - Sets new access, refresh, and CSRF cookies.
+  - Does not require `X-CSRF-Token`.
   - Returns current user profile and permissions.
 
 - `POST /auth/logout`
@@ -63,7 +71,7 @@ After this change, existing sessions cannot be converted safely and users must l
 
 - Protected APIs
   - Use Cookie auth only.
-  - Do not accept `Authorization: Bearer` as a browser auth fallback.
+- Do not accept `Authorization: Bearer` as a browser auth fallback. The backend keeps `get_current_user` Bearer compatibility for scripts/API clients.
 
 - SSE endpoints
   - Remove token query authentication.
@@ -92,6 +100,7 @@ For unsafe methods (`POST`, `PATCH`, `PUT`, `DELETE`):
 - Frontend reads `pm_csrf_token`.
 - Frontend sends `X-CSRF-Token`.
 - Backend compares header value with cookie value.
+- `POST /auth/refresh` is exempt from CSRF protection.
 - Missing or mismatched token returns `403`.
 
 Safe methods (`GET`, `HEAD`, `OPTIONS`) do not require CSRF header.
@@ -408,7 +417,7 @@ Before commit:
 
 ## Assumptions And Defaults
 
-- This is a breaking auth migration with no Bearer/localStorage compatibility window.
+- This is a breaking browser auth migration with no `localStorage` bearer-token compatibility window. Backend `get_current_user` keeps legacy Bearer fallback for scripts/API clients.
 - Users must log in again after migration.
 - Local development uses Vite `/api` same-origin proxy, so `SameSite=Lax` works.
 - Future cross-site deployment needs a separate cookie/CORS review.

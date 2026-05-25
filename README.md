@@ -7,9 +7,12 @@ E-commerce price monitoring system for Taobao, JD, and Amazon with Feishu webhoo
 - Track product prices across Taobao, JD, and Amazon; monitor jobs across Boss Zhipin, 51job, and Liepin
 - Automated product crawling with Playwright (handles dynamic JS-rendered pages)
 - Price drop alerts via Feishu Webhook
-- CDP mode: reuse an existing browser session to bypass login walls and anti-bot detection
+- CDP mode: reuse an existing browser session for product crawlers and JD login walls
+- Boss Zhipin job crawling uses CloakBrowser profile cookies plus `curl_cffi` search/detail APIs
 - Per-product crawl schedule (cron support per product)
 - Job search monitoring for Boss Zhipin, 51job, and Liepin
+- Dashboard with KPI cards, trend charts, salary/platform distributions, admin system health, and SSE KPI updates
+- Database-backed RBAC with dynamic role-permission matrix and resource-level permissions
 - RESTful API for product and alert management
 - Mobile-responsive UI with accessibility support (WCAG compliance)
 
@@ -42,9 +45,13 @@ REDIS_URL=redis://localhost:6379/0
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
 
 # CDP mode — connect to an already-running browser (e.g. Edge/Chrome started with --remote-debugging-port=9222)
-# This lets you reuse login sessions to bypass anti-bot detection
+# Used by product/JD flows that need a real browser session.
 CDP_ENABLED=true
 CDP_URL=http://127.0.0.1:9222
+
+# Boss Zhipin job crawl
+# Login once in the CloakBrowser profile at ~/.cloakbrowser/profiles/boss-test.
+# Runtime JSONL progress logs are written under backend/logs/.
 
 # Proxy (optional, for rotating IPs)
 CRAWL_PROXY_ENABLED=false
@@ -56,51 +63,55 @@ JD_COOKIE=...
 
 ## API Endpoints
 
-> **认证说明**：除 `/auth/register` 和 `/auth/login` 外，所有 API 调用都需要在请求头中携带 `Authorization: Bearer <token>`。未带 token 的请求返回 401。
+> **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
 
-| Method           | Path                              | Description                                        |
-| ---------------- | --------------------------------- | -------------------------------------------------- | --- |
+| Method           | Path                              | Description                                        | 认证 |
+| ---------------- | --------------------------------- | -------------------------------------------------- | ---- |
 | GET              | /health                           | Health check (database + Redis + scheduler)        | 否  |
-| GET              | /config                           | Get current configuration                          |
-| POST             | /config                           | Create or update full configuration                |
-| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       |
-| POST             | /products                         | Add a product to track                             |
-| GET              | /products                         | List products (paginated: page, size, total, etc.) |
-| GET              | /products/{id}                    | Get product details                                |
-| GET              | /products/{id}/history            | Get price history                                  |
-| POST             | /products/batch-create            | Batch import products                              |
-| POST             | /products/batch-delete            | Batch delete products                              |
-| POST             | /products/batch-update            | Batch enable/disable products                      |
-| POST             | /alerts                           | Create an alert                                    |
-| GET              | /alerts                           | List all alerts                                    |
-| POST             | /crawl/crawl-now                  | Crawl all active products                          |
-| GET              | /crawl/logs                       | Get recent crawl logs                              |
-| POST             | /crawl/cleanup                    | Delete old price history and crawl logs            |
-| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      |
-| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         |
-| PATCH            | /jobs/resumes/{id}                | Update a resume                                    |
-| GET              | /jobs/match-results               | List match results                                 |
-| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      |
-| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     |
-| GET              | /jobs/tasks/{task_id}             | Poll async task status                             |
-| GET/POST         | /jobs/configs                     | List/Create job search configs                     |
-| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         |
-| GET              | /jobs                             | List crawled jobs (paginated)                      |
-| POST             | /jobs/crawl-now                   | Crawl all active job configs                       |
-| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            |
-| GET/PUT          | /config/job-crawl-cron            | Get/Update job crawl schedule                      |
+| GET              | /config                           | Get current configuration                          | 是 |
+| POST             | /config                           | Create or update full configuration                | 是 |
+| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       | 是 |
+| POST             | /products                         | Add a product to track                             | 是 |
+| GET              | /products                         | List products (paginated: page, size, total, etc.) | 是 |
+| GET              | /products/{id}                    | Get product details                                | 是 |
+| GET              | /products/{id}/history            | Get price history                                  | 是 |
+| POST             | /products/batch-create            | Batch import products                              | 是 |
+| POST             | /products/batch-delete            | Batch delete products                              | 是 |
+| POST             | /products/batch-update            | Batch enable/disable products                      | 是 |
+| POST             | /alerts                           | Create an alert                                    | 是 |
+| GET              | /alerts                           | List all alerts                                    | 是 |
+| POST             | /products/crawl/crawl-now         | Crawl all active products                          | 是 |
+| GET              | /products/crawl/logs              | Get recent crawl logs                              | 是 |
+| POST             | /products/crawl/cleanup           | Delete old price history and crawl logs            | 是 |
+| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      | 是 |
+| GET              | /dashboard/kpi                    | User KPI and admin system KPI                      | 是 |
+| GET              | /dashboard/events                 | Dashboard KPI SSE stream                           | 是 |
+| GET              | /dashboard/trends                 | Dashboard chart data (`type`, `days`)              | 是 |
+| GET              | /dashboard/alerts/recent          | Recent alerts for admin dashboard                  | admin |
+| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         | 是 |
+| PATCH            | /jobs/resumes/{id}                | Update a resume                                    | 是 |
+| GET              | /jobs/match-results               | List match results                                 | 是 |
+| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      | 是 |
+| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     | 是 |
+| GET              | /jobs/tasks/{task_id}             | Poll async task status                             | 是 |
+| GET/POST         | /jobs/configs                     | List/Create job search configs                     | 是 |
+| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         | 是 |
+| GET              | /jobs                             | List crawled jobs (paginated)                      | 是 |
+| POST             | /jobs/crawl-now                   | Crawl all active job configs                       | 是 |
+| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            | 是 |
 
 ## 认证 API
 
-系统使用 JWT Token 进行身份验证。
+系统使用 Cookie-first 认证。浏览器登录后由后端设置 HttpOnly access/refresh Cookie；access JWT 有效期 15 分钟，refresh token 有效期 14 天并按刷新轮换。`get_current_user` 对脚本/API 客户端保留 Bearer fallback。
 
 ### 端点
 
 | Method | Path           | Description      | 认证 |
 | ------ | -------------- | ---------------- | ---- |
 | POST   | /auth/register | 注册新用户       | 否   |
-| POST   | /auth/login    | 用户登录         | 否   |
-| POST   | /auth/logout   | 用户登出         | 是   |
+| POST   | /auth/login    | 用户登录并设置认证 Cookie | 否   |
+| POST   | /auth/refresh  | 通过 refresh Cookie 轮换认证 Cookie | 否（需 refresh Cookie） |
+| POST   | /auth/logout   | 用户登出并清理 Cookie | 是   |
 | GET    | /auth/me       | 获取当前用户信息 | 是   |
 
 ### 注册
@@ -142,19 +153,31 @@ curl -X POST http://localhost:8000/auth/login \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer"
+  "id": 1,
+  "username": "testuser",
+  "email": "test@example.com",
+  "role": "user",
+  "permissions": ["products:read", "products:write"],
+  "is_active": true,
+  "created_at": "2026-05-06T10:30:00Z"
 }
 ```
 
+登录响应通过 `Set-Cookie` 写入 `pm_access_token`、`pm_refresh_token`、`pm_csrf_token`，响应体不再返回 bearer token。
+
 ### 访问受保护资源
 
-登录后，在请求头中携带 Token：
+浏览器端由 Axios 自动携带 Cookie。curl 验证可使用 cookie jar：
 
 ```bash
-curl -X GET http://localhost:8000/auth/me \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+curl -c cookies.txt -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "password": "123456"}'
+
+curl -b cookies.txt http://localhost:8000/auth/me
 ```
+
+对 `POST` / `PATCH` / `PUT` / `DELETE` 等不安全方法，还需要把 `pm_csrf_token` Cookie 值作为 `X-CSRF-Token` 请求头发送。`POST /auth/refresh` 只依赖 HttpOnly refresh Cookie，不要求 CSRF header。
 
 ### 错误码
 
@@ -163,17 +186,20 @@ curl -X GET http://localhost:8000/auth/me \
 | 201    | 注册成功           | 新用户创建成功               |
 | 200    | 登录/登出成功      | 操作成功                     |
 | 400    | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突       |
-| 401    | 认证失败           | 用户名/密码错误或 Token 过期 |
+| 401    | 认证失败           | 用户名/密码错误、Cookie 缺失、Token 过期或会话失效 |
+| 403    | CSRF 失败          | 不安全方法缺少或携带了错误的 `X-CSRF-Token` |
 | 422    | 参数验证失败       | 密码太短、邮箱格式错误等     |
 | 429    | 请求过于频繁       | 连续5次登录失败后锁定15分钟  |
 
 ### 安全机制
 
 - **登录失败锁定**：连续5次登录失败后，账户将被锁定15分钟
-- **Token 有效期**：1小时
+- **Access Token 有效期**：15分钟；Refresh Token 有效期：14天
+- **Refresh 轮换**：`POST /auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
+- **CSRF 保护**：不安全方法校验 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
 - **密码加密**：使用 bcrypt 算法加密存储
 - **数据隔离**：所有数据按 `user_id` 隔离，用户只能访问自己的数据
-- **强制认证**：除 `/auth/register` 和 `/auth/login` 外，所有接口均需认证
+- **强制认证**：除 `/auth/register`、`/auth/login`、`/auth/refresh` 外，业务接口均需认证
 
 ## Admin API
 
@@ -219,6 +245,7 @@ cd frontend && npm run dev
 - **PostgreSQL**: Database (async via SQLAlchemy)
 - **Playwright**: Product crawler for dynamic pages (launch or CDP mode)
 - **curl_cffi**: Job crawler HTTP client with browser-like TLS fingerprints
+- **CloakBrowser**: Boss Zhipin cookie refresh/profile browser for anti-bot-sensitive job crawls
 - **Redis**: Cache layer
 - **Feishu Webhook**: Notification service
 
@@ -252,7 +279,7 @@ Concurrent crawl protection: both cron and manual crawls share a global `asyncio
 
 ### Job Platform Notes
 
-- Boss Zhipin uses `curl_cffi` search/detail APIs and may refresh cookies through the existing CDP browser when anti-bot tokens expire.
+- Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
 - 51job uses `curl_cffi` search and HTML detail parsing.
 - Liepin uses `curl_cffi` for both search and detail. Search calls `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`; detail parsing tries `/job/<id>.shtml` and `/a/<id>.shtml`. The normal Liepin path should not open browser tabs.
 

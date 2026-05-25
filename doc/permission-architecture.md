@@ -1,6 +1,6 @@
 # 权限架构
 
-> 最后更新：2026-05-23（project-refactor API v1 / feature 拆分后）
+> 最后更新：2026-05-25（Cookie auth / Dashboard / Boss Cloak 文档同步后）
 
 ## 概览
 
@@ -48,9 +48,13 @@
 | --------------------- | -------------------------- |
 | `POST /api/v1/auth/register` | 公开                       |
 | `POST /api/v1/auth/login`    | 公开（5 次失败锁 15 分钟） |
-| `POST /api/v1/auth/logout`   | `get_current_user`         |
-| `GET /api/v1/auth/me`        | `get_current_user`         |
-| `GET /api/v1/auth/sessions`  | `get_current_user`         |
+| `POST /api/v1/auth/refresh`  | refresh Cookie             |
+| `POST /api/v1/auth/logout`   | `get_current_user_cookie` + CSRF |
+| `GET /api/v1/auth/me`        | `get_current_user_cookie`  |
+| `PATCH /api/v1/auth/me`      | `get_current_user_cookie` + CSRF |
+| `POST /api/v1/auth/me/password` | `get_current_user_cookie` + CSRF |
+| `GET /api/v1/auth/sessions`  | `get_current_user_cookie`  |
+| `DELETE /api/v1/auth/sessions/{id}` | `get_current_user_cookie` + CSRF |
 
 ### 用户管理 (`app.domains.admin.router`)
 
@@ -110,10 +114,23 @@
 | `GET /health`                    | 公开（仅返回 status）                  |
 | `GET /api/v1/scheduler/status`   | `require_role("admin", "super_admin")` |
 
-## Token 策略
+### Dashboard (`app.domains.dashboard.router`)
+
+| 端点 | 权限 |
+| ---- | ---- |
+| `GET /api/v1/dashboard/kpi` | `require_role("user", "admin", "super_admin")` |
+| `GET /api/v1/dashboard/events` | `get_current_user_cookie` |
+| `GET /api/v1/dashboard/trends` | `require_role("user", "admin", "super_admin")`；`system_health` / `platform_success` 仅 admin/super_admin |
+| `GET /api/v1/dashboard/alerts/recent` | `require_role("admin", "super_admin")` |
+
+## Cookie / Token 策略
 
 - **算法**: HS256
-- **过期**: 60 分钟（常量 `ACCESS_TOKEN_EXPIRE_MINUTES`，登录接口复用此常量）
+- **Access JWT**: 15 分钟，存储于 HttpOnly `pm_access_token` Cookie
+- **Refresh Token**: 14 天，opaque token，仅 SHA-256 hash 存储于 `users_sessions.refresh_token_hash`
+- **刷新机制**: `POST /auth/refresh` 读取 `pm_refresh_token` Cookie，轮换 refresh token 并重设 access/refresh/CSRF Cookie；该端点不要求 CSRF
+- **CSRF**: POST/PATCH/PUT/DELETE 等不安全方法比较 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
+- **Bearer fallback**: `get_current_user` 保留 `Authorization: Bearer <token>` fallback 给脚本/API 客户端；浏览器主链路使用 Cookie
 - **登录失败**: 5 次失败锁 15 分钟（Redis 计数）
 - **会话上限**: 每用户最多 5 个活跃 session
 - **软删除即时失效**: `get_current_user` 检查 `deleted_at IS NULL`
@@ -147,8 +164,10 @@
 
 | 守卫              | 保护范围                                                   | 行为                          |
 | ----------------- | ---------------------------------------------------------- | ----------------------------- |
-| `ProtectedRoute`  | `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`             |
-| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                        | 无 `user:read` 权限 → `/jobs` |
+| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`             |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                        | 权限不足 → `/jobs`            |
+
+角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
 | `PublicRoute`     | `/login`, `/register`                                      | 已登录 → `/jobs`              |
 
 > 前端守卫仅做 UX 级别保护，**真正的安全边界在后端 API**。

@@ -5,7 +5,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (5429 symbols, 10296 relationships, 231 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **price-monitor** (6134 symbols, 11526 relationships, 222 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -108,8 +108,10 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 后端改动：运行相关 `pytest`；影响共享逻辑/权限/调度/爬虫/模型时运行完整 `pytest` 和 `ruff check .`。
 - 前端改动：运行相关检查；提交前默认运行 `npm run lint` 和 `npm run build`。
 - 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
-- 涉及爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
-- Boss/京东/淘宝等强反爬流程，默认用已登录的 Edge CDP 专用浏览器验证。
+- 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
+- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在 `~/.cloakbrowser/profiles/boss-test` 对应 CloakBrowser profile 登录 Boss。
+- Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
+- 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
 - 猎聘正常爬取路径应完全不开浏览器 tab：搜索 POST `api-c.liepin.com`，详情 HTTP 解析 `/job/` 和 `/a/` 两类页面；只有验证 CDP target 数量时需要读取 `http://127.0.0.1:9222/json`。
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
 
