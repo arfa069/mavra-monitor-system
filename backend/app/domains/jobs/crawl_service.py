@@ -879,35 +879,60 @@ async def crawl_single_config_background(
 
     async def _run():
         try:
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.started",
-                source="jobs",
-                severity="info",
-                status="running",
-                message=f"Job crawl for config {config_id} started",
-                user_id=task.user_id,
-                entity_type="job_config",
-                entity_id=str(config_id),
-                payload={"task_id": task.task_id, "config_id": config_id},
+            # Acquire profile before running the crawl
+            from app.domains.crawling.profile_pool import (
+                DatabaseProfilePool,
+                ProfileAlreadyLeasedError,
+                ProfileUnavailableError,
             )
-            from app.domains.crawling.task_runner import CrawlTaskRunner
 
-            result = await CrawlTaskRunner(progress_callback=_persist_cron_progress).run_job_config(task, config_id=config_id)
-            ok = result.get("status") != "error"
-            await _persist_cron_progress(task)
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.completed" if ok else "job_crawl.failed",
-                source="jobs",
-                severity="info" if ok else "error",
-                status="completed" if ok else "failed",
-                message=f"Job crawl for config {config_id} {'completed' if ok else 'failed'}",
-                user_id=task.user_id,
-                entity_type="job_config",
-                entity_id=str(config_id),
-                payload={"task_id": task.task_id, **result},
-            )
+            async with AsyncSessionLocal() as cfg_db:
+                config = await cfg_db.get(JobSearchConfig, config_id)
+                config_platform = _normalize_platform(getattr(config, "platform", "boss")) if config else "boss"
+
+            pool = DatabaseProfilePool()
+            try:
+                async with AsyncSessionLocal() as lease_db:
+                    async with pool.lease(
+                        lease_db,
+                        platform=config_platform,
+                        profile_key="default",
+                        owner=task.task_id,
+                        task_id=task.task_id,
+                    ) as lease:
+                        await emit_system_log_detached(
+                            category="runtime",
+                            event_type="job_crawl.started",
+                            source="jobs",
+                            severity="info",
+                            status="running",
+                            message=f"Job crawl for config {config_id} started",
+                            user_id=task.user_id,
+                            entity_type="job_config",
+                            entity_id=str(config_id),
+                            payload={"task_id": task.task_id, "config_id": config_id},
+                        )
+                        from app.domains.crawling.task_runner import CrawlTaskRunner
+
+                        result = await CrawlTaskRunner(progress_callback=_persist_cron_progress).run_job_config(task, config_id=config_id)
+                        ok = result.get("status") != "error"
+                        await _persist_cron_progress(task)
+                        await emit_system_log_detached(
+                            category="runtime",
+                            event_type="job_crawl.completed" if ok else "job_crawl.failed",
+                            source="jobs",
+                            severity="info" if ok else "error",
+                            status="completed" if ok else "failed",
+                            message=f"Job crawl for config {config_id} {'completed' if ok else 'failed'}",
+                            user_id=task.user_id,
+                            entity_type="job_config",
+                            entity_id=str(config_id),
+                            payload={"task_id": task.task_id, **result},
+                        )
+            except (ProfileAlreadyLeasedError, ProfileUnavailableError) as exc:
+                task.status = TaskStatus.FAILED
+                task.reason = str(exc)
+                await _persist_cron_progress(task)
         except Exception as e:
             task.status = TaskStatus.FAILED
             task.reason = str(e)
