@@ -196,3 +196,67 @@ async def test_job_crawl_status_reads_persistent_task(phase2_client):
 
         assert response.status_code == 200
         assert response.json()["status"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_startup_recovery_marks_stale_tasks_and_releases_profiles(tmp_path):
+    """Startup recovery marks stale running tasks and releases expired profile leases."""
+    await _clean_crawl_tables()
+
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import select
+
+    from app.domains.crawling.profile_pool import (
+        DatabaseProfilePool,
+        recover_stale_profile_leases,
+    )
+    from app.domains.crawling.task_store import (
+        create_crawl_task_record,
+        mark_task_running,
+        recover_stale_running_tasks,
+    )
+
+    stale_time = datetime.now(UTC) - timedelta(hours=2)
+
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_config",
+            user_id=1,
+            entity_type="job_config",
+            entity_id="1",
+        )
+        await mark_task_running(
+            db, record, owner="old-api", lease_seconds=1, now=stale_time,
+        )
+
+        pool = DatabaseProfilePool(root=tmp_path)
+        await pool.acquire(
+            db,
+            platform="boss",
+            profile_key="default",
+            owner="old-api",
+            task_id=record.task_id,
+            lease_seconds=1,
+        )
+        # Manually expire the profile lease for recovery testing
+        from app.domains.crawling.profile_pool import LEASED
+        from app.models.crawl_profile import CrawlProfile
+
+        result = await db.execute(
+            select(CrawlProfile).where(CrawlProfile.profile_key == "default")
+        )
+        profile_row = result.scalar_one()
+        profile_row.lease_until = stale_time
+        await db.commit()
+
+    async with AsyncSessionLocal() as db:
+        recovered_tasks = await recover_stale_running_tasks(
+            db, owner_reason="worker_restarted",
+        )
+        recovered_profiles = await recover_stale_profile_leases(db)
+
+    assert recovered_tasks == 1
+    assert recovered_profiles == 1

@@ -33,11 +33,42 @@ from app.domains.scheduling import router as scheduling_router
 logger = logging.getLogger(__name__)
 
 
+async def recover_crawler_runtime_state() -> None:
+    """Mark stale running tasks as failed and release expired profile leases on startup."""
+    from app.database import AsyncSessionLocal
+    from app.domains.crawling.profile_pool import recover_stale_profile_leases
+    from app.domains.crawling.task_store import recover_stale_running_tasks
+
+    async with AsyncSessionLocal() as db:
+        recovered_tasks = await recover_stale_running_tasks(
+            db,
+            owner_reason="worker_restarted",
+        )
+        recovered_profiles = await recover_stale_profile_leases(db)
+
+    if recovered_tasks or recovered_profiles:
+        logger.warning(
+            "Recovered crawler runtime state: %d stale tasks, %d stale profile leases",
+            recovered_tasks,
+            recovered_profiles,
+        )
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="crawler_runtime.recovered",
+            source="crawler",
+            severity="warning",
+            status="completed",
+            message="Recovered stale crawler runtime state",
+            payload={"stale_tasks": recovered_tasks, "stale_profile_leases": recovered_profiles},
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
     app.state.redis_client = redis.from_url(settings.redis_url_with_password)
+    await recover_crawler_runtime_state()
     await _start_scheduler(app)
     yield
     # Shutdown: stop scheduler gracefully
