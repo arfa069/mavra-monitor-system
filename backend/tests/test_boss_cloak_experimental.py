@@ -185,18 +185,12 @@ def test_crawl_detail_refreshes_on_anti_bot_code(monkeypatch):
     refresh.assert_called_once()
 
 
-def test_boss_default_profile_uses_configured_profile_root(monkeypatch, tmp_path):
-    from types import SimpleNamespace
+def test_boss_adapter_accepts_explicit_profile_dir(monkeypatch):
+    from pathlib import Path
 
-    from app.platforms import boss_cloak_experimental
     from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
 
-    monkeypatch.setattr(
-        boss_cloak_experimental,
-        "settings",
-        SimpleNamespace(resolved_crawler_profile_root=tmp_path),
-    )
+    custom_dir = "/custom/profiles/boss/test"
+    adapter = BossCloakExperimentalAdapter(profile_dir=custom_dir)
 
-    adapter = BossCloakExperimentalAdapter()
-
-    assert adapter.profile_dir == tmp_path / "profiles" / "boss" / "default"
+    assert adapter.profile_dir == Path(custom_dir)

@@ -19,7 +19,6 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from curl_cffi.requests import Session as CffiSession
 
-from app.config import settings
 from app.core.crawler_paths import build_profile_dir
 from app.platforms.base import BasePlatformAdapter
 
@@ -53,7 +52,6 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
     ):
         super().__init__()
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
-            settings.resolved_crawler_profile_root,
             "boss",
             "default",
         )

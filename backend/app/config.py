@@ -31,8 +31,6 @@ class Settings(BaseSettings):
     # Crawler settings
     crawl_frequency_hours: int = 1
     data_retention_days: int = 365
-    price_monitor_home: str = ""
-    crawler_profile_root: str = ""
 
     # Proxy settings (optional, for rotating IPs to avoid anti-bot detection)
     crawl_proxy_url: str = ""  # e.g. "http://user:pass@host:port" or "socks5://host:port"
@@ -109,18 +107,6 @@ class Settings(BaseSettings):
             parsed = urlparse(self.redis_url)
             return f"redis://:{self.redis_password}@{parsed.hostname}:{parsed.port or 6379}/{parsed.path.lstrip('/')}"
         return self.redis_url
-
-    @property
-    def resolved_price_monitor_home(self) -> Path:
-        from app.core.crawler_paths import resolve_price_monitor_home
-
-        return resolve_price_monitor_home(self.price_monitor_home or None)
-
-    @property
-    def resolved_crawler_profile_root(self) -> Path:
-        if self.crawler_profile_root:
-            return Path(self.crawler_profile_root).expanduser().resolve()
-        return self.resolved_price_monitor_home
 
 
 settings = Settings()

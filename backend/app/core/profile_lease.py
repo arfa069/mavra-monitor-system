@@ -35,7 +35,7 @@ class InProcessProfileLeaseManager:
         async with self._lock:
             if key in self._leased:
                 raise RuntimeError(f"Profile {platform}/{profile_key} is already leased")
-            profile_dir = build_profile_dir(self.root, platform, profile_key)
+            profile_dir = build_profile_dir(platform, profile_key, root=self.root)
             profile_dir.mkdir(parents=True, exist_ok=True)
             self._leased.add(key)
             return ProfileLease(

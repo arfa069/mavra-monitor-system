@@ -141,18 +141,12 @@ def test_51job_crawl_uses_cloakbrowser_without_cdp(monkeypatch):
     assert calls["close"] == [True]
 
 
-def test_51job_default_profile_uses_configured_profile_root(monkeypatch, tmp_path):
-    from types import SimpleNamespace
+def test_51job_adapter_accepts_explicit_profile_dir(monkeypatch):
+    from pathlib import Path
 
-    from app.platforms import job51
     from app.platforms.job51 import Job51Adapter
 
-    monkeypatch.setattr(
-        job51,
-        "settings",
-        SimpleNamespace(resolved_crawler_profile_root=tmp_path),
-    )
+    custom_dir = "/custom/profiles/51job/test"
+    adapter = Job51Adapter(profile_dir=custom_dir)
 
-    adapter = Job51Adapter()
-
-    assert adapter.profile_dir == tmp_path / "profiles" / "51job" / "default"
+    assert adapter.profile_dir == Path(custom_dir)
