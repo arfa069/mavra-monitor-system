@@ -109,7 +109,7 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 前端改动：运行相关检查；提交前默认运行 `npm run lint` 和 `npm run build`。
 - 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
 - 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
-- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在 `~/.cloakbrowser/profiles/boss-test` 对应 CloakBrowser profile 登录 Boss。
+- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/default/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
 - Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
 - 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。

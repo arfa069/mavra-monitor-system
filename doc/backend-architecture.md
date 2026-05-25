@@ -361,7 +361,7 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 - `crawl_all_job_searches_background()` — 后台爬取所有活跃配置
 - `crawl_single_config_background(config_id)` — 后台爬取单个配置
 - Boss 当前入口：`_create_adapter("boss")` 固定返回 `BossCloakExperimentalAdapter`
-- Boss Cookie 获取：从 `~/.cloakbrowser/profiles/boss-test` 的已登录 CloakBrowser profile 读取整套 `.zhipin.com` cookies
+- Boss Cookie 获取：从项目根 `profiles/default/` 的已登录 CloakBrowser profile 读取整套 `.zhipin.com` cookies
 - Boss Token 刷新：列表/详情遇 code 36/37/38 时 reload 当前搜索页，wait 1s，读取 cookies 后重试当前请求
 - Boss 抓取节奏：`pageSize=30`，列表页间隔 2-5s，详情间隔 2-3s，列表与详情按页交替，禁止并发详情请求
 - Boss 数据完整性：`crawl()` 内部已抓详情，返回给入库层的 job 通常已包含 `description` 和 `address`；`crawl_detail(security_id)` 仅保留作 legacy/fallback
@@ -466,7 +466,7 @@ _shared_context: BrowserContext
 ### 8.4 职位抓取流程（`POST /jobs/crawl-now`）
 
 - `BossCloakExperimentalAdapter.crawl()` 通过 curl_cffi 调 Boss 搜索/详情 API，CloakBrowser 只负责维持真实 profile 和刷新 cookies
-- **Cookie 获取**：从 `~/.cloakbrowser/profiles/boss-test` 读取整套 Boss domain cookies；使用前需要用户在该 profile 登录 Boss
+- **Cookie 获取**：从项目根 `profiles/default/` 读取整套 Boss domain cookies；使用前需要用户在该 profile 登录 Boss
 - **Token 刷新**：搜索和详情遇 code=36/37/38 时 reload 当前搜索页，wait 1s，读取 cookies 后重试当前列表页或详情请求
 - **详情策略**：按页交替抓列表和详情；详情间隔 2-3s；不使用批量请求或并发
 - **日志**：`backend/logs/boss_cloak_adapter_<timestamp>.jsonl` 是排查真实运行耗时和风控行为的第一现场
