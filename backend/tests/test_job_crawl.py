@@ -74,12 +74,33 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
         emitted.append(kwargs)
 
     monkeypatch.setattr(crawl_service, "_get_job_config_user_id", AsyncMock(return_value=7))
-    monkeypatch.setattr(
-        crawl_service,
-        "crawl_single_config",
-        AsyncMock(return_value={"status": "success", "new_count": 2, "updated_count": 3, "deactivated_count": 0}),
-    )
     monkeypatch.setattr(crawl_service, "emit_system_log_detached", fake_emit)
+
+    # Mock create_crawl_task_record and related to avoid DB FK issues
+    mock_rec = MagicMock()
+    mock_rec.task_id = "test-task-123"
+    mock_rec.id = 999
+    mock_rec.status = "running"
+
+    async def fake_create(db, **kw):
+        return mock_rec
+
+    monkeypatch.setattr("app.domains.crawling.task_store.create_crawl_task_record", fake_create)
+    monkeypatch.setattr("app.domains.crawling.task_store.runtime_task_from_record", MagicMock(return_value=MagicMock()))
+    monkeypatch.setattr("app.domains.crawling.task_store.sync_record_from_runtime_task", AsyncMock())
+
+    # Mock CrawlTaskRunner to avoid real crawl execution
+    class FakeCrawlTaskRunner:
+        def __init__(self, **kwargs):
+            self._progress_callback = kwargs.get("progress_callback")
+
+        async def run_job_config(self, task, *, config_id):
+            task.status = "completed"
+            if self._progress_callback:
+                await self._progress_callback(task)
+            return {"status": "success", "new_count": 2, "updated_count": 3, "deactivated_count": 0}
+
+    monkeypatch.setattr("app.domains.crawling.task_runner.CrawlTaskRunner", FakeCrawlTaskRunner)
 
     result = await crawl_service.crawl_scheduled_config(3, "0 12 * * *")
 

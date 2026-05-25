@@ -3,7 +3,7 @@
 Tests persist crawl task state in PostgreSQL via async SQLAlchemy.
 Uses ASGITransport for API calls and real DB sessions for verifications.
 """
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -127,3 +127,72 @@ async def test_product_status_reads_persistent_task(phase2_client):
         assert response.status_code == 200
         assert response.json()["status"] == "completed"
         assert response.json()["total"] == 2
+
+
+@pytest.mark.asyncio
+async def test_job_single_crawl_persists_task(phase2_client, monkeypatch, cleanup_phase2_overrides):
+    """POST /api/v1/jobs/crawl-now/1 creates a crawl_tasks row."""
+    await _clean_crawl_tables()
+
+    async def fake_runner(task, *, config_id):
+        task.status = "completed"
+        task.total = 1
+        task.success = 1
+        task.errors = 0
+        return {"status": "success", "new_count": 1, "updated_count": 0, "deactivated_count": 0}
+
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner.CrawlTaskRunner.run_job_config",
+        fake_runner,
+    )
+
+    # Mock the config existence check
+    mock_config = MagicMock()
+    mock_config.id = 1
+    monkeypatch.setattr(
+        "app.domains.jobs.service.get_job_config",
+        AsyncMock(return_value=mock_config),
+    )
+
+    async with AsyncSessionLocal() as db:
+        install_auth_and_db_overrides(db)
+        response = await phase2_client.post("/api/v1/jobs/crawl-now/1")
+
+        assert response.status_code == 200, f"Got {response.status_code}: {response.text}"
+        task_id = response.json()["task_id"]
+
+    # The task record was created in the real DB via AsyncSessionLocal() inside crawl_service
+    async with AsyncSessionLocal() as verify_db:
+        from app.domains.crawling.task_store import get_crawl_task_record
+
+        record = await get_crawl_task_record(verify_db, task_id)
+        assert record is not None
+        assert record.task_type == "job_config"
+        assert record.entity_id == "1"
+
+
+@pytest.mark.asyncio
+async def test_job_crawl_status_reads_persistent_task(phase2_client):
+    """GET /api/v1/jobs/crawl/status/{task_id} reads from crawl_tasks."""
+    await _clean_crawl_tables()
+
+    async with AsyncSessionLocal() as db:
+        from app.domains.crawling.task_store import create_crawl_task_record
+
+        record = await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_config",
+            platform="boss",
+            user_id=1,
+            entity_type="job_config",
+            entity_id="1",
+        )
+        record.status = "failed"
+        record.reason = "profile_already_leased"
+        await db.commit()
+
+        response = await phase2_client.get(f"/api/v1/jobs/crawl/status/{record.task_id}")
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "failed"

@@ -46,9 +46,6 @@ from app.schemas.job_match import (
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-
-
-
 def _serialize_match_result(item: MatchResult) -> MatchResultResponse:
 
     job = item.job
@@ -89,13 +86,7 @@ def _serialize_match_result(item: MatchResult) -> MatchResultResponse:
 
     )
 
-
-
-
-
 # ── JobSearchConfig CRUD ──────────────────────────────────────────
-
-
 
 @router.get("/configs", response_model=list[JobSearchConfigResponse])
 
@@ -114,9 +105,6 @@ async def list_configs(
         raise HTTPException(status_code=401, detail="请先登录")
     return await job_service.list_job_configs(db, user_id=current_user.id, active=active)
 
-
-
-
 @router.post("/configs", response_model=JobSearchConfigResponse, status_code=201)
 
 async def create_config(
@@ -134,7 +122,6 @@ async def create_config(
     config = await job_service.create_job_config(
         db, user_id=current_user.id, data=data
     )
-
 
     # Sync scheduler if cron is set
 
@@ -155,8 +142,6 @@ async def create_config(
                 logging.getLogger("app.domains.jobs").error("Failed to add job to scheduler: %s", exc)
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
-
-
 
     # Audit log
 
@@ -184,13 +169,7 @@ async def create_config(
 
     )
 
-
-
     return config
-
-
-
-
 
 @router.get("/resumes", response_model=list[UserResumeResponse])
 
@@ -207,10 +186,6 @@ async def list_resumes(
         raise HTTPException(status_code=401, detail="请先登录")
 
     return await job_service.list_user_resumes(db, user_id=current_user.id)
-
-
-
-
 
 @router.post("/resumes", response_model=UserResumeResponse, status_code=201)
 
@@ -231,10 +206,6 @@ async def create_resume(
     return await job_service.create_user_resume(
         db, user_id=current_user.id, data=data
     )
-
-
-
-
 
 @router.patch("/resumes/{resume_id}", response_model=UserResumeResponse)
 
@@ -261,10 +232,6 @@ async def update_resume(
     except job_service.UserResumeNotFoundError:
         raise HTTPException(status_code=404, detail="Resume not found")
 
-
-
-
-
 @router.delete("/resumes/{resume_id}")
 
 async def delete_resume(
@@ -289,10 +256,6 @@ async def delete_resume(
         raise HTTPException(status_code=404, detail="Resume not found")
 
     return {"message": "Resume deleted"}
-
-
-
-
 
 @router.get("/match-results", response_model=MatchResultListResponse)
 
@@ -328,8 +291,6 @@ async def list_match_results(
         page_size=page_size,
     )
 
-
-
     return MatchResultListResponse(
 
         items=[_serialize_match_result(item) for item in items],
@@ -341,10 +302,6 @@ async def list_match_results(
         page_size=page_size,
 
     )
-
-
-
-
 
 @router.post("/match-results/analyze", response_model=MatchAnalyzeResponse)
 
@@ -368,8 +325,6 @@ async def trigger_match_analysis(
         )
     except job_service.UserResumeNotFoundError:
         raise HTTPException(status_code=404, detail="Resume not found")
-
-
 
     await emit_system_log_detached(
 
@@ -445,10 +400,6 @@ async def trigger_match_analysis(
 
     )
 
-
-
-
-
 @router.post("/match-results/analyze-async")
 
 async def trigger_match_analysis_async(
@@ -463,19 +414,13 @@ async def trigger_match_analysis_async(
 
     """Trigger async match analysis, returning task_id for polling.
 
-
-
     The analysis runs in background, updating task progress.
 
     Poll GET /jobs/tasks/{task_id} for status.
 
     """
 
-
-
     from app.core.task_registry import create_task
-
-
 
     if not current_user:
 
@@ -488,8 +433,6 @@ async def trigger_match_analysis_async(
     except job_service.UserResumeNotFoundError:
         raise HTTPException(status_code=404, detail="Resume not found")
 
-
-
     # Build job_ids list
 
     job_ids = data.job_ids
@@ -498,8 +441,6 @@ async def trigger_match_analysis_async(
 
         # Get all active jobs for user
         job_ids = await job_service.list_user_job_ids(db, user_id=current_user.id)
-
-
 
     # Check which jobs actually need analysis
 
@@ -521,8 +462,6 @@ async def trigger_match_analysis_async(
 
         })
 
-
-
     # Create background task with actual count
 
     task = create_task(
@@ -539,8 +478,6 @@ async def trigger_match_analysis_async(
 
     task.total = len(jobs_to_analyze)
 
-
-
     # Start analysis in background (pass job ids that need analysis)
 
     asyncio.create_task(
@@ -548,8 +485,6 @@ async def trigger_match_analysis_async(
         run_match_analysis_task(task, data.resume_id, [j.id for j in jobs_to_analyze])
 
     )
-
-
 
     return JSONResponse(content={
 
@@ -563,25 +498,17 @@ async def trigger_match_analysis_async(
 
     })
 
-
-
-
-
 @router.get("/tasks/{task_id}")
 
 async def get_match_analysis_task_status(task_id: str):
 
     """Get status of a match analysis task.
 
-
-
     Returns task progress (total/success/errors) and final results when completed.
 
     """
 
     from app.core.task_registry import get_task
-
-
 
     task = get_task(task_id)
 
@@ -594,8 +521,6 @@ async def get_match_analysis_task_status(task_id: str):
             status_code=404,
 
         )
-
-
 
     response = {
 
@@ -613,21 +538,13 @@ async def get_match_analysis_task_status(task_id: str):
 
     }
 
-
-
     # Include details when completed
 
     if task.status.value == "completed":
 
         response["details"] = task.details
 
-
-
     return JSONResponse(content=response)
-
-
-
-
 
 @router.get("/configs/{config_id}", response_model=JobSearchConfigResponse)
 
@@ -650,9 +567,6 @@ async def get_config(
         )
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="Config not found")
-
-
-
 
 @router.patch("/configs/{config_id}", response_model=JobSearchConfigResponse)
 
@@ -682,7 +596,6 @@ async def update_config(
             detail="权限不足：仅 super_admin 可修改定时配置",
         )
 
-
     # Sync scheduler if cron changed
 
     if "cron_expression" in update_data:
@@ -708,8 +621,6 @@ async def update_config(
                 logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
-
-
 
     # Audit log
 
@@ -737,13 +648,7 @@ async def update_config(
 
     )
 
-
-
     return config
-
-
-
-
 
 @router.delete("/configs/{config_id}")
 
@@ -768,7 +673,6 @@ async def delete_config(
 
     config_info = {"name": config.name}
 
-
     # Remove scheduler job before deletion
 
     scheduler: JobConfigScheduler = getattr(request.app.state, "job_config_scheduler", None)
@@ -777,7 +681,6 @@ async def delete_config(
         scheduler.remove_job(config_id)
 
     await job_service.remove_job_config(db, config=config)
-
 
     # Audit log
 
@@ -805,17 +708,9 @@ async def delete_config(
 
     )
 
-
-
     return {"message": "Config deleted"}
 
-
-
-
-
 # ── Job Listing ──────────────────────────────────────────────────
-
-
 
 @router.get("", response_model=JobListResponse)
 
@@ -871,8 +766,6 @@ async def list_jobs(
         page_size=page_size,
     )
 
-
-
     return JobListResponse(
 
         items=items,
@@ -885,17 +778,7 @@ async def list_jobs(
 
     )
 
-
-
-
-
-
-
 # ── Job Crawl Logs ──────────────────────────────────────────────
-
-
-
-
 
 @router.get("/crawl-logs", response_model=list[JobCrawlLogResponse])
 
@@ -923,10 +806,6 @@ async def get_job_crawl_logs(
         limit=limit,
     )
 
-
-
-
-
 @router.get("/{job_id_str}", response_model=JobResponse)
 
 async def get_job(
@@ -952,13 +831,7 @@ async def get_job(
     except job_service.JobNotFoundError:
         raise HTTPException(status_code=404, detail="Job not found")
 
-
-
-
-
 # ── Crawl Triggers ───────────────────────────────────────────────
-
-
 
 @router.post("/crawl-now")
 
@@ -981,10 +854,6 @@ async def crawl_now(
         "message": f"爬取任务已启动，通过 /jobs/crawl/status/{task.task_id} 查询进度",
 
     })
-
-
-
-
 
 @router.post("/crawl-now/{config_id}")
 
@@ -1011,7 +880,6 @@ async def crawl_single(
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="配置不存在或无权访问")
 
-
     task = await crawl_single_config_background(config_id, user_id=current_user.id)
 
     return JSONResponse(content={
@@ -1024,117 +892,55 @@ async def crawl_single(
 
     })
 
-
-
-
-
 @router.get("/crawl/status/{task_id}")
-
-async def get_job_crawl_status(task_id: str):
-
-    """Get the status of a job crawl task."""
-
-    task = get_task(task_id)
-
-    if not task:
-
+async def get_job_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Get the status of a job crawl task from persistent store."""
+    from app.domains.crawling.task_store import get_crawl_task_record
+    record = await get_crawl_task_record(db, task_id)
+    if not record:
         return JSONResponse(
-
             content={"status": "error", "reason": "task_not_found"},
-
             status_code=404,
-
         )
-
     return JSONResponse(content={
-
-        "task_id": task.task_id,
-
-        "status": task.status.value,
-
-        "total": task.total,
-
-        "success": task.success,
-
-        "errors": task.errors,
-
+        "task_id": record.task_id,
+        "status": record.status,
+        "total": record.total,
+        "success": record.success,
+        "errors": record.errors,
     })
-
-
-
-
 
 @router.get("/crawl/result/{task_id}")
-
-async def get_job_crawl_result(task_id: str):
-
+async def get_job_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
     """Get the final result of a completed job crawl task."""
-
-    task = get_task(task_id)
-
-    if not task:
-
+    from app.domains.crawling.task_store import get_crawl_task_record
+    record = await get_crawl_task_record(db, task_id)
+    if not record:
         return JSONResponse(
-
             content={"status": "error", "reason": "task_not_found"},
-
             status_code=404,
-
         )
-
-    if task.status in (TaskStatus.PENDING, TaskStatus.RUNNING):
-
+    if record.status in ("pending", "running"):
         return JSONResponse(
-
-            content={"status": task.status.value, "task_id": task.task_id},
-
+            content={"status": record.status, "task_id": record.task_id},
             status_code=202,
-
         )
-
-    if task.status == TaskStatus.FAILED:
-
+    if record.status == "failed":
         return JSONResponse(
-
-            content={"status": "error", "task_id": task.task_id, "reason": task.reason},
-
+            content={"status": "error", "task_id": record.task_id, "reason": record.reason},
             status_code=500,
-
         )
-
     return JSONResponse(content={
-
         "status": "completed",
-
-        "task_id": task.task_id,
-
-        "total": task.total,
-
-        "success": task.success,
-
-        "errors": task.errors,
-
+        "task_id": record.task_id,
+        "total": record.total,
+        "success": record.success,
+        "errors": record.errors,
     })
-
-
-
-
 
 # ── Job Crawl Logs ──────────────────────────────────────────────
 
-
-
-
-
-
-
-
-
-
-
 # ── Per-Config Cron Management ──────────────────────────────
-
-
 
 @router.patch("/configs/{config_id}/cron", response_model=JobSearchConfigResponse)
 
@@ -1163,7 +969,6 @@ async def update_config_cron(
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="Config not found")
 
-
     # Sync scheduler
 
     scheduler: JobConfigScheduler = getattr(request.app.state, "job_config_scheduler", None)
@@ -1187,8 +992,6 @@ async def update_config_cron(
             logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
             raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
-
-
 
     # Audit log
 
@@ -1216,13 +1019,7 @@ async def update_config_cron(
 
     )
 
-
-
     return config
-
-
-
-
 
 @router.get("/scheduler/job-configs")
 
@@ -1242,13 +1039,10 @@ async def get_job_config_schedules(
 
         raise HTTPException(status_code=401, detail="请先登录")
 
-
-
     # 获取当前用户的 config_ids
     user_config_ids = await job_service.list_job_config_ids(
         db, user_id=current_user.id
     )
-
 
     scheduler: JobConfigScheduler = getattr(request.app.state, "job_config_scheduler", None)
 
@@ -1257,8 +1051,6 @@ async def get_job_config_schedules(
         return {"configs": []}
 
     schedules = scheduler.get_next_run_times()
-
-
 
     # 只返回当前用户拥有的配置
 
