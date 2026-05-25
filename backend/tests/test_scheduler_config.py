@@ -21,6 +21,7 @@ async def test_add_job(scheduler):
 
     job = scheduler.get_job("job_config_cron_1")
     assert job is not None
+    assert job.func.__name__ == "crawl_scheduled_config"
 
 
 @pytest.mark.asyncio

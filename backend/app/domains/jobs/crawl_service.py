@@ -655,6 +655,70 @@ async def crawl_single_config(
         return {"status": "error", "error": str(exc)}
 
 
+async def _get_job_config_user_id(config_id: int) -> int | None:
+    async with AsyncSessionLocal() as db:
+        config = await db.get(JobSearchConfig, config_id)
+        return config.user_id if config else None
+
+
+async def crawl_scheduled_config(
+    config_id: int,
+    cron_expression: str | None = None,
+) -> dict:
+    """Run a scheduled job crawl and mirror manual crawls in Event Center."""
+    user_id = await _get_job_config_user_id(config_id)
+    payload = {
+        "config_id": config_id,
+        "source": "scheduled",
+    }
+    if cron_expression:
+        payload["cron_expression"] = cron_expression
+
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_crawl.started",
+        source="jobs",
+        severity="info",
+        status="running",
+        message=f"Scheduled job crawl for config {config_id} started",
+        user_id=user_id,
+        entity_type="job_config",
+        entity_id=str(config_id),
+        payload=payload,
+    )
+
+    try:
+        result = await crawl_single_config(config_id)
+        ok = result.get("status") != "error"
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="job_crawl.completed" if ok else "job_crawl.failed",
+            source="jobs",
+            severity="info" if ok else "error",
+            status="completed" if ok else "failed",
+            message=f"Scheduled job crawl for config {config_id} {'completed' if ok else 'failed'}",
+            user_id=user_id,
+            entity_type="job_config",
+            entity_id=str(config_id),
+            payload={**payload, **result},
+        )
+        return result
+    except Exception as exc:
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="job_crawl.failed",
+            source="jobs",
+            severity="error",
+            status="failed",
+            message=f"Scheduled job crawl for config {config_id} failed",
+            user_id=user_id,
+            entity_type="job_config",
+            entity_id=str(config_id),
+            payload={**payload, "reason": str(exc)},
+        )
+        raise
+
+
 async def crawl_all_job_searches(
     source: str = "manual",
     *,

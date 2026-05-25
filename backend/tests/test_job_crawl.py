@@ -64,6 +64,37 @@ class TestCreateAdapter:
         assert isinstance(adapter, BossCloakExperimentalAdapter)
 
 
+@pytest.mark.asyncio
+async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
+    from app.domains.jobs import crawl_service
+
+    emitted = []
+
+    async def fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    monkeypatch.setattr(crawl_service, "_get_job_config_user_id", AsyncMock(return_value=7))
+    monkeypatch.setattr(
+        crawl_service,
+        "crawl_single_config",
+        AsyncMock(return_value={"status": "success", "new_count": 2, "updated_count": 3, "deactivated_count": 0}),
+    )
+    monkeypatch.setattr(crawl_service, "emit_system_log_detached", fake_emit)
+
+    result = await crawl_service.crawl_scheduled_config(3, "0 12 * * *")
+
+    assert result["status"] == "success"
+    assert [event["event_type"] for event in emitted] == [
+        "job_crawl.started",
+        "job_crawl.completed",
+    ]
+    assert emitted[0]["user_id"] == 7
+    assert emitted[0]["payload"]["source"] == "scheduled"
+    assert emitted[1]["entity_type"] == "job_config"
+    assert emitted[1]["entity_id"] == "3"
+    assert emitted[1]["payload"]["new_count"] == 2
+
+
 class TestBuildCrawlUrl:
     """Test crawl URL normalization from stored config fields."""
 

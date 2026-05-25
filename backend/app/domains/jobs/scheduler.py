@@ -29,10 +29,10 @@ class JobConfigScheduler(BaseScheduler):
         job_id = self._job_id(config_id)
         tz = zoneinfo.ZoneInfo(timezone)
 
-        from app.domains.jobs.crawl_service import crawl_single_config
+        from app.domains.jobs.crawl_service import crawl_scheduled_config
 
         self._scheduler.add_job(
-            crawl_single_config,
+            crawl_scheduled_config,
             trigger=CronTrigger.from_crontab(cron_expression, timezone=tz),
             id=job_id,
             name=f"JobConfig crawl #{config_id}",
