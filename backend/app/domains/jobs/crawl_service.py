@@ -840,12 +840,10 @@ async def crawl_single_config_background(
                 entity_id=str(config_id),
                 payload={"task_id": task.task_id, "config_id": config_id},
             )
-            result = await crawl_single_config(config_id)
+            from app.domains.crawling.task_runner import CrawlTaskRunner
+
+            result = await CrawlTaskRunner().run_job_config(task, config_id=config_id)
             ok = result.get("status") != "error"
-            task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
-            task.total = sum(v for k, v in result.items() if k in ("new_count", "updated_count", "deactivated_count"))
-            task.success = result.get("new_count", 0)
-            task.errors = 0 if ok else 1
             await emit_system_log_detached(
                 category="runtime",
                 event_type="job_crawl.completed" if ok else "job_crawl.failed",
@@ -904,12 +902,10 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                 entity_id=task.task_id,
                 payload={"task_id": task.task_id},
             )
-            result = await crawl_all_job_searches(source="manual", user_id=task.user_id)
+            from app.domains.crawling.task_runner import CrawlTaskRunner
+
+            result = await CrawlTaskRunner().run_all_jobs(task)
             ok = result.get("status") != "error"
-            task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
-            task.total = result.get("total", 0)
-            task.success = result.get("success", 0)
-            task.errors = result.get("errors", 0)
             await emit_system_log_detached(
                 category="runtime",
                 event_type="job_crawl.completed" if ok else "job_crawl.failed",
