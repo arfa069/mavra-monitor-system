@@ -5,7 +5,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (6134 symbols, 11526 relationships, 222 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **price-monitor** (6215 symbols, 11537 relationships, 220 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -115,6 +115,7 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
 
 ## 8. Design System
+
 - 未经用户明确批准，不得偏离设计系统。
 - 在做任何视觉或 UI 决策前，必须先阅读 `DESIGN.md`。
 - 字体、颜色、间距、组件风格和整体美学方向均以 `DESIGN.md` 为准。

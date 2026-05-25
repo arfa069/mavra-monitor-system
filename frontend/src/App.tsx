@@ -13,7 +13,10 @@ import { App as AntdApp, ConfigProvider, Spin, theme } from "antd";
 import { AuthProvider, useAuth } from "@/shared/contexts/AuthContext";
 import type { Permission } from "@/shared/types";
 import AppLayout from "@/shared/components/AppLayout";
-import { ThemeProvider, useThemeContext } from "@/shared/components/ThemeProvider";
+import {
+  ThemeProvider,
+  useThemeContext,
+} from "@/shared/components/ThemeProvider";
 import JobsPage from "@/features/jobs";
 import ProductsPage from "@/features/products";
 import { AdminAuditLogsPage, AdminUsersPage } from "@/features/admin";

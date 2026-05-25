@@ -83,9 +83,12 @@ export const adminApi = {
     actor_user_id?: number;
     action?: string;
   }): Promise<AuditLogListResponse> => {
-    const response = await api.get<AuditLogListResponse>("/v1/admin/audit-logs", {
-      params,
-    });
+    const response = await api.get<AuditLogListResponse>(
+      "/v1/admin/audit-logs",
+      {
+        params,
+      },
+    );
     return response.data;
   },
 

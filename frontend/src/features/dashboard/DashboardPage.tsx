@@ -58,14 +58,8 @@ export default function DashboardPage() {
   const salaryDist = useDashboardTrends("salary", days);
 
   // Admin-only trends
-  const systemHealth = useDashboardTrends(
-    "system_health",
-    days,
-  );
-  const platformSuccess = useDashboardTrends(
-    "platform_success",
-    days,
-  );
+  const systemHealth = useDashboardTrends("system_health", days);
+  const platformSuccess = useDashboardTrends("platform_success", days);
 
   // Prefer SSE data over initial data (real-time updates)
   const kpiData = sseData ?? initialData;

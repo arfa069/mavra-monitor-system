@@ -183,3 +183,14 @@ def test_crawl_detail_refreshes_on_anti_bot_code(monkeypatch):
 
     assert result["success"] is True
     refresh.assert_called_once()
+
+
+def test_boss_adapter_accepts_explicit_profile_dir(monkeypatch):
+    from pathlib import Path
+
+    from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
+
+    custom_dir = "/custom/profiles/boss/test"
+    adapter = BossCloakExperimentalAdapter(profile_dir=custom_dir)
+
+    assert adapter.profile_dir == Path(custom_dir)

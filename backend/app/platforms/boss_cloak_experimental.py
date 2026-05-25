@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from curl_cffi.requests import Session as CffiSession
 
+from app.core.crawler_paths import build_profile_dir
 from app.platforms.base import BasePlatformAdapter
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,8 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         log_enabled: bool = True,
     ):
         super().__init__()
-        self.profile_dir = Path(profile_dir) if profile_dir else (
-            Path.home() / ".cloakbrowser" / "profiles" / "boss-test"
+        self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
+            "default",
         )
         self.max_jobs = max_jobs
         self.max_pages = max_pages

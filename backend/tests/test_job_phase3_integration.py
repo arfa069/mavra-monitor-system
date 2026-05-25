@@ -139,3 +139,14 @@ def test_51job_crawl_uses_cloakbrowser_without_cdp(monkeypatch):
     assert calls["launch"][0][0] == ("profile",)
     assert calls["goto"] == ["https://we.51job.com/pc/search?keyword=python&searchType=2&jobArea=020000"]
     assert calls["close"] == [True]
+
+
+def test_51job_adapter_accepts_explicit_profile_dir(monkeypatch):
+    from pathlib import Path
+
+    from app.platforms.job51 import Job51Adapter
+
+    custom_dir = "/custom/profiles/51job/test"
+    adapter = Job51Adapter(profile_dir=custom_dir)
+
+    assert adapter.profile_dir == Path(custom_dir)

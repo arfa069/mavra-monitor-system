@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from curl_cffi.requests import Session as CffiSession
 
+from app.core.crawler_paths import build_profile_dir
 from app.platforms.base import BasePlatformAdapter
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,6 @@ SEARCH_DOMAIN = "we.51job.com"
 BASE_URL = f"https://{SEARCH_DOMAIN}"
 # TODO: Confirm via browser DevTools packet capture
 SEARCH_API_PATH = "/api/job/search-pc"
-DEFAULT_PROFILE_DIR = Path.home() / ".cloakbrowser" / "profiles" / "51job-test"
 API_PROPERTY_HEADER = json.dumps({"partner": "", "webId": "2", "clientType": "pc"}, separators=(",", ":"))
 
 
@@ -45,7 +45,9 @@ class Job51Adapter(BasePlatformAdapter):
         max_pages: int = MAX_PAGES,
     ):
         super().__init__()
-        self.profile_dir = Path(profile_dir) if profile_dir else DEFAULT_PROFILE_DIR
+        self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
+            "default",
+        )
         self.headless = headless
         self.max_pages = max_pages
         self._session: CffiSession | None = None
