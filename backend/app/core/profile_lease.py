@@ -20,6 +20,11 @@ class ProfileLease:
 
 
 class InProcessProfileLeaseManager:
+    """In-process profile lease manager.
+
+    Acquiring a lease also creates the profile directory as a side effect,
+    ensuring the directory is ready when the caller uses the profile.
+    """
     def __init__(self, *, root: str | Path):
         self.root = Path(root)
         self._leased: set[tuple[str, str]] = set()

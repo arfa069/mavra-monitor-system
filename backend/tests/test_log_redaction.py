@@ -24,3 +24,20 @@ def test_redact_payload_handles_nested_lists():
     assert redact_payload(payload) == {
         "items": [{"token": "***REDACTED***"}, {"name": "safe"}]
     }
+
+
+def test_redact_payload_handles_sets():
+    from app.core.log_redaction import redact_payload
+
+    # Sets of non-container items pass through unchanged.
+    result = redact_payload({"tags": {"a", "b"}})
+    assert result == {"tags": {"a", "b"}}
+    assert isinstance(result["tags"], set)
+
+
+def test_redact_payload_handles_plain_strings():
+    from app.core.log_redaction import redact_payload
+
+    assert redact_payload(None) is None
+    assert redact_payload(42) == 42
+    assert redact_payload("safe text") == "safe text"

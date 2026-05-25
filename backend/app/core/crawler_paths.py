@@ -28,7 +28,7 @@ def resolve_price_monitor_home(value: str | None = None) -> Path:
 
 
 def _validate_segment(kind: str, value: str) -> None:
-    if not value or "/" in value or "\\" in value or ".." in Path(value).parts:
+    if not value or value == "." or "/" in value or "\\" in value or ".." in Path(value).parts:
         raise ValueError(f"Invalid {kind}: {value!r}")
 
 

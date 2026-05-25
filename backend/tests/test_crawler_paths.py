@@ -64,3 +64,10 @@ def test_build_profile_dir_rejects_empty_key(tmp_path):
 
     with pytest.raises(ValueError, match="Invalid profile key"):
         build_profile_dir(tmp_path, "boss", "")
+
+
+def test_build_profile_dir_rejects_dot_key(tmp_path):
+    from app.core.crawler_paths import build_profile_dir
+
+    with pytest.raises(ValueError, match="Invalid profile key"):
+        build_profile_dir(tmp_path, "boss", ".")

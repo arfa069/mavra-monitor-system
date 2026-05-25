@@ -21,21 +21,16 @@ FULL_REDACT_KEYS = {
 PARTIAL_REDACT_KEYS = {"securityid", "security_id"}
 
 
-def _redact_string(value: str, *, partial: bool) -> str:
-    if partial:
-        return f"{value[:8]}***" if len(value) > 8 else "***"
-    return "***REDACTED***"
-
-
 def redact_payload(value: Any) -> Any:
     if isinstance(value, Mapping):
         redacted = {}
         for key, item in value.items():
             normalized = str(key).lower()
             if normalized in FULL_REDACT_KEYS:
-                redacted[key] = _redact_string(str(item), partial=False)
+                redacted[key] = "***REDACTED***"
             elif normalized in PARTIAL_REDACT_KEYS:
-                redacted[key] = _redact_string(str(item), partial=True)
+                s = str(item)
+                redacted[key] = f"{s[:8]}***" if len(s) > 8 else "***"
             else:
                 redacted[key] = redact_payload(item)
         return redacted
@@ -43,4 +38,6 @@ def redact_payload(value: Any) -> Any:
         return [redact_payload(item) for item in value]
     if isinstance(value, tuple):
         return tuple(redact_payload(item) for item in value)
+    if isinstance(value, set):
+        return {redact_payload(item) for item in value}
     return value
