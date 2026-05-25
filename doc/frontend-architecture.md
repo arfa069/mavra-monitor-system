@@ -191,14 +191,14 @@ interface AuthContextType {
 
 业务数据通过 TanStack React Query 管理。已拆分的 feature 在各自 `features/*/hooks` 中维护 query/mutation hooks；`hooks/api.ts` 已删除，避免继续形成新的共享热点文件。业务页面和 feature 内部组件从本 feature 的 `types.ts` 导入类型，跨 feature 只通过对方 `index.ts` 暴露的稳定入口或共享基础设施导入。
 
-| Hook                | 用途             | 缓存策略               |
-| ------------------- | ---------------- | ---------------------- |
-| `features/products/useProducts()` | 商品列表 + 分页  | `staleTime: 10s`       |
-| `features/jobs/useJobs()` | 职位列表 + 分页  | `staleTime: 30s`       |
-| `features/jobs/useJobConfigs()` | 职位搜索配置列表 | 无持久化               |
-| `features/jobs/useMatchResults()` | LLM 匹配结果     | 无持久化               |
-| `features/products/useCrawlLogs()` | 商品爬取日志     | `refetchInterval: 60s` |
-| `features/jobs/useResumes()` | 用户简历列表     | 无持久化               |
+| Hook                                    | 用途             | 缓存策略               |
+| --------------------------------------- | ---------------- | ---------------------- |
+| `features/products/useProducts()`       | 商品列表 + 分页  | `staleTime: 10s`       |
+| `features/jobs/useJobs()`               | 职位列表 + 分页  | `staleTime: 30s`       |
+| `features/jobs/useJobConfigs()`         | 职位搜索配置列表 | 无持久化               |
+| `features/jobs/useMatchResults()`       | LLM 匹配结果     | 无持久化               |
+| `features/products/useCrawlLogs()`      | 商品爬取日志     | `refetchInterval: 60s` |
+| `features/jobs/useResumes()`            | 用户简历列表     | 无持久化               |
 | `features/schedule/useScheduleConfig()` | 用户配置         | 无持久化               |
 
 **Mutation 后自动失效**：`useMutation` 的 `onSuccess` 回调中调用 `qc.invalidateQueries` 刷新相关缓存。

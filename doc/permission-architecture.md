@@ -44,22 +44,22 @@
 
 ### 认证 (`app.domains.auth.router`)
 
-| 端点                  | 依赖                       |
-| --------------------- | -------------------------- |
-| `POST /api/v1/auth/register` | 公开                       |
-| `POST /api/v1/auth/login`    | 公开（5 次失败锁 15 分钟） |
-| `POST /api/v1/auth/refresh`  | refresh Cookie             |
-| `POST /api/v1/auth/logout`   | `get_current_user_cookie` + CSRF |
-| `GET /api/v1/auth/me`        | `get_current_user_cookie`  |
-| `PATCH /api/v1/auth/me`      | `get_current_user_cookie` + CSRF |
-| `POST /api/v1/auth/me/password` | `get_current_user_cookie` + CSRF |
-| `GET /api/v1/auth/sessions`  | `get_current_user_cookie`  |
+| 端点                                | 依赖                             |
+| ----------------------------------- | -------------------------------- |
+| `POST /api/v1/auth/register`        | 公开                             |
+| `POST /api/v1/auth/login`           | 公开（5 次失败锁 15 分钟）       |
+| `POST /api/v1/auth/refresh`         | refresh Cookie                   |
+| `POST /api/v1/auth/logout`          | `get_current_user_cookie` + CSRF |
+| `GET /api/v1/auth/me`               | `get_current_user_cookie`        |
+| `PATCH /api/v1/auth/me`             | `get_current_user_cookie` + CSRF |
+| `POST /api/v1/auth/me/password`     | `get_current_user_cookie` + CSRF |
+| `GET /api/v1/auth/sessions`         | `get_current_user_cookie`        |
 | `DELETE /api/v1/auth/sessions/{id}` | `get_current_user_cookie` + CSRF |
 
 ### 用户管理 (`app.domains.admin.router`)
 
-| 端点                                         | 权限          |
-| -------------------------------------------- | ------------- |
+| 端点                                                | 权限          |
+| --------------------------------------------------- | ------------- |
 | `GET /api/v1/admin/users`                           | `user:read`   |
 | `POST /api/v1/admin/users`                          | `user:manage` |
 | `GET /api/v1/admin/users/{id}`                      | `user:read`   |
@@ -75,53 +75,53 @@
 
 ### 商品 (`app.domains.products.router`)
 
-| 端点                                       | 权限                 |
-| ------------------------------------------ | -------------------- |
-| `/api/v1/products` 商品 CRUD（增删改查）                      | `get_current_user`   |
+| 端点                                              | 权限                 |
+| ------------------------------------------------- | -------------------- |
+| `/api/v1/products` 商品 CRUD（增删改查）          | `get_current_user`   |
 | `POST /api/v1/products/cron-configs`              | `schedule:configure` |
 | `PATCH /api/v1/products/cron-configs/{platform}`  | `schedule:configure` |
 | `DELETE /api/v1/products/cron-configs/{platform}` | `schedule:configure` |
 
 ### 职位 (`app.domains.jobs.router`)
 
-| 端点                               | 权限                 |
-| ---------------------------------- | -------------------- |
-| `/api/v1/jobs` 职位/简历/匹配 CRUD                | `get_current_user`   |
+| 端点                                      | 权限                 |
+| ----------------------------------------- | -------------------- |
+| `/api/v1/jobs` 职位/简历/匹配 CRUD        | `get_current_user`   |
 | `POST /api/v1/jobs/crawl-now`             | `crawl:execute`      |
 | `POST /api/v1/jobs/crawl-now/{config_id}` | `crawl:execute`      |
 | `PATCH /api/v1/jobs/configs/{id}/cron`    | `schedule:configure` |
 
 ### 爬取 (`app.domains.crawling.router`)
 
-| 端点                    | 权限               |
-| ----------------------- | ------------------ |
+| 端点                           | 权限               |
+| ------------------------------ | ------------------ |
 | `POST /api/v1/crawl/crawl-now` | `crawl:execute`    |
 | `POST /api/v1/crawl/cleanup`   | `crawl:execute`    |
 | `GET /api/v1/crawl/logs` 等    | `get_current_user` |
 
 ### 配置 (`app.domains.config.router`)
 
-| 端点            | 权限           |
-| --------------- | -------------- |
+| 端点                   | 权限           |
+| ---------------------- | -------------- |
 | `GET /api/v1/config`   | `config:read`  |
 | `POST /api/v1/config`  | `config:write` |
 | `PATCH /api/v1/config` | `config:write` |
 
 ### 系统 (`main.py` / `app.domains.scheduling.router`)
 
-| 端点                    | 权限                                   |
-| ----------------------- | -------------------------------------- |
-| `GET /health`                    | 公开（仅返回 status）                  |
-| `GET /api/v1/scheduler/status`   | `require_role("admin", "super_admin")` |
+| 端点                           | 权限                                   |
+| ------------------------------ | -------------------------------------- |
+| `GET /health`                  | 公开（仅返回 status）                  |
+| `GET /api/v1/scheduler/status` | `require_role("admin", "super_admin")` |
 
 ### Dashboard (`app.domains.dashboard.router`)
 
-| 端点 | 权限 |
-| ---- | ---- |
-| `GET /api/v1/dashboard/kpi` | `require_role("user", "admin", "super_admin")` |
-| `GET /api/v1/dashboard/events` | `get_current_user_cookie` |
-| `GET /api/v1/dashboard/trends` | `require_role("user", "admin", "super_admin")`；`system_health` / `platform_success` 仅 admin/super_admin |
-| `GET /api/v1/dashboard/alerts/recent` | `require_role("admin", "super_admin")` |
+| 端点                                  | 权限                                                                                                      |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/dashboard/kpi`           | `require_role("user", "admin", "super_admin")`                                                            |
+| `GET /api/v1/dashboard/events`        | `get_current_user_cookie`                                                                                 |
+| `GET /api/v1/dashboard/trends`        | `require_role("user", "admin", "super_admin")`；`system_health` / `platform_success` 仅 admin/super_admin |
+| `GET /api/v1/dashboard/alerts/recent` | `require_role("admin", "super_admin")`                                                                    |
 
 ## Cookie / Token 策略
 
@@ -162,13 +162,13 @@
 
 ## 前端路由守卫
 
-| 守卫              | 保护范围                                                   | 行为                          |
-| ----------------- | ---------------------------------------------------------- | ----------------------------- |
-| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`             |
-| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                        | 权限不足 → `/jobs`            |
+| 守卫              | 保护范围                                                                            | 行为               |
+| ----------------- | ----------------------------------------------------------------------------------- | ------------------ |
+| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`  |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                 | 权限不足 → `/jobs` |
 
 角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
-| `PublicRoute`     | `/login`, `/register`                                      | 已登录 → `/jobs`              |
+| `PublicRoute` | `/login`, `/register` | 已登录 → `/jobs` |
 
 > 前端守卫仅做 UX 级别保护，**真正的安全边界在后端 API**。
 

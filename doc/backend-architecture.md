@@ -2,15 +2,15 @@
 
 ## 1. 技术栈概览
 
-| 层级     | 技术选型                                    |
-| -------- | ------------------------------------------- |
-| 语言     | Python 3.11+                                |
-| Web 框架 | FastAPI（异步 via asyncio）                 |
-| 数据库   | PostgreSQL（异步 via SQLAlchemy + asyncpg） |
-| 缓存     | Redis（异步 via redis.asyncio）             |
-| 爬虫     | Playwright（商品）+ curl_cffi（职位）+ CloakBrowser（Boss Cookie 刷新） |
-| 定时调度 | APScheduler（AsyncIOScheduler）             |
-| 通知     | 飞书 Webhook                                |
+| 层级     | 技术选型                                                                              |
+| -------- | ------------------------------------------------------------------------------------- |
+| 语言     | Python 3.11+                                                                          |
+| Web 框架 | FastAPI（异步 via asyncio）                                                           |
+| 数据库   | PostgreSQL（异步 via SQLAlchemy + asyncpg）                                           |
+| 缓存     | Redis（异步 via redis.asyncio）                                                       |
+| 爬虫     | Playwright（商品）+ curl_cffi（职位）+ CloakBrowser（Boss Cookie 刷新）               |
+| 定时调度 | APScheduler（AsyncIOScheduler）                                                       |
+| 通知     | 飞书 Webhook                                                                          |
 | 认证     | HttpOnly Cookie + JWT + Refresh Token（python-jose + bcrypt + secrets.token_urlsafe） |
 
 ## 2. 项目结构
@@ -224,17 +224,17 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 兼容前缀            | v1 前缀                    | 路由文件                            | 说明                                                 |
-| ------------------- | -------------------------- | ----------------------------------- | ---------------------------------------------------- |
-| `/auth`             | `/v1/auth`, `/api/v1/auth` | `domains/auth/router.py`            | 注册/登录/登出/当前用户                              |
-| `/config`           | `/v1/config`, `/api/v1/config` | `domains/config/router.py`       | 用户配置（飞书 Webhook、数据保留期）                 |
-| `/products`         | `/v1/products`, `/api/v1/products` | `domains/products/router.py` | 商品 CRUD + 批量操作                                 |
-| `/alerts`           | `/v1/alerts`, `/api/v1/alerts` | `domains/alerts/router.py`       | 告警管理                                             |
-| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl` | `domains/crawling/router.py`     | 商品爬取触发 + 日志查询                              |
-| `/jobs`             | `/v1/jobs`, `/api/v1/jobs` | `domains/jobs/router.py`            | 职位搜索配置 + 爬取 + 匹配分析                       |
-| `/admin`            | `/v1/admin`, `/api/v1/admin` | `domains/admin/router.py`        | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
-| `/events`           | `/v1/events`, `/api/v1/events` | `domains/events/router.py`      | 事件中心列表和 SSE                                   |
-| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard` | `domains/dashboard/router.py` | Dashboard KPI / 趋势 / SSE                           |
+| 兼容前缀            | v1 前缀                                            | 路由文件                       | 说明                                                 |
+| ------------------- | -------------------------------------------------- | ------------------------------ | ---------------------------------------------------- |
+| `/auth`             | `/v1/auth`, `/api/v1/auth`                         | `domains/auth/router.py`       | 注册/登录/登出/当前用户                              |
+| `/config`           | `/v1/config`, `/api/v1/config`                     | `domains/config/router.py`     | 用户配置（飞书 Webhook、数据保留期）                 |
+| `/products`         | `/v1/products`, `/api/v1/products`                 | `domains/products/router.py`   | 商品 CRUD + 批量操作                                 |
+| `/alerts`           | `/v1/alerts`, `/api/v1/alerts`                     | `domains/alerts/router.py`     | 告警管理                                             |
+| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl`                       | `domains/crawling/router.py`   | 商品爬取触发 + 日志查询                              |
+| `/jobs`             | `/v1/jobs`, `/api/v1/jobs`                         | `domains/jobs/router.py`       | 职位搜索配置 + 爬取 + 匹配分析                       |
+| `/admin`            | `/v1/admin`, `/api/v1/admin`                       | `domains/admin/router.py`      | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
+| `/events`           | `/v1/events`, `/api/v1/events`                     | `domains/events/router.py`     | 事件中心列表和 SSE                                   |
+| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard`               | `domains/dashboard/router.py`  | Dashboard KPI / 趋势 / SSE                           |
 | `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py` | APScheduler 状态（admin/super_admin）                |
 
 `main.py` 同时注册旧路径、`/v1` 和 `/api/v1`。前端开发环境中 Vite 代理会去掉浏览器 URL 的 `/api` 前缀，因此浏览器请求 `/api/v1/...` 到达后端时对应 `/v1/...`。
@@ -264,28 +264,36 @@ User (1) ──────< Product (多)
 Access JWT payload 结构：
 
 ```json
-{"sub": "1", "username": "testuser", "sid": 42, "typ": "access", "exp": 1712345678}
+{
+  "sub": "1",
+  "username": "testuser",
+  "sid": 42,
+  "typ": "access",
+  "exp": 1712345678
+}
 ```
 
 Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(48)）有效期 14 天，仅存储 SHA-256 哈希到 `users_sessions.refresh_token_hash`。
 
 不安全方法（POST/PATCH/PUT/DELETE）需额外通过 `Depends(csrf_protect)`：
+
 - 读取 `pm_csrf_token` Cookie（非 HttpOnly，前端可读取）
 - 比较 `X-CSRF-Token` 请求头
 - 不匹配返回 403；安全方法（GET/HEAD/OPTIONS）跳过
 
 变更摘要（从 Bearer token 迁移到 Cookie 认证）：
 
-| 项目 | 旧系统 | 新系统 |
-|------|--------|--------|
-| Token 存储 | localStorage (浏览器) | HttpOnly Cookie |
-| 请求方式 | `Authorization: Bearer <token>` | 自动携带 Cookie |
-| Access JWT 有效期 | 60 分钟 | 15 分钟 |
-| 会话标识 | token_hash (JWT 原文哈希) | sid (session ID claim) |
-| 登录返回 | `TokenResponse {access_token}` | `UserResponse` + 设置 Cookie |
-| Refresh 机制 | 无 | POST /auth/refresh，opaque token 轮换 |
-| CSRF 保护 | 无 | pm_csrf_token Cookie + X-CSRF-Token Header |
-```
+| 项目              | 旧系统                          | 新系统                                     |
+| ----------------- | ------------------------------- | ------------------------------------------ |
+| Token 存储        | localStorage (浏览器)           | HttpOnly Cookie                            |
+| 请求方式          | `Authorization: Bearer <token>` | 自动携带 Cookie                            |
+| Access JWT 有效期 | 60 分钟                         | 15 分钟                                    |
+| 会话标识          | token_hash (JWT 原文哈希)       | sid (session ID claim)                     |
+| 登录返回          | `TokenResponse {access_token}`  | `UserResponse` + 设置 Cookie               |
+| Refresh 机制      | 无                              | POST /auth/refresh，opaque token 轮换      |
+| CSRF 保护         | 无                              | pm_csrf_token Cookie + X-CSRF-Token Header |
+
+````
 
 ### 6.3 请求/响应模型（schemas/）
 
@@ -395,7 +403,7 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
     "text": "Price Drop Alert: {title}\nPlatform: {platform}\nOld Price: {old} CNY\nNew Price: {new} CNY\nDrop: {percent}%\nLink: {url}"
   }
 }
-```
+````
 
 **幂等性保障**：告警表存 `last_notified_price`，只有新价格低于上次通知价格才触发。
 
@@ -439,15 +447,15 @@ _shared_context: BrowserContext
 
 ### 8.2 平台特定适配器
 
-| 适配器            | 提取策略                                                 |
-| ----------------- | -------------------------------------------------------- |
-| TaobaoAdapter     | CSS 选择器 + 活动页价格处理                              |
-| JDAdapter         | 价格元素定位                                             |
-| AmazonAdapter     | 价格区域定位                                             |
-| BossCloakExperimentalAdapter | CloakBrowser 刷新 cookies + curl_cffi 串行调用搜索/详情 API |
-| BossZhipinAdapter | legacy CDP/curl_cffi 方案，当前不由 `_create_adapter("boss")` 选择 |
-| Job51Adapter      | curl_cffi 搜索 + HTML 详情解析                           |
-| LiepinAdapter     | curl_cffi 搜索 API + HTTP 详情解析，不开 tab             |
+| 适配器                       | 提取策略                                                           |
+| ---------------------------- | ------------------------------------------------------------------ |
+| TaobaoAdapter                | CSS 选择器 + 活动页价格处理                                        |
+| JDAdapter                    | 价格元素定位                                                       |
+| AmazonAdapter                | 价格区域定位                                                       |
+| BossCloakExperimentalAdapter | CloakBrowser 刷新 cookies + curl_cffi 串行调用搜索/详情 API        |
+| BossZhipinAdapter            | legacy CDP/curl_cffi 方案，当前不由 `_create_adapter("boss")` 选择 |
+| Job51Adapter                 | curl_cffi 搜索 + HTML 详情解析                                     |
+| LiepinAdapter                | curl_cffi 搜索 API + HTTP 详情解析，不开 tab                       |
 
 ### 8.3 商品抓取流程（`POST /products/crawl/crawl-now`）
 

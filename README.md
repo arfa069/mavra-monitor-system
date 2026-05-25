@@ -65,40 +65,40 @@ JD_COOKIE=...
 
 > **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
 
-| Method           | Path                              | Description                                        | 认证 |
-| ---------------- | --------------------------------- | -------------------------------------------------- | ---- |
-| GET              | /health                           | Health check (database + Redis + scheduler)        | 否  |
-| GET              | /config                           | Get current configuration                          | 是 |
-| POST             | /config                           | Create or update full configuration                | 是 |
-| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       | 是 |
-| POST             | /products                         | Add a product to track                             | 是 |
-| GET              | /products                         | List products (paginated: page, size, total, etc.) | 是 |
-| GET              | /products/{id}                    | Get product details                                | 是 |
-| GET              | /products/{id}/history            | Get price history                                  | 是 |
-| POST             | /products/batch-create            | Batch import products                              | 是 |
-| POST             | /products/batch-delete            | Batch delete products                              | 是 |
-| POST             | /products/batch-update            | Batch enable/disable products                      | 是 |
-| POST             | /alerts                           | Create an alert                                    | 是 |
-| GET              | /alerts                           | List all alerts                                    | 是 |
-| POST             | /products/crawl/crawl-now         | Crawl all active products                          | 是 |
-| GET              | /products/crawl/logs              | Get recent crawl logs                              | 是 |
-| POST             | /products/crawl/cleanup           | Delete old price history and crawl logs            | 是 |
-| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      | 是 |
-| GET              | /dashboard/kpi                    | User KPI and admin system KPI                      | 是 |
-| GET              | /dashboard/events                 | Dashboard KPI SSE stream                           | 是 |
-| GET              | /dashboard/trends                 | Dashboard chart data (`type`, `days`)              | 是 |
+| Method           | Path                              | Description                                        | 认证  |
+| ---------------- | --------------------------------- | -------------------------------------------------- | ----- |
+| GET              | /health                           | Health check (database + Redis + scheduler)        | 否    |
+| GET              | /config                           | Get current configuration                          | 是    |
+| POST             | /config                           | Create or update full configuration                | 是    |
+| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       | 是    |
+| POST             | /products                         | Add a product to track                             | 是    |
+| GET              | /products                         | List products (paginated: page, size, total, etc.) | 是    |
+| GET              | /products/{id}                    | Get product details                                | 是    |
+| GET              | /products/{id}/history            | Get price history                                  | 是    |
+| POST             | /products/batch-create            | Batch import products                              | 是    |
+| POST             | /products/batch-delete            | Batch delete products                              | 是    |
+| POST             | /products/batch-update            | Batch enable/disable products                      | 是    |
+| POST             | /alerts                           | Create an alert                                    | 是    |
+| GET              | /alerts                           | List all alerts                                    | 是    |
+| POST             | /products/crawl/crawl-now         | Crawl all active products                          | 是    |
+| GET              | /products/crawl/logs              | Get recent crawl logs                              | 是    |
+| POST             | /products/crawl/cleanup           | Delete old price history and crawl logs            | 是    |
+| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      | 是    |
+| GET              | /dashboard/kpi                    | User KPI and admin system KPI                      | 是    |
+| GET              | /dashboard/events                 | Dashboard KPI SSE stream                           | 是    |
+| GET              | /dashboard/trends                 | Dashboard chart data (`type`, `days`)              | 是    |
 | GET              | /dashboard/alerts/recent          | Recent alerts for admin dashboard                  | admin |
-| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         | 是 |
-| PATCH            | /jobs/resumes/{id}                | Update a resume                                    | 是 |
-| GET              | /jobs/match-results               | List match results                                 | 是 |
-| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      | 是 |
-| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     | 是 |
-| GET              | /jobs/tasks/{task_id}             | Poll async task status                             | 是 |
-| GET/POST         | /jobs/configs                     | List/Create job search configs                     | 是 |
-| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         | 是 |
-| GET              | /jobs                             | List crawled jobs (paginated)                      | 是 |
-| POST             | /jobs/crawl-now                   | Crawl all active job configs                       | 是 |
-| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            | 是 |
+| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         | 是    |
+| PATCH            | /jobs/resumes/{id}                | Update a resume                                    | 是    |
+| GET              | /jobs/match-results               | List match results                                 | 是    |
+| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      | 是    |
+| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     | 是    |
+| GET              | /jobs/tasks/{task_id}             | Poll async task status                             | 是    |
+| GET/POST         | /jobs/configs                     | List/Create job search configs                     | 是    |
+| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         | 是    |
+| GET              | /jobs                             | List crawled jobs (paginated)                      | 是    |
+| POST             | /jobs/crawl-now                   | Crawl all active job configs                       | 是    |
+| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            | 是    |
 
 ## 认证 API
 
@@ -106,13 +106,13 @@ JD_COOKIE=...
 
 ### 端点
 
-| Method | Path           | Description      | 认证 |
-| ------ | -------------- | ---------------- | ---- |
-| POST   | /auth/register | 注册新用户       | 否   |
-| POST   | /auth/login    | 用户登录并设置认证 Cookie | 否   |
+| Method | Path           | Description                         | 认证                    |
+| ------ | -------------- | ----------------------------------- | ----------------------- |
+| POST   | /auth/register | 注册新用户                          | 否                      |
+| POST   | /auth/login    | 用户登录并设置认证 Cookie           | 否                      |
 | POST   | /auth/refresh  | 通过 refresh Cookie 轮换认证 Cookie | 否（需 refresh Cookie） |
-| POST   | /auth/logout   | 用户登出并清理 Cookie | 是   |
-| GET    | /auth/me       | 获取当前用户信息 | 是   |
+| POST   | /auth/logout   | 用户登出并清理 Cookie               | 是                      |
+| GET    | /auth/me       | 获取当前用户信息                    | 是                      |
 
 ### 注册
 
@@ -181,15 +181,15 @@ curl -b cookies.txt http://localhost:8000/auth/me
 
 ### 错误码
 
-| 状态码 | 含义               | 说明                         |
-| ------ | ------------------ | ---------------------------- |
-| 201    | 注册成功           | 新用户创建成功               |
-| 200    | 登录/登出成功      | 操作成功                     |
-| 400    | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突       |
+| 状态码 | 含义               | 说明                                               |
+| ------ | ------------------ | -------------------------------------------------- |
+| 201    | 注册成功           | 新用户创建成功                                     |
+| 200    | 登录/登出成功      | 操作成功                                           |
+| 400    | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突                             |
 | 401    | 认证失败           | 用户名/密码错误、Cookie 缺失、Token 过期或会话失效 |
-| 403    | CSRF 失败          | 不安全方法缺少或携带了错误的 `X-CSRF-Token` |
-| 422    | 参数验证失败       | 密码太短、邮箱格式错误等     |
-| 429    | 请求过于频繁       | 连续5次登录失败后锁定15分钟  |
+| 403    | CSRF 失败          | 不安全方法缺少或携带了错误的 `X-CSRF-Token`        |
+| 422    | 参数验证失败       | 密码太短、邮箱格式错误等                           |
+| 429    | 请求过于频繁       | 连续5次登录失败后锁定15分钟                        |
 
 ### 安全机制
 

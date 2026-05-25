@@ -31,8 +31,7 @@ export const productQueryKeys = {
       params.page ?? 1,
       params.size ?? 15,
     ] as const,
-  history: (id: number, days: number) =>
-    ["product-history", id, days] as const,
+  history: (id: number, days: number) => ["product-history", id, days] as const,
   crawlLogs: (params?: {
     product_id?: number;
     hours?: number;
