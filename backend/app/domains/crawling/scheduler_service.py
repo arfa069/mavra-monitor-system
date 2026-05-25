@@ -58,13 +58,12 @@ async def _run_crawl_task(task: CrawlTask) -> None:
     )
 
     try:
-        from app.domains.crawling.service import get_active_products
+        from app.domains.crawling.task_runner import CrawlTaskRunner
 
-        products = await get_active_products(user_id=task.user_id)
-        if not products:
+        result = await CrawlTaskRunner().run_all_products(task)
+
+        if result.get("reason") == "no_active_products":
             logger.info(f"Task {task.task_id}: no active products")
-            task.status = TaskStatus.COMPLETED
-            task.reason = "no_active_products"
             await emit_system_log_detached(
                 category="runtime",
                 event_type="product_crawl.completed",
@@ -79,29 +78,9 @@ async def _run_crawl_task(task: CrawlTask) -> None:
             )
             return
 
-        task.total = len(products)
-        product_ids = [p.id for p in products]
-        semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+        if result.get("details") and task.details is None:
+            task.details = result["details"]
 
-        tasks = [
-            _crawl_one_with_semaphore(pid, semaphore, True) for pid in product_ids
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        processed_results = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.exception("Crawl failed for product %d", product_ids[i])
-                processed_results.append(
-                    {"status": "error", "product_id": product_ids[i], "error": str(result)}
-                )
-            else:
-                processed_results.append(result)
-
-        task.success = sum(1 for r in processed_results if r.get("status") == "success")
-        task.errors = sum(1 for r in processed_results if r.get("status") == "error")
-        task.details = processed_results
-        task.status = TaskStatus.COMPLETED
         logger.info(f"Task {task.task_id}: completed ({task.success} success, {task.errors} errors)")
         await emit_system_log_detached(
             category="runtime",

@@ -40,3 +40,34 @@ class CrawlTaskRunner:
         if not ok:
             task.reason = result.get("error") or result.get("reason") or "crawl_failed"
         return result
+
+    async def run_all_products(self, task: CrawlTask) -> dict:
+        from app.domains.crawling.router import _crawl_one
+        from app.domains.crawling.service import get_active_products
+
+        task.status = TaskStatus.RUNNING
+        products = await get_active_products(user_id=task.user_id)
+        task.total = len(products)
+        if not products:
+            task.status = TaskStatus.COMPLETED
+            task.reason = "no_active_products"
+            return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
+
+        details = []
+        for product in products:
+            try:
+                details.append(await _crawl_one(product.id))
+            except Exception as exc:
+                details.append({"status": "error", "product_id": product.id, "error": str(exc)})
+
+        task.success = sum(1 for item in details if item.get("status") == "success")
+        task.errors = sum(1 for item in details if item.get("status") == "error")
+        task.details = details
+        task.status = TaskStatus.COMPLETED
+        return {
+            "status": "completed",
+            "total": task.total,
+            "success": task.success,
+            "errors": task.errors,
+            "details": details,
+        }
