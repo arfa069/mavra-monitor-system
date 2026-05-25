@@ -52,7 +52,6 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
     ):
         super().__init__()
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
-            "boss",
             "default",
         )
         self.max_jobs = max_jobs

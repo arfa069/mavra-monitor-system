@@ -1,21 +1,12 @@
-"""Cross-platform path helpers for crawler runtime data.
+"""Profile directory helpers.
 
 Profile directories are always rooted at the project root's ``profiles/``
-directory, organized as ``profiles/{platform}/{profile_key}``.
+directory, organized as ``profiles/{profile_key}``.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-
-VALID_PLATFORMS = {
-    "boss",
-    "51job",
-    "liepin",
-    "jd",
-    "taobao",
-    "amazon",
-}
 
 
 def _project_root() -> Path:
@@ -28,14 +19,12 @@ def _validate_segment(kind: str, value: str) -> None:
         raise ValueError(f"Invalid {kind}: {value!r}")
 
 
-def build_profile_dir(platform: str, profile_key: str, root: str | Path | None = None) -> Path:
-    """Build profile directory path.
+def build_profile_dir(profile_key: str, root: str | Path | None = None) -> Path:
+    """Build profile directory path under ``profiles/{profile_key}``.
 
     When *root* is ``None`` (default), resolves relative to the project root.
     Pass an explicit *root* (e.g. ``tmp_path`` in tests) to override.
     """
-    if platform not in VALID_PLATFORMS:
-        raise ValueError(f"Invalid platform: {platform!r}")
     _validate_segment("profile key", profile_key)
     base = Path(root).expanduser().resolve() if root is not None else _project_root()
-    return base / "profiles" / platform / profile_key
+    return base / "profiles" / profile_key

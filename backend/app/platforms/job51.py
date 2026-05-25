@@ -46,7 +46,6 @@ class Job51Adapter(BasePlatformAdapter):
     ):
         super().__init__()
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
-            "51job",
             "default",
         )
         self.headless = headless
