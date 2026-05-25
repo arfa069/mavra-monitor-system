@@ -50,7 +50,7 @@ CDP_ENABLED=true
 CDP_URL=http://127.0.0.1:9222
 
 # Boss Zhipin job crawl
-# Login once in the CloakBrowser profile at ~/.cloakbrowser/profiles/boss-test.
+# Login once in the project-root CloakBrowser profile at profiles/default.
 # Runtime JSONL progress logs are written under backend/logs/.
 
 # Proxy (optional, for rotating IPs)
@@ -279,7 +279,9 @@ Concurrent crawl protection: both cron and manual crawls share a global `asyncio
 
 ### Job Platform Notes
 
+- Browser profiles live under project-root `profiles/{key}` and are ignored by git. A single profile may hold login state for multiple platforms, but one profile directory must be leased by only one crawl task at a time; use multiple profile keys for concurrent crawler slots.
 - Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
+- Event Center/system log payloads are centrally redacted before storage and again before display, so cookie/token/webhook/security fields are not exposed in runtime or audit event details.
 - 51job uses `curl_cffi` search and HTML detail parsing.
 - Liepin uses `curl_cffi` for both search and detail. Search calls `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`; detail parsing tries `/job/<id>.shtml` and `/a/<id>.shtml`. The normal Liepin path should not open browser tabs.
 

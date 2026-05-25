@@ -275,11 +275,20 @@ async def test_profile_lease_releases_after_context(tmp_path)
 
 - [x] **Step 5: Commit**
 
-### Actual implementation
+### Actual implementation after review feedback
 
 Same as planned, except `build_profile_dir(profile_key, root=self.root)` instead of `build_profile_dir(self.root, platform, profile_key)`.
 
-Added docstring explaining that `mkdir(parents=True, exist_ok=True)` is an intentional side effect.
+The lease key is the resolved `profile_dir`, not `(platform, profile_key)`. This matches the production rule discussed during review:
+
+> One profile can store login state for multiple platforms, but the same profile directory can only be occupied by one crawl task at a time. A crawl task runs one platform.
+
+Boundary tests cover:
+
+```python
+async def test_profile_lease_rejects_same_profile_across_platforms(tmp_path)
+async def test_profile_lease_allows_different_profiles_for_same_platform(tmp_path)
+```
 
 ---
 
@@ -366,6 +375,24 @@ test_redact_payload_masks_sensitive_keys()
 test_redact_payload_handles_nested_lists()
 test_redact_payload_handles_sets()
 test_redact_payload_handles_plain_strings()
+```
+
+### Review fix: wire redaction into Event Center/system logs
+
+The first implementation only added the helper. Review found that real system logs still wrote raw payloads.
+
+Final behavior:
+
+- `emit_system_log()` stores `payload_json=redact_payload(payload)`.
+- `normalize_system_log()` redacts again before Event Center output, so existing rows written before this change are protected when displayed.
+- `normalize_audit_log()` redacts audit details before Event Center output.
+
+Additional tests:
+
+```python
+test_emit_system_log_redacts_sensitive_payload_before_storage()
+test_normalize_system_log_redacts_existing_payloads()
+test_normalize_audit_log_redacts_existing_details()
 ```
 
 ---
@@ -456,7 +483,7 @@ No `from app.config import settings` import needed. Tests changed from monkeypat
 
 - [x] **Step 2: Implement product runner method**
 
-`CrawlTaskRunner.run_all_products()` — sequential product crawl (concurrency deferred to Phase 2).
+`CrawlTaskRunner.run_all_products()` — preserves old product behavior with up to 3 concurrent product crawls and per-product error capture.
 
 - [x] **Step 3: Update product scheduler service**
 
@@ -466,9 +493,24 @@ No `from app.config import settings` import needed. Tests changed from monkeypat
 
 - [x] **Step 5: Commit**
 
-### Actual implementation
+### Actual implementation after review feedback
 
-Same as plan. Notable: the mock target was changed from `app.domains.crawling.router._crawl_one` to `app.domains.crawling.service.crawl_one` because the `__init__.py` exports the `APIRouter` instance which shadows the module.
+Initial Phase 1 implementation made `run_all_products()` sequential. Review and user discussion concluded this changed existing product crawl behavior too much for Phase 1.
+
+Final behavior preserves the old product crawl semantics:
+
+- Batch-level product concurrency remains `3`.
+- Each product crawl still waits a randomized 2-3s after `_crawl_one(product_id)`.
+- Exceptions from individual products are captured as per-product error details and do not abort the batch.
+- Result details are returned in active-product order.
+
+Additional test:
+
+```python
+async def test_runner_limits_product_concurrency_to_three(monkeypatch)
+```
+
+Notable: the mock target was changed from `app.domains.crawling.router._crawl_one` to `app.domains.crawling.service.crawl_one` because the `__init__.py` exports the `APIRouter` instance which shadows the module.
 
 ---
 
@@ -478,8 +520,9 @@ Same as plan. Notable: the mock target was changed from `app.domains.crawling.ro
 - [x] `.env.example` updated with CDP settings
 - [x] Integration tests: `test_integration_crawl_phase1.py` (28 tests)
 - [x] E2E tests: `test_e2e_crawl_flow.py` (3 tests, requires `RUN_E2E=1`)
-- [x] Code review: 10 issues found, 4 fixed (2/3/5/8), 6 technically rebutted
-- [x] Full test suite: 492 passed, 21 skipped
+- [x] Code review follow-up: profile lease directory locking, product concurrency restoration, runtime log redaction wiring, stricter crawl-now integration tests, and diff whitespace cleanup
+- [x] Targeted test suite after review fixes: 82 passed, 2 skipped
+- [x] Frontend/backend E2E smoke after review fixes: login, Event Center redaction, product crawl task creation/status, and Event Center completion event verified on 2026-05-25
 - [x] Documented in `doc/backend-architecture.md` section 7.6
 
 ### Settings removed during simplification

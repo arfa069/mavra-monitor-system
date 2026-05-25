@@ -21,6 +21,7 @@ Phase C Integration & Regression Tests
     - 关键响应字段截图
     - API 请求/响应记录
 """
+import asyncio
 from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -410,9 +411,24 @@ class TestManualCrawlRegression:
     """C-08: POST /products/crawl/crawl-now 仍可用"""
 
     @pytest.mark.asyncio
-    async def test_c08_crawl_now_endpoint_exists(self, mock_get_current_user):
+    async def test_c08_crawl_now_endpoint_exists(self, mock_get_current_user, monkeypatch):
         """C-08: /products/crawl/crawl-now 端点存在"""
         from app.database import get_db
+        from app.domains.crawling import scheduler_service
+
+        async def _noop_run_crawl_in_lock(task, crawl_lock):
+            return None
+
+        monkeypatch.setattr(
+            scheduler_service,
+            "_scheduler_state",
+            {"crawl_lock": asyncio.Semaphore(1)},
+        )
+        monkeypatch.setattr(
+            scheduler_service,
+            "_run_crawl_in_lock",
+            _noop_run_crawl_in_lock,
+        )
 
         # Mock DB for require_permission DB lookup
         mock_result = MagicMock()
@@ -429,10 +445,10 @@ class TestManualCrawlRegression:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post("/products/crawl/crawl-now")
-            # 可能返回 200 (ok) 或 500 (scheduler not init)
-            assert response.status_code in [200, 500], f"Unexpected status: {response.status_code}"
+            assert response.status_code == 200, f"Unexpected status: {response.status_code}"
             data = response.json()
-            assert "status" in data
+            assert data["status"] == "pending"
+            assert "task_id" in data
             print(f"[C-08] PASS: /products/crawl/crawl-now exists, status={data.get('status')}")
         finally:
             app.dependency_overrides.pop(get_db, None)

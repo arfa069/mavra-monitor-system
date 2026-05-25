@@ -74,6 +74,37 @@ async def test_emit_system_log_commit_success_returns_entry():
 
 
 @pytest.mark.asyncio
+async def test_emit_system_log_redacts_sensitive_payload_before_storage():
+    """Sensitive payload fields should never be stored in system logs."""
+    from app.core.system_log import emit_system_log
+
+    mock_db = AsyncMock()
+    mock_db.add = MagicMock()
+
+    entry = await emit_system_log(
+        db=mock_db,
+        category="runtime",
+        event_type="job_crawl.started",
+        source="jobs",
+        message="Job crawl started",
+        payload={
+            "cookie": "session=secret",
+            "headers": {"Authorization": "Bearer secret", "User-Agent": "Chrome"},
+            "securityId": "abcdef1234567890",
+            "safe": "value",
+        },
+    )
+
+    assert entry is not None
+    assert entry.payload_json == {
+        "cookie": "***REDACTED***",
+        "headers": {"Authorization": "***REDACTED***", "User-Agent": "Chrome"},
+        "securityId": "abcdef12***",
+        "safe": "value",
+    }
+
+
+@pytest.mark.asyncio
 async def test_emit_system_log_failure_is_best_effort():
     """emit_system_log should swallow write failures and return None."""
     from app.core.system_log import emit_system_log
@@ -93,6 +124,51 @@ async def test_emit_system_log_failure_is_best_effort():
 
     assert entry is None
     mock_db.commit.assert_not_awaited()
+
+
+def test_normalize_system_log_redacts_existing_payloads():
+    """Event Center output should redact rows written before storage redaction."""
+    from app.core.system_log import normalize_system_log
+
+    log = MagicMock()
+    log.id = 1
+    log.category = "runtime"
+    log.event_type = "job_crawl.started"
+    log.severity = "info"
+    log.message = "Job crawl started"
+    log.occurred_at = datetime.now(UTC)
+    log.source = "jobs"
+    log.status = "running"
+    log.user_id = 7
+    log.entity_type = "job_config"
+    log.entity_id = "3"
+    log.trace_id = None
+    log.payload_json = {"webhook_url": "https://open.feishu.cn/hook/secret"}
+
+    result = normalize_system_log(log)
+
+    assert result["payload"] == {"webhook_url": "***REDACTED***"}
+
+
+def test_normalize_audit_log_redacts_existing_details():
+    """Audit details displayed in Event Center should not expose tokens."""
+    from app.core.system_log import normalize_audit_log
+
+    log = MagicMock()
+    log.id = 1
+    log.action = "auth.login"
+    log.created_at = datetime.now(UTC)
+    log.actor_user_id = 7
+    log.target_type = "user"
+    log.target_id = 7
+    log.details = {"access_token": "secret", "username": "user-7"}
+
+    result = normalize_audit_log(log)
+
+    assert result["payload"] == {
+        "access_token": "***REDACTED***",
+        "username": "user-7",
+    }
 
 
 def test_can_view_event_applies_platform_and_admin_rules():

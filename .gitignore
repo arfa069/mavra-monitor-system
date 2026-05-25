@@ -65,3 +65,4 @@ set_password.py
 backend/app/platforms/.boss_cookies.json
 backend/app/platforms/.51job_cookies.json
 /backend/logs
+/profiles

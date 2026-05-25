@@ -27,17 +27,18 @@ class InProcessProfileLeaseManager:
     """
     def __init__(self, *, root: str | Path):
         self.root = Path(root)
-        self._leased: set[tuple[str, str]] = set()
+        self._leased: set[Path] = set()
         self._lock = asyncio.Lock()
 
     async def acquire(self, platform: str, profile_key: str, *, owner: str) -> ProfileLease:
-        key = (platform, profile_key)
+        profile_dir = build_profile_dir(profile_key, root=self.root)
         async with self._lock:
-            if key in self._leased:
-                raise RuntimeError(f"Profile {platform}/{profile_key} is already leased")
-            profile_dir = build_profile_dir(profile_key, root=self.root)
+            if profile_dir in self._leased:
+                raise RuntimeError(
+                    f"Profile {profile_key!r} is already leased at {profile_dir}"
+                )
             profile_dir.mkdir(parents=True, exist_ok=True)
-            self._leased.add(key)
+            self._leased.add(profile_dir)
             return ProfileLease(
                 platform=platform,
                 profile_key=profile_key,
@@ -47,7 +48,7 @@ class InProcessProfileLeaseManager:
 
     async def release(self, lease: ProfileLease) -> None:
         async with self._lock:
-            self._leased.discard((lease.platform, lease.profile_key))
+            self._leased.discard(lease.profile_dir)
 
     @asynccontextmanager
     async def lease(

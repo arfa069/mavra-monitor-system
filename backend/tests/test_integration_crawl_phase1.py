@@ -3,7 +3,8 @@
 Uses ASGITransport to test endpoints without a running server.
 Mocks auth, DB, and scheduler state where needed.
 """
-from unittest.mock import AsyncMock, MagicMock, patch
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -41,9 +42,24 @@ class TestCrawlNowEndpoint:
     """POST /products/crawl/crawl-now — triggers manual crawl."""
 
     @pytest.mark.asyncio
-    async def test_crawl_now_returns_task_id(self, mock_user):
+    async def test_crawl_now_returns_task_id(self, mock_user, monkeypatch):
         """Returns pending status and task_id when crawl starts."""
         from app.database import get_db
+        from app.domains.crawling import scheduler_service
+
+        async def _noop_run_crawl_in_lock(task, crawl_lock):
+            return None
+
+        monkeypatch.setattr(
+            scheduler_service,
+            "_scheduler_state",
+            {"crawl_lock": asyncio.Semaphore(1)},
+        )
+        monkeypatch.setattr(
+            scheduler_service,
+            "_run_crawl_in_lock",
+            _noop_run_crawl_in_lock,
+        )
 
         # Mock DB for require_permission lookup
         mock_result = MagicMock()
@@ -61,12 +77,10 @@ class TestCrawlNowEndpoint:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post("/products/crawl/crawl-now")
 
-            # Should either return pending (scheduler running) or 500 (not init)
-            assert response.status_code in [200, 500]
+            assert response.status_code == 200
             data = response.json()
-            if response.status_code == 200:
-                assert data["status"] == "pending"
-                assert "task_id" in data
+            assert data["status"] == "pending"
+            assert "task_id" in data
         finally:
             app.dependency_overrides.pop(get_db, None)
 
@@ -275,7 +289,7 @@ class TestCrawlTaskRunnerIntegration:
         )
 
         task = create_task("manual", user_id=1)
-        result = await CrawlTaskRunner().run_all_products(task)
+        await CrawlTaskRunner().run_all_products(task)
 
         assert task.reason == "no_active_products"
         assert task.status == TaskStatus.COMPLETED
@@ -336,6 +350,28 @@ class TestProfileLeaseIntegration:
             await manager.acquire("boss", "profile-a", owner="test2")
 
     @pytest.mark.asyncio
+    async def test_same_profile_key_is_exclusive_across_platforms(self, tmp_path):
+        """One profile can store multiple platform logins but only one task can use it."""
+        from app.core.profile_lease import InProcessProfileLeaseManager
+
+        manager = InProcessProfileLeaseManager(root=tmp_path)
+        await manager.acquire("boss", "profile-a", owner="test")
+
+        with pytest.raises(RuntimeError, match="already leased"):
+            await manager.acquire("51job", "profile-a", owner="test2")
+
+    @pytest.mark.asyncio
+    async def test_different_profile_keys_can_be_acquired_concurrently(self, tmp_path):
+        """Multiple profiles are separate crawler concurrency slots."""
+        from app.core.profile_lease import InProcessProfileLeaseManager
+
+        manager = InProcessProfileLeaseManager(root=tmp_path)
+        first = await manager.acquire("boss", "profile-a", owner="test")
+        second = await manager.acquire("boss", "profile-b", owner="test2")
+
+        assert first.profile_dir != second.profile_dir
+
+    @pytest.mark.asyncio
     async def test_release_allows_reacquire(self, tmp_path):
         """After release, same lease can be acquired again."""
         from app.core.profile_lease import InProcessProfileLeaseManager
@@ -344,7 +380,7 @@ class TestProfileLeaseIntegration:
         lease = await manager.acquire("boss", "profile-a", owner="test")
         await manager.release(lease)
 
-        lease2 = await manager.acquire("boss", "profile-a", owner="test2")
+        lease2 = await manager.acquire("51job", "profile-a", owner="test2")
         assert lease2.profile_key == "profile-a"
 
     @pytest.mark.asyncio

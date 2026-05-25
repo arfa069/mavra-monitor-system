@@ -380,7 +380,7 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 - `domains/crawling/task_runner.py` — `CrawlTaskRunner` 门面，提供三个方法：
   - `run_job_config(task, config_id=...)` — 执行单个职位配置爬取
   - `run_all_jobs(task)` — 执行全量职位爬取
-  - `run_all_products(task)` — 执行全量商品爬取
+  - `run_all_products(task)` — 执行全量商品爬取；保留旧行为：批次内最多 3 个商品并发，每个商品完成后随机等待 2-3s
 - `domains/crawling/scheduler_service.py` — 商品爬取调度：并发保护（Semaphore）、Event Center 事件发射、背景/同步两种执行模式
 - `core/task_registry.py` — 内存任务注册表：创建任务、查询状态、过期清理
 
@@ -398,9 +398,9 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 **安全与基础设施：**
 
 - `core/crawler_paths.py` — `build_profile_dir(key)` 将 profile 路径锚定到项目根 `profiles/{key}`
-- `core/profile_lease.py` — `InProcessProfileLeaseManager`：asyncio 锁保护的 profile 租约管理，获取时自动创建目录
+- `core/profile_lease.py` — `InProcessProfileLeaseManager`：按真实 `profile_dir` 加锁。一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；获取时自动创建目录
 - `core/cdp_security.py` — `validate_cdp_url()`：检查 CDP 端点是否为 localhost，防止连接到外部 CDP
-- `core/log_redaction.py` — `redact_payload()`：递归脱敏敏感字段（cookie、token、webhook_url）
+- `core/log_redaction.py` — `redact_payload()`：递归脱敏敏感字段（cookie、token、webhook_url、securityId）。`emit_system_log()` 入库前脱敏，Event Center 输出时再次脱敏，覆盖历史裸 payload
 
 ### 7.5 LLM 匹配分析（domains/jobs/match_service.py）
 

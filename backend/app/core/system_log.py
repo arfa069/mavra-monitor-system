@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_stream import event_stream_broker
+from app.core.log_redaction import redact_payload
 from app.database import AsyncSessionLocal
 from app.models.audit_log import UserAuditLog
 from app.models.system_log import SystemLog
@@ -61,7 +62,7 @@ def normalize_audit_log(log: UserAuditLog) -> dict[str, Any]:
         "entity_type": log.target_type,
         "entity_id": str(log.target_id) if log.target_id is not None else None,
         "trace_id": None,
-        "payload": log.details,
+        "payload": redact_payload(log.details),
     }
 
 
@@ -81,7 +82,7 @@ def normalize_system_log(log: SystemLog) -> dict[str, Any]:
         "entity_type": log.entity_type,
         "entity_id": log.entity_id,
         "trace_id": log.trace_id,
-        "payload": log.payload_json,
+        "payload": redact_payload(log.payload_json),
     }
 
 
@@ -116,7 +117,7 @@ async def emit_system_log(
             entity_type=entity_type,
             entity_id=str(entity_id) if entity_id is not None else None,
             trace_id=trace_id,
-            payload_json=payload,
+            payload_json=redact_payload(payload),
         )
         db.add(log_entry)
         if commit:

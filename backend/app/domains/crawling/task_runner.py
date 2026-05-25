@@ -6,7 +6,28 @@ business crawler execution.
 
 from __future__ import annotations
 
+import asyncio
+import random
+
 from app.core.task_registry import CrawlTask, TaskStatus
+
+PRODUCT_CONCURRENCY_LIMIT = 3
+PRODUCT_CRAWL_INTERVAL_MIN = 2.0
+PRODUCT_CRAWL_INTERVAL_MAX = 3.0
+
+
+async def _crawl_product_with_semaphore(
+    product_id: int,
+    semaphore: asyncio.Semaphore,
+) -> dict:
+    async with semaphore:
+        from app.domains.crawling.router import _crawl_one
+
+        result = await _crawl_one(product_id)
+        await asyncio.sleep(
+            random.uniform(PRODUCT_CRAWL_INTERVAL_MIN, PRODUCT_CRAWL_INTERVAL_MAX)
+        )
+        return result
 
 
 class CrawlTaskRunner:
@@ -42,7 +63,6 @@ class CrawlTaskRunner:
         return result
 
     async def run_all_products(self, task: CrawlTask) -> dict:
-        from app.domains.crawling.router import _crawl_one
         from app.domains.crawling.service import get_active_products
 
         task.status = TaskStatus.RUNNING
@@ -53,12 +73,22 @@ class CrawlTaskRunner:
             task.reason = "no_active_products"
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
+        product_ids = [product.id for product in products]
+        semaphore = asyncio.Semaphore(PRODUCT_CONCURRENCY_LIMIT)
+        crawl_tasks = [
+            _crawl_product_with_semaphore(product_id, semaphore)
+            for product_id in product_ids
+        ]
+        results = await asyncio.gather(*crawl_tasks, return_exceptions=True)
+
         details = []
-        for product in products:
-            try:
-                details.append(await _crawl_one(product.id))
-            except Exception as exc:
-                details.append({"status": "error", "product_id": product.id, "error": str(exc)})
+        for product_id, result in zip(product_ids, results, strict=True):
+            if isinstance(result, Exception):
+                details.append(
+                    {"status": "error", "product_id": product_id, "error": str(result)}
+                )
+            else:
+                details.append(result)
 
         task.success = sum(1 for item in details if item.get("status") == "success")
         task.errors = sum(1 for item in details if item.get("status") == "error")

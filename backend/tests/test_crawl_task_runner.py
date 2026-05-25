@@ -76,6 +76,10 @@ async def test_runner_executes_product_task(monkeypatch):
         "app.domains.crawling.service.get_active_products",
         AsyncMock(return_value=[SimpleNamespace(id=10), SimpleNamespace(id=11)]),
     )
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner.asyncio.sleep",
+        AsyncMock(),
+    )
     # Note: app.domains.crawling.router is shadowed by the APIRouter instance
     # exported from __init__.py, so we mock the underlying service function
     # that _crawl_one delegates to instead.
@@ -93,3 +97,43 @@ async def test_runner_executes_product_task(monkeypatch):
     assert task.total == 2
     assert task.success == 1
     assert task.errors == 1
+
+
+@pytest.mark.asyncio
+async def test_runner_limits_product_concurrency_to_three(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.core.task_registry import create_task
+    from app.domains.crawling.task_runner import CrawlTaskRunner
+
+    active = 0
+    max_active = 0
+    real_sleep = __import__("asyncio").sleep
+
+    async def fake_crawl_one(product_id: int) -> dict:
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await real_sleep(0)
+        active -= 1
+        return {"status": "success", "product_id": product_id}
+
+    monkeypatch.setattr(
+        "app.domains.crawling.service.get_active_products",
+        AsyncMock(return_value=[SimpleNamespace(id=i) for i in range(6)]),
+    )
+    monkeypatch.setattr(
+        "app.domains.crawling.service.crawl_one",
+        fake_crawl_one,
+    )
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner.asyncio.sleep",
+        AsyncMock(),
+    )
+
+    task = create_task("manual", user_id=1, entity_type="crawl_task")
+    result = await CrawlTaskRunner().run_all_products(task)
+
+    assert result["status"] == "completed"
+    assert task.success == 6
+    assert max_active == 3

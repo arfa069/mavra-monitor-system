@@ -48,7 +48,7 @@ Browser clients authenticate with HttpOnly access/refresh cookies, short-lived a
 
 ## Crawling Strategy
 
-Crawl tasks run **asynchronously in FastAPI's event loop** — no Celery or external worker. The `POST /products/crawl/crawl-now` endpoint processes each active product sequentially with a 7–12s random interval between crawls to avoid rate limiting.
+Crawl tasks run **asynchronously in FastAPI's event loop** — no Celery or external worker yet. The `POST /products/crawl/crawl-now` endpoint creates an in-memory task and routes execution through `CrawlTaskRunner`; product crawl execution is protected by a global semaphore and runs up to 3 products concurrently with a 2–3s randomized post-crawl interval.
 
 ### Cron Scheduling
 
@@ -343,7 +343,7 @@ Each product adapter implements `extract_price()` and `extract_title()`. The bas
 
 Unlike product adapters, job adapters do not use Playwright for their normal crawl paths. Instead:
 
-- **BossCloakExperimentalAdapter** is the active Boss path. It uses a logged-in CloakBrowser profile at `~/.cloakbrowser/profiles/boss-test` to refresh cookies, then calls Boss list/detail APIs through `curl_cffi` with `impersonate="chrome124"`.
+- **BossCloakExperimentalAdapter** is the active Boss path. It uses a logged-in CloakBrowser profile at project-root `profiles/default` to refresh cookies, then calls Boss list/detail APIs through `curl_cffi` with `impersonate="chrome124"`.
 - **Boss request strategy**: list pages use `pageSize=30`; list delay is 2-5s; detail delay is 2-3s; list and detail are interleaved per page; no batch/concurrent detail requests.
 - **Boss anti-bot handling**: refresh cookies only when list/detail responses return code 36/37/38. Refresh is `reload` of the current search page, wait 1s, read full `.zhipin.com` cookie scope, then retry the current request.
 - **Boss data completeness**: the adapter fetches details during `crawl()`, so `process_job_results()` normally receives jobs with `description` and `address` already present. `crawl_detail(security_id)` remains for legacy/fallback paths.
@@ -353,6 +353,12 @@ Unlike product adapters, job adapters do not use Playwright for their normal cra
 - **LiepinAdapter** uses `curl_cffi` for both search and detail. Search posts to `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`, seeded by a search-page GET for cookies/XSRF. Detail parsing tries standard `/job/<id>.shtml` and anonymous `/a/<id>.shtml` URLs, so the normal Liepin path should not open browser tabs.
 
 This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot script triggers on detection, while keeping Boss requests serial enough for its anti-bot sensitivity.
+
+### Runtime Profiles And Event Safety
+
+- Browser profiles live under project-root `profiles/{key}` and are ignored by git.
+- One profile can store login state for multiple platforms, but one profile directory can only be leased by one crawl task at a time. Use multiple profile keys when multiple crawler slots are needed.
+- `emit_system_log()` redacts payloads before storage, and Event Center normalizers redact again before display. Sensitive cookie/token/webhook/security fields should not appear in runtime or audit event details.
 
 ## Data Retention
 

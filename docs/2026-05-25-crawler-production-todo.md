@@ -15,7 +15,7 @@
 
 | 阶段 | 状态 | 主要输出 | 备注 |
 | --- | --- | --- | --- |
-| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已完成并合并到 main |
+| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成，待提交 |
 | Phase 2 | todo | `crawl_tasks`、Profile Pool、profile lease | 为独立 worker 做准备 |
 | Phase 3 | todo | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
@@ -36,6 +36,8 @@
 | 增加 profile 状态 Event Center 事件 | todo | login_required/cooling_down 等状态可见 |
 
 ## Phase 2：持久化任务和 Profile Pool
+
+Profile 规则：一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；任务只跑一个平台。Phase 2 的 DB/Redis lease 必须按真实 profile 目录或 profile id 加锁，而不是按平台加锁。
 
 | 任务 | 状态 | 验收 |
 | --- | --- | --- |
@@ -88,4 +90,3 @@
 | 按平台启动专用 worker | todo | 支持只跑 boss / jd 等 |
 | APScheduler 只创建 task | todo | 调度器不直接执行爬虫 |
 | 多 worker profile lease 验证 | todo | 不抢同一 profile |
-
