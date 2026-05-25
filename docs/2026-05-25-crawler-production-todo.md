@@ -15,7 +15,7 @@
 
 | 阶段 | 状态 | 主要输出 | 备注 |
 | --- | --- | --- | --- |
-| Phase 1 | done | `CrawlTaskRunner`、profile root 配置、安全检查 | 当前优先级最高 |
+| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已完成并合并到 main |
 | Phase 2 | todo | `crawl_tasks`、Profile Pool、profile lease | 为独立 worker 做准备 |
 | Phase 3 | todo | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
@@ -28,8 +28,7 @@
 | 新增 `CrawlTaskRunner`，统一商品和职位执行入口 | done | 手动和定时爬取都可通过 runner 执行 |
 | FastAPI 手动触发先创建任务，再调用 runner | done | 原接口响应兼容，Event Center 正常 |
 | APScheduler 定时触发先创建任务，再调用 runner | done | 定时职位和商品任务行为不变 |
-| 增加 `PRICE_MONITOR_HOME` 配置 | done | 默认 `/price-monitor`，Windows 可配置为 `C:\price-monitor` |
-| profile 默认路径改为 `/price-monitor/profiles/{platform}/{profile_key}` | done | 不再硬编码用户 home 下 profile |
+| 增加 profile 默认路径 | done | profile 自动解析到项目根 `profiles/{key}`，不再依赖环境变量 |
 | 定义 Profile Pool / Profile Lease 接口 | done | 第一阶段可先单机锁实现 |
 | adapter profile path 改由配置或 Profile Pool 注入 | done | Boss、51job adapter 不再各自写死路径 |
 | 增加 CDP 端口安全检查 | done | 发现非 localhost 监听时阻止启动或告警 |

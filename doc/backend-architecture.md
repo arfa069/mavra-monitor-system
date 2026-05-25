@@ -371,6 +371,37 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 - Liepin 详情直接 HTTP 解析，依次尝试 `/job/<id>.shtml` 和 `/a/<id>.shtml`，无地址时标记为 `无地址`
 - 详情页串行获取，间隔 2-5s，连续 3 次 cookie 失败则熔断
 
+### 7.6 任务执行边界（Phase 1 — 2026-05-26）
+
+统一的爬取任务执行入口 `CrawlTaskRunner`，分离任务创建与执行：
+
+**核心组件：**
+
+- `domains/crawling/task_runner.py` — `CrawlTaskRunner` 门面，提供三个方法：
+  - `run_job_config(task, config_id=...)` — 执行单个职位配置爬取
+  - `run_all_jobs(task)` — 执行全量职位爬取
+  - `run_all_products(task)` — 执行全量商品爬取
+- `domains/crawling/scheduler_service.py` — 商品爬取调度：并发保护（Semaphore）、Event Center 事件发射、背景/同步两种执行模式
+- `core/task_registry.py` — 内存任务注册表：创建任务、查询状态、过期清理
+
+**任务生命周期：** `PENDING` → `RUNNING` → `COMPLETED` / `FAILED`
+
+**API 端点（`/crawl/` 路由）：**
+
+| 端点 | 用途 |
+|------|------|
+| `POST /crawl/crawl-now` | 触发全量商品爬取，返回 task_id |
+| `GET /crawl/status/{task_id}` | 查询任务状态 |
+| `GET /crawl/result/{task_id}` | 获取任务结果（含详情列表） |
+| `GET /crawl/logs` | 爬取日志（历史记录） |
+
+**安全与基础设施：**
+
+- `core/crawler_paths.py` — `build_profile_dir(key)` 将 profile 路径锚定到项目根 `profiles/{key}`
+- `core/profile_lease.py` — `InProcessProfileLeaseManager`：asyncio 锁保护的 profile 租约管理，获取时自动创建目录
+- `core/cdp_security.py` — `validate_cdp_url()`：检查 CDP 端点是否为 localhost，防止连接到外部 CDP
+- `core/log_redaction.py` — `redact_payload()`：递归脱敏敏感字段（cookie、token、webhook_url）
+
 ### 7.5 LLM 匹配分析（domains/jobs/match_service.py）
 
 - `POST /jobs/analyze` — 对职位进行 LLM 匹配分析
@@ -390,7 +421,7 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 3. 每个 Job 调用 `llm_provider.analyze(resume_text, job_description)`
 4. 将 `match_score`（0-100）、`match_reason`、`apply_recommendation` 存入 `jobs_match_results` 表
 
-### 7.6 通知服务（integrations/feishu.py + domains/jobs/notification_service.py）
+### 7.7 通知服务（integrations/feishu.py + domains/jobs/notification_service.py）
 
 飞书 Webhook transport 位于 `integrations/feishu.py`，只负责发送 JSON；职位新发现通知文案位于 `domains/jobs/notification_service.py`。
 
