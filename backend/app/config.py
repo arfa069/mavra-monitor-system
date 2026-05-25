@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     # Usage: start Edge/Chrome with --remote-debugging-port=9222, login to JD, then enable this.
     cdp_enabled: bool = False
     cdp_url: str = "http://127.0.0.1:9222"  # CDP endpoint for existing browser
+    cdp_allow_non_local: bool = False
 
     # JWT settings
     jwt_secret_key: str = "your-secret-key-change-in-production"

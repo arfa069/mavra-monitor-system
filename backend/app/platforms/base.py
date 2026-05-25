@@ -14,6 +14,7 @@ from playwright.async_api import (
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from app.config import settings
+from app.core.cdp_security import validate_cdp_url
 
 
 class BasePlatformAdapter(ABC):
@@ -50,6 +51,10 @@ class BasePlatformAdapter(ABC):
         playwright = await async_playwright().start()
 
         if settings.cdp_enabled and settings.cdp_url:
+            validate_cdp_url(
+                settings.cdp_url,
+                allow_non_local=settings.cdp_allow_non_local,
+            )
             browser = await playwright.chromium.connect_over_cdp(settings.cdp_url)
             cdp_mode = True
             contexts = browser.contexts
