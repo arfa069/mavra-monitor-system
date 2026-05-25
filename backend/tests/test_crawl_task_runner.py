@@ -137,3 +137,39 @@ async def test_runner_limits_product_concurrency_to_three(monkeypatch):
     assert result["status"] == "completed"
     assert task.success == 6
     assert max_active == 3
+
+
+@pytest.mark.asyncio
+async def test_runner_reports_product_progress(monkeypatch):
+    from app.core.task_registry import CrawlTask
+    from app.domains.crawling.task_runner import CrawlTaskRunner
+
+    class Product:
+        id = 1
+
+    async def fake_get_active_products(user_id=None):
+        return [Product()]
+
+    async def fake_crawl_product(product_id, semaphore):
+        return {"status": "success", "product_id": product_id}
+
+    progress = []
+
+    async def on_progress(task):
+        progress.append((task.status.value, task.total, task.success, task.errors))
+
+    monkeypatch.setattr(
+        "app.domains.crawling.service.get_active_products",
+        fake_get_active_products,
+    )
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner._crawl_product_with_semaphore",
+        fake_crawl_product,
+    )
+
+    task = CrawlTask(task_id="task-1")
+    await CrawlTaskRunner(progress_callback=on_progress).run_all_products(task)
+
+    assert ("running", 0, 0, 0) in progress
+    assert ("running", 1, 0, 0) in progress
+    assert progress[-1] == ("completed", 1, 1, 0)

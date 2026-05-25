@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import asyncio
 import random
+from collections.abc import Awaitable, Callable
 
 from app.core.task_registry import CrawlTask, TaskStatus
 
 PRODUCT_CONCURRENCY_LIMIT = 3
 PRODUCT_CRAWL_INTERVAL_MIN = 2.0
 PRODUCT_CRAWL_INTERVAL_MAX = 3.0
+
+ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
 
 
 async def _crawl_product_with_semaphore(
@@ -31,10 +34,18 @@ async def _crawl_product_with_semaphore(
 
 
 class CrawlTaskRunner:
+    def __init__(self, *, progress_callback: ProgressCallback | None = None):
+        self._progress_callback = progress_callback
+
+    async def _notify_progress(self, task: CrawlTask) -> None:
+        if self._progress_callback is not None:
+            await self._progress_callback(task)
+
     async def run_job_config(self, task: CrawlTask, *, config_id: int) -> dict:
         from app.domains.jobs.crawl_service import crawl_single_config
 
         task.status = TaskStatus.RUNNING
+        await self._notify_progress(task)
         result = await crawl_single_config(config_id)
         ok = result.get("status") != "error"
         task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
@@ -46,12 +57,14 @@ class CrawlTaskRunner:
         task.errors = 0 if ok else 1
         if not ok:
             task.reason = result.get("error") or result.get("reason") or "crawl_failed"
+        await self._notify_progress(task)
         return result
 
     async def run_all_jobs(self, task: CrawlTask) -> dict:
         from app.domains.jobs.crawl_service import crawl_all_job_searches
 
         task.status = TaskStatus.RUNNING
+        await self._notify_progress(task)
         result = await crawl_all_job_searches(source=task.source, user_id=task.user_id)
         ok = result.get("status") != "error"
         task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
@@ -60,17 +73,21 @@ class CrawlTaskRunner:
         task.errors = result.get("errors", 0)
         if not ok:
             task.reason = result.get("error") or result.get("reason") or "crawl_failed"
+        await self._notify_progress(task)
         return result
 
     async def run_all_products(self, task: CrawlTask) -> dict:
         from app.domains.crawling.service import get_active_products
 
         task.status = TaskStatus.RUNNING
+        await self._notify_progress(task)
         products = await get_active_products(user_id=task.user_id)
         task.total = len(products)
+        await self._notify_progress(task)
         if not products:
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
+            await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
         product_ids = [product.id for product in products]
@@ -94,6 +111,7 @@ class CrawlTaskRunner:
         task.errors = sum(1 for item in details if item.get("status") == "error")
         task.details = details
         task.status = TaskStatus.COMPLETED
+        await self._notify_progress(task)
         return {
             "status": "completed",
             "total": task.total,
