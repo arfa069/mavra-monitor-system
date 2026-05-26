@@ -1080,8 +1080,9 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                             owner=child_task.task_id,
                             task_id=child_task.task_id,
                         ) as _lease:
+                            from app.domains.crawling.task_runner import CrawlTaskRunner
+
                             for idx, config in enumerate(platform_configs):
-                                from app.domains.crawling.task_runner import CrawlTaskRunner
 
                                 result = await CrawlTaskRunner(progress_callback=_persist_child).run_job_config(
                                     child_task, config_id=config.id,
