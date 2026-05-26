@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.products import repository
+from app.domains.products.profile_binding import resolve_product_profile
 from app.models.price_history import PriceHistory
 from app.models.product import Product, ProductPlatformCron
 from app.schemas.product import (
@@ -37,6 +38,10 @@ class ProductCronConfigConflictError(ValueError):
 
 class ProductCronConfigNotFoundError(LookupError):
     """Raised when a platform cron config cannot be found."""
+
+
+class ProductProfileConfigError(ValueError):
+    """Raised when a product platform profile binding is invalid."""
 
 
 def normalize_tmall_url(url: str) -> str:
@@ -155,6 +160,23 @@ async def list_product_cron_configs(
     return await repository.list_product_cron_configs(db, user_id=user_id)
 
 
+async def _resolve_profile_key(
+    db: AsyncSession,
+    *,
+    platform: str,
+    profile_key: str | None,
+) -> str:
+    try:
+        profile = await resolve_product_profile(
+            db,
+            platform=platform,
+            profile_key=profile_key,
+        )
+    except ValueError as exc:
+        raise ProductProfileConfigError(str(exc)) from exc
+    return profile.profile_key
+
+
 async def create_product_cron_config(
     db: AsyncSession, *, user_id: int, data: ProductPlatformCronCreate
 ) -> ProductPlatformCron:
@@ -167,12 +189,18 @@ async def create_product_cron_config(
     if existing:
         raise ProductCronConfigConflictError
 
+    resolved_profile_key = await _resolve_profile_key(
+        db,
+        platform=data.platform,
+        profile_key=data.profile_key,
+    )
     return await repository.create_product_cron_config(
         db,
         user_id=user_id,
         platform=data.platform,
         cron_expression=data.cron_expression,
         cron_timezone=data.cron_timezone,
+        profile_key=resolved_profile_key,
     )
 
 
@@ -192,11 +220,17 @@ async def update_product_cron_config(
     if not config:
         raise ProductCronConfigNotFoundError
 
+    resolved_profile_key = await _resolve_profile_key(
+        db,
+        platform=platform,
+        profile_key=data.profile_key or config.profile_key,
+    )
     return await repository.update_product_cron_config(
         db,
         config=config,
         cron_expression=data.cron_expression,
         cron_timezone=data.cron_timezone,
+        profile_key=resolved_profile_key,
     )
 
 

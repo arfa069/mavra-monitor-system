@@ -51,3 +51,4 @@ class ProductPlatformCron(Base, TimestampMixin):
         comment="5-segment crontab expression. Null means no scheduled crawl for this platform.",
     )
     cron_timezone = Column(String(50), nullable=True, default="Asia/Shanghai")
+    profile_key = Column(String(80), ForeignKey("crawl_profiles.profile_key"), nullable=False)

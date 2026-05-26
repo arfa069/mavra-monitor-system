@@ -110,7 +110,8 @@ class ProductPlatformCronResponse(BaseModel):
     user_id: int
     platform: str
     cron_expression: str | None
-    cron_timezone: str | None
+    cron_timezone: str
+    profile_key: str
     created_at: datetime
     updated_at: datetime
 
@@ -130,6 +131,9 @@ class ProductPlatformCronCreate(BaseModel):
     )
     cron_timezone: str | None = Field(
         default=None, max_length=50, description="时区",
+    )
+    profile_key: str | None = Field(
+        default=None, max_length=80, description="Crawl profile key",
     )
 
     @field_validator("cron_expression")
@@ -170,6 +174,9 @@ class ProductPlatformCronUpdate(BaseModel):
     cron_timezone: str | None = Field(
         default=None, max_length=50,
         description="时区，默认 Asia/Shanghai",
+    )
+    profile_key: str | None = Field(
+        default=None, max_length=80, description="Crawl profile key",
     )
 
     @field_validator("cron_expression")

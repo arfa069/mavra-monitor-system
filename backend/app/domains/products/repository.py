@@ -106,12 +106,14 @@ async def create_product_cron_config(
     platform: str,
     cron_expression: str | None,
     cron_timezone: str | None,
+    profile_key: str,
 ) -> ProductPlatformCron:
     config = ProductPlatformCron(
         user_id=user_id,
         platform=platform,
         cron_expression=cron_expression,
         cron_timezone=cron_timezone or "Asia/Shanghai",
+        profile_key=profile_key,
     )
     db.add(config)
     await db.commit()
@@ -125,9 +127,11 @@ async def update_product_cron_config(
     config: ProductPlatformCron,
     cron_expression: str | None,
     cron_timezone: str | None,
+    profile_key: str,
 ) -> ProductPlatformCron:
     config.cron_expression = cron_expression
     config.cron_timezone = cron_timezone or "Asia/Shanghai"
+    config.profile_key = profile_key
     await db.commit()
     await db.refresh(config)
     return config

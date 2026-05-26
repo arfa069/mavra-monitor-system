@@ -113,6 +113,8 @@ async def create_product_cron_config(
         )
     except service.InvalidPlatformError as exc:
         raise _invalid_platform_response(exc) from exc
+    except service.ProductProfileConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except service.ProductCronConfigConflictError as exc:
         raise HTTPException(
             status_code=409, detail="Platform cron config already exists"
@@ -200,6 +202,8 @@ async def update_product_cron_config(
         )
     except service.InvalidPlatformError as exc:
         raise _invalid_platform_response(exc) from exc
+    except service.ProductProfileConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except service.ProductCronConfigNotFoundError as exc:
         raise HTTPException(
             status_code=404, detail="Platform cron config not found"
