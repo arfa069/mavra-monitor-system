@@ -21,6 +21,7 @@ from app.core.system_log import emit_system_log_detached
 from app.database import AsyncSessionLocal
 from app.domains.jobs.match_service import analyze_resume_vs_jobs
 from app.domains.jobs.notification_service import send_new_job_notification
+from app.domains.jobs.runtime import JobCrawlRuntimeContext
 from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import UserResume
@@ -34,6 +35,11 @@ DETAIL_RETRY_DELAY_SECONDS = (20.0, 40.0)
 DETAIL_FETCH_TIMEOUT_SECONDS = 15.0
 DETAIL_WAF_BLOCK_LIMIT = 1
 DETAIL_TIMEOUT_LIMIT = 3
+
+
+def _config_profile_key(config: JobSearchConfig | None) -> str:
+    raw = getattr(config, "profile_key", None) if config is not None else None
+    return raw or "default"
 
 
 def _normalize_platform(platform: object) -> str:
@@ -732,9 +738,15 @@ async def crawl_scheduled_config(
     )
 
     user_id = await _get_job_config_user_id(config_id)
+
+    async with AsyncSessionLocal() as db:
+        config = await db.get(JobSearchConfig, config_id)
+        profile_key = _config_profile_key(config)
+
     payload = {
         "config_id": config_id,
         "source": "scheduled",
+        "profile_key": profile_key,
     }
     if cron_expression:
         payload["cron_expression"] = cron_expression
@@ -745,7 +757,7 @@ async def crawl_scheduled_config(
             source="cron",
             task_type="job_config",
             platform=None,
-            profile_key="default",
+            profile_key=profile_key,
             user_id=user_id,
             entity_type="job_config",
             entity_id=str(config_id),
@@ -772,6 +784,7 @@ async def crawl_scheduled_config(
                 if config
                 else "boss"
             )
+            profile_key = _config_profile_key(config)
 
         pool = DatabaseProfilePool()
         try:
@@ -779,7 +792,7 @@ async def crawl_scheduled_config(
                 async with pool.lease(
                     lease_db,
                     platform=config_platform,
-                    profile_key="default",
+                    profile_key=profile_key,
                     owner=task.task_id,
                     task_id=task.task_id,
                 ) as lease:
@@ -799,9 +812,18 @@ async def crawl_scheduled_config(
                             entity_id=str(config_id),
                             payload=payload,
                         )
+                        runtime_context = JobCrawlRuntimeContext(
+                            platform=config_platform,
+                            profile_key=lease.profile_key,
+                            profile_dir=lease.profile_dir,
+                            task_id=task.task_id,
+                            config_id=config_id,
+                            run_id=task.task_id,
+                            log_context={"source": task.source, "profile_key": lease.profile_key},
+                        )
                         result = await CrawlTaskRunner(
                             progress_callback=_persist_cron_progress
-                        ).run_job_config(task, config_id=config_id)
+                        ).run_job_config(task, config_id=config_id, runtime_context=runtime_context)
                     finally:
                         await _stop_heartbeat(heartbeat_task)
         except (ProfileAlreadyLeasedError, ProfileUnavailableError) as exc:
@@ -948,16 +970,20 @@ async def crawl_single_config_background(
     )
 
     async with AsyncSessionLocal() as db:
+        config = await db.get(JobSearchConfig, config_id)
+        profile_key = _config_profile_key(config)
+
+    async with AsyncSessionLocal() as db:
         record = await create_crawl_task_record(
             db,
             source="manual",
             task_type="job_config",
             platform=None,
-            profile_key="default",
+            profile_key=profile_key,
             user_id=user_id,
             entity_type="job_config",
             entity_id=str(config_id),
-            payload={"config_id": config_id, "profile_key": "default"},
+            payload={"config_id": config_id, "profile_key": profile_key},
         )
         task = runtime_task_from_record(record)
         record_id = record.id
@@ -977,6 +1003,7 @@ async def crawl_single_config_background(
             async with AsyncSessionLocal() as cfg_db:
                 config = await cfg_db.get(JobSearchConfig, config_id)
                 config_platform = _normalize_platform(getattr(config, "platform", "boss")) if config else "boss"
+                profile_key = _config_profile_key(config)
 
             pool = DatabaseProfilePool()
             try:
@@ -984,7 +1011,7 @@ async def crawl_single_config_background(
                     async with pool.lease(
                         lease_db,
                         platform=config_platform,
-                        profile_key="default",
+                        profile_key=profile_key,
                         owner=task.task_id,
                         task_id=task.task_id,
                     ) as lease:
@@ -1006,9 +1033,18 @@ async def crawl_single_config_background(
                             )
                             from app.domains.crawling.task_runner import CrawlTaskRunner
 
+                            runtime_context = JobCrawlRuntimeContext(
+                                platform=config_platform,
+                                profile_key=lease.profile_key,
+                                profile_dir=lease.profile_dir,
+                                task_id=task.task_id,
+                                config_id=config_id,
+                                run_id=task.task_id,
+                                log_context={"source": task.source, "profile_key": lease.profile_key},
+                            )
                             result = await CrawlTaskRunner(
                                 progress_callback=_persist_cron_progress
-                            ).run_job_config(task, config_id=config_id)
+                            ).run_job_config(task, config_id=config_id, runtime_context=runtime_context)
                         finally:
                             await _stop_heartbeat(heartbeat_task)
                     ok = result.get("status") != "error"

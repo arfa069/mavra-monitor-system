@@ -2,6 +2,10 @@
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import asyncio
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 
@@ -1197,3 +1201,25 @@ class TestAdapterSharing:
 
         assert result["status"] == "skipped"
         assert result["reason"] == "another_job_crawl_in_progress"
+
+
+def test_config_profile_key_extracts_from_config():
+    from app.domains.jobs.crawl_service import _config_profile_key
+
+    config = MagicMock()
+    config.profile_key = "job-a"
+    assert _config_profile_key(config) == "job-a"
+
+
+def test_config_profile_key_defaults_when_missing():
+    from app.domains.jobs.crawl_service import _config_profile_key
+
+    config = MagicMock()
+    config.profile_key = None
+    assert _config_profile_key(config) == "default"
+
+
+def test_config_profile_key_defaults_when_none():
+    from app.domains.jobs.crawl_service import _config_profile_key
+
+    assert _config_profile_key(None) == "default"
