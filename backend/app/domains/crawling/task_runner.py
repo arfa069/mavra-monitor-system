@@ -41,12 +41,18 @@ class CrawlTaskRunner:
         if self._progress_callback is not None:
             await self._progress_callback(task)
 
-    async def run_job_config(self, task: CrawlTask, *, config_id: int) -> dict:
+    async def run_job_config(
+        self,
+        task: CrawlTask,
+        *,
+        config_id: int,
+        runtime_context=None,
+    ) -> dict:
         from app.domains.jobs.crawl_service import crawl_single_config
 
         task.status = TaskStatus.RUNNING
         await self._notify_progress(task)
-        result = await crawl_single_config(config_id)
+        result = await crawl_single_config(config_id, runtime_context=runtime_context)
         ok = result.get("status") != "error"
         task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
         task.total = sum(

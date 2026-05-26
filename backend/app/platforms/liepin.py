@@ -89,8 +89,9 @@ _EXTRACT_JOBS_JS = """
 class LiepinAdapter(BasePlatformAdapter):
     """Adapter for Liepin job search crawling."""
 
-    def __init__(self):
+    def __init__(self, *, runtime_context=None):
         super().__init__()
+        self.runtime_context = runtime_context
         self._session: CffiSession | None = None
 
     def _get_session(self) -> CffiSession:

@@ -49,8 +49,10 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         detail_delay_seconds: tuple[float, float] = (2.0, 3.0),
         log_path: str | Path | None = None,
         log_enabled: bool = True,
+        runtime_context=None,
     ):
         super().__init__()
+        self.runtime_context = runtime_context
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
             "default",
         )

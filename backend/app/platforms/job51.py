@@ -43,8 +43,10 @@ class Job51Adapter(BasePlatformAdapter):
         profile_dir: str | Path | None = None,
         headless: bool = True,
         max_pages: int = MAX_PAGES,
+        runtime_context=None,
     ):
         super().__init__()
+        self.runtime_context = runtime_context
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
             "default",
         )

@@ -46,7 +46,11 @@ def _normalize_platform(platform: object) -> str:
     return normalized
 
 
-def _create_adapter(platform: str) -> BasePlatformAdapter:
+def _create_adapter(
+    platform: str,
+    *,
+    runtime_context=None,
+) -> BasePlatformAdapter:
     """Create the appropriate adapter for the given job platform."""
     from app.platforms import (
         BossCloakExperimentalAdapter,
@@ -60,7 +64,11 @@ def _create_adapter(platform: str) -> BasePlatformAdapter:
         "51job": Job51Adapter,
         "liepin": LiepinAdapter,
     }
-    return adapters[platform]()
+    kwargs = {}
+    if runtime_context is not None:
+        kwargs["profile_dir"] = runtime_context.profile_dir
+        kwargs["runtime_context"] = runtime_context
+    return adapters[platform](**kwargs)
 
 
 def _build_crawl_url(config: JobSearchConfig) -> str:
@@ -578,6 +586,7 @@ async def crawl_single_config(
     adapter: BasePlatformAdapter | None = None,
     *,
     _lock_already_held: bool = False,
+    runtime_context=None,
     **kwargs,
 ) -> dict:
     """Crawl a single JobSearchConfig and process results.
@@ -615,7 +624,7 @@ async def crawl_single_config(
 
     try:
         if adapter is None:
-            adapter = _create_adapter(platform)
+            adapter = _create_adapter(platform, runtime_context=runtime_context)
         result = await adapter.crawl(url)
 
         if result.get("success"):
