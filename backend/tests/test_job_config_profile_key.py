@@ -25,6 +25,7 @@ def test_job_config_create_defaults_profile_key():
 
 def test_job_config_rejects_path_traversal_profile_key():
     from pydantic import ValidationError
+
     from app.schemas.job import JobSearchConfigCreate
 
     with pytest.raises(ValidationError):

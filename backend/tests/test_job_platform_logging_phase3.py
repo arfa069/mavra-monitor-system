@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 
 def test_job_jsonl_logger_writes_common_envelope(tmp_path):

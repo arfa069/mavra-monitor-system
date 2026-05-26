@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crawler_paths import build_profile_dir
 from app.core.system_log import emit_system_log_detached
-from app.domains.crawling.profile_pool import AVAILABLE, DISABLED, LOGIN_REQUIRED, ensure_profile
+from app.domains.crawling.profile_pool import (
+    AVAILABLE,
+    DISABLED,
+    LOGIN_REQUIRED,
+    ensure_profile,
+)
 from app.models.crawl_profile import CrawlProfile
 
 

@@ -71,11 +71,6 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
             enabled=log_enabled,
         )
         self._cookie_refresh_failures = 0
-
-    def _profile_failure_category(self) -> str | None:
-        if self._cookie_refresh_failures >= 2:
-            return "cookie_refresh_failed"
-        return None
         self.max_jobs = max_jobs
         self.max_pages = max_pages
         self.headless = headless
@@ -89,6 +84,11 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         self._log_enabled = log_enabled
         self._log_path = Path(log_path) if log_path else self._make_default_log_path()
         self._log_started_at = time.time()
+
+    def _profile_failure_category(self) -> str | None:
+        if self._cookie_refresh_failures >= 2:
+            return "cookie_refresh_failed"
+        return None
 
     async def extract_price(self, page) -> dict[str, Any]:
         raise NotImplementedError

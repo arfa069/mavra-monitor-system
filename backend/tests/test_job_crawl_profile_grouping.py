@@ -1,7 +1,5 @@
 from types import SimpleNamespace
 
-import pytest
-
 
 def test_group_job_configs_by_platform_and_profile():
     from app.domains.jobs.crawl_service import _group_job_configs_for_profile_leases

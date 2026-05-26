@@ -5,7 +5,11 @@ from app.core.security import get_current_user
 from app.database import get_db
 from app.domains.crawling import profile_service
 from app.models.user import User
-from app.schemas.crawl_profile import CrawlProfileCreate, CrawlProfileResponse, CrawlProfileUpdate
+from app.schemas.crawl_profile import (
+    CrawlProfileCreate,
+    CrawlProfileResponse,
+    CrawlProfileUpdate,
+)
 
 router = APIRouter(prefix="/crawl-profiles", tags=["crawl-profiles"])
 

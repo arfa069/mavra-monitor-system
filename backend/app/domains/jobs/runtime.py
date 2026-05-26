@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-
 JobFailureCategory = Literal[
     "profile_unavailable",
     "profile_leased",
