@@ -101,6 +101,37 @@ async def crawl_one_with_session(
         page = await session.new_page()
         try:
             result_data = await adapter.crawl_with_page(product.url, page)
+            if not result_data.get("success"):
+                # Check for login wall / anti-bot before closing page
+                try:
+                    page_url = page.url
+                    page_content = await page.content()
+                    failure_type = adapter.classify_failure(page_url, page_content)
+                    if failure_type == "login_required":
+                        from app.core.system_log import emit_system_log_detached
+                        from app.domains.crawling.profile_pool import LOGIN_REQUIRED
+                        from app.domains.crawling.profile_service import update_profile
+
+                        await update_profile(
+                            db,
+                            profile_key=session.profile_key,
+                            status=LOGIN_REQUIRED,
+                            platform_hint=session.platform,
+                            last_error=f"{product.platform} login required for {product.url}",
+                        )
+                        await emit_system_log_detached(
+                            category="runtime",
+                            event_type="product_profile.login_required",
+                            source="crawler",
+                            severity="warning",
+                            status="failed",
+                            message=f"Product profile {session.profile_key} requires login",
+                            entity_type="crawl_profile",
+                            entity_id=session.profile_key,
+                            payload={"profile_key": session.profile_key, "platform": product.platform},
+                        )
+                except Exception:
+                    pass
             return await _persist_product_crawl_result(db, product=product, result_data=result_data)
         except Exception as e:
             await save_crawl_log(product_id, product.platform, "ERROR", error_message=str(e))

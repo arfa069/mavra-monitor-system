@@ -156,3 +156,30 @@ async def test_browser_manager_records_startup_failure():
     async with AsyncSessionLocal() as db:
         profile = await get_profile(db, profile_key)
         assert "browser failed to start" in profile.last_error
+
+
+@pytest.mark.parametrize("status", ["login_required", "disabled", "cooling_down"])
+@pytest.mark.asyncio
+async def test_browser_manager_blocked_statuses_fail_before_launch(status):
+    profile_key = f"product-jd-test-{status}"
+    await _clean_profile(profile_key)
+    async with AsyncSessionLocal() as db:
+        profile = await ensure_profile(db, profile_key=profile_key, platform_hint="jd")
+        profile.status = status
+        await db.commit()
+    fake_context = FakeContext()
+    manager = BrowserManager(
+        db_factory=lambda: AsyncSessionLocal(),
+        playwright_factory=lambda: fake_playwright_factory(fake_context),
+    )
+
+    with pytest.raises(BrowserProfileUnavailableError):
+        async with manager.acquire(
+            platform="jd",
+            profile_key=profile_key,
+            owner="test-owner",
+            task_id="task-1",
+        ):
+            pass
+
+    assert fake_context.pages == []

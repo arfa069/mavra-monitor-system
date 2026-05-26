@@ -7,6 +7,14 @@ from app.platforms.base import BasePlatformAdapter
 class AmazonAdapter(BasePlatformAdapter):
     """Adapter for Amazon price crawling."""
 
+    def classify_failure(self, url: str, content: str) -> str | None:
+        lowered = content.lower()
+        if "/ap/signin" in url or "sign in" in lowered:
+            return "login_required"
+        if "captcha" in lowered or "enter the characters you see below" in lowered:
+            return "anti_bot"
+        return None
+
     async def extract_price(self, page) -> dict[str, Any]:
         """Extract price from Amazon page."""
         try:

@@ -70,6 +70,13 @@ class TaobaoAdapter(BasePlatformAdapter):
 
         return {"success": False, "error": "Price not found on Taobao page"}
 
+    def classify_failure(self, url: str, content: str) -> str | None:
+        if "login.taobao.com" in url or "登录" in content:
+            return "login_required"
+        if "验证码" in content or "滑块" in content:
+            return "anti_bot"
+        return None
+
     async def extract_title(self, page) -> str:
         """Extract title from Taobao page."""
         try:

@@ -52,3 +52,10 @@ def test_jd_cookie_injection_disabled_by_default(monkeypatch):
     adapter = JDAdapter()
 
     assert adapter._should_inject_cookie_fallback() is False
+
+
+def test_jd_login_required_reason_is_profile_specific():
+    adapter = JDAdapter()
+
+    assert adapter.classify_failure("https://passport.jd.com/login.aspx", "") == "login_required"
+    assert adapter.classify_failure("https://item.jd.com/100.html", "请登录后查看") == "login_required"
