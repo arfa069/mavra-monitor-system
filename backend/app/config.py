@@ -41,6 +41,8 @@ class Settings(BaseSettings):
 
     # Platform cookies (optional, for bypassing login walls)
     jd_cookie: str = ""  # Cookie string for JD login session
+    jd_cookie_fallback_enabled: bool = False
+    product_cdp_fallback_enabled: bool = False
 
     # CDP (Chrome DevTools Protocol) browser connection
     # When enabled, connects to an existing browser via CDP instead of launching a new one.

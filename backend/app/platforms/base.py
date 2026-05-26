@@ -157,6 +157,61 @@ class BasePlatformAdapter(ABC):
         """Extract title from page. Must be implemented by subclasses."""
         pass
 
+    def classify_failure(self, url: str, content: str) -> str | None:
+        """Classify crawl failure type from URL/content. Return None if unclassified."""
+        return None
+
+    async def crawl_with_page(self, url: str, page: Page) -> dict[str, Any]:
+        """Crawl using an existing page (e.g., from BrowserManager session)."""
+        try:
+            async with asyncio.timeout(90):
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                await page.wait_for_selector(
+                    "[class*='price'], [class*='Price'], .p-price, .product-price",
+                    timeout=20000,
+                    state="attached",
+                )
+                await page.evaluate("window.scrollBy(0, 300)")
+                await page.wait_for_timeout(random.uniform(8000, 12000))
+                await page.evaluate("window.scrollTo(0, 0)")
+
+                price_data = await self.extract_price(page)
+                title = await self.extract_title(page)
+
+                if price_data.get("success"):
+                    return {
+                        "success": True,
+                        "price": price_data["price"],
+                        "currency": price_data.get("currency", "CNY"),
+                        "title": title,
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": price_data.get("error", "Failed to extract price"),
+                    }
+
+        except TimeoutError:
+            return {
+                "success": False,
+                "error": "Crawl timeout: page took longer than 90s to respond",
+            }
+        except PlaywrightTimeoutError as e:
+            return {
+                "success": False,
+                "error": f"Page load timeout: {e}",
+            }
+        except (ConnectionError, OSError) as e:
+            return {
+                "success": False,
+                "error": f"Network error: {e}",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Unexpected error: {e}",
+            }
+
     async def crawl(self, url: str) -> dict[str, Any]:
         """Crawl a product page and extract price and title.
 

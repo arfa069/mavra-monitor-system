@@ -56,12 +56,21 @@ class JDAdapter(BasePlatformAdapter, CookieInjectionMiddleware):
             self.js_strategy,
         ])
 
+    def _should_inject_cookie_fallback(self) -> bool:
+        return bool(settings.jd_cookie and settings.jd_cookie_fallback_enabled)
+
+    def classify_failure(self, url: str, content: str) -> str | None:
+        lowered = content.lower()
+        if "passport.jd.com" in url or "请登录" in content or "login" in lowered:
+            return "login_required"
+        return None
+
     async def _init_browser(self):
         """Initialize browser with JD cookies if using launch mode."""
         await super()._init_browser()
 
         # In launch mode (not CDP), inject cookies only once per shared context
-        if not self._cdp_mode and settings.jd_cookie and self._context:
+        if not self._cdp_mode and self._should_inject_cookie_fallback() and self._context:
             context_id = id(self._context)
             needs_injection = (
                 not self.__class__._shared_cookies_injected
