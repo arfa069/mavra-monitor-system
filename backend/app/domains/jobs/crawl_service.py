@@ -68,6 +68,17 @@ def _job_group_task_metadata(platform: str, profile_key: str, parent_task_id: st
     }
 
 
+def _group_profile_lanes_for_parallelism(
+    groups: dict[tuple[str, str], list[JobSearchConfig]],
+) -> dict[str, list[tuple[str, str, list[JobSearchConfig]]]]:
+    lanes: dict[str, list[tuple[str, str, list[JobSearchConfig]]]] = {}
+    for (platform, profile_key), platform_configs in groups.items():
+        lanes.setdefault(profile_key, []).append(
+            (platform, profile_key, platform_configs)
+        )
+    return lanes
+
+
 def _normalize_platform(platform: object) -> str:
     """Return a supported platform key, defaulting legacy rows/mocks to boss."""
     if not isinstance(platform, str) or not platform:
@@ -654,6 +665,7 @@ async def crawl_single_config(
                 config_id,
                 adapter=adapter,
                 _lock_already_held=True,
+                runtime_context=runtime_context,
                 **kwargs,
             )
 
@@ -1222,8 +1234,11 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
             parent_task.errors = 0
             await _persist_parent(parent_task)
 
-            all_details = []
-            for (platform, profile_key), platform_configs in groups.items():
+            async def _run_group(
+                platform: str,
+                profile_key: str,
+                platform_configs: list[JobSearchConfig],
+            ) -> dict:
                 metadata = _job_group_task_metadata(
                     platform, profile_key, parent_task.task_id
                 )
@@ -1296,13 +1311,10 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                                     )
                                     detail = {"config_id": config.id, **result}
                                     child_details.append(detail)
-                                    all_details.append(detail)
                                     if result.get("status") == "success":
                                         child_success += 1
-                                        parent_task.success += 1
                                     else:
                                         child_errors += 1
-                                        parent_task.errors += 1
 
                                     if idx < len(platform_configs) - 1:
                                         await asyncio.sleep(random.uniform(3, 6))
@@ -1311,7 +1323,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                 except Exception as exc:
                     remaining_configs = platform_configs[child_success + child_errors:]
                     child_errors += len(remaining_configs)
-                    parent_task.errors += len(remaining_configs)
                     failed_details = [
                         {
                             "config_id": config.id,
@@ -1321,7 +1332,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                         for config in remaining_configs
                     ]
                     child_details.extend(failed_details)
-                    all_details.extend(failed_details)
 
                 child_task.total = len(platform_configs)
                 child_task.success = child_success
@@ -1339,6 +1349,45 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                     record = await db.get(CrawlTaskRecord, child_record_id)
                     if record is not None:
                         await sync_record_from_runtime_task(db, record, child_task)
+
+                return {
+                    "success": child_success,
+                    "errors": child_errors,
+                    "details": child_details,
+                }
+
+            async def _run_profile_lane(
+                lane_groups: list[tuple[str, str, list[JobSearchConfig]]],
+            ) -> list[dict]:
+                lane_results = []
+                for platform, profile_key, platform_configs in lane_groups:
+                    lane_results.append(
+                        await _run_group(platform, profile_key, platform_configs)
+                    )
+                return lane_results
+
+            lanes = _group_profile_lanes_for_parallelism(groups)
+
+            lane_results = await asyncio.gather(
+                *(_run_profile_lane(lane_groups) for lane_groups in lanes.values()),
+                return_exceptions=True,
+            )
+
+            all_details = []
+            for lane_result in lane_results:
+                if isinstance(lane_result, Exception):
+                    parent_task.errors += 1
+                    all_details.append(
+                        {
+                            "status": "error",
+                            "error": str(lane_result),
+                        }
+                    )
+                    continue
+                for group_result in lane_result:
+                    parent_task.success += group_result["success"]
+                    parent_task.errors += group_result["errors"]
+                    all_details.extend(group_result["details"])
 
             parent_task.status = (
                 TaskStatus.COMPLETED

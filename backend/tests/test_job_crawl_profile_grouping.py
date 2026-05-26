@@ -39,3 +39,24 @@ def test_job_group_task_metadata():
             "profile_key": "job-a",
         },
     }
+
+
+def test_profile_lanes_keep_same_profile_serial_and_different_profiles_parallel():
+    from app.domains.jobs.crawl_service import _group_profile_lanes_for_parallelism
+
+    groups = {
+        ("boss", "job-a"): [SimpleNamespace(id=1)],
+        ("51job", "job-a"): [SimpleNamespace(id=2)],
+        ("boss", "job-b"): [SimpleNamespace(id=3)],
+    }
+
+    lanes = _group_profile_lanes_for_parallelism(groups)
+
+    assert list(lanes) == ["job-a", "job-b"]
+    assert [(platform, profile_key) for platform, profile_key, _configs in lanes["job-a"]] == [
+        ("boss", "job-a"),
+        ("51job", "job-a"),
+    ]
+    assert [(platform, profile_key) for platform, profile_key, _configs in lanes["job-b"]] == [
+        ("boss", "job-b"),
+    ]

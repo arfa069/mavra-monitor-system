@@ -161,6 +161,30 @@ def test_51job_waf_fuse_stops_after_limit(monkeypatch):
     assert adapter._should_stop_for_waf() is True
 
 
+def test_51job_first_waf_preserves_failure_category(monkeypatch):
+    from app.platforms.job51 import Job51Adapter
+
+    adapter = Job51Adapter(profile_dir="profile", max_pages=1)
+    monkeypatch.setattr(adapter, "_start_browser", lambda: None)
+    monkeypatch.setattr(adapter, "_refresh_cookies_sync", lambda _reason: True)
+
+    def raise_waf(_keyword, _job_area, _page_num):
+        adapter._waf_hits += 1
+        raise RuntimeError("51job WAF")
+
+    monkeypatch.setattr(adapter, "_fetch_search_page_sync", raise_waf)
+
+    result = adapter._crawl_sync(
+        "https://we.51job.com/pc/search?keyword=python&jobArea=020000"
+    )
+
+    assert result == {
+        "success": False,
+        "error": "51job WAF response detected",
+        "failure_category": "waf",
+    }
+
+
 def test_51job_classifies_html_waf_response():
     from app.platforms.job51 import classify_51job_response
 

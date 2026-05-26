@@ -52,6 +52,8 @@ async def update_profile(
         )
     except profile_service.CrawlProfileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Profile not found") from exc
+    except profile_service.CrawlProfileLeaseActiveError as exc:
+        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
 
 
 @router.post("/{profile_key}/release-stale", response_model=CrawlProfileResponse)

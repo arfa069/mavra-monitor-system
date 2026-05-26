@@ -126,3 +126,31 @@ async def test_release_stale_profile_rejects_active_lease(mock_auth, mock_db):
         response = await client.post("/v1/crawl-profiles/job-a/release-stale")
 
     assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_mark_available_rejects_active_lease(mock_auth, mock_db):
+    from app.models.crawl_profile import CrawlProfile
+
+    current = datetime.now(UTC)
+    profile = CrawlProfile(
+        profile_key="job-a",
+        profile_dir="profiles/job-a",
+        status="leased",
+        lease_owner="task-1",
+        lease_task_id="task-1",
+        lease_until=current + timedelta(minutes=5),
+        created_at=current,
+        updated_at=current,
+    )
+
+    mock_db.execute = AsyncMock(return_value=_make_scalar_result(profile))
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.patch(
+            "/v1/crawl-profiles/job-a",
+            json={"status": "available"},
+        )
+
+    assert response.status_code == 409

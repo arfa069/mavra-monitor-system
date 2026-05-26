@@ -64,6 +64,8 @@ async def update_profile(
     current = datetime.now(UTC)
     if status is not None:
         if status == AVAILABLE:
+            if profile.lease_until is not None and profile.lease_until > current:
+                raise CrawlProfileLeaseActiveError(profile_key)
             profile.lease_owner = None
             profile.lease_task_id = None
             profile.lease_until = None

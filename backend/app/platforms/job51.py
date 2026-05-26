@@ -296,7 +296,7 @@ class Job51Adapter(BasePlatformAdapter):
                     if "WAF" in str(exc):
                         if self._should_stop_for_waf():
                             return {"success": False, "error": "51job WAF fuse tripped", "failure_category": "waf"}
-                        break
+                        return {"success": False, "error": "51job WAF response detected", "failure_category": "waf"}
                     raise
 
                 page_jobs = self._extract_page_jobs(data)

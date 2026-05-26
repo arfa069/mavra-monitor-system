@@ -21,21 +21,6 @@
 | Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成，待提交 |
 | Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
 | Phase 3 | done | Boss/51job/猎聘生产化策略 | 先职位后商品 |
-
-## Phase 3 verification (2026-05-26)
-
-- `profile_key` added to `JobSearchConfig` model, schemas, migration, and service validation.
-- Profile management API (`/v1/crawl-profiles`) with list/create/update/release-stale endpoints.
-- Profile management UI with React Query hooks, profile select in config form, and Profiles tab on Jobs page.
-- `JobCrawlRuntimeContext` dataclass passes `profile_dir` and metadata into all platform adapters.
-- Single and scheduled crawls resolve `profile_key` from config; full crawl groups child tasks by `(platform, profile_key)`.
-- Shared `JobRuntimeJsonlLogger` writes JSONL events for Boss, 51job, and Liepin.
-- Boss: `classify_boss_failure` maps anti-bot codes 36/37/38; `_profile_failure_category` detects repeated cookie refresh failures.
-- 51job: `classify_51job_response` detects WAF HTML responses; WAF fuse stops after 2 hits; `run_http_experiment` returns success rate, WAF hit rate, and elapsed time.
-- Liepin: CDP fallback (`_crawl_via_cdp`, `_crawl_detail_via_cdp`) removed; `classify_liepin_failure` maps XSRF, challenge, and HTTP errors; JSONL events emitted.
-- Backend targeted tests: 65 passed (1 DB-password-dependent skipped).
-- Backend lint: all modified files pass `ruff check`.
-- Frontend lint and build: pass.
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
 | Phase 5 | todo | 独立 crawler worker | 任务量增长后启动 |
 
@@ -91,6 +76,21 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 | 猎聘默认关闭 CDP fallback | done | `_crawl_via_cdp` 和 `_crawl_detail_via_cdp` 已移除；正常路径不打开浏览器 |
 | 猎聘 HTTP 失败分类 | done | `classify_liepin_failure` 区分 XSRF、challenge、空结果、详情失败 |
 | 猎聘 JSONL 日志 | done | 与 Boss/51job 日志字段对齐 |
+
+**Phase 3 verification (2026-05-26)**
+
+- `profile_key` added to `JobSearchConfig` model, schemas, migration, and service validation.
+- Profile management API (`/v1/crawl-profiles`) with list/create/update/release-stale endpoints.
+- Profile management UI with React Query hooks, profile select in config form, and Profiles tab on Jobs page.
+- `JobCrawlRuntimeContext` dataclass passes `profile_dir` and metadata into all platform adapters.
+- Single and scheduled crawls resolve `profile_key` from config; full crawl groups child tasks by `(platform, profile_key)`.
+- Shared `JobRuntimeJsonlLogger` writes JSONL events for Boss, 51job, and Liepin.
+- Boss: `classify_boss_failure` maps anti-bot codes 36/37/38; `_profile_failure_category` detects repeated cookie refresh failures.
+- 51job: `classify_51job_response` detects WAF HTML responses; WAF fuse stops after 2 hits; `run_http_experiment` returns success rate, WAF hit rate, and elapsed time.
+- Liepin: CDP fallback (`_crawl_via_cdp`, `_crawl_detail_via_cdp`) removed; `classify_liepin_failure` maps XSRF, challenge, and HTTP errors; JSONL events emitted.
+- Backend targeted tests: 65 passed (1 DB-password-dependent skipped).
+- Backend lint: all modified files pass `ruff check`.
+- Frontend lint and build: pass.
 
 ## Phase 4：商品爬取改造
 
