@@ -70,7 +70,8 @@ export interface ProductPlatformCron {
   user_id: number;
   platform: string;
   cron_expression: string | null;
-  cron_timezone: string | null;
+  cron_timezone: string;
+  profile_key: string;
   created_at: string;
   updated_at: string;
 }
@@ -79,11 +80,13 @@ export interface ProductPlatformCronCreate {
   platform: string;
   cron_expression?: string | null;
   cron_timezone?: string | null;
+  profile_key?: string | null;
 }
 
 export interface ProductPlatformCronUpdate {
   cron_expression: string | null;
   cron_timezone?: string | null;
+  profile_key?: string | null;
 }
 
 export interface PriceHistoryRecord {

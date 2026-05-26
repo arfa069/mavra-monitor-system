@@ -82,6 +82,9 @@ export default function ProfileManagement({
               { value: "boss", label: "Boss" },
               { value: "51job", label: "51job" },
               { value: "liepin", label: "Liepin" },
+              { value: "jd", label: "JD" },
+              { value: "taobao", label: "Taobao" },
+              { value: "amazon", label: "Amazon" },
             ]} />
           </Form.Item>
         </Form>
