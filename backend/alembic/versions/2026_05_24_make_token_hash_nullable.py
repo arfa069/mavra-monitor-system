@@ -11,8 +11,6 @@ Create Date: 2026-05-24
 """
 from collections.abc import Sequence
 
-import sqlalchemy as sa
-
 from alembic import op
 
 revision: str = "2026_05_24_make_token_hash_nullable"

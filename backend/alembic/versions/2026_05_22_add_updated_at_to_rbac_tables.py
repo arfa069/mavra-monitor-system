@@ -8,6 +8,7 @@ Create Date: 2026-05-22
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "2026_05_22_add_rbac_updated_at"

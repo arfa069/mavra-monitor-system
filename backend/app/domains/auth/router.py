@@ -53,7 +53,6 @@ from app.core.security import (
     delete_session,
     get_current_user_cookie,
     get_password_hash,
-    get_session_by_id,
     get_session_by_refresh_token,
     get_user_sessions,
     is_account_locked,

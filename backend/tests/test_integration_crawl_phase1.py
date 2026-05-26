@@ -45,7 +45,6 @@ class TestCrawlNowEndpoint:
     @pytest.mark.asyncio
     async def test_crawl_now_returns_task_id(self, mock_user, monkeypatch):
         """Returns pending status and task_id when crawl starts."""
-        from app.database import get_db
         from app.domains.crawling import scheduler_service
 
         async def _noop_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
@@ -96,7 +95,6 @@ class TestCrawlStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_unknown_task_returns_404(self):
         """Unknown task_id returns 404."""
-        from app.database import get_db
 
         # Override get_db with a real session for the 404 case
         async with AsyncSessionLocal() as db:
@@ -117,7 +115,6 @@ class TestCrawlStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_pending_task(self, mock_user):
         """Pending task returns PENDING status."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -149,7 +146,6 @@ class TestCrawlStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_completed_task(self, mock_user):
         """Completed task returns COMPLETED status with counts."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -188,7 +184,6 @@ class TestCrawlStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_via_v1_prefix(self, mock_user):
         """Same endpoint accessible via /v1 prefix."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -236,7 +231,6 @@ class TestCrawlResultEndpoint:
     @pytest.mark.asyncio
     async def test_result_pending_returns_202(self, mock_user):
         """Pending/running task returns 202."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -267,7 +261,6 @@ class TestCrawlResultEndpoint:
     @pytest.mark.asyncio
     async def test_result_completed_returns_details(self, mock_user):
         """Completed task returns full result."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -308,7 +301,6 @@ class TestCrawlResultEndpoint:
     @pytest.mark.asyncio
     async def test_result_failed_returns_500(self, mock_user):
         """Failed task returns 500 with reason."""
-        from app.database import get_db
         from app.domains.crawling.task_store import create_crawl_task_record
 
         async with AsyncSessionLocal() as db:
@@ -416,10 +408,10 @@ class TestCrawlTaskRunnerIntegration:
 
         monkeypatch.setattr(
             "app.domains.crawling.service.get_active_products",
-            AsyncMock(return_value=[SimpleNamespace(id=99)]),
+            AsyncMock(return_value=[SimpleNamespace(id=99, platform="jd")]),
         )
         monkeypatch.setattr(
-            "app.domains.crawling.service.crawl_one",
+            "app.domains.crawling.task_runner.crawl_products_with_profile",
             AsyncMock(side_effect=ValueError("network error")),
         )
 

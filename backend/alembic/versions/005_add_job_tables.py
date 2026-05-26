@@ -5,8 +5,9 @@ Revises: 004_add_cron_columns
 Create Date: 2026-04-26
 
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "005_add_job_tables"

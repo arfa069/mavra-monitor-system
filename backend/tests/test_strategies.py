@@ -1,5 +1,4 @@
 """Tests for price extraction strategies."""
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

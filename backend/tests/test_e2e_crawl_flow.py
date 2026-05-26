@@ -9,8 +9,8 @@ Usage:
 """
 import os
 
-import pytest
 import httpx
+import pytest
 
 BASE_URL = os.environ.get("PRICE_MONITOR_BASE_URL", "http://127.0.0.1:8000")
 
@@ -94,7 +94,7 @@ async def test_e2e_health_endpoint():
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "healthy"
-        print(f"[E2E] Health check OK")
+        print("[E2E] Health check OK")
 
 
 @pytest.mark.skipif(

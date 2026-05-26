@@ -5,8 +5,9 @@ Uses real PostgreSQL DB to verify CRUD operations persist correctly.
 Run manually with: pytest tests/test_user_management_realdb.py -v
 Requires: running DB with admin user (username=admin, password=adminpassword)
 """
-import pytest
 import uuid
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, select
 

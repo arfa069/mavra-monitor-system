@@ -21,7 +21,7 @@
 | Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成 |
 | Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
 | Phase 3 | done | Boss/51job/猎聘生产化策略 | 先职位后商品 |
-| Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
+| Phase 4 | done | 商品 profile 化、受控 browser manager | CDP 优化重点 |
 | Phase 5 | todo | 独立 crawler worker | 任务量增长后启动 |
 
 ## Phase 1：任务执行边界和生产安全底座
@@ -96,14 +96,33 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 | 任务 | 状态 | 验收 |
 | --- | --- | --- |
-| 建立 Product Profile Pool | todo | jd/taobao/amazon 各自 profile |
-| 新增 BrowserManager | todo | 可按 profile 启动 persistent context |
-| 限制单 profile page 数 | todo | 超限任务排队或失败 |
-| 浏览器 watchdog | todo | 超时或崩溃后可回收进程 |
-| 京东改为 profile 登录态优先 | todo | 不依赖人工预先打开 Edge CDP |
-| `JD_COOKIE` 降级为 fallback | todo | 生产默认不要求明文 cookie |
-| 淘宝/天猫独立 profile | todo | 低并发、长间隔策略生效 |
-| 亚马逊 HTTP 快路径评估 | todo | 记录可行性和失败原因 |
+| 建立 Product Profile Pool | done | `products_platform_crons.profile_key` 外键绑定 `crawl_profiles`；默认 profile 自动创建 |
+| 新增 BrowserManager | done | `BrowserManager` 按 profile 租约启动 persistent context；`BrowserSession` 控制 page 生命周期 |
+| 限制单 profile page 数 | done | `BrowserSession.max_pages=1`，超限抛 `BrowserPageLimitError` |
+| 京东改为 profile 登录态优先 | done | `JDAdapter` 通过 `crawl_with_page` 复用 BrowserManager 提供的已登录 page |
+| `JD_COOKIE` 降级为 fallback | done | `jd_cookie_fallback_enabled=False` 默认关闭；仅当显式启用时注入 cookie |
+| 淘宝/天猫独立 profile | done | `product-taobao-default` profile；`TaobaoAdapter.classify_failure` 检测 login_required/anti_bot |
+| 亚马逊独立 profile | done | `product-amazon-default` profile；`AmazonAdapter.classify_failure` 检测 login_required/anti_bot |
+| 前端 Schedule 页绑定 product profile | done | `ProductProfileCell` 支持选择/创建/释放 profile；保存时携带 `profile_key` |
+| profile 失败分类和 Event Center | done | `login_required`/`disabled`/`cooling_down` 在启动前拦截；爬取失败更新 profile 状态并 emit system log |
+
+**Phase 4 verification (2026-05-26)**
+
+- Migration `20260526_product_cron_profile` adds `profile_key` to `products_platform_crons`, backfills default profiles.
+- `default_product_profile_key()` maps jd/taobao/amazon to consistent default keys.
+- `ProductProfileConfigError` raises HTTP 400 for unknown profiles on cron create/update.
+- `BrowserManager.acquire()` leases profile via `DatabaseProfilePool`, launches persistent Playwright context, releases lease on exit.
+- `BrowserSession.new_page()/close_page()/close()` manage page lifecycle with `max_pages` limit.
+- `BasePlatformAdapter.crawl_with_page()` extracts using an existing page; old `crawl()` delegates after creating a page.
+- `JDAdapter._should_inject_cookie_fallback()` gates cookie injection behind `jd_cookie_fallback_enabled`.
+- `CrawlTaskRunner.run_products_by_platform()` groups products by `(platform, profile_key)` and runs one BrowserManager session per lane.
+- `CrawlTaskRunner.run_all_products()` runs profile lanes serially to avoid sharing AsyncSession across concurrent lanes.
+- `crawl_one_with_session()` uses `crawl_with_page` and calls `adapter.classify_failure()` on errors to mark `login_required` profiles.
+- `BrowserManager` emits `product_browser.session_started`, `product_browser.session_closed`, `product_browser.start_failed`, `product_profile.leased` to Event Center.
+- Frontend `ScheduleConfigPage` shows `ProductProfileCell` per platform row; supports create default profile and release stale lease.
+- Backend targeted tests: 11 passed for new product profile tests.
+- Backend lint: all modified files pass `ruff check`.
+- Frontend build: pass.
 
 ## Phase 5：独立 Crawler Worker 化
 

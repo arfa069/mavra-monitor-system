@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 
-
 # ── Legacy session helper (auto-commit, token-hash based) ───────────────────
 
 
@@ -74,8 +73,8 @@ async def create_session(
 
     Does NOT commit — the caller controls the transaction boundary.
     """
-    from app.models.session import Session
     from app.core.tokens import hash_token
+    from app.models.session import Session
 
     refresh_hash = hash_token(refresh_token)
 
@@ -111,8 +110,8 @@ async def get_session_by_refresh_token(
     Only returns sessions where ``refresh_expires_at`` is still in the future.
     Returns ``None`` if the token is expired, invalid, or the session was deleted.
     """
-    from app.models.session import Session
     from app.core.tokens import hash_token
+    from app.models.session import Session
 
     token_hash = hash_token(refresh_token)
     result = await db.execute(

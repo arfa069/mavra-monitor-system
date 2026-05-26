@@ -14,6 +14,14 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.schemas.crawl_log import CrawlLogResponse
+from app.schemas.dashboard import (
+    DashboardKPIResponse,
+    SystemKPI,
+    TrendDataPoint,
+    TrendDataset,
+    TrendResponse,
+    UserKPI,
+)
 from app.schemas.job_crawl_log import JobCrawlLogResponse
 from app.schemas.job_match import (
     MatchAnalyzeRequest,
@@ -30,14 +38,6 @@ from app.schemas.product import (
     ProductDetail,
     ProductResponse,
     ProductUpdate,
-)
-from app.schemas.dashboard import (
-    DashboardKPIResponse,
-    SystemKPI,
-    TrendDataset,
-    TrendDataPoint,
-    TrendResponse,
-    UserKPI,
 )
 from app.schemas.user import UserConfigCreate, UserConfigResponse, UserConfigUpdate
 

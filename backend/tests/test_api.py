@@ -1,6 +1,6 @@
 """API tests for config, products pagination, and scheduler."""
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient

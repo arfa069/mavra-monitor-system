@@ -5,17 +5,17 @@ Revises: 20260526_job_profile_key
 Create Date: 2026-05-26 00:00:00.000000
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 from pathlib import Path
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "20260526_product_cron_profile"
-down_revision: Union[str, None] = "20260526_job_profile_key"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "20260526_job_profile_key"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 DEFAULT_KEYS = {

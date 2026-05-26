@@ -5,10 +5,8 @@ Revises: 2026_05_16_add_jobs_crawl_logs
 Create Date: 2026-05-17
 """
 
-from typing import ClassVar
 
 from alembic import op
-import sqlalchemy as sa
 
 revision: str = "2026_05_17_rname_crawl_logs"
 down_revision: str | None = "2026_05_16_add_jobs_crawl_logs"

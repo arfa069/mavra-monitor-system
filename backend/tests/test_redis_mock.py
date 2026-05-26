@@ -1,7 +1,7 @@
 """Redis integration tests using mocks (avoids real Redis dependency)."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -12,10 +12,9 @@ class TestRedisSessionStore:
     @pytest.mark.asyncio
     async def test_session_rate_limit_uses_redis(self):
         """Rate limiting checks Redis for session count."""
-        from app.core.login_lockout import _get_redis, _redis_client
-
         # Reset global state
         import app.core.login_lockout as lockout_module
+        from app.core.login_lockout import _get_redis
         lockout_module._redis_client = None
 
         mock_redis = AsyncMock()

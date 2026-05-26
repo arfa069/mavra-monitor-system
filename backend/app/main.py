@@ -23,8 +23,8 @@ from app.domains.alerts import router as alerts_router
 from app.domains.auth import router as auth_router
 from app.domains.auth.wechat_router import router as wechat_router
 from app.domains.config import router as config_router
-from app.domains.crawling.profile_router import router as profile_router
 from app.domains.crawling import router as crawl_router
+from app.domains.crawling.profile_router import router as profile_router
 from app.domains.dashboard import router as dashboard_router
 from app.domains.events import router as events_router
 from app.domains.jobs import router as jobs_router

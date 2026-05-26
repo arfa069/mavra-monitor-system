@@ -1,6 +1,8 @@
 """Product schemas."""
+import zoneinfo
 from datetime import datetime
 
+from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.alert import AlertResponse
@@ -117,9 +119,6 @@ class ProductPlatformCronResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
-import zoneinfo
-from apscheduler.triggers.cron import CronTrigger
 
 
 class ProductPlatformCronCreate(BaseModel):

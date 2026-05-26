@@ -7,6 +7,7 @@ Create Date: 2026-05-16
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "2026_05_16_add_jobs_crawl_logs"

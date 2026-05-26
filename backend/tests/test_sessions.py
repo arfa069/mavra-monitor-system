@@ -1,6 +1,6 @@
 """Tests for session management (Task 3: refresh-token-aware helpers)."""
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -156,8 +156,9 @@ async def test_new_create_session_no_auto_commit(mock_db_session):
 @pytest.mark.asyncio
 async def test_new_create_session_enforces_max_5(mock_db_session):
     """Verify new create_session enforces max 5 sessions per user."""
-    from app.core.sessions import create_session
     from datetime import UTC, datetime, timedelta
+
+    from app.core.sessions import create_session
 
     # User already has 5 sessions
     now = datetime.now(UTC)
@@ -254,8 +255,9 @@ async def test_get_session_by_refresh_token_after_delete(mock_db_session):
 @pytest.mark.asyncio
 async def test_rotate_session_refresh_token(mock_db_session):
     """Verify rotate_session_refresh_token updates hash, expiry, and last_active."""
-    from app.core.sessions import rotate_session_refresh_token
     from datetime import UTC
+
+    from app.core.sessions import rotate_session_refresh_token
 
     old_hash = hash_token("old-refresh-token")
     new_raw = "new-refresh-token"

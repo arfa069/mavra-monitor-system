@@ -4,8 +4,9 @@ Revision ID: 007_add_roles_and_soft_delete
 Revises: 1e954b15341c
 Create Date: 2026-05-07
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = '007_add_roles_and_soft_delete'
 down_revision = '1e954b15341c'

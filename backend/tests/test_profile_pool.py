@@ -3,6 +3,7 @@ from sqlalchemy import delete, select
 
 from app.database import AsyncSessionLocal
 from app.models.crawl_profile import CrawlProfile as CrawlProfileModel
+from app.models.product import ProductPlatformCron
 
 
 def test_crawl_profile_model_table_name_and_required_columns():
@@ -18,6 +19,7 @@ def test_crawl_profile_model_table_name_and_required_columns():
 
 async def _clean_profiles():
     async with AsyncSessionLocal() as s:
+        await s.execute(delete(ProductPlatformCron))
         await s.execute(delete(CrawlProfileModel))
         await s.commit()
 

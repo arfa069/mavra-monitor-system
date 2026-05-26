@@ -4,8 +4,9 @@ Revision ID: 008_sessions_and_login_logs
 Revises: 007_add_roles_and_soft_delete
 Create Date: 2026-05-07
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = '008_sessions_and_login_logs'
 down_revision = '007_add_roles_and_soft_delete'

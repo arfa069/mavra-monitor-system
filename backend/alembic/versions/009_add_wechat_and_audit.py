@@ -4,9 +4,10 @@ Revision ID: 009_add_wechat_and_audit
 Revises: 008_sessions_and_login_logs
 Create Date: 2026-05-09
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision = '009_add_wechat_and_audit'
 down_revision = '008_sessions_and_login_logs'

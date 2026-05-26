@@ -85,10 +85,10 @@ async def _product_profile_groups(
     from app.domains.products.profile_binding import default_product_profile_key
 
     async with AsyncSessionLocal() as db:
-        products = await get_active_products(
-            user_id=user_id,
-            platform=platform,
-        )
+        kwargs: dict = {"user_id": user_id}
+        if platform is not None:
+            kwargs["platform"] = platform
+        products = await get_active_products(**kwargs)
         groups: dict[tuple[str, str], list] = {}
         for product in products:
             config = await product_repository.get_product_cron_config(
@@ -218,12 +218,22 @@ class CrawlTaskRunner:
             task.total = len(product_ids)
             await self._notify_progress(task)
 
-            details = await crawl_products_with_profile(
-                product_ids=product_ids,
-                platform=platform,
-                profile_key=profile_key,
-                task_id=task.task_id,
-            )
+            try:
+                details = await crawl_products_with_profile(
+                    product_ids=product_ids,
+                    platform=platform,
+                    profile_key=profile_key,
+                    task_id=task.task_id,
+                )
+            except Exception as exc:
+                details = [
+                    {
+                        "product_id": pid,
+                        "status": "error",
+                        "reason": str(exc),
+                    }
+                    for pid in product_ids
+                ]
             all_details.extend(details)
             total_success += sum(1 for item in details if item.get("status") == "success")
             total_errors += sum(1 for item in details if item.get("status") == "error")

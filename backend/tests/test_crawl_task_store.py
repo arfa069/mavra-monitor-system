@@ -1,14 +1,12 @@
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import delete
 
 from app.database import AsyncSessionLocal
 from app.models.crawl_task import CrawlTaskRecord
 
 
 def test_crawl_task_model_table_name_and_required_columns():
-    from app.models.crawl_task import CrawlTaskRecord
 
     columns = CrawlTaskRecord.__table__.columns
 
@@ -22,18 +20,6 @@ def test_crawl_task_model_table_name_and_required_columns():
 
 
 def test_crawl_task_defaults_are_explicit():
-    from app.models.crawl_task import CrawlTaskRecord
-
-    now = datetime.now(UTC)
-    task = CrawlTaskRecord(
-        task_id="task-1",
-        task_type="product_all",
-        source="manual",
-        status="pending",
-        created_at=now,
-        updated_at=now,
-    )
-
     assert CrawlTaskRecord.total.default.arg == 0
     assert CrawlTaskRecord.success.default.arg == 0
     assert CrawlTaskRecord.errors.default.arg == 0
@@ -93,7 +79,7 @@ async def test_runtime_task_round_trip():
 
 @pytest.mark.asyncio
 async def test_recover_stale_running_tasks_marks_failed():
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
     from app.domains.crawling.task_store import (
         create_crawl_task_record,
