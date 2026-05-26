@@ -50,7 +50,7 @@ CDP_ENABLED=true
 CDP_URL=http://127.0.0.1:9222
 
 # Boss Zhipin job crawl
-# Login once in the project-root CloakBrowser profile at profiles/default.
+# Login once in the project-root CloakBrowser profile selected by the job config, e.g. profiles/default.
 # Runtime JSONL progress logs are written under backend/logs/.
 
 # Proxy (optional, for rotating IPs)
@@ -99,6 +99,11 @@ JD_COOKIE=...
 | GET              | /jobs                             | List crawled jobs (paginated)                      | 是    |
 | POST             | /jobs/crawl-now                   | Crawl all active job configs                       | 是    |
 | POST             | /jobs/crawl-now/{id}              | Crawl single job config                            | 是    |
+| GET              | /jobs/crawl/status/{task_id}      | Poll persisted job crawl task status               | 是    |
+| GET              | /jobs/crawl/result/{task_id}      | Get completed job crawl result                     | 是    |
+| GET/POST         | /crawl-profiles                   | List/Create crawler browser profiles               | 是    |
+| PATCH            | /crawl-profiles/{profile_key}     | Update profile status/platform hint/error          | 是    |
+| POST             | /crawl-profiles/{profile_key}/release-stale | Release expired profile lease only        | 是    |
 
 ## 认证 API
 
@@ -271,16 +276,16 @@ crawl_cron: "0 9 * * *"
 crawl_timezone: "Asia/Shanghai"
 ```
 
-**Job crawl** — always cron mode (default `"0 9 * * *"`, configured via `GET/PUT /config/job-crawl-cron`).
+**Job crawl** — per-config cron mode. Each job search config can store its own cron expression/timezone and `profile_key`.
 
 Both cron jobs are managed via the **Schedule page** (`/schedule`) in the frontend, which shows registration state, next run time, and provides independent save buttons.
 
-Concurrent crawl protection: both cron and manual crawls share a global `asyncio.Semaphore(1)` — only one crawl runs at a time. On cron failure, a CrawlLog entry is written and a Feishu notification is sent if configured.
+Product crawls still use the app-level crawl semaphore. Job crawls use database-backed profile leases: one profile may store login state for multiple platforms, but the same profile directory can only be used by one crawl task at a time. Full job crawls group work by `(platform, profile_key)` and can run different profile lanes concurrently while keeping each profile lane serial.
 
 ### Job Platform Notes
 
-- Browser profiles live under project-root `profiles/{key}` and are ignored by git. A single profile may hold login state for multiple platforms, but one profile directory must be leased by only one crawl task at a time; use multiple profile keys for concurrent crawler slots.
-- Crawl runtime state is persisted in `crawl_tasks`; profile metadata and leases are persisted in `crawl_profiles`. Phase 2 still executes crawlers inside FastAPI/APScheduler, while PostgreSQL row locks protect `DatabaseProfilePool` acquisition and heartbeat renewal.
+- Browser profiles live under project-root `profiles/{key}` and are ignored by git. Profile metadata/status is managed through `/crawl-profiles` and persisted in `crawl_profiles`.
+- Crawl runtime state is persisted in `crawl_tasks`; profile metadata and leases are persisted in `crawl_profiles`. Crawlers still execute inside FastAPI/APScheduler, while PostgreSQL row locks protect `DatabaseProfilePool` acquisition and heartbeat renewal.
 - Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
 - Event Center/system log payloads are centrally redacted before storage and again before display, so cookie/token/webhook/security fields are not exposed in runtime or audit event details.
 - 51job uses `curl_cffi` search and HTML detail parsing.

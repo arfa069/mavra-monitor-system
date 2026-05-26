@@ -18,7 +18,7 @@
 
 | 阶段 | 状态 | 主要输出 | 备注 |
 | --- | --- | --- | --- |
-| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成，待提交 |
+| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成 |
 | Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
 | Phase 3 | done | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
@@ -65,14 +65,14 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 | 任务 | 状态 | 验收 |
 | --- | --- | --- |
-| Boss 接入 Profile Pool | todo | profile path 由 lease 注入 |
-| Boss 多 profile 并行 | todo | 两个 config 可用两个 profile 同时跑 |
-| Boss anti-bot code 统一分类 | todo | 36/37/38 触发 session refresh 事件 |
-| Boss profile login_required 状态 | todo | 多次刷新失败后暂停任务并告警 |
-| 51job 接入 Profile Pool | todo | 不再依赖 adapter 默认 profile path |
-| 51job JSONL 日志 | todo | 记录 crawl_start/list_page/waf/crawl_finish |
-| 51job WAF 熔断 | todo | 多次 WAF 后快速停止，不空转 |
-| 51job HTTP 下沉实验 | todo | 输出成功率、耗时、WAF 命中率 |
+| Boss 接入 Profile Pool | done | profile path 由 lease 注入 |
+| Boss 多 profile 并行 | done | 不同 profile lane 可并行；同一 profile 内串行 |
+| Boss anti-bot code 统一分类 | done | 36/37/38 触发 session refresh 事件 |
+| Boss profile login_required 状态 | done | 多次 cookie 刷新失败后返回 `profile_login_required` 分类 |
+| 51job 接入 Profile Pool | done | 不再依赖 adapter 默认 profile path |
+| 51job JSONL 日志 | done | 记录 crawl_start/list_page/waf/crawl_finish |
+| 51job WAF 熔断 | done | 多次 WAF 后快速停止，不空转 |
+| 51job HTTP 下沉实验 | done | 输出成功率、耗时、WAF 命中率 |
 | 猎聘默认关闭 CDP fallback | done | `_crawl_via_cdp` 和 `_crawl_detail_via_cdp` 已移除；正常路径不打开浏览器 |
 | 猎聘 HTTP 失败分类 | done | `classify_liepin_failure` 区分 XSRF、challenge、空结果、详情失败 |
 | 猎聘 JSONL 日志 | done | 与 Boss/51job 日志字段对齐 |

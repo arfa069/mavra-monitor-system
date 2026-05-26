@@ -51,8 +51,8 @@ frontend/src/
 │   ├── jobs/
 │       ├── JobsPage.tsx     # 职位管理页编排
 │       ├── api/             # 职位、简历、匹配分析 API client
-│       ├── components/      # 搜索配置、职位列表、详情抽屉、简历、匹配结果
-│       ├── hooks/           # 职位配置、职位列表、爬取、简历、匹配 hooks
+│       ├── components/      # 搜索配置、Profile 管理、职位列表、详情抽屉、简历、匹配结果
+│       ├── hooks/           # 职位配置、Profile、职位列表、爬取、简历、匹配 hooks
 │       └── types.ts         # 职位 feature 类型入口
 │   ├── schedule/
 │       ├── ScheduleConfigPage.tsx # 商品/职位定时配置页
@@ -196,6 +196,7 @@ interface AuthContextType {
 | `features/products/useProducts()`       | 商品列表 + 分页  | `staleTime: 10s`       |
 | `features/jobs/useJobs()`               | 职位列表 + 分页  | `staleTime: 30s`       |
 | `features/jobs/useJobConfigs()`         | 职位搜索配置列表 | 无持久化               |
+| `features/jobs/useCrawlProfiles()`      | 爬虫 profile 列表 | 无持久化               |
 | `features/jobs/useMatchResults()`       | LLM 匹配结果     | 无持久化               |
 | `features/products/useCrawlLogs()`      | 商品爬取日志     | `refetchInterval: 60s` |
 | `features/jobs/useResumes()`            | 用户简历列表     | 无持久化               |
@@ -275,12 +276,14 @@ server: {
 **Tab 结构：**
 
 - `configs` Tab：搜索配置列表 + 职位列表
+- `profiles` Tab：爬虫 profile 列表、创建、状态更新、释放过期租约
 - `resume` Tab：简历管理器
 - `matches` Tab：匹配结果列表
 
 **核心功能：**
 
-- 搜索配置 CRUD + 手动触发爬取
+- 搜索配置 CRUD + `profile_key` 选择 + 手动触发爬取
+- Profile 管理：调用 `/v1/crawl-profiles` 管理 `available/login_required/disabled` 状态和过期 lease
 - 职位列表：关键词/公司在客户端筛选，分页
 - 匹配分数展示：`MatchResultList` 中取最高分
 - 详情抽屉（JobDrawer）：展示职位完整信息
@@ -346,6 +349,7 @@ server: {
 | `PriceTrendModal`  | 弹窗   | 价格历史折线图展示          |
 | `JobConfigList`    | 列表   | 搜索配置列表 + 爬取触发     |
 | `JobConfigForm`    | 表单   | 新增/编辑搜索配置           |
+| `ProfileManagement` | 面板  | 爬虫 profile 创建、状态更新、过期 lease 释放 |
 | `JobList`          | 列表   | 职位列表 + 筛选 + 分页      |
 | `JobDrawer`        | 抽屉   | 职位详情（侧滑展示）        |
 | `MatchResultList`  | 列表   | 匹配结果 + 分数筛选         |
