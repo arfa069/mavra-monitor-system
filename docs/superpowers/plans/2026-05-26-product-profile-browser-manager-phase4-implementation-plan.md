@@ -77,6 +77,17 @@ PRODUCT_PLATFORM_DEFAULT_PROFILE_KEYS = {
 
 One profile can contain login state for multiple sites, but one profile directory can only be leased by one crawl task at a time. Product crawl execution must never open two Playwright persistent contexts for the same `profile_key`.
 
+## Existing API Contracts To Preserve
+
+These contracts are verified against the current codebase and must be followed by implementation agents:
+
+- `DatabaseProfilePool` is constructed as `DatabaseProfilePool(root=None)`, not with a DB session.
+- Profile lease acquire is `await pool.acquire(db, platform=..., profile_key=..., owner=..., task_id=...)`.
+- Profile lease release is `await pool.release(db, lease)`, where `lease` is the returned `ProfileLease`.
+- Product task execution goes through `CrawlTaskRunner.run_all_products(task)`; do not add parallel top-level runner functions that bypass `CrawlTaskRunner` progress callbacks.
+- A single `AsyncSession` must not be shared across concurrently running product profile lanes. Each lane opens its own DB session, or the runner executes lanes serially.
+- The test suite does not provide global `async_session` or `settings` fixtures. New tests that need database access must define a local fixture using `AsyncSessionLocal`; settings mutations should use `monkeypatch`.
+
 ---
 
 ### Task 1: Add Product Platform Profile Binding
@@ -98,14 +109,30 @@ Create `backend/tests/test_product_profile_binding.py`:
 
 ```python
 import pytest
+from sqlalchemy import delete
 
 from app.domains.crawling.profile_service import create_profile
 from app.domains.products import service as product_service
 from app.domains.products.profile_binding import default_product_profile_key
+from app.database import AsyncSessionLocal
+from app.models.crawl_profile import CrawlProfile
+from app.models.product import ProductPlatformCron
 from app.schemas.product import ProductPlatformCronCreate, ProductPlatformCronUpdate
 
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+async def product_profile_db():
+    async with AsyncSessionLocal() as session:
+        await session.execute(delete(ProductPlatformCron))
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
+        yield session
+        await session.execute(delete(ProductPlatformCron))
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
 
 
 def test_default_product_profile_key_mapping():
@@ -114,9 +141,9 @@ def test_default_product_profile_key_mapping():
     assert default_product_profile_key("amazon") == "product-amazon-default"
 
 
-async def test_create_product_cron_config_uses_default_profile(async_session):
+async def test_create_product_cron_config_uses_default_profile(product_profile_db):
     config = await product_service.create_product_cron_config(
-        async_session,
+        product_profile_db,
         user_id=1,
         data=ProductPlatformCronCreate(
             platform="jd",
@@ -128,10 +155,10 @@ async def test_create_product_cron_config_uses_default_profile(async_session):
     assert config.profile_key == "product-jd-default"
 
 
-async def test_create_product_cron_config_rejects_unknown_profile(async_session):
+async def test_create_product_cron_config_rejects_unknown_profile(product_profile_db):
     with pytest.raises(product_service.ProductProfileConfigError) as exc:
         await product_service.create_product_cron_config(
-            async_session,
+            product_profile_db,
             user_id=1,
             data=ProductPlatformCronCreate(
                 platform="jd",
@@ -144,14 +171,14 @@ async def test_create_product_cron_config_rejects_unknown_profile(async_session)
     assert "missing-profile" in str(exc.value)
 
 
-async def test_update_product_cron_config_can_change_profile(async_session):
+async def test_update_product_cron_config_can_change_profile(product_profile_db):
     await create_profile(
-        async_session,
+        product_profile_db,
         profile_key="product-jd-secondary",
         platform_hint="jd",
     )
     await product_service.create_product_cron_config(
-        async_session,
+        product_profile_db,
         user_id=1,
         data=ProductPlatformCronCreate(
             platform="jd",
@@ -161,7 +188,7 @@ async def test_update_product_cron_config_can_change_profile(async_session):
     )
 
     updated = await product_service.update_product_cron_config(
-        async_session,
+        product_profile_db,
         user_id=1,
         platform="jd",
         data=ProductPlatformCronUpdate(
@@ -197,6 +224,7 @@ Create Date: 2026-05-26 00:00:00.000000
 """
 
 from typing import Sequence, Union
+from pathlib import Path
 
 from alembic import op
 import sqlalchemy as sa
@@ -213,6 +241,7 @@ DEFAULT_KEYS = {
     "taobao": "product-taobao-default",
     "amazon": "product-amazon-default",
 }
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def upgrade() -> None:
@@ -241,7 +270,7 @@ def upgrade() -> None:
             ),
             {
                 "profile_key": profile_key,
-                "profile_dir": f"profiles/{profile_key}",
+                "profile_dir": str(PROJECT_ROOT / "profiles" / profile_key),
                 "platform": platform,
             },
         )
@@ -526,15 +555,28 @@ Create `backend/tests/test_browser_manager.py` with fake Playwright objects:
 from contextlib import asynccontextmanager
 
 import pytest
+from sqlalchemy import delete
 
+from app.database import AsyncSessionLocal
 from app.domains.crawling.browser_manager import (
     BrowserManager,
     BrowserProfileUnavailableError,
 )
 from app.domains.crawling.profile_pool import LOGIN_REQUIRED, ensure_profile
+from app.models.crawl_profile import CrawlProfile
 
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+async def browser_manager_db():
+    async with AsyncSessionLocal() as session:
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
+        yield session
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
 
 
 class FakePage:
@@ -579,11 +621,11 @@ async def fake_playwright_factory(context):
     yield FakePlaywright(context)
 
 
-async def test_browser_manager_acquires_and_releases_profile(async_session):
-    await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
+async def test_browser_manager_acquires_and_releases_profile(browser_manager_db):
+    await ensure_profile(browser_manager_db, profile_key="product-jd-default", platform_hint="jd")
     fake_context = FakeContext()
     manager = BrowserManager(
-        db_factory=lambda: async_session,
+        db_factory=lambda: browser_manager_db,
         playwright_factory=lambda: fake_playwright_factory(fake_context),
     )
 
@@ -601,17 +643,17 @@ async def test_browser_manager_acquires_and_releases_profile(async_session):
     assert fake_context.closed is True
 
 
-async def test_browser_manager_refuses_login_required_before_launch(async_session):
+async def test_browser_manager_refuses_login_required_before_launch(browser_manager_db):
     profile = await ensure_profile(
-        async_session,
+        browser_manager_db,
         profile_key="product-jd-default",
         platform_hint="jd",
     )
     profile.status = LOGIN_REQUIRED
-    await async_session.commit()
+    await browser_manager_db.commit()
     fake_context = FakeContext()
     manager = BrowserManager(
-        db_factory=lambda: async_session,
+        db_factory=lambda: browser_manager_db,
         playwright_factory=lambda: fake_playwright_factory(fake_context),
     )
 
@@ -628,8 +670,8 @@ async def test_browser_manager_refuses_login_required_before_launch(async_sessio
     assert fake_context.closed is False
 
 
-async def test_browser_manager_records_startup_failure(async_session):
-    await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
+async def test_browser_manager_records_startup_failure(browser_manager_db):
+    await ensure_profile(browser_manager_db, profile_key="product-jd-default", platform_hint="jd")
 
     class BrokenChromium:
         async def launch_persistent_context(self, user_data_dir, **kwargs):
@@ -643,7 +685,7 @@ async def test_browser_manager_records_startup_failure(async_session):
         yield BrokenPlaywright()
 
     manager = BrowserManager(
-        db_factory=lambda: async_session,
+        db_factory=lambda: browser_manager_db,
         playwright_factory=broken_factory,
     )
 
@@ -656,15 +698,15 @@ async def test_browser_manager_records_startup_failure(async_session):
         ):
             pass
 
-    await async_session.refresh(
-        await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
+    await browser_manager_db.refresh(
+        await ensure_profile(browser_manager_db, profile_key="product-jd-default", platform_hint="jd")
     )
 ```
 
 After implementing, replace the final refresh block with a direct query assertion:
 
 ```python
-profile = await get_profile(async_session, "product-jd-default")
+profile = await get_profile(browser_manager_db, "product-jd-default")
 assert "browser failed to start" in profile.last_error
 ```
 
@@ -696,16 +738,18 @@ from playwright.async_api import BrowserContext, Page, async_playwright
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.crawler_paths import build_profile_dir
-from app.core.database import async_session_maker
 from app.core.system_log import emit_system_log_detached
+from app.database import AsyncSessionLocal
 from app.domains.crawling.profile_pool import (
-    AVAILABLE,
     COOLING_DOWN,
     DISABLED,
     LOGIN_REQUIRED,
     DatabaseProfilePool,
+    ProfileAlreadyLeasedError,
+    ProfileUnavailableError,
 )
 from app.domains.crawling.profile_service import get_profile
+from app.core.profile_lease import ProfileLease
 
 
 BLOCKED_PROFILE_STATUSES = {LOGIN_REQUIRED, DISABLED, COOLING_DOWN}
@@ -753,7 +797,7 @@ class BrowserManager:
     def __init__(
         self,
         *,
-        db_factory: async_sessionmaker[AsyncSession] | Callable[[], AsyncSession] = async_session_maker,
+        db_factory: async_sessionmaker[AsyncSession] | Callable[[], AsyncSession] = AsyncSessionLocal,
         playwright_factory=async_playwright,
         max_pages: int = 1,
     ) -> None:
@@ -807,16 +851,19 @@ class BrowserManager:
         task_id = task_id or str(uuid4())
         profile_dir = build_profile_dir(profile_key)
         context: BrowserContext | None = None
-        pool: DatabaseProfilePool | None = None
+        lease: ProfileLease | None = None
         async with self._db() as db:
             await self._assert_profile_usable(db, profile_key)
-            pool = DatabaseProfilePool(db)
-            lease = await pool.acquire(
-                profile_key=profile_key,
-                owner=owner,
-                task_id=task_id,
-            )
-            if lease is None:
+            pool = DatabaseProfilePool()
+            try:
+                lease = await pool.acquire(
+                    db,
+                    platform=platform,
+                    profile_key=profile_key,
+                    owner=owner,
+                    task_id=task_id,
+                )
+            except ProfileAlreadyLeasedError as exc:
                 await emit_system_log_detached(
                     category="runtime",
                     event_type="product_profile.leased",
@@ -830,7 +877,9 @@ class BrowserManager:
                 )
                 raise BrowserProfileUnavailableError(
                     f"profile {profile_key} is already leased"
-                )
+                ) from exc
+            except ProfileUnavailableError as exc:
+                raise BrowserProfileUnavailableError(str(exc)) from exc
 
         try:
             async with self._playwright_factory() as playwright:
@@ -889,14 +938,11 @@ class BrowserManager:
                     payload={"profile_key": profile_key, "platform": platform},
                 )
             async with self._db() as db:
-                await DatabaseProfilePool(db).release(
-                    profile_key=profile_key,
-                    owner=owner,
-                    task_id=task_id,
-                )
+                if lease is not None:
+                    await DatabaseProfilePool().release(db, lease)
 ```
 
-If `DatabaseProfilePool.acquire()` or `.release()` signatures differ, adapt BrowserManager to the existing method names instead of changing pool semantics broadly. Keep acquire-before-launch and release-in-finally unchanged.
+This code intentionally follows the existing `DatabaseProfilePool` API: construct the pool without a DB session, pass `db` to `acquire()`, keep the returned `ProfileLease`, and pass that lease to `release()`.
 
 - [ ] **Step 4: Complete tests and assertions**
 
@@ -909,7 +955,7 @@ from app.domains.crawling.profile_service import get_profile
 Use this final assertion in startup failure test:
 
 ```python
-profile = await get_profile(async_session, "product-jd-default")
+profile = await get_profile(browser_manager_db, "product-jd-default")
 assert "browser failed to start" in profile.last_error
 ```
 
@@ -989,9 +1035,9 @@ async def test_crawl_with_page_reuses_existing_page():
     assert page.goto_calls == [("https://example.test/item", "domcontentloaded", 60000)]
 
 
-def test_jd_cookie_injection_disabled_by_default(settings):
-    settings.jd_cookie = "pt_key=abc;pt_pin=demo;"
-    settings.jd_cookie_fallback_enabled = False
+def test_jd_cookie_injection_disabled_by_default(monkeypatch):
+    monkeypatch.setattr("app.platforms.jd.settings.jd_cookie", "pt_key=abc;pt_pin=demo;")
+    monkeypatch.setattr("app.platforms.jd.settings.jd_cookie_fallback_enabled", False)
 
     adapter = JDAdapter()
 
@@ -1091,9 +1137,11 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor; git commit -m 'feat: s
 **Files:**
 
 - Create: `backend/tests/test_product_profile_crawl_runner.py`
+- Modify: `backend/app/core/task_registry.py`
 - Modify: `backend/app/domains/crawling/service.py`
 - Modify: `backend/app/domains/crawling/task_runner.py`
 - Modify: `backend/app/domains/crawling/scheduler_service.py`
+- Modify: `backend/app/domains/crawling/task_store.py`
 
 - [ ] **Step 1: Write failing runner tests**
 
@@ -1101,20 +1149,39 @@ Create `backend/tests/test_product_profile_crawl_runner.py`:
 
 ```python
 import pytest
+from sqlalchemy import delete
 
 from app.domains.crawling import task_runner
 from app.domains.crawling.profile_pool import ensure_profile
 from app.domains.products.service import create_product, create_product_cron_config
+from app.core.task_registry import CrawlTask
+from app.database import AsyncSessionLocal
+from app.models.crawl_profile import CrawlProfile
+from app.models.product import Product, ProductPlatformCron
 from app.schemas.product import ProductCreate, ProductPlatformCronCreate
 
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_platform_crawl_task_records_profile_key(async_session, monkeypatch):
-    await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
+@pytest.fixture
+async def product_runner_db():
+    async with AsyncSessionLocal() as session:
+        await session.execute(delete(ProductPlatformCron))
+        await session.execute(delete(Product))
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
+        yield session
+        await session.execute(delete(ProductPlatformCron))
+        await session.execute(delete(Product))
+        await session.execute(delete(CrawlProfile))
+        await session.commit()
+
+
+async def test_platform_crawl_task_records_profile_key(product_runner_db, monkeypatch):
+    await ensure_profile(product_runner_db, profile_key="product-jd-default", platform_hint="jd")
     await create_product_cron_config(
-        async_session,
+        product_runner_db,
         user_id=1,
         data=ProductPlatformCronCreate(
             platform="jd",
@@ -1123,9 +1190,9 @@ async def test_platform_crawl_task_records_profile_key(async_session, monkeypatc
         ),
     )
     product = await create_product(
-        async_session,
+        product_runner_db,
         user_id=1,
-        data=ProductCreate(
+        product_data=ProductCreate(
             platform="jd",
             url="https://item.jd.com/100.html",
             title="Demo",
@@ -1135,9 +1202,9 @@ async def test_platform_crawl_task_records_profile_key(async_session, monkeypatc
 
     seen = []
 
-    async def fake_crawl_products_with_profile(db, *, products, platform, profile_key, task_id):
-        seen.append((platform, profile_key, [item.id for item in products], task_id))
-        return [{"product_id": product.id, "success": True}]
+    async def fake_crawl_products_with_profile(*, product_ids, platform, profile_key, task_id):
+        seen.append((platform, profile_key, product_ids, task_id))
+        return [{"product_id": product_ids[0], "status": "success"}]
 
     monkeypatch.setattr(
         task_runner,
@@ -1145,46 +1212,46 @@ async def test_platform_crawl_task_records_profile_key(async_session, monkeypatc
         fake_crawl_products_with_profile,
     )
 
-    result = await task_runner.run_products_by_platform(
-        async_session,
-        user_id=1,
-        platform="jd",
-        task_id="task-1",
-    )
+    task = CrawlTask(task_id="task-1", source="cron", user_id=1)
+    runner = task_runner.CrawlTaskRunner()
+    result = await runner.run_products_by_platform(task, platform="jd")
 
     assert result["profile_key"] == "product-jd-default"
     assert seen == [("jd", "product-jd-default", [product.id], "task-1")]
+    assert task.profile_key == "product-jd-default"
 
 
-async def test_all_products_group_by_platform_profile(async_session, monkeypatch):
-    await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
-    await ensure_profile(async_session, profile_key="product-taobao-default", platform_hint="taobao")
+async def test_all_products_group_by_platform_profile(product_runner_db, monkeypatch):
+    await ensure_profile(product_runner_db, profile_key="product-jd-default", platform_hint="jd")
+    await ensure_profile(product_runner_db, profile_key="product-taobao-default", platform_hint="taobao")
     await create_product_cron_config(
-        async_session,
+        product_runner_db,
         user_id=1,
         data=ProductPlatformCronCreate(platform="jd", profile_key="product-jd-default"),
     )
     await create_product_cron_config(
-        async_session,
+        product_runner_db,
         user_id=1,
         data=ProductPlatformCronCreate(platform="taobao", profile_key="product-taobao-default"),
     )
 
     calls = []
 
-    async def fake_lane(db, *, products, platform, profile_key, task_id):
+    async def fake_lane(*, product_ids, platform, profile_key, task_id):
         calls.append((platform, profile_key))
         return []
 
     monkeypatch.setattr(task_runner, "crawl_products_with_profile", fake_lane)
 
-    await task_runner.run_all_products(async_session, user_id=1, task_id="task-all")
+    task = CrawlTask(task_id="task-all", source="manual", user_id=1)
+    runner = task_runner.CrawlTaskRunner()
+    await runner.run_all_products(task)
 
     assert ("jd", "product-jd-default") in calls
     assert ("taobao", "product-taobao-default") in calls
 ```
 
-Adjust imports if the existing `create_product()` service signature differs; keep the behavior assertions unchanged.
+This intentionally extends the existing `CrawlTaskRunner`; do not create a separate top-level `run_all_products(db, ...)` function.
 
 - [ ] **Step 2: Run failing runner tests**
 
@@ -1202,23 +1269,27 @@ In `backend/app/domains/crawling/service.py`, add:
 
 ```python
 async def crawl_one_with_session(
-    db: AsyncSession,
     *,
-    product: Product,
+    product_id: int,
     session: BrowserSession,
 ) -> dict[str, Any]:
-    adapter_class = PLATFORM_ADAPTERS[product.platform]
-    adapter = adapter_class()
-    page = await session.new_page()
-    try:
-        result = await adapter.crawl_with_page(product.url, page)
-        return await _persist_product_crawl_result(
-            db,
-            product=product,
-            result=result,
-        )
-    finally:
-        await session.close_page(page)
+    async with AsyncSessionLocal() as db:
+        product = await repository.get_product(db, product_id=product_id)
+        if not product or not product.active:
+            return {"status": "skipped", "product_id": product_id}
+
+        adapter_class = PLATFORM_ADAPTERS[product.platform]
+        adapter = adapter_class()
+        page = await session.new_page()
+        try:
+            result = await adapter.crawl_with_page(product.url, page)
+            return await _persist_product_crawl_result(
+                db,
+                product=product,
+                result=result,
+            )
+        finally:
+            await session.close_page(page)
 ```
 
 If current `crawl_one(product_id)` contains persistence inline, first extract that persistence block into:
@@ -1235,15 +1306,16 @@ async def _persist_product_crawl_result(
 
 Then make old `crawl_one(product_id)` call the same helper after `adapter.crawl(product.url)`. This keeps fallback compatibility and avoids duplicated price-history behavior.
 
+Do not pass a long-lived `AsyncSession` from `CrawlTaskRunner` into concurrent lanes. Each product crawl opens its own short-lived session through `AsyncSessionLocal()` as shown above.
+
 - [ ] **Step 4: Add profile lane execution**
 
 In `backend/app/domains/crawling/task_runner.py`, add:
 
 ```python
 async def crawl_products_with_profile(
-    db: AsyncSession,
     *,
-    products: list[Product],
+    product_ids: list[int],
     platform: str,
     profile_key: str,
     task_id: str,
@@ -1256,19 +1328,18 @@ async def crawl_products_with_profile(
         owner="product-crawler",
         task_id=task_id,
     ) as session:
-        for product in products:
+        for product_id in product_ids:
             try:
                 result = await crawling_service.crawl_one_with_session(
-                    db,
-                    product=product,
+                    product_id=product_id,
                     session=session,
                 )
                 results.append(result)
             except Exception as exc:
                 results.append(
                     {
-                        "product_id": product.id,
-                        "success": False,
+                        "product_id": product_id,
+                        "status": "error",
                         "reason": str(exc),
                     }
                 )
@@ -1280,29 +1351,28 @@ Add grouping helper:
 
 ```python
 async def _product_profile_groups(
-    db: AsyncSession,
     *,
     user_id: int,
     platform: str | None = None,
 ) -> dict[tuple[str, str], list[Product]]:
-    products = await crawling_service.get_active_products(
-        db,
-        user_id=user_id,
-        platform=platform,
-    )
-    groups: dict[tuple[str, str], list[Product]] = {}
-    for product in products:
-        config = await product_repository.get_product_cron_config(
-            db,
+    async with AsyncSessionLocal() as db:
+        products = await crawling_service.get_active_products(
             user_id=user_id,
-            platform=product.platform,
+            platform=platform,
         )
-        profile_key = (
-            config.profile_key
-            if config is not None
-            else default_product_profile_key(product.platform)
-        )
-        groups.setdefault((product.platform, profile_key), []).append(product)
+        groups: dict[tuple[str, str], list[Product]] = {}
+        for product in products:
+            config = await product_repository.get_product_cron_config(
+                db,
+                user_id=user_id,
+                platform=product.platform,
+            )
+            profile_key = (
+                config.profile_key
+                if config is not None
+                else default_product_profile_key(product.platform)
+            )
+            groups.setdefault((product.platform, profile_key), []).append(product)
     return groups
 ```
 
@@ -1311,6 +1381,76 @@ Use this rule:
 - Same `profile_key`: serial products in one BrowserManager session.
 - Different `profile_key`: may run concurrently through separate lanes.
 - If BrowserManager raises `BrowserProfileUnavailableError`, fail that lane quickly and do not wait indefinitely.
+
+Extend `backend/app/core/task_registry.py` so runtime tasks can carry the persisted profile key:
+
+```python
+@dataclass
+class CrawlTask:
+    task_id: str
+    status: TaskStatus = TaskStatus.PENDING
+    source: str = "manual"
+    total: int = 0
+    success: int = 0
+    errors: int = 0
+    details: list = field(default_factory=list)
+    reason: str | None = None
+    user_id: int | None = None
+    entity_type: str | None = None
+    entity_id: str | None = None
+    profile_key: str | None = None
+    created_at: float = field(default_factory=lambda: asyncio.get_event_loop().time())
+```
+
+Update `backend/app/domains/crawling/task_store.py` so `runtime_task_from_record()` copies `record.profile_key` to `task.profile_key`, and `sync_record_from_runtime_task()` copies `task.profile_key` back to `record.profile_key`.
+
+Add `run_products_by_platform()` as a method on `CrawlTaskRunner`, not as a top-level function:
+
+```python
+async def run_products_by_platform(self, task: CrawlTask, *, platform: str) -> dict:
+    task.status = TaskStatus.RUNNING
+    await self._notify_progress(task)
+    groups = await _product_profile_groups(user_id=task.user_id or 1, platform=platform)
+    if not groups:
+        task.status = TaskStatus.COMPLETED
+        task.reason = "no_active_products"
+        await self._notify_progress(task)
+        return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
+
+    if len(groups) != 1:
+        task.status = TaskStatus.FAILED
+        task.reason = "ambiguous_product_profile_group"
+        await self._notify_progress(task)
+        return {"status": "error", "reason": task.reason}
+
+    (group_platform, profile_key), products = next(iter(groups.items()))
+    product_ids = [product.id for product in products]
+    task.profile_key = profile_key
+    task.total = len(product_ids)
+    await self._notify_progress(task)
+
+    details = await crawl_products_with_profile(
+        product_ids=product_ids,
+        platform=group_platform,
+        profile_key=profile_key,
+        task_id=task.task_id,
+    )
+    task.success = sum(1 for item in details if item.get("status") == "success")
+    task.errors = sum(1 for item in details if item.get("status") == "error")
+    task.details = details
+    task.status = TaskStatus.COMPLETED
+    await self._notify_progress(task)
+    return {
+        "status": "completed",
+        "profile_key": profile_key,
+        "total": task.total,
+        "success": task.success,
+        "errors": task.errors,
+        "details": details,
+    }
+```
+
+Refactor existing `CrawlTaskRunner.run_all_products(task)` to call `_product_profile_groups(...)` and then call `crawl_products_with_profile(...)` with product id lists. Do not share one `AsyncSession` across lane tasks. If lanes are gathered concurrently, each lane must only receive plain values: `product_ids`, `platform`, `profile_key`, and `task_id`.
 
 - [ ] **Step 5: Persist task profile_key in scheduler service**
 
@@ -1323,17 +1463,29 @@ config = await product_repository.get_product_cron_config(
     platform=platform,
 )
 profile_key = config.profile_key if config else default_product_profile_key(platform)
-task = await create_crawl_task(
+record = await create_crawl_task_record(
     db,
+    source="cron",
     task_type="product_platform",
-    user_id=user_id,
     platform=platform,
     profile_key=profile_key,
-    status="running",
+    user_id=user_id,
+    entity_type="product_platform",
+    entity_id=platform,
+)
+task = runtime_task_from_record(record)
+```
+
+Then call the new runner method:
+
+```python
+result = await CrawlTaskRunner(progress_callback=_persist_progress).run_products_by_platform(
+    task,
+    platform=platform,
 )
 ```
 
-For manual all-product crawl, store `profile_key=None` on the parent task and include per-lane profile keys in task payload/result. If the existing task model only supports a single `profile_key`, keep `None` for all-platform parent tasks and create clear result entries:
+For manual all-product crawl, store `profile_key=None` on the parent task and include per-lane profile keys in task payload/result. The existing task model supports one nullable `profile_key`; keep `None` for all-platform parent tasks because multiple platform lanes may use different profiles:
 
 ```python
 {
@@ -1351,7 +1503,7 @@ Run:
 
 ```powershell
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest tests/test_product_profile_crawl_runner.py -q"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check app/domains/crawling/service.py app/domains/crawling/task_runner.py app/domains/crawling/scheduler_service.py tests/test_product_profile_crawl_runner.py"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check app/core/task_registry.py app/domains/crawling/service.py app/domains/crawling/task_runner.py app/domains/crawling/scheduler_service.py app/domains/crawling/task_store.py tests/test_product_profile_crawl_runner.py"
 ```
 
 Expected: PASS.
@@ -1361,7 +1513,7 @@ Expected: PASS.
 Run:
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/price-monitor; git add backend/app/domains/crawling/service.py backend/app/domains/crawling/task_runner.py backend/app/domains/crawling/scheduler_service.py backend/tests/test_product_profile_crawl_runner.py"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor; git add backend/app/core/task_registry.py backend/app/domains/crawling/service.py backend/app/domains/crawling/task_runner.py backend/app/domains/crawling/scheduler_service.py backend/app/domains/crawling/task_store.py backend/tests/test_product_profile_crawl_runner.py"
 powershell.exe -Command "cd C:/Users/arfac/price-monitor; git commit -m 'feat: run product crawls through profile sessions'"
 ```
 
@@ -1385,13 +1537,13 @@ Extend `backend/tests/test_browser_manager.py`:
 
 ```python
 @pytest.mark.parametrize("status", ["login_required", "disabled", "cooling_down"])
-async def test_browser_manager_blocked_statuses_fail_before_launch(async_session, status):
-    profile = await ensure_profile(async_session, profile_key="product-jd-default", platform_hint="jd")
+async def test_browser_manager_blocked_statuses_fail_before_launch(browser_manager_db, status):
+    profile = await ensure_profile(browser_manager_db, profile_key="product-jd-default", platform_hint="jd")
     profile.status = status
-    await async_session.commit()
+    await browser_manager_db.commit()
     fake_context = FakeContext()
     manager = BrowserManager(
-        db_factory=lambda: async_session,
+        db_factory=lambda: browser_manager_db,
         playwright_factory=lambda: fake_playwright_factory(fake_context),
     )
 
@@ -1840,7 +1992,7 @@ Then verify in browser:
 - Confirm product platform rows show `product-jd-default`, `product-taobao-default`, and `product-amazon-default`.
 - Create missing default profiles from the Schedule page if they are absent.
 - Save JD cron config with `profile_key=product-jd-default`.
-- Open Profile tab and confirm `profile_dir` points to `profiles/product-jd-default`.
+- Open Profile tab and confirm `profile_dir` points to the absolute project profile path ending in `profiles/product-jd-default`.
 
 - [ ] **Step 5: Run real JD product profile crawl**
 
@@ -1954,9 +2106,9 @@ Type consistency:
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | not run | Optional; Phase 4 scope was already narrowed during brainstorming |
 | Codex Review | `/codex review` | Independent 2nd opinion | 0 | not run | Not run for plan-stage review |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | issues_open | 5 issues, 0 critical production gaps |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | clear after amendments | 5 issues found and resolved in plan: ProfilePool API, runner shape, AsyncSession boundaries, test fixtures, profile_dir consistency |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | not run | Recommended before implementing Schedule page UI |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | not run | Not required for this backend-heavy plan |
 
-- **UNRESOLVED:** 5 plan amendments recommended before implementation.
-- **VERDICT:** ENG REVIEW HAS OPEN ISSUES - adjust the plan before executing Phase 4.
+- **UNRESOLVED:** 0.
+- **VERDICT:** ENG CLEARED AFTER PLAN AMENDMENTS - ready to implement Phase 4.
