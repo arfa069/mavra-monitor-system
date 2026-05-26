@@ -134,6 +134,20 @@ async def crawl_one_with_session(
                     pass
             return await _persist_product_crawl_result(db, product=product, result_data=result_data)
         except Exception as e:
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+            if isinstance(e, PlaywrightTimeoutError):
+                from app.core.system_log import emit_system_log_detached
+                await emit_system_log_detached(
+                    category="runtime",
+                    event_type="product_browser.page_timeout",
+                    source="crawler",
+                    severity="warning",
+                    status="failed",
+                    message=f"Product page timed out for {session.profile_key}",
+                    entity_type="crawl_profile",
+                    entity_id=session.profile_key,
+                    payload={"profile_key": session.profile_key, "platform": session.platform},
+                )
             await save_crawl_log(product_id, product.platform, "ERROR", error_message=str(e))
             return {"status": "error", "product_id": product_id, "error": str(e)}
         finally:

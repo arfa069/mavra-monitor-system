@@ -219,6 +219,10 @@ class BasePlatformAdapter(ABC):
         In launch mode, creates a fresh browser instance.
         Overall operation timeout is 90s.
         """
+        if not settings.product_cdp_fallback_enabled:
+            raise RuntimeError(
+                "crawl() fallback is disabled; use crawl_with_page() with BrowserManager"
+            )
         await self._init_browser()
 
         try:

@@ -59,6 +59,7 @@ async def crawl_products_with_profile(
                     product_id=product_id,
                     session=session,
                 )
+                result["profile_key"] = profile_key
                 results.append(result)
             except Exception as exc:
                 results.append(
@@ -66,6 +67,7 @@ async def crawl_products_with_profile(
                         "product_id": product_id,
                         "status": "error",
                         "reason": str(exc),
+                        "profile_key": profile_key,
                     }
                 )
             await asyncio.sleep(
@@ -207,33 +209,40 @@ class CrawlTaskRunner:
             await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
-        all_details: list[dict] = []
-        total_success = 0
-        total_errors = 0
+        total_products = sum(len(products) for products in groups.values())
+        task.total = total_products
+        await self._notify_progress(task)
 
-        # Run each profile lane serially to avoid sharing AsyncSession across lanes
-        for (platform, profile_key), products in groups.items():
-            product_ids = [product.id for product in products]
-            task.profile_key = profile_key
-            task.total = len(product_ids)
-            await self._notify_progress(task)
-
+        async def _run_lane(platform: str, profile_key: str, product_ids: list[int]) -> list[dict]:
             try:
-                details = await crawl_products_with_profile(
+                return await crawl_products_with_profile(
                     product_ids=product_ids,
                     platform=platform,
                     profile_key=profile_key,
                     task_id=task.task_id,
                 )
             except Exception as exc:
-                details = [
+                return [
                     {
                         "product_id": pid,
                         "status": "error",
                         "reason": str(exc),
+                        "profile_key": profile_key,
                     }
                     for pid in product_ids
                 ]
+
+        lane_tasks = []
+        for (platform, profile_key), products in groups.items():
+            product_ids = [product.id for product in products]
+            lane_tasks.append(_run_lane(platform, profile_key, product_ids))
+
+        lane_results = await asyncio.gather(*lane_tasks)
+
+        all_details: list[dict] = []
+        total_success = 0
+        total_errors = 0
+        for details in lane_results:
             all_details.extend(details)
             total_success += sum(1 for item in details if item.get("status") == "success")
             total_errors += sum(1 for item in details if item.get("status") == "error")
