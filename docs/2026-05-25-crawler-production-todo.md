@@ -6,6 +6,8 @@
 
 - [Phase 1 implementation plan](2026-05-25-crawler-production-phase1-implementation-plan.md)
 - [Phase 2 implementation plan](2026-05-26-crawler-production-phase2-implementation-plan.md)
+- [Phase 3 implementation plan](2026-05-26-job-platform-production-phase3.md)
+- [Phase 4 implementation plan](2026-05-26-product-profile-browser-manager-phase4-implementation-plan.md)
 
 ## 状态说明
 
@@ -116,7 +118,7 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 - `BasePlatformAdapter.crawl_with_page()` extracts using an existing page; old `crawl()` delegates after creating a page.
 - `JDAdapter._should_inject_cookie_fallback()` gates cookie injection behind `jd_cookie_fallback_enabled`.
 - `CrawlTaskRunner.run_products_by_platform()` groups products by `(platform, profile_key)` and runs one BrowserManager session per lane.
-- `CrawlTaskRunner.run_all_products()` runs profile lanes serially to avoid sharing AsyncSession across concurrent lanes.
+- `CrawlTaskRunner.run_all_products()` runs different profile lanes concurrently; each lane opens its own BrowserManager session and avoids sharing `AsyncSession` across lanes.
 - `crawl_one_with_session()` uses `crawl_with_page` and calls `adapter.classify_failure()` on errors to mark `login_required` profiles.
 - `BrowserManager` emits `product_browser.session_started`, `product_browser.session_closed`, `product_browser.start_failed`, `product_profile.leased` to Event Center.
 - Frontend `ScheduleConfigPage` shows `ProductProfileCell` per platform row; supports create default profile and release stale lease.

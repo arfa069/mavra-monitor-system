@@ -106,6 +106,39 @@ async def test_profile_pool_rejects_login_required_profile(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_profile_pool_release_preserves_blocking_status(tmp_path):
+    from app.domains.crawling.profile_pool import DatabaseProfilePool
+
+    await _clean_profiles()
+    async with AsyncSessionLocal() as db:
+        pool = DatabaseProfilePool(root=tmp_path)
+        lease = await pool.acquire(
+            db,
+            platform="jd",
+            profile_key="default",
+            owner="task-1",
+            task_id="task-1",
+        )
+        result = await db.execute(
+            select(CrawlProfileModel).where(CrawlProfileModel.profile_key == "default")
+        )
+        profile = result.scalar_one()
+        profile.status = "login_required"
+        await db.commit()
+
+        await pool.release(db, lease)
+
+        result = await db.execute(
+            select(CrawlProfileModel).where(CrawlProfileModel.profile_key == "default")
+        )
+        profile = result.scalar_one()
+        assert profile.status == "login_required"
+        assert profile.lease_owner is None
+        assert profile.lease_task_id is None
+        assert profile.lease_until is None
+
+
+@pytest.mark.asyncio
 async def test_profile_pool_old_lease_cannot_release_new_owner(tmp_path):
     from datetime import UTC, datetime, timedelta
 

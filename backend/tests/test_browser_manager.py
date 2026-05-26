@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.database import AsyncSessionLocal
 from app.domains.crawling.browser_manager import (
@@ -86,6 +86,36 @@ async def test_browser_manager_acquires_and_releases_profile():
         assert session.profile_key == profile_key
 
     assert fake_context.closed is True
+
+
+@pytest.mark.asyncio
+async def test_browser_manager_closes_context_when_crawl_raises():
+    profile_key = "product-jd-test-exception-close"
+    await _clean_profile(profile_key)
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key=profile_key, platform_hint="jd")
+    fake_context = FakeContext()
+    manager = BrowserManager(
+        db_factory=lambda: AsyncSessionLocal(),
+        playwright_factory=lambda: fake_playwright_factory(fake_context),
+    )
+
+    with pytest.raises(RuntimeError, match="crawl failed"):
+        async with manager.acquire(
+            platform="jd",
+            profile_key=profile_key,
+            owner="test-owner",
+            task_id="task-1",
+        ):
+            raise RuntimeError("crawl failed")
+
+    assert fake_context.closed is True
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(CrawlProfile).where(CrawlProfile.profile_key == profile_key)
+        )
+        profile = result.scalar_one()
+        assert profile.lease_owner is None
 
 
 @pytest.mark.asyncio

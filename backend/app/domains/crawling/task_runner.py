@@ -179,12 +179,36 @@ class CrawlTaskRunner:
         task.total = len(product_ids)
         await self._notify_progress(task)
 
-        details = await crawl_products_with_profile(
-            product_ids=product_ids,
-            platform=group_platform,
-            profile_key=profile_key,
-            task_id=task.task_id,
-        )
+        try:
+            details = await crawl_products_with_profile(
+                product_ids=product_ids,
+                platform=group_platform,
+                profile_key=profile_key,
+                task_id=task.task_id,
+            )
+        except Exception as exc:
+            task.status = TaskStatus.FAILED
+            task.reason = str(exc)
+            task.errors = len(product_ids)
+            task.details = [
+                {
+                    "product_id": product_id,
+                    "status": "error",
+                    "reason": str(exc),
+                    "profile_key": profile_key,
+                }
+                for product_id in product_ids
+            ]
+            await self._notify_progress(task)
+            return {
+                "status": "error",
+                "reason": task.reason,
+                "profile_key": profile_key,
+                "total": task.total,
+                "success": 0,
+                "errors": task.errors,
+                "details": task.details,
+            }
         task.success = sum(1 for item in details if item.get("status") == "success")
         task.errors = sum(1 for item in details if item.get("status") == "error")
         task.details = details

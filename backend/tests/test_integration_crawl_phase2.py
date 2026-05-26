@@ -226,7 +226,7 @@ async def test_scheduled_job_crawl_uses_profile_pool(monkeypatch, tmp_path):
             owner=owner,
         )
 
-    async def fake_run_job_config(self, task, *, config_id):
+    async def fake_run_job_config(self, task, *, config_id, runtime_context=None):
         task.status = "completed"
         task.total = 1
         task.success = 1

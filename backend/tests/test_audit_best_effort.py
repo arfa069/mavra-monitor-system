@@ -56,6 +56,7 @@ def create_mock_job_config(config_id: int = 1, user_id: int = 1, name: str = "Co
         deactivation_threshold=3,
         cron_expression=None,
         cron_timezone="Asia/Shanghai",
+        profile_key="default",
         enable_match_analysis=False,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),

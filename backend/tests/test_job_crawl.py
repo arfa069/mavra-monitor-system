@@ -117,7 +117,7 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
         def __init__(self, **kwargs):
             self._progress_callback = kwargs.get("progress_callback")
 
-        async def run_job_config(self, task, *, config_id):
+        async def run_job_config(self, task, *, config_id, runtime_context=None):
             task.status = "completed"
             if self._progress_callback:
                 await self._progress_callback(task)
@@ -1120,9 +1120,9 @@ class TestAdapterSharing:
         # Mock result for: result.scalars().all() -> [3 configs]
         mock_scalars = MagicMock()
         mock_scalars.all = MagicMock(return_value=[
-            MagicMock(id=1, url="https://www.zhipin.com/web/geek/jobs?query=a"),
-            MagicMock(id=2, url="https://www.zhipin.com/web/geek/jobs?query=b"),
-            MagicMock(id=3, url="https://www.zhipin.com/web/geek/jobs?query=c"),
+            MagicMock(id=1, url="https://www.zhipin.com/web/geek/jobs?query=a", profile_key="default"),
+            MagicMock(id=2, url="https://www.zhipin.com/web/geek/jobs?query=b", profile_key="default"),
+            MagicMock(id=3, url="https://www.zhipin.com/web/geek/jobs?query=c", profile_key="default"),
         ])
         mock_execute_result = MagicMock()
         mock_execute_result.scalars = MagicMock(return_value=mock_scalars)
@@ -1144,7 +1144,25 @@ class TestAdapterSharing:
                     "deactivated_count": 0,
                 }
 
-                with patch("app.platforms.BossCloakExperimentalAdapter") as mock_adapter_cls:
+                from contextlib import asynccontextmanager
+                from pathlib import Path
+
+                from app.domains.crawling.profile_pool import ProfileLease
+
+                @asynccontextmanager
+                async def fake_lease(self, db, *, platform, profile_key, owner, task_id):
+                    yield ProfileLease(
+                        platform=platform,
+                        profile_key=profile_key,
+                        profile_dir=Path("profiles") / profile_key,
+                        owner=owner,
+                        task_id=task_id,
+                    )
+
+                with patch(
+                    "app.domains.crawling.profile_pool.DatabaseProfilePool.lease",
+                    fake_lease,
+                ), patch("app.domains.jobs.crawl_service._create_adapter") as mock_adapter_cls:
                     mock_adapter = MagicMock()
                     mock_adapter_cls.return_value = mock_adapter
 

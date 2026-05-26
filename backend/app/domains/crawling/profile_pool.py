@@ -175,7 +175,8 @@ class DatabaseProfilePool:
             return
         if lease.task_id is not None and profile.lease_task_id != lease.task_id:
             return
-        profile.status = AVAILABLE
+        if profile.status not in BLOCKING_STATUSES:
+            profile.status = AVAILABLE
         profile.lease_owner = None
         profile.lease_task_id = None
         profile.lease_until = None

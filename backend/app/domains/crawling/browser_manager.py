@@ -123,6 +123,7 @@ class BrowserManager:
         task_id = task_id or str(uuid4())
         profile_dir = build_profile_dir(profile_key)
         context: BrowserContext | None = None
+        session: BrowserSession | None = None
         lease: ProfileLease | None = None
         async with self._db() as db:
             await self._assert_profile_usable(db, profile_key)
@@ -195,20 +196,25 @@ class BrowserManager:
                     max_pages=self._max_pages,
                 )
                 yield session
-                await session.close()
         finally:
-            if context is not None:
-                await emit_system_log_detached(
-                    category="runtime",
-                    event_type="product_browser.session_closed",
-                    source="crawler",
-                    severity="info",
-                    status="success",
-                    message=f"Product browser session closed for {profile_key}",
-                    entity_type="crawl_profile",
-                    entity_id=profile_key,
-                    payload={"profile_key": profile_key, "platform": platform},
-                )
-            async with self._db() as db:
-                if lease is not None:
-                    await DatabaseProfilePool().release(db, lease)
+            try:
+                if session is not None:
+                    await session.close()
+                elif context is not None:
+                    await context.close()
+            finally:
+                if context is not None:
+                    await emit_system_log_detached(
+                        category="runtime",
+                        event_type="product_browser.session_closed",
+                        source="crawler",
+                        severity="info",
+                        status="success",
+                        message=f"Product browser session closed for {profile_key}",
+                        entity_type="crawl_profile",
+                        entity_id=profile_key,
+                        payload={"profile_key": profile_key, "platform": platform},
+                    )
+                async with self._db() as db:
+                    if lease is not None:
+                        await DatabaseProfilePool().release(db, lease)

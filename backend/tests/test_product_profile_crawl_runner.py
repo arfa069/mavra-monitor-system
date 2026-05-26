@@ -69,6 +69,56 @@ async def test_platform_crawl_task_records_profile_key(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_platform_crawl_task_fails_when_profile_lane_cannot_start(monkeypatch):
+    await _clean_tables()
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
+        await create_product_cron_config(
+            db,
+            user_id=1,
+            data=ProductPlatformCronCreate(platform="jd", profile_key="product-jd-default"),
+        )
+        product = await create_product(
+            db,
+            user_id=1,
+            product_data=ProductCreate(
+                platform="jd",
+                url="https://item.jd.com/100.html",
+                title="Demo",
+                active=True,
+            ),
+        )
+
+    async def failing_lane(*, product_ids, platform, profile_key, task_id):
+        raise RuntimeError("profile product-jd-default is already leased")
+
+    progress = []
+
+    async def record_progress(task):
+        progress.append((task.status, task.reason, task.errors))
+
+    monkeypatch.setattr(task_runner, "crawl_products_with_profile", failing_lane)
+
+    task = CrawlTask(task_id="task-1", source="cron", user_id=1)
+    result = await task_runner.CrawlTaskRunner(
+        progress_callback=record_progress
+    ).run_products_by_platform(task, platform="jd")
+
+    assert result["status"] == "error"
+    assert task.status == "failed"
+    assert task.errors == 1
+    assert task.details == [
+        {
+            "product_id": product.id,
+            "status": "error",
+            "reason": "profile product-jd-default is already leased",
+            "profile_key": "product-jd-default",
+        }
+    ]
+    assert progress[-1] == ("failed", "profile product-jd-default is already leased", 1)
+
+
+@pytest.mark.asyncio
 async def test_all_products_group_by_platform_profile(monkeypatch):
     await _clean_tables()
     async with AsyncSessionLocal() as db:
@@ -186,6 +236,73 @@ async def test_crawl_one_emits_page_timeout_event(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_crawl_one_emits_page_timeout_event_for_timeout_result(monkeypatch):
+    """Adapter timeout result, not only timeout exception, emits page timeout event."""
+    await _clean_tables()
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
+        product = await create_product(
+            db,
+            user_id=1,
+            product_data=ProductCreate(
+                platform="jd",
+                url="https://item.jd.com/timeout-result.html",
+                title="Timeout Result Demo",
+                active=True,
+            ),
+        )
+
+    emitted = []
+
+    async def fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    monkeypatch.setattr("app.core.system_log.emit_system_log_detached", fake_emit)
+
+    class FakePage:
+        url = "https://item.jd.com/timeout-result.html"
+
+        async def content(self):
+            return ""
+
+    class FakeAdapter:
+        platform_name = "jd"
+
+        async def crawl_with_page(self, url, page):
+            return {
+                "success": False,
+                "error": "Page load timeout: page.goto timed out",
+            }
+
+        def classify_failure(self, url, content):
+            return None
+
+    monkeypatch.setattr(
+        "app.domains.crawling.service.PLATFORM_ADAPTERS",
+        {"jd": FakeAdapter},
+    )
+
+    class FakeSession:
+        profile_key = "product-jd-default"
+        platform = "jd"
+
+        async def new_page(self):
+            return FakePage()
+
+        async def close_page(self, page):
+            pass
+
+    from app.domains.crawling.service import crawl_one_with_session
+
+    result = await crawl_one_with_session(product_id=product.id, session=FakeSession())
+
+    assert result["status"] == "error"
+    timeout_events = [e for e in emitted if e.get("event_type") == "product_browser.page_timeout"]
+    assert len(timeout_events) == 1
+    assert timeout_events[0]["entity_id"] == "product-jd-default"
+
+
+@pytest.mark.asyncio
 async def test_crawl_fallback_disabled_by_default(monkeypatch):
     """crawl() fallback is disabled when product_cdp_fallback_enabled is False."""
     monkeypatch.setattr("app.platforms.base.settings.product_cdp_fallback_enabled", False)
@@ -267,3 +384,63 @@ async def test_run_all_products_runs_lanes_concurrently(monkeypatch):
 
     assert result["status"] == "completed"
     assert max_active == 2, f"Expected 2 concurrent lanes, got {max_active}"
+
+
+@pytest.mark.asyncio
+async def test_sync_crawl_all_products_uses_profile_first_runner(monkeypatch):
+    """Synchronous crawl-all path delegates to the same persistent task runner."""
+    from app.core.task_registry import TaskStatus
+    from app.domains.crawling import scheduler_service
+
+    class DummyDb:
+        pass
+
+    class DummySessionFactory:
+        async def __aenter__(self):
+            return DummyDb()
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+    class DummyRecord:
+        id = 123
+
+    created_records = []
+
+    async def fake_create_record(db, **kwargs):
+        created_records.append(kwargs)
+        return DummyRecord()
+
+    def fake_runtime_task_from_record(record):
+        return CrawlTask(task_id="sync-task", source="manual", user_id=1)
+
+    calls = []
+
+    async def fake_run_crawl_task(task, *, record_id=None):
+        calls.append((task.task_id, record_id))
+        task.status = TaskStatus.COMPLETED
+        task.total = 1
+        task.success = 1
+        task.errors = 0
+        task.details = [{"product_id": 1, "status": "success", "profile_key": "product-jd-default"}]
+
+    monkeypatch.setattr(
+        scheduler_service,
+        "_scheduler_state",
+        {"crawl_lock": asyncio.Semaphore(1)},
+    )
+    monkeypatch.setattr(scheduler_service, "AsyncSessionLocal", DummySessionFactory)
+    monkeypatch.setattr(scheduler_service, "create_crawl_task_record", fake_create_record)
+    monkeypatch.setattr(scheduler_service, "runtime_task_from_record", fake_runtime_task_from_record)
+    monkeypatch.setattr(scheduler_service, "_run_crawl_task", fake_run_crawl_task)
+
+    result = await scheduler_service.crawl_all_products(
+        source="manual",
+        background=False,
+        user_id=1,
+    )
+
+    assert calls == [("sync-task", 123)]
+    assert created_records[0]["task_type"] == "product_all"
+    assert result["status"] == "completed"
+    assert result["details"][0]["profile_key"] == "product-jd-default"

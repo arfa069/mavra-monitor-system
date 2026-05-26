@@ -78,18 +78,24 @@ async def test_close_target_closes_requested_cdp_target(monkeypatch):
 def test_liepin_normalize_job():
     from app.platforms.liepin import LiepinAdapter
 
-    raw = {
-        "job_id": "123",
-        "title": "Python Engineer",
-        "company": "Example Co",
-        "salary": "20-40k",
-        "location": "上海",
-        "experience": "3-5年",
-        "education": "本科",
-        "url": "https://www.liepin.com/job/123.shtml",
+    payload = {
+        "jobCardList": [
+            {
+                "job": {
+                    "jobId": "123",
+                    "title": "Python Engineer",
+                    "salary": "20-40k",
+                    "dq": "上海",
+                    "requireWorkYears": "3-5年",
+                    "requireEduLevel": "本科",
+                    "link": "https://www.liepin.com/job/123.shtml",
+                },
+                "comp": {"compName": "Example Co"},
+            }
+        ]
     }
 
-    job = LiepinAdapter._normalize_job(raw)
+    job = LiepinAdapter._transform_jobs(payload)[0]
 
     assert job["job_id"] == "123"
     assert job["title"] == "Python Engineer"
@@ -218,14 +224,12 @@ async def test_liepin_crawl_uses_http_json_success(monkeypatch):
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_via_cdp", AsyncMock())
 
     result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
     assert result["success"] is True
     assert result["count"] == 1
     assert result["jobs"][0]["job_id"] == "123"
-    adapter._crawl_via_cdp.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -272,7 +276,6 @@ async def test_liepin_crawl_posts_pc_search_api_without_opening_browser(monkeypa
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_via_cdp", AsyncMock())
 
     result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
@@ -282,12 +285,10 @@ async def test_liepin_crawl_posts_pc_search_api_without_opening_browser(monkeypa
     assert post_kwargs["headers"]["X-XSRF-TOKEN"] == "token-123"
     assert post_kwargs["json"]["data"]["mainSearchPcConditionForm"]["key"] == "python"
     assert post_kwargs["json"]["data"]["mainSearchPcConditionForm"]["dq"] == "020"
-    adapter._crawl_via_cdp.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_liepin_crawl_falls_back_to_cdp_api_when_http_request_fails(monkeypatch):
-    from app.platforms import liepin
+async def test_liepin_crawl_returns_http_failure_when_request_fails(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
 
     class FakeSession:
@@ -296,52 +297,15 @@ async def test_liepin_crawl_falls_back_to_cdp_api_when_http_request_fails(monkey
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(
-        liepin,
-        "open_temporary_tab",
-        AsyncMock(return_value=("ws://target", "target-liepin")),
-    )
-    close_target_mock = AsyncMock()
-    monkeypatch.setattr(liepin, "close_target", close_target_mock)
-    monkeypatch.setattr(
-        liepin,
-        "evaluate_json_fetch",
-        AsyncMock(return_value={
-            "status": 200,
-            "contentType": "application/json",
-            "json": {
-                "data": {
-                    "data": {
-                        "jobCardList": [
-                            {
-                                "job": {
-                                    "jobId": "198123",
-                                    "title": "Python Dev",
-                                    "salary": "25k",
-                                    "dq": "上海",
-                                    "requireWorkYears": "3年",
-                                    "requireEduLevel": "本科",
-                                    "link": "https://www.liepin.com/job/198123.shtml",
-                                },
-                                "comp": {"compName": "Test Co"},
-                            }
-                        ]
-                    }
-                }
-            },
-        }),
-    )
 
     result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
-    assert result["success"] is True
-    assert result["count"] == 1
-    assert result["jobs"][0]["job_id"] == "198123"
-    close_target_mock.assert_awaited_once_with("target-liepin")
+    assert result["success"] is False
+    assert result["failure_category"] == "parse_error"
 
 
 @pytest.mark.asyncio
-async def test_liepin_crawl_falls_back_to_cdp_when_http_returns_html(monkeypatch):
+async def test_liepin_crawl_returns_failure_when_http_returns_html(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
 
     class FakeResponse:
@@ -354,23 +318,21 @@ async def test_liepin_crawl_falls_back_to_cdp_when_http_returns_html(monkeypatch
 
     class FakeSession:
         def get(self, *_args, **_kwargs):
+            return object()
+
+        def post(self, *_args, **_kwargs):
             return FakeResponse()
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(
-        adapter,
-        "_crawl_via_cdp",
-        AsyncMock(return_value={"success": True, "jobs": [{"job_id": "cdp"}], "count": 1}),
-    )
 
     result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
-    assert result["success"] is True
-    assert result["jobs"][0]["job_id"] == "cdp"
-    adapter._crawl_via_cdp.assert_awaited_once_with("python", "020")
+    assert result["success"] is False
+    assert result["failure_category"] == "parse_error"
 
 
+@pytest.mark.skip(reason="Liepin CDP fallback was removed in Phase 3")
 @pytest.mark.asyncio
 async def test_liepin_cdp_fallback_closes_temporary_tab(monkeypatch):
     from app.platforms import liepin
@@ -411,6 +373,7 @@ async def test_liepin_cdp_fallback_closes_temporary_tab(monkeypatch):
     close_target.assert_awaited_once_with("target-liepin")
 
 
+@pytest.mark.skip(reason="Liepin CDP fallback was removed in Phase 3")
 @pytest.mark.asyncio
 async def test_liepin_cdp_fallback_uses_dom_when_api_fetch_fails(monkeypatch):
     import websockets
@@ -459,26 +422,20 @@ async def test_liepin_cdp_fallback_uses_dom_when_api_fetch_fails(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_liepin_crawl_fails_when_browser_unavailable(monkeypatch):
-    from app.platforms import liepin
+async def test_liepin_crawl_fails_when_http_unavailable(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
 
     class FakeSession:
         def get(self, *_args, **_kwargs):
             raise TimeoutError("network blocked")
 
-    monkeypatch.setattr(
-        liepin,
-        "open_temporary_tab",
-        AsyncMock(return_value=(None, None)),
-    )
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
 
     result = await adapter.crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
 
     assert result["success"] is False
-    assert "浏览器" in result["error"]
+    assert result["failure_category"] == "parse_error"
 
 
 @pytest.mark.asyncio
@@ -496,14 +453,12 @@ async def test_liepin_crawl_detail_uses_http_first(monkeypatch):
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_detail_via_cdp", AsyncMock())
 
     result = await adapter.crawl_detail("123")
 
     assert result["success"] is True
     assert result["detail"]["description"] == "负责开发"
     assert result["detail"]["address"] == "上海市"
-    adapter._crawl_detail_via_cdp.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -527,7 +482,6 @@ async def test_liepin_crawl_detail_tries_anonymous_detail_url(monkeypatch):
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_detail_via_cdp", AsyncMock())
 
     result = await adapter.crawl_detail("75066461")
 
@@ -537,7 +491,6 @@ async def test_liepin_crawl_detail_tries_anonymous_detail_url(monkeypatch):
         "https://www.liepin.com/job/75066461.shtml",
         "https://www.liepin.com/a/75066461.shtml",
     ]
-    adapter._crawl_detail_via_cdp.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -558,14 +511,12 @@ async def test_liepin_crawl_detail_does_not_treat_login_header_as_challenge(monk
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_detail_via_cdp", AsyncMock())
 
     result = await adapter.crawl_detail("123")
 
     assert result["success"] is True
     assert result["detail"]["description"] == "负责开发"
     assert result["detail"]["address"] == "无地址"
-    adapter._crawl_detail_via_cdp.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -583,15 +534,14 @@ async def test_liepin_crawl_detail_does_not_open_cdp_on_challenge(monkeypatch):
 
     adapter = LiepinAdapter()
     monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
-    monkeypatch.setattr(adapter, "_crawl_detail_via_cdp", AsyncMock())
 
     result = await adapter.crawl_detail("123")
 
     assert result["success"] is False
     assert "HTTP response contained no detail" in result["error"]
-    adapter._crawl_detail_via_cdp.assert_not_called()
 
 
+@pytest.mark.skip(reason="Liepin CDP detail fallback was removed in Phase 3")
 @pytest.mark.asyncio
 async def test_liepin_cdp_detail_closes_temporary_tab(monkeypatch):
     import websockets
