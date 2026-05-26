@@ -1,5 +1,7 @@
 """Product crawling business services."""
 
+from __future__ import annotations
+
 import logging
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -10,12 +12,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.domains.crawling import repository
+from app.domains.crawling.browser_manager import BrowserSession
 from app.integrations.feishu import send_feishu_notification
 from app.models.alert import Alert
 from app.models.crawl_log import CrawlLog
 from app.models.price_history import PriceHistory
 from app.models.product import Product
 from app.models.user import User
+
+# Deferred import to avoid circular dependency
+_browser_manager = None
 
 PLATFORM_ADAPTERS = {}
 logger = logging.getLogger(__name__)
@@ -34,6 +40,73 @@ def _get_adapters():
                 "amazon": AmazonAdapter,
             }
         )
+
+
+async def _persist_product_crawl_result(
+    db: AsyncSession,
+    *,
+    product: Product,
+    result_data: dict,
+) -> dict:
+    """Persist crawl result to price history and crawl log."""
+    if result_data.get("success"):
+        price = Decimal(str(result_data["price"]))
+        currency = result_data.get("currency", "CNY")
+        scraped_at = datetime.now(UTC)
+
+        await save_price_history(product_id=product.id, price=price, currency=currency, scraped_at=scraped_at)
+        await save_crawl_log(
+            product.id, product.platform, "SUCCESS", price=price, currency=currency
+        )
+        await check_price_alerts(product.id, price)
+
+        new_title = result_data.get("title")
+        if new_title and not product.title:
+            product.title = new_title
+            await repository.commit(db)
+
+        return {"status": "success", "product_id": product.id, "price": float(price)}
+
+    error_msg = result_data.get("error", "Unknown error")
+    await save_crawl_log(
+        product.id, product.platform, "ERROR", error_message=error_msg
+    )
+    return {"status": "error", "product_id": product.id}
+
+
+async def crawl_one_with_session(
+    *,
+    product_id: int,
+    session: BrowserSession,
+) -> dict:
+    """Crawl a single product using a BrowserManager session."""
+    _get_adapters()
+
+    async with AsyncSessionLocal() as db:
+        product = await repository.get_product(db, product_id=product_id)
+        if not product or not product.active:
+            return {"status": "skipped", "product_id": product_id}
+
+        adapter_class = PLATFORM_ADAPTERS.get(product.platform)
+        if not adapter_class:
+            await save_crawl_log(
+                product_id,
+                product.platform,
+                "ERROR",
+                error_message=f"Unknown platform: {product.platform}",
+            )
+            return {"status": "error", "product_id": product_id}
+
+        adapter = adapter_class()
+        page = await session.new_page()
+        try:
+            result_data = await adapter.crawl_with_page(product.url, page)
+            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
+        except Exception as e:
+            await save_crawl_log(product_id, product.platform, "ERROR", error_message=str(e))
+            return {"status": "error", "product_id": product_id, "error": str(e)}
+        finally:
+            await session.close_page(page)
 
 
 async def crawl_one(product_id: int) -> dict:
@@ -60,33 +133,7 @@ async def crawl_one(product_id: int) -> dict:
 
         try:
             result_data = await adapter.crawl(product.url)
-
-            if result_data.get("success"):
-                price = Decimal(str(result_data["price"]))
-                currency = result_data.get("currency", "CNY")
-                scraped_at = datetime.now(UTC)
-
-                await save_price_history(product_id, price, currency, scraped_at)
-                await save_crawl_log(
-                    product_id, product.platform, "SUCCESS", price=price, currency=currency
-                )
-                await check_price_alerts(product_id, price)
-
-                new_title = result_data.get("title")
-                if new_title and not product.title:
-                    product.title = new_title
-                    await repository.commit(db)
-
-                return {"status": "success", "product_id": product_id, "price": float(price)}
-
-            await save_crawl_log(
-                product_id,
-                product.platform,
-                "ERROR",
-                error_message=result_data.get("error", "Unknown error"),
-            )
-            return {"status": "error", "product_id": product_id}
-
+            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
         except Exception as e:
             platform_name = product.platform if product else "unknown"
             await save_crawl_log(product_id, platform_name, "ERROR", error_message=str(e))

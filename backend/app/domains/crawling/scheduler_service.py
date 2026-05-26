@@ -255,8 +255,8 @@ async def _run_crawl_in_lock(task: CrawlTask, crawl_lock: asyncio.Semaphore, *, 
 async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> None:
     """Crawl all active products for a specific user + platform.
 
-    Called by ProductCronScheduler cron jobs. Respects concurrency
-    limits and logs results. Persists task state to crawl_tasks.
+    Called by ProductCronScheduler cron jobs. Uses profile-first runner.
+    Persists task state to crawl_tasks.
     """
     if _scheduler_state is None:
         logger.error("Scheduler state not initialized in crawl_products_by_platform")
@@ -276,23 +276,24 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
 
     try:
         async with crawl_lock:
-            from app.domains.crawling.service import get_active_products
+            from app.domains.products import repository as product_repository
+            from app.domains.products.profile_binding import default_product_profile_key
 
-            semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
-            products = await get_active_products(user_id=user_id, platform=platform)
+            # Resolve profile key from cron config
+            async with AsyncSessionLocal() as db:
+                config = await product_repository.get_product_cron_config(
+                    db, user_id=user_id, platform=platform
+                )
+                profile_key = config.profile_key if config else default_product_profile_key(platform)
 
-            if not products:
-                logger.info("No active %s products to crawl for user %s", platform, user_id)
-                return
-
-            # Create persistent task record
+            # Create persistent task record with profile_key
             async with AsyncSessionLocal() as db:
                 record = await create_crawl_task_record(
                     db,
                     source="cron",
                     task_type="product_platform",
                     platform=platform,
-                    profile_key=None,
+                    profile_key=profile_key,
                     user_id=user_id,
                     entity_type="product_platform",
                     entity_id=platform,
@@ -302,25 +303,23 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
                 task = runtime_task_from_record(record)
                 await mark_task_running(db, record, owner="cron")
 
-            tasks = [
-                _crawl_one_with_semaphore(p.id, semaphore, False)
-                for p in products
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            async def _persist_progress(progress_task: CrawlTask) -> None:
+                async with AsyncSessionLocal() as db_inner:
+                    rec = await db_inner.get(CrawlTaskRecord, record.id)
+                    if rec is not None:
+                        await sync_record_from_runtime_task(db_inner, rec, progress_task)
 
-            success = sum(1 for r in results if isinstance(r, dict) and r.get("status") == "success")
-            errors = sum(1 for r in results if isinstance(r, Exception) or (isinstance(r, dict) and r.get("status") == "error"))
-            logger.info("Crawl user=%s %s: %d products, %d success, %d errors", user_id, platform, len(products), success, errors)
+            from app.domains.crawling.task_runner import CrawlTaskRunner
 
-            # Persist final result
-            async with AsyncSessionLocal() as db:
-                record = await db.get(CrawlTaskRecord, record.id)
-                if record is not None:
-                    task.total = len(products)
-                    task.success = success
-                    task.errors = errors
-                    task.status = TaskStatus.COMPLETED
-                    await sync_record_from_runtime_task(db, record, task)
+            result = await CrawlTaskRunner(progress_callback=_persist_progress).run_products_by_platform(
+                task, platform=platform
+            )
+
+            logger.info(
+                "Crawl user=%s %s profile=%s: %d products, %d success, %d errors",
+                user_id, platform, profile_key,
+                result.get("total", 0), result.get("success", 0), result.get("errors", 0)
+            )
     finally:
         await _cleanup_all_shared_browsers()
 

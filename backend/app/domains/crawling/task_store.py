@@ -103,6 +103,7 @@ def runtime_task_from_record(record: CrawlTaskRecord) -> CrawlTask:
     task.success = record.success or 0
     task.errors = record.errors or 0
     task.reason = record.reason
+    task.profile_key = record.profile_key
     task.details = record.details_json or []
     return task
 
@@ -119,6 +120,7 @@ async def sync_record_from_runtime_task(
     record.success = task.success
     record.errors = task.errors
     record.reason = task.reason
+    record.profile_key = task.profile_key
     record.details_json = task.details
     record.heartbeat_at = now if status == TaskStatus.RUNNING.value else record.heartbeat_at
     record.updated_at = now

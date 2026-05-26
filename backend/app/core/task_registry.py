@@ -29,6 +29,7 @@ class CrawlTask:
     user_id: int | None = None
     entity_type: str | None = None
     entity_id: str | None = None
+    profile_key: str | None = None
     created_at: float = field(default_factory=lambda: asyncio.get_event_loop().time())
 
 
