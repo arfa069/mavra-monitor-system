@@ -287,7 +287,17 @@ class Job51Adapter(BasePlatformAdapter):
             pages_fetched = 0
 
             for page_num in range(1, self.max_pages + 1):
-                data = self._fetch_search_page_sync(keyword, job_area, page_num)
+                if self._should_stop_for_waf():
+                    return {"success": False, "error": "51job WAF fuse tripped", "failure_category": "waf"}
+
+                try:
+                    data = self._fetch_search_page_sync(keyword, job_area, page_num)
+                except RuntimeError as exc:
+                    if "WAF" in str(exc):
+                        if self._should_stop_for_waf():
+                            return {"success": False, "error": "51job WAF fuse tripped", "failure_category": "waf"}
+                        break
+                    raise
 
                 page_jobs = self._extract_page_jobs(data)
                 if page_jobs:
@@ -339,6 +349,18 @@ class Job51Adapter(BasePlatformAdapter):
         }
         """
         result = page.evaluate(js_code, {"apiUrl": api_url, "propertyHeader": API_PROPERTY_HEADER})
+        category = classify_51job_response(result)
+        if category == "waf":
+            self._waf_hits += 1
+            self.runtime_logger.log(
+                "waf",
+                status="blocked",
+                failure_category="waf",
+                message="51job WAF response detected",
+                waf_hits=self._waf_hits,
+            )
+            raise RuntimeError("51job WAF")
+
         status = result.get("status")
         if not result.get("ok"):
             raise RuntimeError(f"51job search API HTTP {status}")

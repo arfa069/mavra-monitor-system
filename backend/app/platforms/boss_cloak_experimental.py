@@ -139,6 +139,13 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
                 self._log_list_page(page_num, 1, data, time.time() - started)
                 if code in ANTI_BOT_CODES:
                     logger.warning("Boss Cloak list code=%s, refreshing cookies", code)
+                    self.runtime_logger.log(
+                        "anti_bot",
+                        status="retrying",
+                        failure_category="anti_bot",
+                        message=f"Boss anti-bot code {code}; refreshing cookies",
+                        code=code,
+                    )
                     self._refresh_cookies(f"code_{code}_page_{page_num}")
                     started = time.time()
                     data = self._post_job_page(query, city, page_num)
@@ -146,6 +153,25 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
                     self._log_list_page(page_num, 2, data, time.time() - started)
 
                 if code != 0:
+                    if code in ANTI_BOT_CODES:
+                        self._cookie_refresh_failures += 1
+                        self.runtime_logger.log(
+                            "anti_bot",
+                            status="failed",
+                            failure_category="anti_bot",
+                            message=f"Boss anti-bot code {code} after refresh",
+                            code=code,
+                        )
+                        category = self._profile_failure_category()
+                        if category == "cookie_refresh_failed":
+                            return {
+                                "success": False,
+                                "error": "Boss cookie refresh failed repeatedly",
+                                "failure_category": "cookie_refresh_failed",
+                                "profile_status": "login_required",
+                                "jobs": jobs,
+                                "count": len(jobs),
+                            }
                     self._log_event(
                         "crawl_failed",
                         page=page_num,

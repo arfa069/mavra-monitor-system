@@ -411,6 +411,7 @@ async def process_job_results(
                             job_obj,
                             adapter=adapter,
                             platform=platform,
+                            profile_key=_config_profile_key(config),
                             db=db,
                         ),
                         timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
@@ -508,6 +509,7 @@ async def process_job_results(
                                 job_obj,
                                 adapter=adapter,
                                 platform=platform,
+                                profile_key=_config_profile_key(config),
                                 db=db,
                             ),
                             timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
@@ -552,6 +554,7 @@ async def update_job_detail(
     adapter: BasePlatformAdapter | None = None,
     *,
     platform: str = "boss",
+    profile_key: str | None = None,
     db: AsyncSession | None = None,
     commit: bool = True,
 ) -> dict:
@@ -571,7 +574,18 @@ async def update_job_detail(
         # Reuse adapter if provided (shares session & cookies), else create new
         detail_adapter = adapter
         if detail_adapter is None:
-            detail_adapter = _create_adapter(platform)
+            from app.core.crawler_paths import build_profile_dir
+            from app.domains.jobs.runtime import JobCrawlRuntimeContext
+            pk = profile_key or "default"
+            runtime_context = JobCrawlRuntimeContext(
+                platform=platform,
+                profile_key=pk,
+                profile_dir=build_profile_dir(pk),
+                task_id=None,
+                config_id=job_obj.search_config_id,
+                run_id=f"detail-{job_obj.job_id}",
+            )
+            detail_adapter = _create_adapter(platform, runtime_context=runtime_context)
 
         # 51job search results usually include description but not precise address;
         # do not hit the WAF-prone detail page only to backfill address.
@@ -941,38 +955,55 @@ async def crawl_all_job_searches(
     error_count = 0
     details = []
 
-    # Group configs by platform, share one adapter per platform
-    by_platform: dict[str, list] = {}
-    for config in configs:
-        try:
-            platform = _normalize_platform(getattr(config, "platform", "boss"))
-        except ValueError as exc:
-            logger.warning("Skipping config %s with invalid platform %r", config.id, config.platform)
-            details.append({"config_id": config.id, "status": "error", "error": str(exc)})
-            error_count += 1
-            continue
-        by_platform.setdefault(platform, []).append(config)
+    # Group configs by (platform, profile_key), share one adapter per group
+    groups = _group_job_configs_for_profile_leases(configs)
 
     idx = 0
-    for platform, platform_configs in by_platform.items():
-        adapter = _create_adapter(platform)
-        for config in platform_configs:
-            result = await crawl_single_config(
-                config.id,
-                adapter=adapter,
-                _lock_already_held=True,
-            )
-            details.append({"config_id": config.id, **result})
-            if result.get("status") == "success":
-                success_count += 1
-            else:
-                error_count += 1
+    for (platform, profile_key), platform_configs in groups.items():
+        from app.domains.crawling.profile_pool import DatabaseProfilePool
 
-            idx += 1
-            if idx < total:
-                delay = random.uniform(3, 6)
-                logger.debug("Waiting %.1fs before next config", delay)
-                await asyncio.sleep(delay)
+        pool = DatabaseProfilePool()
+        try:
+            async with AsyncSessionLocal() as lease_db:
+                async with pool.lease(
+                    lease_db,
+                    platform=platform,
+                    profile_key=profile_key,
+                    owner=f"sync-all-{platform}-{profile_key}",
+                    task_id=f"sync-all-{platform}-{profile_key}",
+                ) as lease:
+                    runtime_context = JobCrawlRuntimeContext(
+                        platform=platform,
+                        profile_key=lease.profile_key,
+                        profile_dir=lease.profile_dir,
+                        task_id=None,
+                        config_id=None,
+                        run_id=f"sync-all-{platform}-{profile_key}",
+                        log_context={"source": "manual", "profile_key": lease.profile_key},
+                    )
+                    adapter = _create_adapter(platform, runtime_context=runtime_context)
+                    for config in platform_configs:
+                        result = await crawl_single_config(
+                            config.id,
+                            adapter=adapter,
+                            _lock_already_held=True,
+                            runtime_context=runtime_context,
+                        )
+                        details.append({"config_id": config.id, **result})
+                        if result.get("status") == "success":
+                            success_count += 1
+                        else:
+                            error_count += 1
+
+                        idx += 1
+                        if idx < total:
+                            delay = random.uniform(3, 6)
+                            logger.debug("Waiting %.1fs before next config", delay)
+                            await asyncio.sleep(delay)
+        except Exception as exc:
+            for config in platform_configs:
+                details.append({"config_id": config.id, "status": "error", "error": str(exc)})
+                error_count += 1
 
     return {
         "status": "completed",
