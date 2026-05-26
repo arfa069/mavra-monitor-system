@@ -35,6 +35,13 @@ DEFAULT_MAX_PAGES = 20
 ANTI_BOT_CODES = {36, 37, 38}
 
 
+def classify_boss_failure(payload: dict) -> str | None:
+    code = payload.get("code")
+    if code in ANTI_BOT_CODES:
+        return "anti_bot"
+    return None
+
+
 class BossCloakExperimentalAdapter(BasePlatformAdapter):
     """Slow experimental Boss crawler using CloakBrowser profile cookies."""
 
@@ -63,6 +70,12 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
             log_path=log_path,
             enabled=log_enabled,
         )
+        self._cookie_refresh_failures = 0
+
+    def _profile_failure_category(self) -> str | None:
+        if self._cookie_refresh_failures >= 2:
+            return "cookie_refresh_failed"
+        return None
         self.max_jobs = max_jobs
         self.max_pages = max_pages
         self.headless = headless
