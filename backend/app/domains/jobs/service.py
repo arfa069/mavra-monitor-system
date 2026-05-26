@@ -1,8 +1,10 @@
 """Job domain business services."""
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.jobs import repository
+from app.models.crawl_profile import CrawlProfile
 from app.models.job import JobSearchConfig
 from app.models.user import User
 from app.schemas.job import (
@@ -18,6 +20,10 @@ CRON_FIELDS = {"cron_expression", "cron_timezone"}
 
 class JobConfigNotFoundError(LookupError):
     """Raised when a job config cannot be found for the current user."""
+
+
+class JobProfileNotFoundError(LookupError):
+    """Raised when a job config references an unknown crawl profile."""
 
 
 class JobConfigCronPermissionError(PermissionError):
@@ -38,9 +44,19 @@ async def list_job_configs(
     return await repository.list_job_configs(db, user_id=user_id, active=active)
 
 
+async def _ensure_profile_exists(db: AsyncSession, profile_key: str) -> None:
+    result = await db.execute(
+        select(CrawlProfile.profile_key).where(CrawlProfile.profile_key == profile_key)
+    )
+    if result.scalar_one_or_none() is None:
+        raise JobProfileNotFoundError(profile_key)
+
+
 async def create_job_config(
     db: AsyncSession, *, user_id: int, data: JobSearchConfigCreate
 ) -> JobSearchConfig:
+    profile_key = data.profile_key or "default"
+    await _ensure_profile_exists(db, profile_key)
     return await repository.create_job_config(
         db, user_id=user_id, data=data.model_dump()
     )
@@ -67,6 +83,9 @@ async def update_job_config(
 
     if CRON_FIELDS & set(update_data) and actor.role != "super_admin":
         raise JobConfigCronPermissionError
+
+    if "profile_key" in update_data:
+        await _ensure_profile_exists(db, update_data["profile_key"])
 
     config = await repository.update_job_config(db, config=config, data=update_data)
     return config, update_data

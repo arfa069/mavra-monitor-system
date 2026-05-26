@@ -40,6 +40,12 @@ class JobSearchConfig(Base, TimestampMixin):
         default="boss",
         comment="Job platform: boss, 51job, liepin",
     )
+    profile_key = Column(
+        String(80),
+        nullable=False,
+        default="default",
+        comment="Crawler browser profile key under project profiles/{profile_key}",
+    )
     name = Column(String(100), nullable=False)
     keyword = Column(String(200), nullable=True)
     city_code = Column(String(20), nullable=True)

@@ -7,14 +7,28 @@ import zoneinfo
 from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.crawler_paths import build_profile_dir
+
 JobPlatform = Literal["boss", "51job", "liepin"]
+
+
+def _validate_profile_key_value(value: str | None) -> str:
+    key = (value or "default").strip()
+    build_profile_dir(key)
+    return key
 
 
 class JobSearchConfigCreate(BaseModel):
     """Schema for creating a job search config."""
 
     name: str = Field(..., max_length=100)
+    profile_key: str = Field(default="default", max_length=80)
     platform: JobPlatform = "boss"
+
+    @field_validator("profile_key")
+    @classmethod
+    def validate_profile_key(cls, v: str | None) -> str:
+        return _validate_profile_key_value(v)
     keyword: str | None = Field(default=None, max_length=200)
     city_code: str | None = Field(default=None, max_length=20)
     salary_min: int | None = Field(default=None, ge=0)
@@ -62,7 +76,15 @@ class JobSearchConfigUpdate(BaseModel):
     """Schema for updating a job search config."""
 
     name: str | None = Field(default=None, max_length=100)
+    profile_key: str | None = Field(default=None, max_length=80)
     platform: JobPlatform | None = None
+
+    @field_validator("profile_key")
+    @classmethod
+    def validate_profile_key(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        return _validate_profile_key_value(v)
     keyword: str | None = Field(default=None, max_length=200)
     city_code: str | None = Field(default=None, max_length=20)
     salary_min: int | None = Field(default=None, ge=0)
@@ -112,6 +134,7 @@ class JobSearchConfigResponse(BaseModel):
     id: int
     user_id: int
     name: str
+    profile_key: str
     platform: JobPlatform = "boss"
     keyword: str | None
     city_code: str | None

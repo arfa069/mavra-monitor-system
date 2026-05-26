@@ -119,9 +119,12 @@ async def create_config(
 
 ):
     """Create a new job search config."""
-    config = await job_service.create_job_config(
-        db, user_id=current_user.id, data=data
-    )
+    try:
+        config = await job_service.create_job_config(
+            db, user_id=current_user.id, data=data
+        )
+    except job_service.JobProfileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=f"Profile not found: {exc}") from exc
 
     # Sync scheduler if cron is set
 
@@ -589,6 +592,8 @@ async def update_config(
         )
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="Config not found")
+    except job_service.JobProfileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=f"Profile not found: {exc}") from exc
     except job_service.JobConfigCronPermissionError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
