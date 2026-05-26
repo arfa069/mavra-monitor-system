@@ -150,3 +150,39 @@ def test_51job_adapter_accepts_explicit_profile_dir(monkeypatch):
     adapter = Job51Adapter(profile_dir=custom_dir)
 
     assert adapter.profile_dir == Path(custom_dir)
+
+
+def test_51job_waf_fuse_stops_after_limit(monkeypatch):
+    from app.platforms.job51 import Job51Adapter
+
+    adapter = Job51Adapter(profile_dir="profile", max_pages=5)
+    adapter._waf_hits = 2
+
+    assert adapter._should_stop_for_waf() is True
+
+
+def test_51job_classifies_html_waf_response():
+    from app.platforms.job51 import classify_51job_response
+
+    category = classify_51job_response(
+        {"ok": True, "status": 200, "contentType": "text/html", "body": "<html>安全验证</html>"}
+    )
+
+    assert category == "waf"
+
+
+def test_51job_http_experiment_returns_metrics(monkeypatch):
+    from app.platforms.job51 import Job51Adapter
+
+    adapter = Job51Adapter(profile_dir="profile", max_pages=1)
+    monkeypatch.setattr(
+        adapter,
+        "_http_experiment_fetch",
+        lambda url: {"success": False, "failure_category": "waf", "elapsed_ms": 25},
+    )
+
+    result = adapter.run_http_experiment(["https://we.51job.com/pc/search?keyword=python"])
+
+    assert result["total"] == 1
+    assert result["success_rate"] == 0.0
+    assert result["waf_hit_rate"] == 1.0

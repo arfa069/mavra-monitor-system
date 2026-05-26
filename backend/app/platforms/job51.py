@@ -23,11 +23,24 @@ from app.platforms.base import BasePlatformAdapter
 logger = logging.getLogger(__name__)
 
 MAX_PAGES = 3
+WAF_MARKERS = ("安全验证", "captcha", "verify", "waf", "滑块")
+WAF_FUSE_LIMIT = 2
 SEARCH_DOMAIN = "we.51job.com"
 BASE_URL = f"https://{SEARCH_DOMAIN}"
 # TODO: Confirm via browser DevTools packet capture
 SEARCH_API_PATH = "/api/job/search-pc"
 API_PROPERTY_HEADER = json.dumps({"partner": "", "webId": "2", "clientType": "pc"}, separators=(",", ":"))
+
+
+def classify_51job_response(response: dict) -> str | None:
+    body = str(response.get("body") or "")
+    content_type = str(response.get("contentType") or "").lower()
+    lowered = body.lower()
+    if "json" not in content_type:
+        if any(marker in lowered for marker in WAF_MARKERS):
+            return "waf"
+        return "parse_error"
+    return None
 
 
 class Job51Adapter(BasePlatformAdapter):
@@ -58,11 +71,52 @@ class Job51Adapter(BasePlatformAdapter):
         self._search_page = BASE_URL
         self._cloak_context = None
         self._cloak_page = None
+        self._waf_hits = 0
         from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
         self.runtime_logger = JobRuntimeJsonlLogger(
             platform="51job",
             context=runtime_context,
         )
+
+    def _should_stop_for_waf(self) -> bool:
+        return self._waf_hits >= WAF_FUSE_LIMIT
+
+    def _http_experiment_fetch(self, url: str) -> dict:
+        start = time.perf_counter()
+        try:
+            response = self._get_session().get(url, impersonate="chrome124", timeout=20)
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            category = classify_51job_response(
+                {
+                    "ok": response.ok,
+                    "status": response.status_code,
+                    "contentType": response.headers.get("content-type", ""),
+                    "body": response.text,
+                }
+            )
+            return {
+                "success": response.ok and category is None,
+                "failure_category": category,
+                "elapsed_ms": elapsed_ms,
+            }
+        except Exception as exc:
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            return {"success": False, "failure_category": "http_error", "elapsed_ms": elapsed_ms, "error": str(exc)}
+
+    def run_http_experiment(self, urls: list[str]) -> dict:
+        results = [self._http_experiment_fetch(url) for url in urls]
+        total = len(results)
+        success = sum(1 for item in results if item.get("success"))
+        waf = sum(1 for item in results if item.get("failure_category") == "waf")
+        elapsed = sum(int(item.get("elapsed_ms") or 0) for item in results)
+        return {
+            "total": total,
+            "success": success,
+            "success_rate": success / total if total else 0.0,
+            "waf_hit_rate": waf / total if total else 0.0,
+            "elapsed_ms": elapsed,
+            "results": results,
+        }
 
     def _get_session(self) -> CffiSession:
         if self._session is None:
