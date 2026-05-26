@@ -42,6 +42,32 @@ def _config_profile_key(config: JobSearchConfig | None) -> str:
     return raw or "default"
 
 
+def _group_job_configs_for_profile_leases(
+    configs: list[JobSearchConfig],
+) -> dict[tuple[str, str], list[JobSearchConfig]]:
+    grouped: dict[tuple[str, str], list[JobSearchConfig]] = {}
+    for config in configs:
+        platform = _normalize_platform(getattr(config, "platform", "boss"))
+        profile_key = _config_profile_key(config)
+        grouped.setdefault((platform, profile_key), []).append(config)
+    return grouped
+
+
+def _job_group_task_metadata(platform: str, profile_key: str, parent_task_id: str) -> dict:
+    return {
+        "task_type": "job_platform_profile",
+        "platform": platform,
+        "profile_key": profile_key,
+        "entity_type": "job_platform_profile",
+        "entity_id": f"{platform}:{profile_key}",
+        "payload": {
+            "parent_task_id": parent_task_id,
+            "platform": platform,
+            "profile_key": profile_key,
+        },
+    }
+
+
 def _normalize_platform(platform: object) -> str:
     """Return a supported platform key, defaulting legacy rows/mocks to boss."""
     if not isinstance(platform, str) or not platform:
@@ -1156,16 +1182,8 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                 await _persist_parent(parent_task)
                 return
 
-            # Group by platform, create child tasks
-
-            by_platform: dict[str, list] = {}
-            for config in configs:
-                try:
-                    platform = _normalize_platform(getattr(config, "platform", "boss"))
-                except ValueError:
-                    parent_task.errors += 1
-                    continue
-                by_platform.setdefault(platform, []).append(config)
+            # Group by (platform, profile_key), create child tasks
+            groups = _group_job_configs_for_profile_leases(configs)
 
             total_configs = len(configs)
             parent_task.total = total_configs
@@ -1174,22 +1192,22 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
             await _persist_parent(parent_task)
 
             all_details = []
-            for platform, platform_configs in by_platform.items():
+            for (platform, profile_key), platform_configs in groups.items():
+                metadata = _job_group_task_metadata(
+                    platform, profile_key, parent_task.task_id
+                )
                 async with AsyncSessionLocal() as db:
                     child_record = await create_crawl_task_record(
                         db,
                         source="manual",
-                        task_type="job_platform",
-                        platform=platform,
-                        profile_key="default",
-                        parent_task_id=parent_task.task_id,
+                        task_type=metadata["task_type"],
+                        platform=metadata["platform"],
+                        profile_key=metadata["profile_key"],
+                        parent_task_id=metadata["payload"]["parent_task_id"],
                         user_id=user_id,
-                        entity_type="job_platform",
-                        entity_id=platform,
-                        payload={
-                            "parent_task_id": parent_task.task_id,
-                            "platform": platform,
-                        },
+                        entity_type=metadata["entity_type"],
+                        entity_id=metadata["entity_id"],
+                        payload=metadata["payload"],
                     )
                     child_record_id = child_record.id
 
@@ -1214,7 +1232,7 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                         async with pool.lease(
                             lease_db,
                             platform=platform,
-                            profile_key="default",
+                            profile_key=profile_key,
                             owner=child_task.task_id,
                             task_id=child_task.task_id,
                         ) as lease:
@@ -1229,11 +1247,21 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                             )
                             try:
                                 for idx, config in enumerate(platform_configs):
+                                    runtime_context = JobCrawlRuntimeContext(
+                                        platform=platform,
+                                        profile_key=lease.profile_key,
+                                        profile_dir=lease.profile_dir,
+                                        task_id=child_task.task_id,
+                                        config_id=config.id,
+                                        run_id=child_task.task_id,
+                                        log_context={"parent_task_id": parent_task.task_id},
+                                    )
                                     result = await CrawlTaskRunner(
                                         progress_callback=_persist_child
                                     ).run_job_config(
                                         child_task,
                                         config_id=config.id,
+                                        runtime_context=runtime_context,
                                     )
                                     detail = {"config_id": config.id, **result}
                                     child_details.append(detail)
