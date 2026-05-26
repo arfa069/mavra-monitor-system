@@ -58,6 +58,11 @@ class Job51Adapter(BasePlatformAdapter):
         self._search_page = BASE_URL
         self._cloak_context = None
         self._cloak_page = None
+        from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
+        self.runtime_logger = JobRuntimeJsonlLogger(
+            platform="51job",
+            context=runtime_context,
+        )
 
     def _get_session(self) -> CffiSession:
         if self._session is None:

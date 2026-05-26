@@ -56,6 +56,13 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         self.profile_dir = Path(profile_dir) if profile_dir else build_profile_dir(
             "default",
         )
+        from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
+        self.runtime_logger = JobRuntimeJsonlLogger(
+            platform="boss",
+            context=runtime_context,
+            log_path=log_path,
+            enabled=log_enabled,
+        )
         self.max_jobs = max_jobs
         self.max_pages = max_pages
         self.headless = headless

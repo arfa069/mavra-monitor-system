@@ -89,10 +89,17 @@ _EXTRACT_JOBS_JS = """
 class LiepinAdapter(BasePlatformAdapter):
     """Adapter for Liepin job search crawling."""
 
-    def __init__(self, *, runtime_context=None):
+    def __init__(self, *, runtime_context=None, log_path=None, log_enabled=True):
         super().__init__()
         self.runtime_context = runtime_context
         self._session: CffiSession | None = None
+        from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
+        self.runtime_logger = JobRuntimeJsonlLogger(
+            platform="liepin",
+            context=runtime_context,
+            log_path=log_path,
+            enabled=log_enabled,
+        )
 
     def _get_session(self) -> CffiSession:
         if self._session is None:
