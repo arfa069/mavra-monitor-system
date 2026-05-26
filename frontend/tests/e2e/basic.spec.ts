@@ -36,9 +36,13 @@ test.describe("Login Page", () => {
   });
 
   test("should display login form", async ({ page }) => {
-    await expect(page.locator('input[placeholder*="用户名"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Email", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Password", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
   });
 
   test("should show validation errors for empty fields", async ({ page }) => {
@@ -52,6 +56,21 @@ test.describe("Login Page", () => {
     await page.click('a[href="/register"]');
     await expect(page).toHaveURL(/\/register/);
   });
+
+  test("should sign in with default test account", async ({ page }) => {
+    await page
+      .getByRole("textbox", { name: "Email", exact: true })
+      .fill("default123");
+    await page
+      .getByRole("textbox", { name: "Password", exact: true })
+      .fill("123456");
+    await page.getByRole("button", { name: "Sign In" }).click();
+
+    await expect(page).toHaveURL(/\/jobs/, { timeout: 10000 });
+    await expect(page.locator('[data-page-transition="/jobs"]')).toBeVisible({
+      timeout: 10000,
+    });
+  });
 });
 
 test.describe("Register Page", () => {
@@ -60,10 +79,19 @@ test.describe("Register Page", () => {
   });
 
   test("should display registration form", async ({ page }) => {
-    await expect(page.locator('input[placeholder*="用户名"]')).toBeVisible();
-    await expect(page.locator('input[placeholder*="邮箱"]')).toBeVisible();
-    await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Username", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Email", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Password", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Confirm Password", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign Up" })).toBeVisible();
   });
 
   test("should navigate to login page", async ({ page }) => {

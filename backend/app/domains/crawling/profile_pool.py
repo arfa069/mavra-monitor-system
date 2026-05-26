@@ -159,6 +159,7 @@ class DatabaseProfilePool:
             profile_key=profile_key,
             profile_dir=profile_dir,
             owner=owner,
+            task_id=task_id,
         )
 
     async def release(self, db: AsyncSession, lease: ProfileLease) -> None:
@@ -169,6 +170,10 @@ class DatabaseProfilePool:
         )
         profile = result.scalar_one_or_none()
         if profile is None:
+            return
+        if profile.lease_owner != lease.owner:
+            return
+        if lease.task_id is not None and profile.lease_task_id != lease.task_id:
             return
         profile.status = AVAILABLE
         profile.lease_owner = None
@@ -191,6 +196,10 @@ class DatabaseProfilePool:
         )
         profile = result.scalar_one_or_none()
         if profile is None:
+            return
+        if profile.lease_owner != lease.owner:
+            return
+        if lease.task_id is not None and profile.lease_task_id != lease.task_id:
             return
         current = _now()
         profile.lease_until = current + timedelta(seconds=lease_seconds)

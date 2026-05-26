@@ -280,6 +280,7 @@ Concurrent crawl protection: both cron and manual crawls share a global `asyncio
 ### Job Platform Notes
 
 - Browser profiles live under project-root `profiles/{key}` and are ignored by git. A single profile may hold login state for multiple platforms, but one profile directory must be leased by only one crawl task at a time; use multiple profile keys for concurrent crawler slots.
+- Crawl runtime state is persisted in `crawl_tasks`; profile metadata and leases are persisted in `crawl_profiles`. Phase 2 still executes crawlers inside FastAPI/APScheduler, while PostgreSQL row locks protect `DatabaseProfilePool` acquisition and heartbeat renewal.
 - Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
 - Event Center/system log payloads are centrally redacted before storage and again before display, so cookie/token/webhook/security fields are not exposed in runtime or audit event details.
 - 51job uses `curl_cffi` search and HTML detail parsing.

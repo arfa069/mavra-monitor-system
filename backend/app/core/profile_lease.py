@@ -17,6 +17,7 @@ class ProfileLease:
     profile_key: str
     profile_dir: Path
     owner: str
+    task_id: str | None = None
 
 
 class InProcessProfileLeaseManager:

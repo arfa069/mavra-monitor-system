@@ -1,4 +1,5 @@
 """Tests for job crawling service."""
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -86,8 +87,30 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
         return mock_rec
 
     monkeypatch.setattr("app.domains.crawling.task_store.create_crawl_task_record", fake_create)
-    monkeypatch.setattr("app.domains.crawling.task_store.runtime_task_from_record", MagicMock(return_value=MagicMock()))
+    task = MagicMock()
+    task.task_id = "test-task-123"
+    task.user_id = 7
+    monkeypatch.setattr("app.domains.crawling.task_store.runtime_task_from_record", MagicMock(return_value=task))
     monkeypatch.setattr("app.domains.crawling.task_store.sync_record_from_runtime_task", AsyncMock())
+
+    @asynccontextmanager
+    async def fake_lease(self, db, *, platform, profile_key, owner, task_id):
+        from pathlib import Path
+
+        from app.core.profile_lease import ProfileLease
+
+        yield ProfileLease(
+            platform=platform,
+            profile_key=profile_key,
+            profile_dir=Path("profiles/default"),
+            owner=owner,
+            task_id=task_id,
+        )
+
+    monkeypatch.setattr(
+        "app.domains.crawling.profile_pool.DatabaseProfilePool.lease",
+        fake_lease,
+    )
 
     # Mock CrawlTaskRunner to avoid real crawl execution
     class FakeCrawlTaskRunner:
@@ -105,15 +128,25 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
     result = await crawl_service.crawl_scheduled_config(3, "0 12 * * *")
 
     assert result["status"] == "success"
-    assert [event["event_type"] for event in emitted] == [
-        "job_crawl.started",
-        "job_crawl.completed",
+    started_events = [
+        event
+        for event in emitted
+        if event["event_type"] == "job_crawl.started"
+        and event["entity_type"] == "job_config"
+        and event["entity_id"] == "3"
+        and event["payload"]["source"] == "scheduled"
     ]
-    assert emitted[0]["user_id"] == 7
-    assert emitted[0]["payload"]["source"] == "scheduled"
-    assert emitted[1]["entity_type"] == "job_config"
-    assert emitted[1]["entity_id"] == "3"
-    assert emitted[1]["payload"]["new_count"] == 2
+    completed_events = [
+        event
+        for event in emitted
+        if event["event_type"] == "job_crawl.completed"
+        and event["entity_type"] == "job_config"
+        and event["entity_id"] == "3"
+        and event["payload"]["new_count"] == 2
+    ]
+    assert started_events
+    assert completed_events
+    assert started_events[0]["user_id"] == 7
 
 
 class TestBuildCrawlUrl:

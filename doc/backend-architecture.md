@@ -217,6 +217,8 @@ User (1) ──────< Product (多)
 | `jobs`                       | 爬取的职位                     | 通过 search_config_id 间接隔离         |
 | `jobs_resumes`               | 用户简历                       | user_id 隔离                           |
 | `jobs_match_results`         | LLM 匹配结果                   | user_id 隔离                           |
+| `crawl_tasks`                | 商品/职位爬取任务持久状态      | user_id nullable；按 task_id 查询      |
+| `crawl_profiles`             | 浏览器 profile 元数据和租约    | 全局 profile_key 唯一                  |
 
 **数据隔离原则**：所有包含 `user_id` 的表均通过 `user_id = current_user.id` 过滤查询。
 
@@ -401,6 +403,30 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 - `core/profile_lease.py` — `InProcessProfileLeaseManager`：按真实 `profile_dir` 加锁。一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；获取时自动创建目录
 - `core/cdp_security.py` — `validate_cdp_url()`：检查 CDP 端点是否为 localhost，防止连接到外部 CDP
 - `core/log_redaction.py` — `redact_payload()`：递归脱敏敏感字段（cookie、token、webhook_url、securityId）。`emit_system_log()` 入库前脱敏，Event Center 输出时再次脱敏，覆盖历史裸 payload
+
+### 7.6.1 持久任务和 DB Profile Pool（Phase 2 — 2026-05-26）
+
+Phase 2 将爬取任务状态和 profile 租约写入 PostgreSQL，但爬虫仍由 FastAPI / APScheduler 当前进程执行；独立 worker 领取 pending task 是 Phase 5 范围。
+
+**持久任务表：**
+
+- `models/crawl_task.py` — `CrawlTaskRecord` 对应 `crawl_tasks`。
+- `domains/crawling/task_store.py` — 创建持久任务、从记录恢复 runtime `CrawlTask`、同步进度、续期 heartbeat。
+- 商品手动爬取、商品 per-platform 定时、职位单配置、职位全量、职位定时都会写入 `crawl_tasks`。
+- 职位全量爬取使用 parent/child 结构：父任务 `job_all`，每个平台一个子任务 `job_platform`；子平台失败会写回子任务，父任务存在错误时标记为 failed。
+
+**Profile Pool：**
+
+- `models/crawl_profile.py` — `CrawlProfile` 对应 `crawl_profiles`，记录 `profile_key/profile_dir/status/lease_owner/lease_task_id/lease_until`。
+- `domains/crawling/profile_pool.py` — `DatabaseProfilePool` 通过 `SELECT ... FOR UPDATE` 原子获取和释放 profile。
+- 一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；任务只跑一个平台。
+- `ProfileLease` 带 `task_id`。`release()` / `renew()` 会同时校验 `lease_owner` 和 `lease_task_id`，旧租约不能释放或续期新任务持有的同名 profile。
+- 职位手动单配置、职位定时单配置、职位全量的每个平台子任务持有 profile lease 时都会启动 heartbeat，同时续期 `crawl_tasks.heartbeat_at/lease_until` 和 `crawl_profiles.lease_until/last_used_at`。
+
+**恢复策略：**
+
+- `main.py:recover_crawler_runtime_state()` 启动时将过期 running 任务标记为 failed（reason: `worker_restarted`），并释放过期 profile lease。
+- 当前匹配分析任务仍使用内存 `task_registry.py`，未迁入 `crawl_tasks`。
 
 ### 7.5 LLM 匹配分析（domains/jobs/match_service.py）
 

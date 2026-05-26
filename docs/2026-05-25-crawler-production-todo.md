@@ -2,7 +2,10 @@
 
 日期：2026-05-25
 
-关联计划：[2026-05-25-crawler-production-refactor-plan.md](2026-05-25-crawler-production-refactor-plan.md)
+关联计划：
+
+- [Phase 1 implementation plan](2026-05-25-crawler-production-phase1-implementation-plan.md)
+- [Phase 2 implementation plan](2026-05-26-crawler-production-phase2-implementation-plan.md)
 
 ## 状态说明
 
@@ -16,7 +19,7 @@
 | 阶段 | 状态 | 主要输出 | 备注 |
 | --- | --- | --- | --- |
 | Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成，待提交 |
-| Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成，匹配分析仍走内存 registry |
+| Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
 | Phase 3 | todo | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
 | Phase 5 | todo | 独立 crawler worker | 任务量增长后启动 |
@@ -49,7 +52,14 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 | profile lease 改为 DB lock | done | `DatabaseProfilePool` 使用 `SELECT ... FOR UPDATE` 原子获取，含 `_get_or_create_profile_for_update` 处理并发创建竞争 |
 | 前端任务状态查询切到持久任务表 | done | 商品 `/crawl/status/{task_id}` 和 `/crawl/result/{task_id}`、职位 `/jobs/crawl/status/{task_id}` 和 `/jobs/crawl/result/{task_id}` 均从 `crawl_tasks` 读取 |
 | running 超时恢复策略 | done | 启动时 `recover_crawler_runtime_state()` 标记过期 running 任务为 `failed`（reason: worker_restarted）并释放过期 profile lease |
-| 心跳续期 | done | `task_store.renew_task_lease()` 更新 heartbeat_at/lease_until；`profile_pool.renew()` 更新 lease_until/last_used_at |
+| 心跳续期 | done | `task_store.renew_task_lease()` 更新 heartbeat_at/lease_until；`profile_pool.renew()` 更新 lease_until/last_used_at；职位手动/定时/全量子任务持有 profile lease 时均会续期 |
+
+**Phase 2 review follow-up（2026-05-26）**
+
+- 旧 lease 已不能释放或续期新任务持有的同名 profile，避免过期任务误伤新任务。
+- 定时职位爬取已与手动职位爬取一致，进入 `DatabaseProfilePool` lease 后再执行 runner。
+- 全量职位爬取的 `job_platform` 子任务失败会写回持久任务表，父任务在存在子平台错误时标记为 `failed`，不再误报 completed。
+- 已完成验证：后端完整 `pytest -q` 为 `519 passed, 21 skipped`；后端 E2E `tests/test_e2e_crawl_flow.py` 为 `3 passed`；前端真实浏览器联调完成默认账号登录、Jobs 页、`/api/v1/auth/me`、`/api/v1/jobs/configs` 和 Event Center 页面验证。
 
 ## Phase 3：职位平台生产化
 

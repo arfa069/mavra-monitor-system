@@ -3,6 +3,7 @@
 Tests persist crawl task state in PostgreSQL via async SQLAlchemy.
 Uses ASGITransport for API calls and real DB sessions for verifications.
 """
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -199,6 +200,61 @@ async def test_job_crawl_status_reads_persistent_task(phase2_client):
 
 
 @pytest.mark.asyncio
+async def test_scheduled_job_crawl_uses_profile_pool(monkeypatch, tmp_path):
+    """Scheduled job crawls must lease profiles just like manual job crawls."""
+    await _clean_crawl_tables()
+
+    from app.core.profile_lease import ProfileLease
+    from app.domains.jobs.crawl_service import crawl_scheduled_config
+
+    lease_calls = []
+
+    @asynccontextmanager
+    async def fake_lease(self, db, *, platform, profile_key, owner, task_id):
+        lease_calls.append(
+            {
+                "platform": platform,
+                "profile_key": profile_key,
+                "owner": owner,
+                "task_id": task_id,
+            }
+        )
+        yield ProfileLease(
+            platform=platform,
+            profile_key=profile_key,
+            profile_dir=tmp_path / "profiles" / profile_key,
+            owner=owner,
+        )
+
+    async def fake_run_job_config(self, task, *, config_id):
+        task.status = "completed"
+        task.total = 1
+        task.success = 1
+        task.errors = 0
+        return {
+            "status": "success",
+            "new_count": 1,
+            "updated_count": 0,
+            "deactivated_count": 0,
+        }
+
+    monkeypatch.setattr(
+        "app.domains.crawling.profile_pool.DatabaseProfilePool.lease",
+        fake_lease,
+    )
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner.CrawlTaskRunner.run_job_config",
+        fake_run_job_config,
+    )
+
+    result = await crawl_scheduled_config(1)
+
+    assert result["status"] == "success"
+    assert lease_calls
+    assert lease_calls[0]["profile_key"] == "default"
+
+
+@pytest.mark.asyncio
 async def test_startup_recovery_marks_stale_tasks_and_releases_profiles(tmp_path):
     """Startup recovery marks stale running tasks and releases expired profile leases."""
     await _clean_crawl_tables()
@@ -242,7 +298,6 @@ async def test_startup_recovery_marks_stale_tasks_and_releases_profiles(tmp_path
             lease_seconds=1,
         )
         # Manually expire the profile lease for recovery testing
-        from app.domains.crawling.profile_pool import LEASED
         from app.models.crawl_profile import CrawlProfile
 
         result = await db.execute(

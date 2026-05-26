@@ -12,9 +12,9 @@
 
 ## Scope Check
 
-This implementation plan covers **Phase 1 only** from [docs/2026-05-25-crawler-production-refactor-plan.md](../../2026-05-25-crawler-production-refactor-plan.md).
+This implementation plan covers **Phase 1 only** from [docs/2026-05-25-crawler-production-todo.md](2026-05-25-crawler-production-todo.md).
 
-Phase 2-5 remain tracked in [docs/2026-05-25-crawler-production-todo.md](../../2026-05-25-crawler-production-todo.md). They should become separate implementation plans because they touch persistence, platform-specific crawler behavior, product browser lifecycle, and independent worker deployment.
+Phase 2-5 remain tracked in [docs/2026-05-25-crawler-production-todo.md](2026-05-25-crawler-production-todo.md). They should become separate implementation plans because they touch persistence, platform-specific crawler behavior, product browser lifecycle, and independent worker deployment.
 
 ## Current Behavior To Preserve
 
