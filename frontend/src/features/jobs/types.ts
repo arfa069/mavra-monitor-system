@@ -1,3 +1,35 @@
+export type CrawlProfileStatus =
+  | "available"
+  | "leased"
+  | "login_required"
+  | "cooling_down"
+  | "disabled";
+
+export interface CrawlProfile {
+  profile_key: string;
+  profile_dir: string;
+  status: CrawlProfileStatus;
+  platform_hint: string | null;
+  lease_owner: string | null;
+  lease_task_id: string | null;
+  lease_until: string | null;
+  last_used_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrawlProfileCreate {
+  profile_key: string;
+  platform_hint?: string | null;
+}
+
+export interface CrawlProfileUpdate {
+  status?: "available" | "login_required" | "disabled" | null;
+  platform_hint?: string | null;
+  last_error?: string | null;
+}
+
 export interface JobConfigScheduleInfo {
   cron_expression: string | null;
   next_run_at: string | null;
@@ -12,6 +44,7 @@ export interface JobSearchConfig {
   id: number;
   user_id: number;
   name: string;
+  profile_key: string;
   platform: "boss" | "51job" | "liepin";
   keyword: string | null;
   city_code: string | null;
@@ -32,6 +65,7 @@ export interface JobSearchConfig {
 
 export interface JobSearchConfigCreate {
   name: string;
+  profile_key?: string;
   platform?: "boss" | "51job" | "liepin";
   keyword?: string;
   city_code?: string;
@@ -50,6 +84,7 @@ export interface JobSearchConfigCreate {
 
 export interface JobSearchConfigUpdate {
   name?: string;
+  profile_key?: string;
   platform?: "boss" | "51job" | "liepin";
   keyword?: string;
   city_code?: string;

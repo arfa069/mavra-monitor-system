@@ -1,5 +1,8 @@
 import api from "@/shared/api/client";
 import type {
+  CrawlProfile,
+  CrawlProfileCreate,
+  CrawlProfileUpdate,
   Job,
   JobConfigCronUpdate,
   JobConfigScheduleInfo,
@@ -114,4 +117,15 @@ export const jobsApi = {
     hours?: number;
     limit?: number;
   }) => api.get<JobCrawlLog[]>("/v1/jobs/crawl-logs", { params }),
+
+  getProfiles: () => api.get<CrawlProfile[]>("/v1/crawl-profiles"),
+
+  createProfile: (data: CrawlProfileCreate) =>
+    api.post<CrawlProfile>("/v1/crawl-profiles", data),
+
+  updateProfile: (profileKey: string, data: CrawlProfileUpdate) =>
+    api.patch<CrawlProfile>(`/v1/crawl-profiles/${profileKey}`, data),
+
+  releaseStaleProfile: (profileKey: string) =>
+    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/release-stale`),
 };

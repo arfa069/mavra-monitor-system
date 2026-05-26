@@ -2,9 +2,12 @@ import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import type { JobSearchConfig, JobSearchConfigCreate } from "../types";
 
+import type { CrawlProfile } from "../types";
+
 interface JobConfigFormProps {
   open: boolean;
   record?: JobSearchConfig | null;
+  profiles?: CrawlProfile[];
   onCancel: () => void;
   onSubmit: (values: Partial<JobSearchConfigCreate>) => Promise<void>;
   confirmLoading?: boolean;
@@ -13,6 +16,7 @@ interface JobConfigFormProps {
 export default function JobConfigForm({
   open,
   record,
+  profiles,
   onCancel,
   onSubmit,
   confirmLoading,
@@ -28,6 +32,7 @@ export default function JobConfigForm({
     form.resetFields();
     form.setFieldsValue({
       platform: "boss",
+      profile_key: "default",
       active: true,
       notify_on_new: true,
       enable_match_analysis: false,
@@ -109,6 +114,21 @@ export default function JobConfigForm({
             <Select.Option value="51job">前程无忧 (51job)</Select.Option>
             <Select.Option value="liepin">猎聘 (Liepin)</Select.Option>
           </Select>
+        </Form.Item>
+        <Form.Item
+          name="profile_key"
+          label="Profile"
+          rules={[{ required: true, message: "Please select profile" }]}
+        >
+          <Select
+            showSearch
+            optionFilterProp="label"
+            options={(profiles || []).map((profile) => ({
+              value: profile.profile_key,
+              label: `${profile.profile_key} (${profile.status})`,
+              disabled: profile.status === "disabled",
+            }))}
+          />
         </Form.Item>
         <Form.Item
           name="url"

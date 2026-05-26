@@ -20,10 +20,11 @@ import {
 } from "@ant-design/icons";
 import JobConfigForm from "./JobConfigForm";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
-import type { JobSearchConfig, JobSearchConfigCreate } from "../types";
+import type { CrawlProfile, JobSearchConfig, JobSearchConfigCreate } from "../types";
 
 interface JobConfigListProps {
   configs?: JobSearchConfig[];
+  profiles?: CrawlProfile[];
   isLoading?: boolean;
   onCreate: (data: JobSearchConfigCreate) => Promise<void>;
   onUpdate: (id: number, data: Partial<JobSearchConfigCreate>) => Promise<void>;
@@ -36,6 +37,7 @@ interface JobConfigListProps {
 
 export default function JobConfigList({
   configs,
+  profiles,
   isLoading,
   onCreate,
   onUpdate,
@@ -140,6 +142,9 @@ export default function JobConfigList({
                           ? "New Job Notification"
                           : "Notification Off"}
                       </Tag>
+                      <Tag color="geekblue">
+                        Profile: {config.profile_key || "default"}
+                      </Tag>
                       <Switch
                         size="small"
                         checked={config.enable_match_analysis}
@@ -192,6 +197,7 @@ export default function JobConfigList({
 
       <JobConfigForm
         open={createOpen}
+        profiles={profiles}
         onCancel={() => setCreateOpen(false)}
         onSubmit={handleCreate}
         confirmLoading={createLoading}
@@ -199,6 +205,7 @@ export default function JobConfigList({
       <JobConfigForm
         open={!!editRecord}
         record={editRecord}
+        profiles={profiles}
         onCancel={() => setEditRecord(null)}
         onSubmit={handleUpdate}
         confirmLoading={updateLoading}

@@ -5,18 +5,23 @@ import type { ColumnsType } from "antd/es/table";
 import {
   useCrawlAllJobs,
   useCrawlSingleJob,
+  useCreateCrawlProfile,
   useCreateJobConfig,
+  useCrawlProfiles,
   useDeleteJobConfig,
   useJobConfigs,
   useJobCrawlLogs,
   useJobs,
   useMatchResults,
+  useReleaseStaleCrawlProfile,
+  useUpdateCrawlProfile,
   useUpdateJobConfig,
 } from "./hooks/useJobs";
 import JobConfigList from "./components/JobConfigList";
 import JobDrawer from "./components/JobDrawer";
 import JobList from "./components/JobList";
 import MatchResultList from "./components/MatchResultList";
+import ProfileManagement from "./components/ProfileManagement";
 import ResumeManager from "./components/ResumeManager";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
@@ -60,6 +65,26 @@ export default function JobsPage() {
   const { data: jobCrawlLogs, isLoading: logsLoading } = useJobCrawlLogs({
     limit: 20,
   });
+
+  const { data: profiles, isLoading: profilesLoading } = useCrawlProfiles();
+  const createProfile = useCreateCrawlProfile();
+  const updateProfile = useUpdateCrawlProfile();
+  const releaseStaleProfile = useReleaseStaleCrawlProfile();
+
+  const handleCreateProfile = async (profileKey: string, platformHint?: string | null) => {
+    await createProfile.mutateAsync({ profile_key: profileKey, platform_hint: platformHint });
+  };
+
+  const handleReleaseStaleProfile = async (profileKey: string) => {
+    await releaseStaleProfile.mutateAsync(profileKey);
+  };
+
+  const handleUpdateProfileStatus = async (
+    profileKey: string,
+    status: "available" | "login_required" | "disabled",
+  ) => {
+    await updateProfile.mutateAsync({ profileKey, data: { status } });
+  };
 
   const matchScores = useMemo(() => {
     const map: Record<number, number> = {};
@@ -184,6 +209,7 @@ export default function JobsPage() {
           <Card size="small">
             <JobConfigList
               configs={configs}
+              profiles={profiles}
               isLoading={configsLoading}
               onCreate={handleCreateConfig}
               onUpdate={handleUpdateConfig}
@@ -235,6 +261,21 @@ export default function JobsPage() {
             loading={logsLoading}
             size="small"
             pagination={false}
+          />
+        </Card>
+      ),
+    },
+    {
+      key: "profiles",
+      label: "Profiles",
+      children: (
+        <Card size="small" title="Crawler Profiles">
+          <ProfileManagement
+            profiles={profiles}
+            loading={profilesLoading}
+            onCreate={handleCreateProfile}
+            onUpdateStatus={handleUpdateProfileStatus}
+            onReleaseStale={handleReleaseStaleProfile}
           />
         </Card>
       ),

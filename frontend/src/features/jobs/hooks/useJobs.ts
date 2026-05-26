@@ -40,6 +40,7 @@ export const jobQueryKeys = {
     page?: number;
     page_size?: number;
   }) => ["match-results", params] as const,
+  profiles: ["crawl-profiles"] as const,
 };
 
 export const useJobCrawlLogs = (params?: {
@@ -260,5 +261,36 @@ export const useTriggerMatch = () => {
       qc.invalidateQueries({ queryKey: ["match-results"] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
     },
+  });
+};
+
+export const useCrawlProfiles = () =>
+  useQuery({
+    queryKey: jobQueryKeys.profiles,
+    queryFn: () => jobsApi.getProfiles().then((res) => res.data),
+  });
+
+export const useCreateCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: jobsApi.createProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
+export const useUpdateCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ profileKey, data }: { profileKey: string; data: Parameters<typeof jobsApi.updateProfile>[1] }) =>
+      jobsApi.updateProfile(profileKey, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
+export const useReleaseStaleCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: jobsApi.releaseStaleProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
   });
 };
