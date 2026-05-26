@@ -194,6 +194,7 @@ class DatabaseProfilePool:
             return
         current = _now()
         profile.lease_until = current + timedelta(seconds=lease_seconds)
+        profile.last_used_at = current
         profile.updated_at = current
         await db.commit()
 

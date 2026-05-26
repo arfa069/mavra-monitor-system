@@ -1067,24 +1067,36 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
                         if record is not None:
                             await sync_record_from_runtime_task(db, record, progress_task)
 
-                for config in platform_configs:
-                    child_task = runtime_task_from_record(child_record)
-                    from app.domains.crawling.task_runner import CrawlTaskRunner
+                from app.domains.crawling.profile_pool import DatabaseProfilePool
 
-                    result = await CrawlTaskRunner(progress_callback=_persist_child).run_job_config(
-                        child_task, config_id=config.id,
-                    )
-                    all_details.append({"config_id": config.id, **result})
-                    if result.get("status") == "success":
-                        parent_task.success += 1
-                    else:
-                        parent_task.errors += 1
+                child_task = runtime_task_from_record(child_record)
+                pool = DatabaseProfilePool()
+                try:
+                    async with AsyncSessionLocal() as lease_db:
+                        async with pool.lease(
+                            lease_db,
+                            platform=platform,
+                            profile_key="default",
+                            owner=child_task.task_id,
+                            task_id=child_task.task_id,
+                        ) as _lease:
+                            for idx, config in enumerate(platform_configs):
+                                from app.domains.crawling.task_runner import CrawlTaskRunner
 
-                    idx = platform_configs.index(config)
-                    if idx < len(platform_configs) - 1:
-                        await asyncio.sleep(random.uniform(3, 6))
+                                result = await CrawlTaskRunner(progress_callback=_persist_child).run_job_config(
+                                    child_task, config_id=config.id,
+                                )
+                                all_details.append({"config_id": config.id, **result})
+                                if result.get("status") == "success":
+                                    parent_task.success += 1
+                                else:
+                                    parent_task.errors += 1
 
-                # Mark child task completed
+                                if idx < len(platform_configs) - 1:
+                                    await asyncio.sleep(random.uniform(3, 6))
+                except Exception:
+                    pass  # Profile lease errors are handled at the outer level
+
                 async with AsyncSessionLocal() as db:
                     record = await db.get(CrawlTaskRecord, child_record_id)
                     if record is not None:

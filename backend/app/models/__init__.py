@@ -3,6 +3,8 @@ from app.models.alert import Alert
 from app.models.audit_log import UserAuditLog
 from app.models.base import Base
 from app.models.crawl_log import CrawlLog
+from app.models.crawl_profile import CrawlProfile
+from app.models.crawl_task import CrawlTaskRecord
 from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import MatchResult, UserResume
 from app.models.permission import Permission
@@ -28,4 +30,6 @@ __all__ = [
     "role_permissions",
     "UserAuditLog",
     "SystemLog",
+    "CrawlTaskRecord",
+    "CrawlProfile",
 ]
