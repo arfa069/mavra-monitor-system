@@ -16,7 +16,7 @@
 | 阶段 | 状态 | 主要输出 | 备注 |
 | --- | --- | --- | --- |
 | Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成，待提交 |
-| Phase 2 | todo | `crawl_tasks`、Profile Pool、profile lease | 为独立 worker 做准备 |
+| Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成，匹配分析仍走内存 registry |
 | Phase 3 | todo | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | todo | 商品 profile 化、受控 browser manager | CDP 优化重点 |
 | Phase 5 | todo | 独立 crawler worker | 任务量增长后启动 |
@@ -37,18 +37,19 @@
 
 ## Phase 2：持久化任务和 Profile Pool
 
-Profile 规则：一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；任务只跑一个平台。Phase 2 的 DB/Redis lease 必须按真实 profile 目录或 profile id 加锁，而不是按平台加锁。
+Profile 规则：一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；任务只跑一个平台。Phase 2 使用 DB `SELECT ... FOR UPDATE` 行锁实现原子租约，不使用 Redis。
 
 | 任务 | 状态 | 验收 |
 | --- | --- | --- |
-| 新增 `crawl_tasks` 数据模型和迁移 | todo | pending/running/completed/failed 状态可持久化 |
-| 新增 `crawl_profiles` 数据模型和迁移 | todo | profile 状态、路径、lease 信息可管理 |
-| 手动触发写入 `crawl_tasks` | todo | API 不直接依赖内存 task registry |
-| APScheduler 写入 `crawl_tasks` | todo | 定时任务可重启恢复 |
-| runner 支持领取 pending task | todo | 同一任务不会被重复执行 |
-| profile lease 改为 DB 或 Redis lock | todo | 多进程不抢同一个 profile |
-| 前端任务状态查询切到持久任务表 | todo | 刷新页面后仍可看到任务状态 |
-| running 超时恢复策略 | todo | worker/进程中断后任务可失败或重试 |
+| 新增 `crawl_tasks` 数据模型和迁移 | done | pending/running/completed/failed 状态可持久化，含 JSONB details/payload、lease 字段 |
+| 新增 `crawl_profiles` 数据模型和迁移 | done | profile 状态、路径、lease owner/task_id/until 可管理 |
+| 手动触发写入 `crawl_tasks` | done | 商品和职位手动爬取写入持久表；job all-crawl 创建 parent `job_all` + child `job_platform` |
+| APScheduler 写入 `crawl_tasks` | done | 定时商品（product_platform）和职位（job_config）爬取写入持久表并更新进度 |
+| runner 支持领取 pending task | todo | 当前 runner 由调用方直接启动，非 worker pull 模式；Phase 5 独立 worker 再实现 |
+| profile lease 改为 DB lock | done | `DatabaseProfilePool` 使用 `SELECT ... FOR UPDATE` 原子获取，含 `_get_or_create_profile_for_update` 处理并发创建竞争 |
+| 前端任务状态查询切到持久任务表 | done | 商品 `/crawl/status/{task_id}` 和 `/crawl/result/{task_id}`、职位 `/jobs/crawl/status/{task_id}` 和 `/jobs/crawl/result/{task_id}` 均从 `crawl_tasks` 读取 |
+| running 超时恢复策略 | done | 启动时 `recover_crawler_runtime_state()` 标记过期 running 任务为 `failed`（reason: worker_restarted）并释放过期 profile lease |
+| 心跳续期 | done | `task_store.renew_task_lease()` 更新 heartbeat_at/lease_until；`profile_pool.renew()` 更新 lease_until/last_used_at |
 
 ## Phase 3：职位平台生产化
 
