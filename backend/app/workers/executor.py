@@ -28,6 +28,21 @@ async def _persist(record_id: int, task) -> None:
             await sync_record_from_runtime_task(db, record, task)
 
 
+async def _release_waiting_parent_lease(record_id: int, *, worker_id: str) -> None:
+    async with AsyncSessionLocal() as db:
+        record = await db.get(CrawlTaskRecord, record_id)
+        if (
+            record is not None
+            and record.status == TaskStatus.RUNNING.value
+            and record.reason == "waiting_for_children"
+            and record.locked_by == worker_id
+        ):
+            record.locked_by = None
+            record.lease_until = None
+            record.heartbeat_at = None
+            await db.commit()
+
+
 async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> dict:
     """Run a task that has already been moved to running by task_store."""
     task = runtime_task_from_record(record)
@@ -87,20 +102,29 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
         else:
             task.status = TaskStatus.COMPLETED
         await progress_callback(task)
+        if result.get("status") == "waiting_for_children":
+            await _release_waiting_parent_lease(record.id, worker_id=worker_id)
 
         # Emit completion event
-        event_type = (
-            "crawler_worker.task_completed"
-            if task.status == TaskStatus.COMPLETED
-            else "crawler_worker.task_failed"
-        )
+        if result.get("status") == "waiting_for_children":
+            event_type = "crawler_worker.task_waiting_for_children"
+            event_status = "running"
+            event_severity = "info"
+        else:
+            event_type = (
+                "crawler_worker.task_completed"
+                if task.status == TaskStatus.COMPLETED
+                else "crawler_worker.task_failed"
+            )
+            event_status = "completed" if task.status == TaskStatus.COMPLETED else "failed"
+            event_severity = "info" if task.status == TaskStatus.COMPLETED else "error"
         await emit_system_log_detached(
             category="runtime",
             event_type=event_type,
             source="crawler_worker",
-            severity="info" if task.status == TaskStatus.COMPLETED else "error",
-            status="completed" if task.status == TaskStatus.COMPLETED else "failed",
-            message=f"Worker {worker_id} {'completed' if task.status == TaskStatus.COMPLETED else 'failed'} task {record.task_id}",
+            severity=event_severity,
+            status=event_status,
+            message=f"Worker {worker_id} processed task {record.task_id} ({event_status})",
             entity_type="crawl_task",
             entity_id=record.task_id,
             payload={

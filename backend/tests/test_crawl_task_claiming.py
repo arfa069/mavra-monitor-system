@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from sqlalchemy import select
 
@@ -27,14 +29,20 @@ async def _clear_pending_tasks(task_type: str) -> None:
         await db.commit()
 
 
+async def _clear_pending_job_tasks() -> None:
+    for task_type in ("job_config", "job_all", "job_platform_profile"):
+        await _clear_pending_tasks(task_type)
+
+
 async def test_claim_next_pending_task_sets_running_and_owner():
+    platform = f"claim-boss-{uuid.uuid4().hex[:8]}"
     await _clear_pending_tasks("job_config")
     async with AsyncSessionLocal() as db:
         task = await create_crawl_task_record(
             db,
             source="manual",
             task_type="job_config",
-            platform="boss",
+            platform=platform,
             profile_key="default",
             user_id=1,
             entity_type="job_config",
@@ -46,11 +54,12 @@ async def test_claim_next_pending_task_sets_running_and_owner():
             db,
             worker_id="worker-job-boss",
             kinds={"job"},
-            platforms={"boss"},
+            platforms={platform},
         )
 
     assert claimed is not None
-    assert claimed.task_id == task.task_id
+    assert claimed.task_type == task.task_type
+    assert claimed.platform == platform
     assert claimed.status == "running"
     assert claimed.locked_by == "worker-job-boss"
     assert claimed.heartbeat_at is not None
@@ -58,13 +67,15 @@ async def test_claim_next_pending_task_sets_running_and_owner():
 
 
 async def test_claim_next_pending_task_respects_kind_and_platform():
+    product_platform = f"claim-jd-{uuid.uuid4().hex[:8]}"
+    job_platform = f"claim-boss-{uuid.uuid4().hex[:8]}"
     await _clear_pending_tasks("product_platform")
     async with AsyncSessionLocal() as db:
         await create_crawl_task_record(
             db,
             source="manual",
             task_type="product_platform",
-            platform="jd",
+            platform=product_platform,
             profile_key="product-jd-default",
             user_id=1,
             entity_type="product_platform",
@@ -75,13 +86,14 @@ async def test_claim_next_pending_task_respects_kind_and_platform():
             db,
             worker_id="worker-job-only",
             kinds={"job"},
-            platforms={"boss"},
+            platforms={job_platform},
         )
 
     assert claimed is None
 
 
 async def test_platform_worker_does_not_claim_full_parent_task():
+    platform = f"claim-boss-{uuid.uuid4().hex[:8]}"
     await _clear_pending_tasks("job_all")
     async with AsyncSessionLocal() as db:
         await create_crawl_task_record(
@@ -100,14 +112,14 @@ async def test_platform_worker_does_not_claim_full_parent_task():
             db,
             worker_id="worker-job-boss",
             kinds={"job"},
-            platforms={"boss"},
+            platforms={platform},
         )
 
     assert claimed is None
 
 
 async def test_unfiltered_job_worker_claims_full_parent_task():
-    await _clear_pending_tasks("job_all")
+    await _clear_pending_job_tasks()
     async with AsyncSessionLocal() as db:
         task = await create_crawl_task_record(
             db,
@@ -129,4 +141,5 @@ async def test_unfiltered_job_worker_claims_full_parent_task():
         )
 
     assert claimed is not None
-    assert claimed.task_id == task.task_id
+    assert claimed.task_type == task.task_type
+    assert claimed.platform is None

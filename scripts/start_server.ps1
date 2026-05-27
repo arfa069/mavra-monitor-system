@@ -1,5 +1,6 @@
 param(
-    [switch]$BackendOnly
+    [switch]$BackendOnly,
+    [switch]$NoCrawlerWorker
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -120,6 +121,14 @@ $backendCmd = "Set-Location `"$backendDir`"; python -m uvicorn app.main:app --ho
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
 Write-Host "[Backend] http://localhost:8000" -ForegroundColor Cyan
 
+if (-not $NoCrawlerWorker) {
+    Write-Host ""
+    Write-Host "[Crawler Worker] Starting..." -ForegroundColor Cyan
+    $workerCmd = "Set-Location `"$backendDir`"; python -m app.workers.crawler --kind all"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCmd
+    Write-Host "[Crawler Worker] python -m app.workers.crawler --kind all" -ForegroundColor Cyan
+}
+
 if (-not $BackendOnly) {
     Write-Host ""
     Write-Host "[Frontend] Starting..." -ForegroundColor Magenta
@@ -128,7 +137,7 @@ if (-not $BackendOnly) {
     Write-Host "[Frontend] http://localhost:3000" -ForegroundColor Magenta
 
     Write-Host ""
-    Write-Host "Tip: Use -BackendOnly for backend only" -ForegroundColor DarkGray
+    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker" -ForegroundColor DarkGray
 }
 
 Write-Host ""

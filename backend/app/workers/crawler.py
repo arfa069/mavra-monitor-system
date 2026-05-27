@@ -57,6 +57,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 async def _recover_runtime_state() -> None:
+    from app.domains.jobs.crawl_service import aggregate_waiting_job_parent_tasks
+
     async with AsyncSessionLocal() as db:
         await recover_stale_running_tasks(db, owner_reason="worker_stale_lease")
         await recover_stale_profile_leases(db)
@@ -64,6 +66,7 @@ async def _recover_runtime_state() -> None:
             db,
             stale_after_seconds=settings.crawler_worker_stale_after_seconds,
         )
+    await aggregate_waiting_job_parent_tasks()
 
 
 async def run_worker(args: argparse.Namespace) -> None:

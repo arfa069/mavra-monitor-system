@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { App, Button, Form, Input, Modal, Select, Space, Table, Tag } from "antd";
+import { App, Button, Checkbox, Form, Input, Modal, Select, Space, Table, Tag, Upload } from "antd";
+import type { UploadFile } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import type { CrawlProfile } from "../types";
+import type { CrawlProfile, CrawlProfileRuntimeCapabilities } from "../types";
 
 interface ProfileManagementProps {
   profiles?: CrawlProfile[];
@@ -9,6 +10,12 @@ interface ProfileManagementProps {
   onCreate: (profileKey: string, platformHint?: string | null) => Promise<void>;
   onUpdateStatus: (profileKey: string, status: "available" | "login_required" | "disabled") => Promise<void>;
   onReleaseStale: (profileKey: string) => Promise<void>;
+  capabilities?: CrawlProfileRuntimeCapabilities;
+  onOpenLoginSession: (profileKey: string, platform: string) => Promise<void>;
+  onCloseLoginSession: (profileKey: string) => Promise<void>;
+  onTestProfile: (profileKey: string, platform: string) => Promise<void>;
+  onExportBackup: (profileKey: string, password: string) => Promise<void>;
+  onImportBackup: (profileKey: string, file: File, password: string, force: boolean) => Promise<void>;
 }
 
 export default function ProfileManagement({
@@ -17,10 +24,26 @@ export default function ProfileManagement({
   onCreate,
   onUpdateStatus,
   onReleaseStale,
+  capabilities,
+  onOpenLoginSession,
+  onCloseLoginSession,
+  onTestProfile,
+  onExportBackup,
+  onImportBackup,
 }: ProfileManagementProps) {
   const message = App.useApp().message;
   const [open, setOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [backupMode, setBackupMode] = useState<"import" | "export">("import");
+  const [backupProfile, setBackupProfile] = useState<CrawlProfile | null>(null);
   const [form] = Form.useForm<{ profile_key: string; platform_hint?: string }>();
+  const [backupForm] = Form.useForm<{
+    password: string;
+    force?: boolean;
+    file?: UploadFile[];
+  }>();
+
+  const platformFor = (record: CrawlProfile) => record.platform_hint || "boss";
 
   const columns: ColumnsType<CrawlProfile> = [
     { title: "Profile", dataIndex: "profile_key", width: 140 },
@@ -39,9 +62,38 @@ export default function ProfileManagement({
     { title: "Last Error", dataIndex: "last_error", render: (value) => value || "-" },
     {
       title: "Actions",
-      width: 280,
+      width: 520,
       render: (_, record) => (
         <Space wrap>
+          {capabilities?.supports_login_session && (
+            <Button size="small" onClick={() => onOpenLoginSession(record.profile_key, platformFor(record))}>Open Login Browser</Button>
+          )}
+          <Button size="small" onClick={() => onCloseLoginSession(record.profile_key)}>Close Browser</Button>
+          <Button size="small" onClick={() => onTestProfile(record.profile_key, platformFor(record))}>Test</Button>
+          {capabilities?.supports_profile_import && (
+            <Button
+              size="small"
+              onClick={() => {
+                setBackupMode("import");
+                setBackupProfile(record);
+                setBackupOpen(true);
+              }}
+            >
+              Import
+            </Button>
+          )}
+          {capabilities?.supports_profile_export && (
+            <Button
+              size="small"
+              onClick={() => {
+                setBackupMode("export");
+                setBackupProfile(record);
+                setBackupOpen(true);
+              }}
+            >
+              Export
+            </Button>
+          )}
           <Button size="small" onClick={() => onUpdateStatus(record.profile_key, "available")}>Available</Button>
           <Button size="small" onClick={() => onUpdateStatus(record.profile_key, "login_required")}>Login Required</Button>
           <Button size="small" danger onClick={() => onUpdateStatus(record.profile_key, "disabled")}>Disable</Button>
@@ -59,10 +111,38 @@ export default function ProfileManagement({
     message.success("Profile created");
   };
 
+  const normFile = (event: { fileList?: UploadFile[] } | UploadFile[]) =>
+    Array.isArray(event) ? event : event?.fileList;
+
+  const handleBackup = async () => {
+    if (!backupProfile) return;
+    const values = await backupForm.validateFields();
+    if (backupMode === "export") {
+      await onExportBackup(backupProfile.profile_key, values.password);
+      message.success("Profile backup exported");
+    } else {
+      const file = values.file?.[0]?.originFileObj;
+      if (!file) {
+        message.error("Select a profile backup file");
+        return;
+      }
+      await onImportBackup(
+        backupProfile.profile_key,
+        file,
+        values.password,
+        Boolean(values.force),
+      );
+      message.success("Profile backup imported");
+    }
+    backupForm.resetFields();
+    setBackupOpen(false);
+    setBackupProfile(null);
+  };
+
   return (
     <>
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }}>
-        <span />
+        <Tag>{capabilities?.mode || "loading"}</Tag>
         <Button onClick={() => setOpen(true)}>Create Profile</Button>
       </Space>
       <Table<CrawlProfile>
@@ -87,6 +167,34 @@ export default function ProfileManagement({
               { value: "amazon", label: "Amazon" },
             ]} />
           </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title={`${backupMode === "export" ? "Export" : "Import"} Profile Backup`}
+        open={backupOpen}
+        onOk={handleBackup}
+        onCancel={() => {
+          backupForm.resetFields();
+          setBackupOpen(false);
+          setBackupProfile(null);
+        }}
+      >
+        <Form form={backupForm} layout="vertical">
+          <Form.Item name="password" label="Backup Password" rules={[{ required: true, min: 8 }]}>
+            <Input.Password autoComplete="new-password" />
+          </Form.Item>
+          {backupMode === "import" && (
+            <>
+              <Form.Item name="file" label="Backup File" valuePropName="fileList" getValueFromEvent={normFile} rules={[{ required: true }]}>
+                <Upload beforeUpload={() => false} maxCount={1}>
+                  <Button>Select Backup</Button>
+                </Upload>
+              </Form.Item>
+              <Form.Item name="force" valuePropName="checked">
+                <Checkbox>Overwrite existing profile files</Checkbox>
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
     </>

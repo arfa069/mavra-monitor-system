@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
+import { useEffect, useState } from "react";
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from "antd";
 import type { JobSearchConfig, JobSearchConfigCreate } from "../types";
 
 import type { CrawlProfile } from "../types";
@@ -8,6 +8,7 @@ interface JobConfigFormProps {
   open: boolean;
   record?: JobSearchConfig | null;
   profiles?: CrawlProfile[];
+  onCreateProfile?: (profileKey: string, platformHint?: string | null) => Promise<void>;
   onCancel: () => void;
   onSubmit: (values: Partial<JobSearchConfigCreate>) => Promise<void>;
   confirmLoading?: boolean;
@@ -17,11 +18,14 @@ export default function JobConfigForm({
   open,
   record,
   profiles,
+  onCreateProfile,
   onCancel,
   onSubmit,
   confirmLoading,
 }: JobConfigFormProps) {
   const [form] = Form.useForm();
+  const [profileForm] = Form.useForm<{ profile_key: string }>();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +92,15 @@ export default function JobConfigForm({
     form.resetFields();
   };
 
+  const handleCreateProfile = async () => {
+    if (!onCreateProfile) return;
+    const values = await profileForm.validateFields();
+    await onCreateProfile(values.profile_key, platform);
+    form.setFieldsValue({ profile_key: values.profile_key });
+    profileForm.resetFields();
+    setProfileModalOpen(false);
+  };
+
   return (
     <Modal
       title={record ? "Edit Job Config" : "Add Job Config"}
@@ -115,20 +128,26 @@ export default function JobConfigForm({
             <Select.Option value="liepin">猎聘 (Liepin)</Select.Option>
           </Select>
         </Form.Item>
-        <Form.Item
-          name="profile_key"
-          label="Profile"
-          rules={[{ required: true, message: "Please select profile" }]}
-        >
-          <Select
-            showSearch
-            optionFilterProp="label"
-            options={(profiles || []).map((profile) => ({
-              value: profile.profile_key,
-              label: `${profile.profile_key} (${profile.status})`,
-              disabled: profile.status === "disabled",
-            }))}
-          />
+        <Form.Item label="Profile">
+          <Space.Compact style={{ width: "100%" }}>
+            <Form.Item
+              name="profile_key"
+              noStyle
+              rules={[{ required: true, message: "Please select profile" }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: "100%" }}
+                options={(profiles || []).map((profile) => ({
+                  value: profile.profile_key,
+                  label: `${profile.profile_key} (${profile.status})`,
+                  disabled: profile.status === "disabled",
+                }))}
+              />
+            </Form.Item>
+            <Button onClick={() => setProfileModalOpen(true)}>New</Button>
+          </Space.Compact>
         </Form.Item>
         <Form.Item
           name="url"
@@ -183,6 +202,18 @@ export default function JobConfigForm({
           <Switch />
         </Form.Item>
       </Form>
+      <Modal
+        title="New Profile"
+        open={profileModalOpen}
+        onOk={handleCreateProfile}
+        onCancel={() => setProfileModalOpen(false)}
+      >
+        <Form form={profileForm} layout="vertical">
+          <Form.Item name="profile_key" label="Profile Key" rules={[{ required: true }]}>
+            <Input placeholder={`${platform}-default-2`} autoComplete="off" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Modal>
   );
 }

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from app.config import settings
@@ -80,25 +82,13 @@ async def test_requeue_claimed_task_fails_after_max_attempts(monkeypatch):
 
 async def test_claim_next_pending_task_skips_max_attempts_tasks(monkeypatch):
     monkeypatch.setattr(settings, "crawler_task_max_requeue_attempts", 2)
+    platform = f"max-attempt-{uuid.uuid4().hex[:8]}"
     async with AsyncSessionLocal() as db:
-        from sqlalchemy import delete
-
-        from app.models.crawl_task import CrawlTaskRecord
-
-        # Clean up stale pending tasks first
-        await db.execute(
-            delete(CrawlTaskRecord).where(
-                CrawlTaskRecord.status == TaskStatus.PENDING.value,
-                CrawlTaskRecord.task_type == "job_config",
-            )
-        )
-        await db.commit()
-
         record = await create_crawl_task_record(
             db,
             source="manual",
             task_type="job_config",
-            platform="boss",
+            platform=platform,
             profile_key="default",
             user_id=1,
             entity_type="job_config",
@@ -113,7 +103,7 @@ async def test_claim_next_pending_task_skips_max_attempts_tasks(monkeypatch):
             db,
             worker_id="worker-test",
             kinds={"job"},
-            platforms={"boss"},
+            platforms={platform},
         )
 
     assert claimed is None

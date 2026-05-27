@@ -30,6 +30,7 @@ interface JobConfigListProps {
   onUpdate: (id: number, data: Partial<JobSearchConfigCreate>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onCrawl?: (id: number) => Promise<void>;
+  onCreateProfile?: (profileKey: string, platformHint?: string | null) => Promise<void>;
   createLoading?: boolean;
   updateLoading?: boolean;
   crawlLoading?: boolean;
@@ -43,6 +44,7 @@ export default function JobConfigList({
   onUpdate,
   onDelete,
   onCrawl,
+  onCreateProfile,
   createLoading,
   updateLoading,
   crawlLoading,
@@ -198,6 +200,7 @@ export default function JobConfigList({
       <JobConfigForm
         open={createOpen}
         profiles={profiles}
+        onCreateProfile={onCreateProfile}
         onCancel={() => setCreateOpen(false)}
         onSubmit={handleCreate}
         confirmLoading={createLoading}
@@ -206,6 +209,7 @@ export default function JobConfigList({
         open={!!editRecord}
         record={editRecord}
         profiles={profiles}
+        onCreateProfile={onCreateProfile}
         onCancel={() => setEditRecord(null)}
         onSubmit={handleUpdate}
         confirmLoading={updateLoading}

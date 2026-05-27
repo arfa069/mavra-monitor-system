@@ -30,6 +30,30 @@ export interface CrawlProfileUpdate {
   last_error?: string | null;
 }
 
+export interface CrawlProfileRuntimeCapabilities {
+  os: string;
+  mode: "local_gui" | "headless_server";
+  supports_login_session: boolean;
+  supports_profile_import: boolean;
+  supports_profile_export: boolean;
+  recommended_action: "open_login_browser" | "import_profile_backup";
+}
+
+export interface CrawlProfileLoginSession {
+  profile_key: string;
+  platform: string;
+  status: "active" | "closed" | "failed";
+  start_url: string;
+  message?: string | null;
+}
+
+export interface CrawlProfileTestResult {
+  profile_key: string;
+  platform: string;
+  status: "ready" | "login_required" | "risk_blocked" | "error";
+  message?: string | null;
+}
+
 export interface JobConfigScheduleInfo {
   cron_expression: string | null;
   next_run_at: string | null;

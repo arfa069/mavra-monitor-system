@@ -2,6 +2,9 @@ import api from "@/shared/api/client";
 import type {
   CrawlProfile,
   CrawlProfileCreate,
+  CrawlProfileLoginSession,
+  CrawlProfileRuntimeCapabilities,
+  CrawlProfileTestResult,
   CrawlProfileUpdate,
   Job,
   JobConfigCronUpdate,
@@ -133,6 +136,11 @@ export const jobsApi = {
 
   getProfiles: () => api.get<CrawlProfile[]>("/v1/crawl-profiles"),
 
+  getProfileRuntimeCapabilities: () =>
+    api.get<CrawlProfileRuntimeCapabilities>(
+      "/v1/crawl-profiles/runtime-capabilities",
+    ),
+
   createProfile: (data: CrawlProfileCreate) =>
     api.post<CrawlProfile>("/v1/crawl-profiles", data),
 
@@ -141,4 +149,39 @@ export const jobsApi = {
 
   releaseStaleProfile: (profileKey: string) =>
     api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/release-stale`),
+
+  openProfileLoginSession: (profileKey: string, data: { platform: string }) =>
+    api.post<CrawlProfileLoginSession>(
+      `/v1/crawl-profiles/${profileKey}/login-session`,
+      data,
+    ),
+
+  closeProfileLoginSession: (profileKey: string) =>
+    api.post<CrawlProfileLoginSession>(
+      `/v1/crawl-profiles/${profileKey}/login-session/close`,
+    ),
+
+  testProfile: (profileKey: string, data: { platform: string }) =>
+    api.post<CrawlProfileTestResult>(
+      `/v1/crawl-profiles/${profileKey}/test`,
+      data,
+    ),
+
+  exportProfileBackup: (profileKey: string, password: string) =>
+    api.post<Blob>(
+      `/v1/crawl-profiles/${profileKey}/export`,
+      { password },
+      { responseType: "blob" },
+    ),
+
+  importProfileBackup: (profileKey: string, file: File, password: string, force: boolean) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("password", password);
+    form.append("force", String(force));
+    return api.post<{ profile_key: string; imported: boolean }>(
+      `/v1/crawl-profiles/${profileKey}/import`,
+      form,
+    );
+  },
 };

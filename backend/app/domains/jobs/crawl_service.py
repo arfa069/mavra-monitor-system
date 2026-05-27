@@ -39,6 +39,28 @@ DETAIL_WAF_BLOCK_LIMIT = 1
 DETAIL_TIMEOUT_LIMIT = 3
 
 
+async def _emit_job_crawl_enqueued(
+    *,
+    task: CrawlTask,
+    message: str,
+    entity_type: str,
+    entity_id: str | None,
+    payload: dict,
+) -> None:
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_crawl.enqueued",
+        source="jobs",
+        severity="info",
+        status="pending",
+        message=message,
+        user_id=task.user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        payload={"task_id": task.task_id, **payload},
+    )
+
+
 def _config_profile_key(config: JobSearchConfig | None) -> str:
     raw = getattr(config, "profile_key", None) if config is not None else None
     return raw or "default"
@@ -1062,6 +1084,18 @@ async def crawl_single_config_background(
         task = runtime_task_from_record(record)
         record_id = record.id
 
+    await _emit_job_crawl_enqueued(
+        task=task,
+        message=f"Job crawl for config {config_id} enqueued",
+        entity_type="job_config",
+        entity_id=str(config_id),
+        payload={
+            "config_id": config_id,
+            "platform": config_platform,
+            "profile_key": profile_key,
+        },
+    )
+
     if not settings.crawler_inline_execution_enabled:
         return task
 
@@ -1183,6 +1217,14 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
         )
         parent_task = runtime_task_from_record(parent_record)
         parent_record_id = parent_record.id
+
+    await _emit_job_crawl_enqueued(
+        task=parent_task,
+        message="Job crawl for all active configs enqueued",
+        entity_type="job_crawl",
+        entity_id=parent_task.task_id,
+        payload={"source": "manual"},
+    )
 
     if not settings.crawler_inline_execution_enabled:
         return parent_task
@@ -1517,7 +1559,10 @@ async def execute_job_platform_profile_task(
     progress_callback,
 ) -> dict:
     """Execute one claimed job_platform_profile child task under one profile lease."""
-    from app.domains.crawling.profile_pool import DatabaseProfilePool
+    from app.domains.crawling.profile_pool import (
+        DatabaseProfilePool,
+        ProfileAlreadyLeasedError,
+    )
     from app.domains.crawling.task_runner import CrawlTaskRunner
 
     payload = record.payload_json or {}
@@ -1568,6 +1613,8 @@ async def execute_job_platform_profile_task(
 
                     if idx < len(config_ids) - 1:
                         await asyncio.sleep(random.uniform(3, 6))
+    except ProfileAlreadyLeasedError:
+        raise
     except Exception as exc:
         remaining = len(config_ids) - child_success - child_errors
         child_errors += remaining
@@ -1681,3 +1728,25 @@ async def aggregate_parent_task_if_children_finished(parent_task_id: str) -> boo
         )
 
     return True
+
+
+async def aggregate_waiting_job_parent_tasks() -> int:
+    """Aggregate waiting job_all parents whose children are all terminal."""
+    from app.core.task_registry import TaskStatus
+    from app.domains.crawling.task_store import CrawlTaskRecord
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(CrawlTaskRecord.task_id).where(
+                CrawlTaskRecord.task_type == "job_all",
+                CrawlTaskRecord.status == TaskStatus.RUNNING.value,
+                CrawlTaskRecord.reason == "waiting_for_children",
+            )
+        )
+        parent_task_ids = list(result.scalars().all())
+
+    aggregated = 0
+    for parent_task_id in parent_task_ids:
+        if await aggregate_parent_task_if_children_finished(parent_task_id):
+            aggregated += 1
+    return aggregated

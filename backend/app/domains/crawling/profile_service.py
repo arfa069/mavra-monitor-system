@@ -29,6 +29,7 @@ async def list_profiles(db: AsyncSession) -> list[CrawlProfile]:
 
 async def create_profile(db: AsyncSession, *, profile_key: str, platform_hint: str | None) -> CrawlProfile:
     profile = await ensure_profile(db, profile_key=profile_key, platform_hint=platform_hint)
+    build_profile_dir(profile_key).mkdir(parents=True, exist_ok=True)
     await emit_system_log_detached(
         category="runtime",
         event_type="crawl_profile.created",

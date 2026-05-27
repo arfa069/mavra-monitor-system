@@ -149,6 +149,78 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
     assert started_events[0]["user_id"] == 7
 
 
+@pytest.mark.asyncio
+async def test_manual_job_config_enqueue_emits_event_center_log(monkeypatch):
+    from app.config import settings
+    from app.domains.jobs import crawl_service
+
+    emitted = []
+
+    async def fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    class FakeConfig:
+        platform = "boss"
+        profile_key = "default"
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, model, key):
+            return FakeConfig()
+
+    async def fake_create(db, **kwargs):
+        record = MagicMock()
+        record.id = 123
+        record.task_id = "manual-task-123"
+        record.task_type = kwargs["task_type"]
+        record.platform = kwargs["platform"]
+        record.profile_key = kwargs["profile_key"]
+        record.source = kwargs["source"]
+        record.user_id = kwargs["user_id"]
+        record.entity_type = kwargs["entity_type"]
+        record.entity_id = kwargs["entity_id"]
+        record.payload_json = kwargs["payload"]
+        return record
+
+    task = MagicMock()
+    task.task_id = "manual-task-123"
+    task.user_id = 7
+
+    monkeypatch.setattr(settings, "crawler_inline_execution_enabled", False)
+    monkeypatch.setattr(crawl_service, "AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr(crawl_service, "emit_system_log_detached", fake_emit)
+    monkeypatch.setattr("app.domains.crawling.task_store.create_crawl_task_record", fake_create)
+    monkeypatch.setattr("app.domains.crawling.task_store.runtime_task_from_record", MagicMock(return_value=task))
+
+    result = await crawl_service.crawl_single_config_background(3, user_id=7)
+
+    assert result is task
+    assert emitted == [
+        {
+            "category": "runtime",
+            "event_type": "job_crawl.enqueued",
+            "source": "jobs",
+            "severity": "info",
+            "status": "pending",
+            "message": "Job crawl for config 3 enqueued",
+            "user_id": 7,
+            "entity_type": "job_config",
+            "entity_id": "3",
+            "payload": {
+                "task_id": "manual-task-123",
+                "config_id": 3,
+                "platform": "boss",
+                "profile_key": "default",
+            },
+        }
+    ]
+
+
 class TestBuildCrawlUrl:
     """Test crawl URL normalization from stored config fields."""
 

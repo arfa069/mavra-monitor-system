@@ -80,3 +80,9 @@ async def test_mark_stale_workers_offline():
     assert count >= 1
     refreshed = await db.get(CrawlerWorkerRecord, worker.id)
     assert refreshed.status == "offline"
+
+
+async def test_list_crawler_workers_requires_auth(async_client):
+    response = await async_client.get("/api/v1/crawl/workers")
+
+    assert response.status_code in (401, 403)

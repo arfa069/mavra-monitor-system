@@ -9,11 +9,17 @@ import {
   useCreateJobConfig,
   useCrawlProfiles,
   useDeleteJobConfig,
+  useCloseProfileLoginSession,
+  useExportProfileBackup,
+  useImportProfileBackup,
   useJobConfigs,
   useJobCrawlLogs,
   useJobs,
   useMatchResults,
+  useOpenProfileLoginSession,
+  useProfileRuntimeCapabilities,
   useReleaseStaleCrawlProfile,
+  useTestCrawlProfile,
   useUpdateCrawlProfile,
   useUpdateJobConfig,
 } from "./hooks/useJobs";
@@ -67,9 +73,15 @@ export default function JobsPage() {
   });
 
   const { data: profiles, isLoading: profilesLoading } = useCrawlProfiles();
+  const { data: profileCapabilities } = useProfileRuntimeCapabilities();
   const createProfile = useCreateCrawlProfile();
   const updateProfile = useUpdateCrawlProfile();
   const releaseStaleProfile = useReleaseStaleCrawlProfile();
+  const openProfileLoginSession = useOpenProfileLoginSession();
+  const closeProfileLoginSession = useCloseProfileLoginSession();
+  const testProfile = useTestCrawlProfile();
+  const exportProfileBackup = useExportProfileBackup();
+  const importProfileBackup = useImportProfileBackup();
 
   const handleCreateProfile = async (profileKey: string, platformHint?: string | null) => {
     await createProfile.mutateAsync({ profile_key: profileKey, platform_hint: platformHint });
@@ -84,6 +96,37 @@ export default function JobsPage() {
     status: "available" | "login_required" | "disabled",
   ) => {
     await updateProfile.mutateAsync({ profileKey, data: { status } });
+  };
+
+  const handleOpenLoginSession = async (profileKey: string, platform: string) => {
+    await openProfileLoginSession.mutateAsync({ profileKey, platform });
+  };
+
+  const handleCloseLoginSession = async (profileKey: string) => {
+    await closeProfileLoginSession.mutateAsync(profileKey);
+  };
+
+  const handleTestProfile = async (profileKey: string, platform: string) => {
+    await testProfile.mutateAsync({ profileKey, platform });
+  };
+
+  const handleExportBackup = async (profileKey: string, password: string) => {
+    const response = await exportProfileBackup.mutateAsync({ profileKey, password });
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${profileKey}.pmprofile`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportBackup = async (
+    profileKey: string,
+    file: File,
+    password: string,
+    force: boolean,
+  ) => {
+    await importProfileBackup.mutateAsync({ profileKey, file, password, force });
   };
 
   const matchScores = useMemo(() => {
@@ -214,6 +257,7 @@ export default function JobsPage() {
               onCreate={handleCreateConfig}
               onUpdate={handleUpdateConfig}
               onDelete={handleDeleteConfig}
+              onCreateProfile={handleCreateProfile}
               onCrawl={canCrawl ? handleCrawlSingle : undefined}
               createLoading={createConfig.isPending}
               updateLoading={updateConfig.isPending}
@@ -276,6 +320,12 @@ export default function JobsPage() {
             onCreate={handleCreateProfile}
             onUpdateStatus={handleUpdateProfileStatus}
             onReleaseStale={handleReleaseStaleProfile}
+            capabilities={profileCapabilities}
+            onOpenLoginSession={handleOpenLoginSession}
+            onCloseLoginSession={handleCloseLoginSession}
+            onTestProfile={handleTestProfile}
+            onExportBackup={handleExportBackup}
+            onImportBackup={handleImportBackup}
           />
         </Card>
       ),

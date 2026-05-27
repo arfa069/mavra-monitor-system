@@ -44,3 +44,46 @@ class CrawlProfileResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CrawlProfileRuntimeCapabilities(BaseModel):
+    os: str
+    mode: Literal["local_gui", "headless_server"]
+    supports_login_session: bool
+    supports_profile_import: bool
+    supports_profile_export: bool
+    recommended_action: Literal["open_login_browser", "import_profile_backup"]
+
+
+class CrawlProfileLoginSessionRequest(BaseModel):
+    platform: str = Field(default="boss", max_length=40)
+    start_url: str | None = Field(default=None, max_length=1000)
+
+
+class CrawlProfileLoginSessionResponse(BaseModel):
+    profile_key: str
+    platform: str
+    status: Literal["active", "closed", "failed"]
+    start_url: str
+    message: str | None = None
+
+
+class CrawlProfileTestRequest(BaseModel):
+    platform: str = Field(default="boss", max_length=40)
+    start_url: str | None = Field(default=None, max_length=1000)
+
+
+class CrawlProfileTestResponse(BaseModel):
+    profile_key: str
+    platform: str
+    status: Literal["ready", "login_required", "risk_blocked", "error"]
+    message: str | None = None
+
+
+class CrawlProfileBackupExportRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=200)
+
+
+class CrawlProfileBackupImportResponse(BaseModel):
+    profile_key: str
+    imported: bool

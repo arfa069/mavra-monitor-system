@@ -273,6 +273,12 @@ export const useCrawlProfiles = () =>
     queryFn: () => jobsApi.getProfiles().then((res) => res.data),
   });
 
+export const useProfileRuntimeCapabilities = () =>
+  useQuery({
+    queryKey: ["crawl-profile-runtime-capabilities"],
+    queryFn: () => jobsApi.getProfileRuntimeCapabilities().then((res) => res.data),
+  });
+
 export const useCreateCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -294,6 +300,50 @@ export const useReleaseStaleCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: jobsApi.releaseStaleProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
+export const useOpenProfileLoginSession = () =>
+  useMutation({
+    mutationFn: ({ profileKey, platform }: { profileKey: string; platform: string }) =>
+      jobsApi.openProfileLoginSession(profileKey, { platform }),
+  });
+
+export const useCloseProfileLoginSession = () =>
+  useMutation({
+    mutationFn: jobsApi.closeProfileLoginSession,
+  });
+
+export const useTestCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ profileKey, platform }: { profileKey: string; platform: string }) =>
+      jobsApi.testProfile(profileKey, { platform }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
+export const useExportProfileBackup = () =>
+  useMutation({
+    mutationFn: ({ profileKey, password }: { profileKey: string; password: string }) =>
+      jobsApi.exportProfileBackup(profileKey, password),
+  });
+
+export const useImportProfileBackup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      profileKey,
+      file,
+      password,
+      force,
+    }: {
+      profileKey: string;
+      file: File;
+      password: string;
+      force: boolean;
+    }) => jobsApi.importProfileBackup(profileKey, file, password, force),
     onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
   });
 };

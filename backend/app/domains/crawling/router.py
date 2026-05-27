@@ -146,11 +146,17 @@ async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/workers")
-async def list_crawler_workers(db: AsyncSession = Depends(get_db)):
+async def list_crawler_workers(
+    current_user: User = Depends(require_permission("crawl:execute")),
+    db: AsyncSession = Depends(get_db),
+):
     """List all registered crawler workers."""
     from sqlalchemy import select
 
     from app.models.crawler_worker import CrawlerWorkerRecord
+
+    if not current_user:
+        raise HTTPException(status_code=401, detail="请先登录")
 
     result = await db.execute(
         select(CrawlerWorkerRecord).order_by(CrawlerWorkerRecord.last_heartbeat_at.desc())

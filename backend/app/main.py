@@ -34,6 +34,14 @@ from app.domains.scheduling import router as scheduling_router
 logger = logging.getLogger(__name__)
 
 
+def _is_event_center_path(path: str) -> bool:
+    return path == "/events" or path.startswith((
+        "/events/",
+        "/v1/events",
+        "/api/v1/events",
+    ))
+
+
 async def recover_crawler_runtime_state() -> None:
     """Mark stale running tasks as failed and release expired profile leases on startup."""
     from app.database import AsyncSessionLocal
@@ -218,7 +226,7 @@ async def platform_event_logging_middleware(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as exc:
-        if not path.startswith("/events"):
+        if not _is_event_center_path(path):
             await emit_system_log_detached(
                 category="platform",
                 event_type="http.500",
@@ -233,7 +241,7 @@ async def platform_event_logging_middleware(request: Request, call_next):
             )
         raise
 
-    if not path.startswith("/events") and response.status_code in (401, 403):
+    if not _is_event_center_path(path) and response.status_code in (401, 403):
         await emit_system_log_detached(
             category="platform",
             event_type=f"http.{response.status_code}",
@@ -246,7 +254,7 @@ async def platform_event_logging_middleware(request: Request, call_next):
             entity_id=path,
             payload={"method": method, "path": path, "status_code": response.status_code},
         )
-    elif not path.startswith("/events") and response.status_code >= 500:
+    elif not _is_event_center_path(path) and response.status_code >= 500:
         await emit_system_log_detached(
             category="platform",
             event_type=f"http.{response.status_code}",

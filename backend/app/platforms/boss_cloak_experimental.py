@@ -400,10 +400,7 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         if page is None or context is None:
             raise RuntimeError("CloakBrowser is not started")
 
-        if page.url == "about:blank":
-            page.goto(self._search_page, wait_until="domcontentloaded", timeout=45000)
-        else:
-            page.reload(wait_until="domcontentloaded", timeout=45000)
+        self._navigate_for_cookie_refresh(page, reason)
         try:
             page.wait_for_load_state("domcontentloaded", timeout=10000)
         except Exception:
@@ -435,6 +432,29 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
             stoken_present=any(cookie.get("name") == "__zp_stoken__" for cookie in cookies),
             duration_sec=round(time.time() - started, 2),
         )
+
+    def _navigate_for_cookie_refresh(self, page, reason: str) -> None:
+        if page.url == "about:blank":
+            page.goto(self._search_page, wait_until="domcontentloaded", timeout=45000)
+            return
+
+        try:
+            page.reload(wait_until="domcontentloaded", timeout=45000)
+        except Exception as exc:
+            message = str(exc)
+            if "ERR_ABORTED" not in message and "frame was detached" not in message:
+                raise
+            logger.warning(
+                "Boss Cloak reload interrupted during cookie refresh; reopening search page",
+                exc_info=True,
+            )
+            self._log_event(
+                "cookie_refresh_navigation_fallback",
+                reason=reason,
+                error=message,
+                target_url=self._search_page,
+            )
+            page.goto(self._search_page, wait_until="domcontentloaded", timeout=45000)
 
     def _evaluate_page_value(self, expression: str) -> str:
         page = self._cloak_page

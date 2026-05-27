@@ -208,6 +208,19 @@ def test_can_view_event_applies_platform_and_admin_rules():
     ) is True
 
 
+def test_event_center_paths_are_excluded_from_platform_http_logging():
+    """Event Center should not log its own auth failures as platform noise."""
+    from app.main import _is_event_center_path
+
+    assert _is_event_center_path("/events")
+    assert _is_event_center_path("/events/stream")
+    assert _is_event_center_path("/v1/events")
+    assert _is_event_center_path("/v1/events/stream")
+    assert _is_event_center_path("/api/v1/events")
+    assert _is_event_center_path("/api/v1/events/stream")
+    assert not _is_event_center_path("/v1/jobs")
+
+
 @pytest.mark.asyncio
 async def test_events_endpoint_returns_paginated_items():
     """GET /events should return unified event-center payload."""

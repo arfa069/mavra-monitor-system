@@ -154,3 +154,176 @@ async def test_mark_available_rejects_active_lease(mock_auth, mock_db):
         )
 
     assert response.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_runtime_capabilities_endpoint(mock_auth):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/v1/crawl-profiles/runtime-capabilities")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["mode"] in {"local_gui", "headless_server"}
+    assert data["supports_profile_import"] is True
+
+
+def test_profile_backup_encrypt_decrypt_roundtrip():
+    from app.domains.crawling import profile_runtime_service
+
+    payload = b"profile-data"
+    encrypted = profile_runtime_service._encrypt(payload, "password123")
+
+    assert encrypted != payload
+    assert profile_runtime_service._decrypt(encrypted, "password123") == payload
+    with pytest.raises(profile_runtime_service.ProfileBackupError):
+        profile_runtime_service._decrypt(encrypted, "wrong-password")
+
+
+def test_profile_backup_rejects_unsafe_tar_path():
+    import io
+    import tarfile
+
+    from app.domains.crawling import profile_runtime_service
+
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+        info = tarfile.TarInfo("../bad.txt")
+        data = b"bad"
+        info.size = len(data)
+        archive.addfile(info, io.BytesIO(data))
+
+    with pytest.raises(profile_runtime_service.ProfileBackupError):
+        profile_runtime_service._safe_extract_tar(buffer.getvalue(), MagicMock())
+
+
+@pytest.mark.asyncio
+async def test_open_login_session_serializes_same_profile(monkeypatch):
+    from app.domains.crawling import profile_runtime_service, profile_service
+    from app.models.crawl_profile import CrawlProfile
+
+    current = datetime.now(UTC)
+    profile = CrawlProfile(
+        profile_key="job-a",
+        profile_dir="profiles/job-a",
+        status="available",
+        created_at=current,
+        updated_at=current,
+    )
+    monkeypatch.setattr(
+        profile_runtime_service,
+        "runtime_capabilities",
+        lambda: {"supports_login_session": True},
+    )
+    monkeypatch.setattr(profile_service, "get_profile", AsyncMock(return_value=profile))
+    monkeypatch.setattr(profile_runtime_service, "emit_system_log_detached", AsyncMock())
+
+    class FakePage:
+        def goto(self, *args, **kwargs):
+            return None
+
+    class FakeContext:
+        def new_page(self):
+            return FakePage()
+
+        def close(self):
+            return None
+
+    async def fake_to_thread(func, *args, **kwargs):
+        await asyncio.sleep(0.01)
+        return FakeContext(), FakePage()
+
+    import asyncio
+
+    monkeypatch.setattr(profile_runtime_service.asyncio, "to_thread", fake_to_thread)
+    profile_runtime_service._sessions.pop("job-a", None)
+    profile_runtime_service._profile_locks.pop("job-a", None)
+    try:
+        first, second = await asyncio.gather(
+            profile_runtime_service.open_login_session(
+                AsyncMock(),
+                profile_key="job-a",
+                platform_name="boss",
+                start_url=None,
+            ),
+            profile_runtime_service.open_login_session(
+                AsyncMock(),
+                profile_key="job-a",
+                platform_name="boss",
+                start_url=None,
+            ),
+            return_exceptions=True,
+        )
+        assert sum(isinstance(item, dict) for item in (first, second)) == 1
+        assert sum(isinstance(item, profile_runtime_service.ProfileAlreadyOpenError) for item in (first, second)) == 1
+    finally:
+        profile_runtime_service._sessions.pop("job-a", None)
+        profile_runtime_service._profile_locks.pop("job-a", None)
+
+
+@pytest.mark.asyncio
+async def test_profile_directory_operations_reject_open_session(mock_db):
+    from app.domains.crawling import profile_runtime_service
+    from app.models.crawl_profile import CrawlProfile
+
+    current = datetime.now(UTC)
+    profile = CrawlProfile(
+        profile_key="job-a",
+        profile_dir="profiles/job-a",
+        status="available",
+        created_at=current,
+        updated_at=current,
+    )
+    mock_db.execute = AsyncMock(return_value=_make_scalar_result(profile))
+    profile_runtime_service._sessions["job-a"] = profile_runtime_service.LoginSession(
+        profile_key="job-a",
+        platform="boss",
+        start_url="https://www.zhipin.com/",
+        context=MagicMock(),
+        page=MagicMock(),
+        started_at=0,
+    )
+    try:
+        with pytest.raises(profile_runtime_service.ProfileAlreadyOpenError):
+            await profile_runtime_service.export_profile_backup(
+                mock_db,
+                profile_key="job-a",
+                password="password123",
+            )
+        with pytest.raises(profile_runtime_service.ProfileAlreadyOpenError):
+            await profile_runtime_service.test_profile(
+                mock_db,
+                profile_key="job-a",
+                platform_name="boss",
+                start_url=None,
+            )
+    finally:
+        profile_runtime_service._sessions.pop("job-a", None)
+        profile_runtime_service._profile_locks.pop("job-a", None)
+
+
+def test_clear_profile_dir_removes_existing_files():
+    from pathlib import Path
+
+    from app.domains.crawling import profile_runtime_service
+
+    tmp_path = Path("tmp-test-profile-clear")
+    target_dir = tmp_path / "target"
+
+    try:
+        target_dir.mkdir(parents=True)
+        (target_dir / "stale.txt").write_text("stale")
+        nested_dir = target_dir / "nested"
+        nested_dir.mkdir()
+        (nested_dir / "old.txt").write_text("old")
+
+        profile_runtime_service._clear_profile_dir(target_dir)
+
+        assert not (target_dir / "stale.txt").exists()
+        assert not nested_dir.exists()
+        assert list(target_dir.iterdir()) == []
+    finally:
+        if tmp_path.exists():
+            import shutil
+
+            shutil.rmtree(tmp_path)
