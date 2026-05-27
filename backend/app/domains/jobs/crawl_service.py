@@ -1599,13 +1599,25 @@ async def aggregate_parent_task_if_children_finished(parent_task_id: str) -> boo
     from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         CrawlTaskRecord,
-        get_crawl_task_record,
         sync_record_from_runtime_task,
     )
 
     async with AsyncSessionLocal() as db:
-        parent_record = await get_crawl_task_record(db, parent_task_id)
+        # Lock parent record to prevent duplicate aggregation under concurrency
+        result = await db.execute(
+            select(CrawlTaskRecord)
+            .where(CrawlTaskRecord.task_id == parent_task_id)
+            .with_for_update()
+        )
+        parent_record = result.scalar_one_or_none()
         if parent_record is None:
+            return False
+
+        # Already aggregated by another worker
+        if parent_record.status in (
+            TaskStatus.COMPLETED.value,
+            TaskStatus.FAILED.value,
+        ):
             return False
 
         result = await db.execute(

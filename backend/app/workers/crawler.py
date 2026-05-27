@@ -12,7 +12,9 @@ import argparse
 import asyncio
 import logging
 import os
+import signal
 import socket
+import sys
 import uuid
 
 # Import models to register all mappers before any DB operation
@@ -35,6 +37,15 @@ from app.workers.executor import execute_claimed_task
 
 logger = logging.getLogger(__name__)
 
+_shutdown_event: asyncio.Event | None = None
+
+
+def _signal_handler(signum: int, _frame) -> None:
+    global _shutdown_event
+    logger.info("Received signal %d, initiating graceful shutdown", signum)
+    if _shutdown_event is not None:
+        _shutdown_event.set()
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -56,6 +67,14 @@ async def _recover_runtime_state() -> None:
 
 
 async def run_worker(args: argparse.Namespace) -> None:
+    global _shutdown_event
+    _shutdown_event = asyncio.Event()
+
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGTERM, _signal_handler)
+    if sys.platform != "win32":
+        signal.signal(signal.SIGINT, _signal_handler)
+
     worker_id = args.worker_id or f"worker:{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
     kinds = {args.kind}
     platforms = set(args.platform) or None
@@ -81,8 +100,10 @@ async def run_worker(args: argparse.Namespace) -> None:
         payload={"worker_id": worker_id, "kind": args.kind, "platforms": args.platform},
     )
 
+    active_task: asyncio.Task | None = None
+
     try:
-        while True:
+        while not _shutdown_event.is_set():
             await _recover_runtime_state()
             async with AsyncSessionLocal() as db:
                 hb = await heartbeat_worker(db, worker_id)
@@ -108,14 +129,36 @@ async def run_worker(args: argparse.Namespace) -> None:
             if record is None:
                 if args.once:
                     return
-                await asyncio.sleep(settings.crawler_worker_poll_interval_seconds)
+                try:
+                    await asyncio.wait_for(
+                        _shutdown_event.wait(),
+                        timeout=settings.crawler_worker_poll_interval_seconds,
+                    )
+                except TimeoutError:
+                    pass
                 continue
-            result = await execute_claimed_task(record, worker_id=worker_id)
+            active_task = asyncio.create_task(
+                execute_claimed_task(record, worker_id=worker_id)
+            )
+            result = await active_task
+            active_task = None
             if result.get("status") == "deferred":
-                await asyncio.sleep(settings.crawler_worker_poll_interval_seconds)
+                try:
+                    await asyncio.wait_for(
+                        _shutdown_event.wait(),
+                        timeout=settings.crawler_worker_poll_interval_seconds,
+                    )
+                except TimeoutError:
+                    pass
             if args.once:
                 return
     finally:
+        if active_task is not None and not active_task.done():
+            active_task.cancel()
+            try:
+                await active_task
+            except asyncio.CancelledError:
+                pass
         async with AsyncSessionLocal() as db:
             await mark_worker_stopping(db, worker_id)
         await engine.dispose()
@@ -133,6 +176,10 @@ async def run_worker(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     asyncio.run(run_worker(_parse_args()))
 
 

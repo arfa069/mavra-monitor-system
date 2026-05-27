@@ -16,6 +16,13 @@ pytestmark = pytest.mark.asyncio
 
 async def test_recover_stale_running_tasks_marks_failed():
     async with AsyncSessionLocal() as db:
+        # Clean up any leftover stale tasks from previous runs first
+        await recover_stale_running_tasks(
+            db,
+            owner_reason="pre_test_cleanup",
+            now=datetime.now(UTC) + timedelta(days=1),
+        )
+
         record = await create_crawl_task_record(
             db,
             source="manual",
@@ -38,7 +45,7 @@ async def test_recover_stale_running_tasks_marks_failed():
             now=datetime.now(UTC),
         )
 
-    assert count == 1
+    assert count >= 1
     refreshed = await db.get(type(record), record.id)
     assert refreshed.status == TaskStatus.FAILED.value
     assert refreshed.reason == "worker_stale_lease"
