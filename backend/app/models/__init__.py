@@ -5,6 +5,8 @@ from app.models.base import Base
 from app.models.crawl_log import CrawlLog
 from app.models.crawl_profile import CrawlProfile
 from app.models.crawl_task import CrawlTaskRecord
+from app.models.crawler_worker import CrawlerWorkerRecord
+from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import MatchResult, UserResume
 from app.models.permission import Permission
@@ -22,6 +24,8 @@ __all__ = [
     "PriceHistory",
     "Alert",
     "CrawlLog",
+    "Job",
+    "JobSearchConfig",
     "JobCrawlLog",
     "UserResume",
     "MatchResult",
@@ -32,4 +36,5 @@ __all__ = [
     "SystemLog",
     "CrawlTaskRecord",
     "CrawlProfile",
+    "CrawlerWorkerRecord",
 ]

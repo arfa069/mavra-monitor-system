@@ -912,6 +912,13 @@ async def get_job_crawl_status(task_id: str, db: AsyncSession = Depends(get_db))
         "total": record.total,
         "success": record.success,
         "errors": record.errors,
+        "reason": record.reason,
+        "worker_id": record.locked_by,
+        "heartbeat_at": record.heartbeat_at.isoformat() if record.heartbeat_at else None,
+        "lease_until": record.lease_until.isoformat() if record.lease_until else None,
+        "started_at": record.started_at.isoformat() if record.started_at else None,
+        "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+        "details": record.details_json,
     })
 
 @router.get("/crawl/result/{task_id}")
@@ -926,12 +933,32 @@ async def get_job_crawl_result(task_id: str, db: AsyncSession = Depends(get_db))
         )
     if record.status in ("pending", "running"):
         return JSONResponse(
-            content={"status": record.status, "task_id": record.task_id},
+            content={
+                "status": record.status,
+                "task_id": record.task_id,
+                "total": record.total,
+                "success": record.success,
+                "errors": record.errors,
+                "worker_id": record.locked_by,
+                "heartbeat_at": record.heartbeat_at.isoformat() if record.heartbeat_at else None,
+                "lease_until": record.lease_until.isoformat() if record.lease_until else None,
+                "started_at": record.started_at.isoformat() if record.started_at else None,
+                "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+                "details": record.details_json,
+            },
             status_code=202,
         )
     if record.status == "failed":
         return JSONResponse(
-            content={"status": "error", "task_id": record.task_id, "reason": record.reason},
+            content={
+                "status": "error",
+                "task_id": record.task_id,
+                "reason": record.reason,
+                "worker_id": record.locked_by,
+                "started_at": record.started_at.isoformat() if record.started_at else None,
+                "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+                "details": record.details_json,
+            },
             status_code=500,
         )
     return JSONResponse(content={
@@ -942,6 +969,9 @@ async def get_job_crawl_result(task_id: str, db: AsyncSession = Depends(get_db))
         "errors": record.errors,
         "reason": record.reason,
         "details": record.details_json,
+        "worker_id": record.locked_by,
+        "started_at": record.started_at.isoformat() if record.started_at else None,
+        "finished_at": record.finished_at.isoformat() if record.finished_at else None,
     })
 
 # ── Job Crawl Logs ──────────────────────────────────────────────

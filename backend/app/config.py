@@ -79,6 +79,13 @@ class Settings(BaseSettings):
     wechat_app_secret: str | None = None
     wechat_redirect_uri: str | None = None
 
+    # Crawler worker settings
+    crawler_inline_execution_enabled: bool = False
+    crawler_worker_poll_interval_seconds: float = 2.0
+    crawler_worker_heartbeat_interval_seconds: float = 15.0
+    crawler_worker_stale_after_seconds: int = 120
+    crawler_task_lease_seconds: int = 3600
+
     # LLM job match settings
     job_match_provider: str = "minimax"
     job_match_model: str = "MiniMax-M2.7"

@@ -87,6 +87,12 @@ async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
         "success": record.success,
         "errors": record.errors,
         "reason": record.reason,
+        "worker_id": record.locked_by,
+        "heartbeat_at": record.heartbeat_at.isoformat() if record.heartbeat_at else None,
+        "lease_until": record.lease_until.isoformat() if record.lease_until else None,
+        "started_at": record.started_at.isoformat() if record.started_at else None,
+        "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+        "details": record.details_json,
     })
 
 
@@ -106,6 +112,12 @@ async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
             "total": record.total,
             "success": record.success,
             "errors": record.errors,
+            "worker_id": record.locked_by,
+            "heartbeat_at": record.heartbeat_at.isoformat() if record.heartbeat_at else None,
+            "lease_until": record.lease_until.isoformat() if record.lease_until else None,
+            "started_at": record.started_at.isoformat() if record.started_at else None,
+            "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+            "details": record.details_json,
         }, status_code=202)
 
     if record.status == "failed":
@@ -113,6 +125,10 @@ async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
             "status": "error",
             "task_id": record.task_id,
             "reason": record.reason,
+            "worker_id": record.locked_by,
+            "started_at": record.started_at.isoformat() if record.started_at else None,
+            "finished_at": record.finished_at.isoformat() if record.finished_at else None,
+            "details": record.details_json,
         }, status_code=500)
 
     # Completed
@@ -123,7 +139,37 @@ async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
         "success": record.success,
         "errors": record.errors,
         "details": record.details_json,
+        "worker_id": record.locked_by,
+        "started_at": record.started_at.isoformat() if record.started_at else None,
+        "finished_at": record.finished_at.isoformat() if record.finished_at else None,
     })
+
+
+@router.get("/workers")
+async def list_crawler_workers(db: AsyncSession = Depends(get_db)):
+    """List all registered crawler workers."""
+    from sqlalchemy import select
+
+    from app.models.crawler_worker import CrawlerWorkerRecord
+
+    result = await db.execute(
+        select(CrawlerWorkerRecord).order_by(CrawlerWorkerRecord.last_heartbeat_at.desc())
+    )
+    workers = result.scalars().all()
+    return [
+        {
+            "worker_id": worker.worker_id,
+            "kind": worker.kind,
+            "platform": worker.platform,
+            "hostname": worker.hostname,
+            "pid": worker.pid,
+            "status": worker.status,
+            "started_at": worker.started_at.isoformat() if worker.started_at else None,
+            "last_heartbeat_at": worker.last_heartbeat_at.isoformat() if worker.last_heartbeat_at else None,
+            "stopped_at": worker.stopped_at.isoformat() if worker.stopped_at else None,
+        }
+        for worker in workers
+    ]
 
 
 @router.post("/cleanup")

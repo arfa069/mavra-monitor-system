@@ -4,7 +4,14 @@ from collections.abc import AsyncGenerator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.config import settings
 from app.main import app
+
+
+@pytest.fixture(scope="session", autouse=True)
+def enable_crawler_inline_execution():
+    """Tests default to inline execution so existing behaviour remains verifiable."""
+    settings.crawler_inline_execution_enabled = True
 
 
 @pytest.fixture(scope="session")

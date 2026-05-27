@@ -14,7 +14,13 @@ export interface CrawlStatusResponse {
   total: number;
   success: number;
   errors: number;
-  reason?: string;
+  reason?: string | null;
+  worker_id?: string | null;
+  heartbeat_at?: string | null;
+  lease_until?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  details?: unknown[] | null;
 }
 
 export interface CrawlResultResponse {
@@ -23,8 +29,13 @@ export interface CrawlResultResponse {
   total?: number;
   success?: number;
   errors?: number;
-  details?: unknown[];
-  reason?: string;
+  details?: unknown[] | null;
+  reason?: string | null;
+  worker_id?: string | null;
+  heartbeat_at?: string | null;
+  lease_until?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export const crawlApi = {

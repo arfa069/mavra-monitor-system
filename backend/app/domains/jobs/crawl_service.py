@@ -10,11 +10,13 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-if TYPE_CHECKING:
-    from app.core.task_registry import CrawlTask
-    from app.platforms.base import BasePlatformAdapter
-
 from sqlalchemy import select
+
+from app.core.task_registry import CrawlTask, TaskStatus
+from app.domains.crawling.task_store import CrawlTaskRecord, runtime_task_from_record
+
+if TYPE_CHECKING:
+    from app.platforms.base import BasePlatformAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.system_log import emit_system_log_detached
@@ -783,6 +785,7 @@ async def crawl_scheduled_config(
     cron_expression: str | None = None,
 ) -> dict:
     """Run a scheduled job crawl and mirror manual crawls in Event Center."""
+    from app.config import settings
     from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         create_crawl_task_record,
@@ -793,11 +796,17 @@ async def crawl_scheduled_config(
 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
+        config_platform = (
+            _normalize_platform(getattr(config, "platform", "boss"))
+            if config
+            else "boss"
+        )
         profile_key = _config_profile_key(config)
 
     payload = {
         "config_id": config_id,
         "source": "scheduled",
+        "platform": config_platform,
         "profile_key": profile_key,
     }
     if cron_expression:
@@ -808,7 +817,7 @@ async def crawl_scheduled_config(
             db,
             source="cron",
             task_type="job_config",
-            platform=None,
+            platform=config_platform,
             profile_key=profile_key,
             user_id=user_id,
             entity_type="job_config",
@@ -817,6 +826,9 @@ async def crawl_scheduled_config(
         )
         task = runtime_task_from_record(record)
         record_id = record.id
+
+    if not settings.crawler_inline_execution_enabled:
+        return {"status": "pending", "task_id": task.task_id}
 
     async def _persist_cron_progress(progress_task: CrawlTask) -> None:
         await _persist_crawl_task_progress(record_id, progress_task)
@@ -828,15 +840,6 @@ async def crawl_scheduled_config(
             ProfileUnavailableError,
         )
         from app.domains.crawling.task_runner import CrawlTaskRunner
-
-        async with AsyncSessionLocal() as cfg_db:
-            config = await cfg_db.get(JobSearchConfig, config_id)
-            config_platform = (
-                _normalize_platform(getattr(config, "platform", "boss"))
-                if config
-                else "boss"
-            )
-            profile_key = _config_profile_key(config)
 
         pool = DatabaseProfilePool()
         try:
@@ -1032,6 +1035,7 @@ async def crawl_single_config_background(
     user_id: int | None = None,
 ) -> CrawlTask:
     """后台运行单配置爬取，立即返回 task 对象。"""
+    from app.config import settings
     from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         create_crawl_task_record,
@@ -1040,6 +1044,7 @@ async def crawl_single_config_background(
 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
+        config_platform = _normalize_platform(getattr(config, "platform", "boss")) if config else "boss"
         profile_key = _config_profile_key(config)
 
     async with AsyncSessionLocal() as db:
@@ -1047,15 +1052,18 @@ async def crawl_single_config_background(
             db,
             source="manual",
             task_type="job_config",
-            platform=None,
+            platform=config_platform,
             profile_key=profile_key,
             user_id=user_id,
             entity_type="job_config",
             entity_id=str(config_id),
-            payload={"config_id": config_id, "profile_key": profile_key},
+            payload={"config_id": config_id, "platform": config_platform, "profile_key": profile_key},
         )
         task = runtime_task_from_record(record)
         record_id = record.id
+
+    if not settings.crawler_inline_execution_enabled:
+        return task
 
     async def _persist_cron_progress(progress_task: CrawlTask) -> None:
         await _persist_crawl_task_progress(record_id, progress_task)
@@ -1068,11 +1076,6 @@ async def crawl_single_config_background(
                 ProfileAlreadyLeasedError,
                 ProfileUnavailableError,
             )
-
-            async with AsyncSessionLocal() as cfg_db:
-                config = await cfg_db.get(JobSearchConfig, config_id)
-                config_platform = _normalize_platform(getattr(config, "platform", "boss")) if config else "boss"
-                profile_key = _config_profile_key(config)
 
             pool = DatabaseProfilePool()
             try:
@@ -1157,6 +1160,7 @@ async def crawl_single_config_background(
 
 async def crawl_all_job_searches_background(*, user_id: int | None = None) -> CrawlTask:
     """后台运行全量爬取，立即返回 task 对象。"""
+    from app.config import settings
     from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         CrawlTaskRecord,
@@ -1175,9 +1179,13 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
             user_id=user_id,
             entity_type="job_crawl",
             entity_id=None,
+            payload={"user_id": user_id, "source": "manual"},
         )
         parent_task = runtime_task_from_record(parent_record)
         parent_record_id = parent_record.id
+
+    if not settings.crawler_inline_execution_enabled:
+        return parent_task
 
     async def _persist_parent(progress_task: CrawlTask) -> None:
         async with AsyncSessionLocal() as db:
@@ -1429,3 +1437,235 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
 
     asyncio.create_task(_run())
     return parent_task
+
+
+async def enqueue_job_all_children(
+    record: CrawlTaskRecord,
+    parent_task: CrawlTask,
+    *,
+    progress_callback,
+) -> dict:
+    """Create pending job_platform_profile child tasks for a claimed job_all task."""
+    from app.core.task_registry import TaskStatus
+    from app.domains.crawling.task_store import (
+        create_crawl_task_record,
+    )
+
+    user_id = record.user_id
+
+    async with AsyncSessionLocal() as db:
+        filters = [JobSearchConfig.active]
+        if user_id is not None:
+            filters.append(JobSearchConfig.user_id == user_id)
+        result = await db.execute(
+            select(JobSearchConfig).where(*filters)
+        )
+        configs = list(result.scalars().all())
+
+    if not configs:
+        parent_task.status = TaskStatus.COMPLETED
+        parent_task.total = 0
+        parent_task.success = 0
+        parent_task.errors = 0
+        await progress_callback(parent_task)
+        return {"status": "completed", "total": 0, "success": 0, "errors": 0}
+
+    groups = _group_job_configs_for_profile_leases(configs)
+    child_task_ids: list[str] = []
+    child_summaries: list[dict] = []
+
+    for (platform, profile_key), platform_configs in groups.items():
+        config_ids = [c.id for c in platform_configs]
+        metadata = _job_group_task_metadata(platform, profile_key, parent_task.task_id)
+        async with AsyncSessionLocal() as db:
+            child_record = await create_crawl_task_record(
+                db,
+                source="manual",
+                task_type=metadata["task_type"],
+                platform=metadata["platform"],
+                profile_key=metadata["profile_key"],
+                parent_task_id=metadata["payload"]["parent_task_id"],
+                user_id=user_id,
+                entity_type=metadata["entity_type"],
+                entity_id=metadata["entity_id"],
+                payload={
+                    **metadata["payload"],
+                    "config_ids": config_ids,
+                },
+            )
+            child_task_ids.append(child_record.task_id)
+            child_summaries.append({
+                "task_id": child_record.task_id,
+                "platform": platform,
+                "profile_key": profile_key,
+                "config_ids": config_ids,
+            })
+
+    parent_task.status = TaskStatus.RUNNING
+    parent_task.reason = "waiting_for_children"
+    parent_task.total = len(configs)
+    parent_task.details = child_summaries
+    await progress_callback(parent_task)
+
+    return {"status": "waiting_for_children", "child_task_ids": child_task_ids}
+
+
+async def execute_job_platform_profile_task(
+    record: CrawlTaskRecord,
+    child_task: CrawlTask,
+    *,
+    progress_callback,
+) -> dict:
+    """Execute one claimed job_platform_profile child task under one profile lease."""
+    from app.domains.crawling.profile_pool import DatabaseProfilePool
+    from app.domains.crawling.task_runner import CrawlTaskRunner
+
+    payload = record.payload_json or {}
+    config_ids = payload.get("config_ids", [])
+    platform = payload.get("platform") or record.platform or "boss"
+    profile_key = payload.get("profile_key") or record.profile_key or "default"
+
+    child_task.status = TaskStatus.RUNNING
+    child_task.total = len(config_ids)
+    await progress_callback(child_task)
+
+    pool = DatabaseProfilePool()
+    child_details = []
+    child_success = 0
+    child_errors = 0
+    try:
+        async with AsyncSessionLocal() as lease_db:
+            async with pool.lease(
+                lease_db,
+                platform=platform,
+                profile_key=profile_key,
+                owner=child_task.task_id,
+                task_id=child_task.task_id,
+            ) as lease:
+                for idx, config_id in enumerate(config_ids):
+                    runtime_context = JobCrawlRuntimeContext(
+                        platform=platform,
+                        profile_key=lease.profile_key,
+                        profile_dir=lease.profile_dir,
+                        task_id=child_task.task_id,
+                        config_id=config_id,
+                        run_id=child_task.task_id,
+                        log_context={"parent_task_id": record.parent_task_id},
+                    )
+                    result = await CrawlTaskRunner(
+                        progress_callback=progress_callback
+                    ).run_job_config(
+                        child_task,
+                        config_id=config_id,
+                        runtime_context=runtime_context,
+                    )
+                    detail = {"config_id": config_id, **result}
+                    child_details.append(detail)
+                    if result.get("status") == "success":
+                        child_success += 1
+                    else:
+                        child_errors += 1
+
+                    if idx < len(config_ids) - 1:
+                        await asyncio.sleep(random.uniform(3, 6))
+    except Exception as exc:
+        remaining = len(config_ids) - child_success - child_errors
+        child_errors += remaining
+        child_details.append({"status": "error", "error": str(exc)})
+
+    child_task.total = len(config_ids)
+    child_task.success = child_success
+    child_task.errors = child_errors
+    child_task.details = child_details
+    child_task.status = TaskStatus.COMPLETED if child_errors == 0 else TaskStatus.FAILED
+    if child_errors:
+        child_task.reason = "platform_crawl_failed"
+    await progress_callback(child_task)
+
+    # Aggregate parent after this child finishes
+    if record.parent_task_id:
+        await aggregate_parent_task_if_children_finished(record.parent_task_id)
+
+    return {
+        "status": "completed" if child_errors == 0 else "error",
+        "success": child_success,
+        "errors": child_errors,
+        "details": child_details,
+    }
+
+
+async def aggregate_parent_task_if_children_finished(parent_task_id: str) -> bool:
+    """Aggregate child results into parent task when all children are done."""
+    from app.core.task_registry import TaskStatus
+    from app.domains.crawling.task_store import (
+        CrawlTaskRecord,
+        get_crawl_task_record,
+        sync_record_from_runtime_task,
+    )
+
+    async with AsyncSessionLocal() as db:
+        parent_record = await get_crawl_task_record(db, parent_task_id)
+        if parent_record is None:
+            return False
+
+        result = await db.execute(
+            select(CrawlTaskRecord).where(
+                CrawlTaskRecord.parent_task_id == parent_task_id,
+            )
+        )
+        children = list(result.scalars().all())
+
+        if not children:
+            return False
+
+        # Return False if any child is still pending or running
+        for child in children:
+            if child.status in (TaskStatus.PENDING.value, TaskStatus.RUNNING.value):
+                return False
+
+        total = sum(c.total or 0 for c in children)
+        success = sum(c.success or 0 for c in children)
+        errors = sum(c.errors or 0 for c in children)
+
+        parent_task = runtime_task_from_record(parent_record)
+        parent_task.total = total
+        parent_task.success = success
+        parent_task.errors = errors
+        parent_task.status = TaskStatus.COMPLETED if errors == 0 else TaskStatus.FAILED
+        parent_task.reason = None if errors == 0 else "child_task_failed"
+        parent_task.details = [
+            {
+                "task_id": c.task_id,
+                "platform": c.platform,
+                "profile_key": c.profile_key,
+                "status": c.status,
+                "total": c.total,
+                "success": c.success,
+                "errors": c.errors,
+                "reason": c.reason,
+            }
+            for c in children
+        ]
+
+        await sync_record_from_runtime_task(db, parent_record, parent_task)
+
+        ok = errors == 0
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="job_crawl.completed" if ok else "job_crawl.failed",
+            source="jobs",
+            severity="info" if ok else "error",
+            status="completed" if ok else "failed",
+            message=f"Job crawl for all active configs {'completed' if ok else 'failed'}",
+            user_id=parent_record.user_id,
+            entity_type="job_crawl",
+            entity_id=parent_task_id,
+            payload={
+                "task_id": parent_task_id,
+                "total": total,
+                "success": success,
+                "errors": errors,
+            },
+        )
+
+    return True

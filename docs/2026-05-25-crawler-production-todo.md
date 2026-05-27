@@ -8,6 +8,7 @@
 - [Phase 2 implementation plan](2026-05-26-crawler-production-phase2-implementation-plan.md)
 - [Phase 3 implementation plan](2026-05-26-job-platform-production-phase3.md)
 - [Phase 4 implementation plan](2026-05-26-product-profile-browser-manager-phase4-implementation-plan.md)
+- [Phase 5 implementation plan](superpowers/plans/2026-05-27-crawler-worker-phase5-implementation-plan.md)
 
 ## 状态说明
 
@@ -24,7 +25,7 @@
 | Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
 | Phase 3 | done | Boss/51job/猎聘生产化策略 | 先职位后商品 |
 | Phase 4 | done | 商品 profile 化、受控 browser manager | CDP 优化重点 |
-| Phase 5 | todo | 独立 crawler worker | 任务量增长后启动 |
+| Phase 5 | done | 独立 crawler worker | 默认 worker-only；FastAPI/APScheduler 只入队 |
 
 ## Phase 1：任务执行边界和生产安全底座
 
@@ -128,12 +129,34 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 ## Phase 5：独立 Crawler Worker 化
 
+设计原则：生产默认 `worker-only`，FastAPI 和 APScheduler 只创建 `pending` 任务；独立 worker 从 PostgreSQL `crawl_tasks` 领取任务并执行。仅当显式设置 `CRAWLER_INLINE_EXECUTION_ENABLED=true` 时，允许本地开发 fallback 继续由 API 进程内联执行。
+
 | 任务 | 状态 | 验收 |
 | --- | --- | --- |
-| 新增 `python -m app.workers.crawler` 入口 | todo | worker 可独立启动 |
-| worker 领取 `crawl_tasks` | todo | API 不执行爬虫 |
-| worker 心跳 | todo | 可识别 worker 存活状态 |
-| worker 崩溃恢复 | todo | lease 超时任务可失败或重试 |
-| 按平台启动专用 worker | todo | 支持只跑 boss / jd 等 |
-| APScheduler 只创建 task | todo | 调度器不直接执行爬虫 |
-| 多 worker profile lease 验证 | todo | 不抢同一 profile |
+| 新增 `python -m app.workers.crawler` 入口 | done | worker 可独立启动，支持 `--kind`/`--platform`/`--once` 参数 |
+| 新增 `crawler_workers` registry | done | 可查看 worker_id、kind、platform、hostname、pid、status、heartbeat |
+| worker 领取 `crawl_tasks` | done | API 不执行爬虫；worker 使用 DB row lock / `SKIP LOCKED` claim pending task |
+| worker 心跳 | done | `crawl_tasks.heartbeat_at` 和 `crawler_workers.last_heartbeat_at` 可识别 worker/task 存活状态 |
+| worker 崩溃恢复 | done | lease 超时 running task 被标记 failed，过期 profile lease 被释放 |
+| 按平台启动专用 worker | done | 支持 `--kind job --platform boss`、`--kind product --platform jd` 等过滤 |
+| 全量爬取 coordinator worker | done | `job_all`/`product_all` 由不带 platform 的 worker 领取；parent 聚合 child 结果后才完成 |
+| APScheduler 只创建 task | done | 商品和职位定时器只 enqueue，不直接调用 `CrawlTaskRunner` |
+| 多 worker profile lease 验证 | done | 多 worker 不抢同一 profile；同一 profile 同一时刻只被一个任务占用 |
+| profile busy 重排队 | done | profile 被占用时任务 requeue/defer，不直接标记 failed |
+| Event Center / logging 覆盖 | done | 记录 worker started/stopped、task claimed/completed/failed、recovery |
+| 前端任务状态可观测 | done | status/result 返回 worker_id、heartbeat、lease、reason、details |
+
+**Phase 5 verification (2026-05-27)**
+
+- Migration `20260527_crawler_workers` adds `crawler_workers` table and `crawl_tasks` claim index.
+- `CrawlerWorkerRecord` model with `worker_id` unique index, `kind`/`platform`/`status` composite index, and heartbeat tracking.
+- `worker_registry.py` provides `register_worker`, `heartbeat_worker`, `mark_worker_stopping`, `mark_stale_workers_offline`.
+- `task_store.py` adds `claim_next_pending_task` with `SKIP LOCKED` row-level locking, `renew_task_lease_by_id`, `requeue_claimed_task`, and `task_types_for_kinds` mapping.
+- `crawler.py` CLI entry: `python -m app.workers.crawler --kind job --platform boss`. Runs recovery before every claim loop, heartbeats worker, claims tasks, dispatches to executor.
+- `executor.py` dispatches `product_all`, `product_platform`, `job_config`, `job_all`, `job_platform_profile` to existing `CrawlTaskRunner`. Emits `crawler_worker.task_claimed/completed/failed`. Handles `ProfileAlreadyLeasedError` by requeuing task with `profile_busy` reason.
+- `scheduler_service.py` default path creates `product_all`/`product_platform` tasks and returns `pending` immediately. Inline fallback only when `CRAWLER_INLINE_EXECUTION_ENABLED=true`.
+- `crawl_service.py` default path creates `job_config`/`job_all` tasks and returns `pending` immediately. Adds `enqueue_job_all_children`, `execute_job_platform_profile_task`, and `aggregate_parent_task_if_children_finished` for worker-side job all-crawl coordination.
+- `crawling/router.py` and `jobs/router.py` expose `worker_id`, `heartbeat_at`, `lease_until`, `started_at`, `finished_at`, `details` in status/result endpoints. New `GET /crawl/workers` endpoint.
+- Frontend types updated in `jobs.ts` and `crawl.ts` to include new optional worker metadata fields.
+- Backend full test suite: `548 passed, 47 skipped`. Backend lint: all pass (`ruff check .`). Frontend lint and build: pass.
+- `conftest.py` sets `crawler_inline_execution_enabled=True` for tests so existing inline-test behaviour remains verifiable.

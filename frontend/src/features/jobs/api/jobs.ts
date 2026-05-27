@@ -19,6 +19,13 @@ export interface JobCrawlStatus {
   total: number;
   success: number;
   errors: number;
+  reason?: string | null;
+  worker_id?: string | null;
+  heartbeat_at?: string | null;
+  lease_until?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  details?: Array<Record<string, unknown>> | null;
 }
 
 export interface JobCrawlFinalResult {
@@ -27,8 +34,13 @@ export interface JobCrawlFinalResult {
   total: number;
   success: number;
   errors: number;
-  reason?: string;
-  details?: Array<Record<string, unknown>>;
+  reason?: string | null;
+  details?: Array<Record<string, unknown>> | null;
+  worker_id?: string | null;
+  heartbeat_at?: string | null;
+  lease_until?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
 }
 
 export const jobsApi = {

@@ -7,6 +7,7 @@ import asyncio
 import logging
 from typing import Literal
 
+from app.config import settings
 from app.core.system_log import emit_system_log_detached
 from app.core.task_registry import CrawlTask, TaskStatus
 from app.database import AsyncSessionLocal
@@ -138,6 +139,24 @@ async def crawl_all_products(
     Returns:
         dict with task_id (if background=True) or full results
     """
+    # Create persistent task record first (worker-only path does not need locks)
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source=source,
+            task_type="product_all",
+            platform=None,
+            profile_key=None,
+            user_id=user_id,
+            entity_type="crawl_task",
+            entity_id=None,
+        )
+        task = runtime_task_from_record(record)
+
+    if not settings.crawler_inline_execution_enabled:
+        return {"status": "pending", "task_id": task.task_id, "source": source}
+
+    # Inline fallback path (original lock-protected behaviour)
     if _scheduler_state is None:
         logger.error("Scheduler state not initialized")
         return {"status": "error", "reason": "scheduler_not_initialized"}
@@ -154,20 +173,6 @@ async def crawl_all_products(
             "reason": "another_crawl_in_progress",
             "source": source,
         }
-
-    # Create persistent task and start background execution
-    async with AsyncSessionLocal() as db:
-        record = await create_crawl_task_record(
-            db,
-            source=source,
-            task_type="product_all",
-            platform=None,
-            profile_key=None,
-            user_id=user_id,
-            entity_type="crawl_task",
-            entity_id=None,
-        )
-        task = runtime_task_from_record(record)
 
     if background:
         # Create background task - it will acquire the lock when it runs
@@ -208,6 +213,47 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
     Called by ProductCronScheduler cron jobs. Uses profile-first runner.
     Persists task state to crawl_tasks.
     """
+    from app.domains.products import repository as product_repository
+    from app.domains.products.profile_binding import default_product_profile_key
+
+    # Resolve profile key from cron config
+    async with AsyncSessionLocal() as db:
+        config = await product_repository.get_product_cron_config(
+            db, user_id=user_id, platform=platform
+        )
+        profile_key = config.profile_key if config else default_product_profile_key(platform)
+
+    # Create persistent task record with profile_key
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source="cron",
+            task_type="product_platform",
+            platform=platform,
+            profile_key=profile_key,
+            user_id=user_id,
+            entity_type="product_platform",
+            entity_id=platform,
+            payload={"platform": platform, "profile_key": profile_key},
+        )
+        task = runtime_task_from_record(record)
+
+    if not settings.crawler_inline_execution_enabled:
+        await emit_system_log_detached(
+            category="runtime",
+            event_type="product_crawl.enqueued",
+            source="products",
+            severity="info",
+            status="pending",
+            message=f"Product crawl enqueued for {platform}",
+            user_id=user_id,
+            entity_type="product_platform",
+            entity_id=platform,
+            payload={"task_id": task.task_id, "platform": platform, "profile_key": profile_key},
+        )
+        return
+
+    # Inline fallback path
     if _scheduler_state is None:
         logger.error("Scheduler state not initialized in crawl_products_by_platform")
         return
@@ -226,31 +272,9 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
 
     try:
         async with crawl_lock:
-            from app.domains.products import repository as product_repository
-            from app.domains.products.profile_binding import default_product_profile_key
+            from app.domains.crawling.task_store import mark_task_running
 
-            # Resolve profile key from cron config
             async with AsyncSessionLocal() as db:
-                config = await product_repository.get_product_cron_config(
-                    db, user_id=user_id, platform=platform
-                )
-                profile_key = config.profile_key if config else default_product_profile_key(platform)
-
-            # Create persistent task record with profile_key
-            async with AsyncSessionLocal() as db:
-                record = await create_crawl_task_record(
-                    db,
-                    source="cron",
-                    task_type="product_platform",
-                    platform=platform,
-                    profile_key=profile_key,
-                    user_id=user_id,
-                    entity_type="product_platform",
-                    entity_id=platform,
-                )
-                from app.domains.crawling.task_store import mark_task_running
-
-                task = runtime_task_from_record(record)
                 await mark_task_running(db, record, owner="cron")
 
             async def _persist_progress(progress_task: CrawlTask) -> None:

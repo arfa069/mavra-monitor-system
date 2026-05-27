@@ -14,6 +14,21 @@ from app.models.crawl_task import CrawlTaskRecord
 
 DEFAULT_TASK_LEASE_SECONDS = 60 * 60
 
+JOB_TASK_TYPES = {"job_config", "job_all", "job_platform_profile"}
+PRODUCT_TASK_TYPES = {"product_all", "product_platform"}
+
+
+def task_types_for_kinds(kinds: set[str]) -> set[str]:
+    task_types: set[str] = set()
+    if "all" in kinds:
+        task_types.update(JOB_TASK_TYPES)
+        task_types.update(PRODUCT_TASK_TYPES)
+    if "job" in kinds:
+        task_types.update(JOB_TASK_TYPES)
+    if "product" in kinds:
+        task_types.update(PRODUCT_TASK_TYPES)
+    return task_types
+
 
 def _now() -> datetime:
     return datetime.now(UTC)
@@ -153,6 +168,106 @@ async def mark_task_running(
     await db.commit()
     await db.refresh(record)
     return record
+
+
+async def claim_next_pending_task(
+    db: AsyncSession,
+    *,
+    worker_id: str,
+    kinds: set[str],
+    platforms: set[str] | None = None,
+    lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
+    now: datetime | None = None,
+) -> CrawlTaskRecord | None:
+    current = now or _now()
+    task_types = task_types_for_kinds(kinds)
+    if not task_types:
+        return None
+
+    stmt = (
+        select(CrawlTaskRecord)
+        .where(
+            CrawlTaskRecord.status == TaskStatus.PENDING.value,
+            CrawlTaskRecord.task_type.in_(task_types),
+        )
+        .order_by(CrawlTaskRecord.created_at.asc(), CrawlTaskRecord.id.asc())
+        .with_for_update(skip_locked=True)
+        .limit(1)
+    )
+    if platforms:
+        stmt = stmt.where(
+            CrawlTaskRecord.platform.is_not(None),
+            CrawlTaskRecord.platform.in_(platforms),
+        )
+
+    result = await db.execute(stmt)
+    record = result.scalar_one_or_none()
+    if record is None:
+        return None
+    record.status = TaskStatus.RUNNING.value
+    record.locked_by = worker_id
+    record.lease_until = current + timedelta(seconds=lease_seconds)
+    record.heartbeat_at = current
+    record.started_at = record.started_at or current
+    record.updated_at = current
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def renew_task_lease_by_id(
+    db: AsyncSession,
+    task_id: str,
+    *,
+    worker_id: str,
+    lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
+    now: datetime | None = None,
+) -> bool:
+    current = now or _now()
+    result = await db.execute(
+        select(CrawlTaskRecord).where(
+            CrawlTaskRecord.task_id == task_id,
+            CrawlTaskRecord.locked_by == worker_id,
+            CrawlTaskRecord.status == TaskStatus.RUNNING.value,
+        )
+    )
+    record = result.scalar_one_or_none()
+    if record is None:
+        return False
+    record.heartbeat_at = current
+    record.lease_until = current + timedelta(seconds=lease_seconds)
+    record.updated_at = current
+    await db.commit()
+    return True
+
+
+async def requeue_claimed_task(
+    db: AsyncSession,
+    task_id: str,
+    *,
+    worker_id: str,
+    reason: str,
+    now: datetime | None = None,
+) -> bool:
+    current = now or _now()
+    result = await db.execute(
+        select(CrawlTaskRecord).where(
+            CrawlTaskRecord.task_id == task_id,
+            CrawlTaskRecord.locked_by == worker_id,
+            CrawlTaskRecord.status == TaskStatus.RUNNING.value,
+        )
+    )
+    record = result.scalar_one_or_none()
+    if record is None:
+        return False
+    record.status = TaskStatus.PENDING.value
+    record.locked_by = None
+    record.lease_until = None
+    record.heartbeat_at = None
+    record.reason = reason
+    record.updated_at = current
+    await db.commit()
+    return True
 
 
 async def recover_stale_running_tasks(

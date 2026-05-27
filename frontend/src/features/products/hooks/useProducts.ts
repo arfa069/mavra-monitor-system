@@ -4,8 +4,8 @@ import { productsApi } from "../api/products";
 import type { CrawlLog } from "../types";
 
 export type CrawlNowMutationResult =
-  | { type: "skipped"; reason?: string }
-  | { type: "error"; reason?: string }
+  | { type: "skipped"; reason?: string | null }
+  | { type: "error"; reason?: string | null }
   | {
       type: "completed";
       total: number;
