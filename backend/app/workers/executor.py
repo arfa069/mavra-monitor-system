@@ -122,6 +122,13 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
                 worker_id=worker_id,
                 reason=f"profile_busy:{exc}",
             )
+            # Check whether the task was requeued or failed due to max requeue
+            refreshed = await db.get(CrawlTaskRecord, record.id)
+            if refreshed is not None and refreshed.status == TaskStatus.FAILED.value:
+                return {
+                    "status": "error",
+                    "reason": refreshed.reason or "profile_busy_max_requeue_exceeded",
+                }
         return {"status": "deferred", "reason": "profile_busy"}
     except Exception as exc:
         logger.exception("Worker %s failed task %s", worker_id, record.task_id)

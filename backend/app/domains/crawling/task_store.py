@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.task_registry import CrawlTask, TaskStatus
 from app.models.crawl_task import CrawlTaskRecord
 
@@ -189,6 +190,7 @@ async def claim_next_pending_task(
         .where(
             CrawlTaskRecord.status == TaskStatus.PENDING.value,
             CrawlTaskRecord.task_type.in_(task_types),
+            CrawlTaskRecord.attempt_count < settings.crawler_task_max_requeue_attempts,
         )
         .order_by(CrawlTaskRecord.created_at.asc(), CrawlTaskRecord.id.asc())
         .with_for_update(skip_locked=True)
@@ -260,11 +262,20 @@ async def requeue_claimed_task(
     record = result.scalar_one_or_none()
     if record is None:
         return False
-    record.status = TaskStatus.PENDING.value
-    record.locked_by = None
-    record.lease_until = None
-    record.heartbeat_at = None
-    record.reason = reason
+    record.attempt_count += 1
+    if record.attempt_count >= settings.crawler_task_max_requeue_attempts:
+        record.status = TaskStatus.FAILED.value
+        record.reason = f"{reason}:max_requeue_exceeded"
+        record.locked_by = None
+        record.lease_until = None
+        record.heartbeat_at = None
+        record.finished_at = current
+    else:
+        record.status = TaskStatus.PENDING.value
+        record.locked_by = None
+        record.lease_until = None
+        record.heartbeat_at = None
+        record.reason = reason
     record.updated_at = current
     await db.commit()
     return True

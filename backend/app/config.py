@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     crawler_worker_heartbeat_interval_seconds: float = 15.0
     crawler_worker_stale_after_seconds: int = 120
     crawler_task_lease_seconds: int = 3600
+    crawler_task_max_requeue_attempts: int = 5
 
     # LLM job match settings
     job_match_provider: str = "minimax"

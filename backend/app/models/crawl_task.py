@@ -33,6 +33,7 @@ class CrawlTaskRecord(Base):
     total = Column(Integer, nullable=False, default=0)
     success = Column(Integer, nullable=False, default=0)
     errors = Column(Integer, nullable=False, default=0)
+    attempt_count = Column(Integer, nullable=False, default=0)
     reason = Column(Text, nullable=True)
     details_json = Column(JSONB, nullable=True)
     payload_json = Column(JSONB, nullable=True)
