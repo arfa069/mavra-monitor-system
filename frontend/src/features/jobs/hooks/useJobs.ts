@@ -296,6 +296,14 @@ export const useUpdateCrawlProfile = () => {
   });
 };
 
+export const useDeleteCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: jobsApi.deleteProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
 export const useReleaseStaleCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({

@@ -61,6 +61,10 @@ def _profile_lock(profile_key: str) -> asyncio.Lock:
     return lock
 
 
+def is_login_session_open(profile_key: str) -> bool:
+    return profile_key in _sessions
+
+
 def default_start_url(platform_name: str) -> str:
     return {
         "boss": "https://www.zhipin.com/",

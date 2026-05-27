@@ -8,6 +8,7 @@ import {
   useCreateCrawlProfile,
   useCreateJobConfig,
   useCrawlProfiles,
+  useDeleteCrawlProfile,
   useDeleteJobConfig,
   useCloseProfileLoginSession,
   useExportProfileBackup,
@@ -76,6 +77,7 @@ export default function JobsPage() {
   const { data: profileCapabilities } = useProfileRuntimeCapabilities();
   const createProfile = useCreateCrawlProfile();
   const updateProfile = useUpdateCrawlProfile();
+  const deleteProfile = useDeleteCrawlProfile();
   const releaseStaleProfile = useReleaseStaleCrawlProfile();
   const openProfileLoginSession = useOpenProfileLoginSession();
   const closeProfileLoginSession = useCloseProfileLoginSession();
@@ -96,6 +98,10 @@ export default function JobsPage() {
     status: "available" | "login_required" | "disabled",
   ) => {
     await updateProfile.mutateAsync({ profileKey, data: { status } });
+  };
+
+  const handleDeleteProfile = async (profileKey: string) => {
+    await deleteProfile.mutateAsync(profileKey);
   };
 
   const handleOpenLoginSession = async (profileKey: string, platform: string) => {
@@ -318,6 +324,7 @@ export default function JobsPage() {
             profiles={profiles}
             loading={profilesLoading}
             onCreate={handleCreateProfile}
+            onDelete={handleDeleteProfile}
             onUpdateStatus={handleUpdateProfileStatus}
             onReleaseStale={handleReleaseStaleProfile}
             capabilities={profileCapabilities}

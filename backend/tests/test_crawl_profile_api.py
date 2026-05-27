@@ -157,6 +157,29 @@ async def test_mark_available_rejects_active_lease(mock_auth, mock_db):
 
 
 @pytest.mark.asyncio
+async def test_delete_profile_rejects_open_login_session(mock_auth, mock_db):
+    from app.domains.crawling import profile_runtime_service
+
+    profile_runtime_service._sessions["job-a"] = profile_runtime_service.LoginSession(
+        profile_key="job-a",
+        platform="boss",
+        start_url="https://www.zhipin.com/",
+        context=MagicMock(),
+        page=MagicMock(),
+        started_at=0,
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.delete("/v1/crawl-profiles/job-a")
+
+        assert response.status_code == 409
+    finally:
+        profile_runtime_service._sessions.pop("job-a", None)
+        profile_runtime_service._profile_locks.pop("job-a", None)
+
+
+@pytest.mark.asyncio
 async def test_runtime_capabilities_endpoint(mock_auth):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

@@ -1,3 +1,4 @@
+import shutil
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -22,6 +23,10 @@ class CrawlProfileLeaseActiveError(RuntimeError):
     """Raised when a non-expired lease is still active."""
 
 
+class CrawlProfileInUseError(RuntimeError):
+    """Raised when a crawl profile is referenced by configs."""
+
+
 async def list_profiles(db: AsyncSession) -> list[CrawlProfile]:
     result = await db.execute(select(CrawlProfile).order_by(CrawlProfile.profile_key))
     return list(result.scalars().all())
@@ -42,6 +47,42 @@ async def create_profile(db: AsyncSession, *, profile_key: str, platform_hint: s
         payload={"profile_key": profile_key, "platform_hint": platform_hint},
     )
     return profile
+
+
+async def delete_profile(db: AsyncSession, *, profile_key: str) -> None:
+    from app.models.job import JobSearchConfig
+    from app.models.product import ProductPlatformCron
+
+    profile = await get_profile(db, profile_key)
+    current = datetime.now(UTC)
+    if profile.lease_until is not None and profile.lease_until > current:
+        raise CrawlProfileLeaseActiveError(profile_key)
+
+    job_ref = await db.execute(
+        select(JobSearchConfig.id).where(JobSearchConfig.profile_key == profile_key).limit(1)
+    )
+    product_ref = await db.execute(
+        select(ProductPlatformCron.id).where(ProductPlatformCron.profile_key == profile_key).limit(1)
+    )
+    if job_ref.scalar_one_or_none() is not None or product_ref.scalar_one_or_none() is not None:
+        raise CrawlProfileInUseError(profile_key)
+
+    profile_dir = build_profile_dir(profile_key)
+    await db.delete(profile)
+    await db.commit()
+    if profile_dir.exists():
+        shutil.rmtree(profile_dir)
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="crawl_profile.deleted",
+        source="crawler",
+        severity="warning",
+        status="success",
+        message=f"Crawl profile {profile_key} deleted",
+        entity_type="crawl_profile",
+        entity_id=profile_key,
+        payload={"profile_key": profile_key},
+    )
 
 
 async def get_profile(db: AsyncSession, profile_key: str) -> CrawlProfile:

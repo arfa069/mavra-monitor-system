@@ -55,6 +55,25 @@ async def create_profile(
     )
 
 
+@router.delete("/{profile_key}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_profile(
+    profile_key: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if profile_runtime_service.is_login_session_open(profile_key):
+        raise HTTPException(status_code=409, detail="Profile login session is already open")
+    try:
+        await profile_service.delete_profile(db, profile_key=profile_key)
+    except profile_service.CrawlProfileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Profile not found") from exc
+    except profile_service.CrawlProfileLeaseActiveError as exc:
+        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except profile_service.CrawlProfileInUseError as exc:
+        raise HTTPException(status_code=409, detail="Profile is used by configs") from exc
+    return None
+
+
 @router.patch("/{profile_key}", response_model=CrawlProfileResponse)
 async def update_profile(
     profile_key: str,
@@ -108,8 +127,6 @@ async def open_login_session(
         raise HTTPException(status_code=404, detail="Profile not found") from exc
     except profile_service.CrawlProfileLeaseActiveError as exc:
         raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_runtime_service.ProfileAlreadyOpenError as exc:
-        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
     except profile_runtime_service.ProfileAlreadyOpenError as exc:
         raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
     except profile_runtime_service.ProfileRuntimeUnsupportedError as exc:
@@ -172,6 +189,8 @@ async def export_profile_backup(
         raise HTTPException(status_code=404, detail="Profile not found") from exc
     except profile_service.CrawlProfileLeaseActiveError as exc:
         raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except profile_runtime_service.ProfileAlreadyOpenError as exc:
+        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
     return Response(
         content=content,
         media_type="application/octet-stream",
