@@ -135,6 +135,7 @@ class CrawlTaskRunner:
         )
         task.success = result.get("new_count", 0)
         task.errors = 0 if ok else 1
+        task.details = [result]
         if not ok:
             task.reason = result.get("error") or result.get("reason") or "crawl_failed"
         await self._notify_progress(task)

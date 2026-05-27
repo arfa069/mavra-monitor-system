@@ -15,6 +15,7 @@ from app.database import AsyncSessionLocal, get_db
 from app.main import app
 from app.models.crawl_profile import CrawlProfile
 from app.models.crawl_task import CrawlTaskRecord
+from tests.db_safety import require_test_database
 
 
 def create_mock_user(user_id=1, username="testuser", role="user"):
@@ -41,6 +42,7 @@ async def phase2_client():
 
 
 async def _clean_crawl_tables():
+    require_test_database()
     async with AsyncSessionLocal() as s:
         await s.execute(delete(CrawlProfile))
         await s.execute(delete(CrawlTaskRecord))

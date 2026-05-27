@@ -940,6 +940,8 @@ async def get_job_crawl_result(task_id: str, db: AsyncSession = Depends(get_db))
         "total": record.total,
         "success": record.success,
         "errors": record.errors,
+        "reason": record.reason,
+        "details": record.details_json,
     })
 
 # ── Job Crawl Logs ──────────────────────────────────────────────

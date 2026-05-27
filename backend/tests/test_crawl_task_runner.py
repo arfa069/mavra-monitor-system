@@ -21,6 +21,7 @@ async def test_runner_executes_single_job_config(monkeypatch):
     assert task.total == 3
     assert task.success == 2
     assert task.errors == 0
+    assert task.details == [result]
 
 
 @pytest.mark.asyncio

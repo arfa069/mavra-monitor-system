@@ -8,9 +8,11 @@ from app.domains.products.profile_binding import default_product_profile_key
 from app.models.crawl_profile import CrawlProfile
 from app.models.product import ProductPlatformCron
 from app.schemas.product import ProductPlatformCronCreate, ProductPlatformCronUpdate
+from tests.db_safety import require_test_database
 
 
 async def _clean_tables():
+    require_test_database()
     async with AsyncSessionLocal() as s:
         await s.execute(delete(ProductPlatformCron))
         await s.execute(delete(CrawlProfile))

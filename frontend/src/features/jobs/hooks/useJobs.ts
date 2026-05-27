@@ -43,6 +43,9 @@ export const jobQueryKeys = {
   profiles: ["crawl-profiles"] as const,
 };
 
+const JOB_CRAWL_POLL_INTERVAL_MS = 3000;
+const JOB_CRAWL_MAX_POLL_ATTEMPTS = 600;
+
 export const useJobCrawlLogs = (params?: {
   search_config_id?: number;
   status?: string;
@@ -131,8 +134,8 @@ export const useCrawlAllJobs = () => {
     }> => {
       const response = await jobsApi.crawlAll();
       const taskId = response.data.task_id;
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+      for (let attempt = 0; attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS));
         try {
           const statusRes = await jobsApi.getCrawlStatus(taskId);
           const s = statusRes.data;
@@ -173,8 +176,8 @@ export const useCrawlSingleJob = () => {
     }> => {
       const response = await jobsApi.crawlSingle(configId);
       const taskId = response.data.task_id;
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+      for (let attempt = 0; attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS));
         try {
           const statusRes = await jobsApi.getCrawlStatus(taskId);
           const s = statusRes.data;

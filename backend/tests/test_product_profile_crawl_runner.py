@@ -11,9 +11,11 @@ from app.domains.products.service import create_product, create_product_cron_con
 from app.models.crawl_profile import CrawlProfile
 from app.models.product import Product, ProductPlatformCron
 from app.schemas.product import ProductCreate, ProductPlatformCronCreate
+from tests.db_safety import require_test_database
 
 
 async def _clean_tables():
+    require_test_database()
     async with AsyncSessionLocal() as s:
         await s.execute(delete(ProductPlatformCron))
         await s.execute(delete(Product))

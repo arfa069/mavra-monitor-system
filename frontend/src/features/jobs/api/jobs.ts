@@ -28,6 +28,7 @@ export interface JobCrawlFinalResult {
   success: number;
   errors: number;
   reason?: string;
+  details?: Array<Record<string, unknown>>;
 }
 
 export const jobsApi = {
