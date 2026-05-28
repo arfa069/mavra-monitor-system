@@ -1,7 +1,7 @@
 """API tests for resume and job match endpoints."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -289,6 +289,7 @@ async def test_get_task_status_returns_task_state_from_crawl_tasks(mock_get_curr
     mock_record.locked_by = "worker:test"
     mock_record.heartbeat_at = None
     mock_record.lease_until = None
+    mock_record.task_type = "job_match_analysis"
 
     with patch("app.domains.crawling.task_store.get_crawl_task_record", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_record
@@ -303,16 +304,34 @@ async def test_get_task_status_returns_task_state_from_crawl_tasks(mock_get_curr
         assert data["success"] == 2
         assert data["errors"] == 1
         assert data["worker_id"] == "worker:test"
+        mock_get.assert_awaited_once_with(ANY, "xyz789", user_id=1)
 
 
 @pytest.mark.asyncio
-async def test_get_task_status_returns_404_for_missing_task():
+async def test_get_task_status_returns_404_for_missing_task(mock_get_current_user):
     """GET /jobs/tasks/{task_id} should 404 for unknown task."""
     with patch("app.domains.crawling.task_store.get_crawl_task_record", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = None
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/jobs/tasks/nonexistent")
+        assert response.status_code == 404
+        data = response.json()
+        assert data["status"] == "error"
+        assert data["reason"] == "task_not_found"
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_returns_404_for_non_match_task(mock_get_current_user):
+    """GET /jobs/tasks/{task_id} should only expose job_match_analysis tasks."""
+    mock_record = MagicMock()
+    mock_record.task_type = "job_config"
+
+    with patch("app.domains.crawling.task_store.get_crawl_task_record", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_record
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/jobs/tasks/job-task")
         assert response.status_code == 404
         data = response.json()
         assert data["status"] == "error"

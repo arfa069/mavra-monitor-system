@@ -20,6 +20,8 @@ async def _get_jobs_needing_analysis(
     db,
     resume_id: int,
     job_ids: list[int],
+    *,
+    user_id: int | None = None,
 ) -> list:
     """Return jobs that need match analysis for the given resume.
 
@@ -34,8 +36,13 @@ async def _get_jobs_needing_analysis(
     )
     match_map = {m.job_id: m for m in existing_result.scalars().all()}
 
-    # 2. Get target jobs
-    jobs_result = await db.execute(select(Job).where(Job.id.in_(job_ids)))
+    # 2. Get target jobs, scoped to the task user when available.
+    jobs_query = select(Job).join(
+        JobSearchConfig, Job.search_config_id == JobSearchConfig.id
+    ).where(Job.id.in_(job_ids))
+    if user_id is not None:
+        jobs_query = jobs_query.where(JobSearchConfig.user_id == user_id)
+    jobs_result = await db.execute(jobs_query)
     jobs = list(jobs_result.scalars().all())
 
     need_analysis = []
@@ -105,7 +112,12 @@ async def _execute_match_analysis(
         return
 
     # 2. Filter to jobs needing analysis
-    jobs_to_analyze = await _get_jobs_needing_analysis(db, resume_id, job_ids)
+    jobs_to_analyze = await _get_jobs_needing_analysis(
+        db,
+        resume_id,
+        job_ids,
+        user_id=resume.user_id if user_id is None else user_id,
+    )
     task.total = len(jobs_to_analyze)
 
     if not jobs_to_analyze:
@@ -188,14 +200,15 @@ async def _execute_match_analysis(
                 f"职位匹配提醒（共 {len(notify_jobs)} 个高分职位）",
                 f"简历：{resume.name}",
             ]
-            for job, analysis in sorted(
+            sorted_notify_jobs = sorted(
                 notify_jobs, key=lambda x: x[1].match_score, reverse=True
-            ):
+            )
+            for job, analysis in sorted_notify_jobs:
                 lines.append(
                     f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
                 )
             # Use the highest-scoring analysis for the summary recommendation
-            top_analysis = notify_jobs[0][1]
+            top_analysis = sorted_notify_jobs[0][1]
             lines.append(f"结论：{top_analysis.apply_recommendation}")
             await send_feishu_notification(webhook_url, "\n".join(lines))
         except Exception:
@@ -227,7 +240,12 @@ async def enqueue_job_match_analysis(
     """
     from app.domains.crawling.task_store import create_crawl_task_record
 
-    jobs_to_analyze = await _get_jobs_needing_analysis(db, resume_id, job_ids)
+    jobs_to_analyze = await _get_jobs_needing_analysis(
+        db,
+        resume_id,
+        job_ids,
+        user_id=user_id,
+    )
     if not jobs_to_analyze:
         return {
             "task_id": None,
@@ -248,6 +266,9 @@ async def enqueue_job_match_analysis(
             "job_ids": [j.id for j in jobs_to_analyze],
         },
     )
+    record.total = len(jobs_to_analyze)
+    await db.commit()
+    await db.refresh(record)
     return {
         "task_id": record.task_id,
         "total": len(jobs_to_analyze),
@@ -362,14 +383,15 @@ async def analyze_resume_vs_jobs(
                     f"职位匹配提醒（共 {len(notify_jobs)} 个高分职位）",
                     f"简历：{resume.name}",
                 ]
-                for job, analysis in sorted(
+                sorted_notify_jobs = sorted(
                     notify_jobs, key=lambda x: x[1].match_score, reverse=True
-                ):
+                )
+                for job, analysis in sorted_notify_jobs:
                     lines.append(
                         f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
                     )
                 # Use the highest-scoring analysis for the summary recommendation
-                top_analysis = notify_jobs[0][1]
+                top_analysis = sorted_notify_jobs[0][1]
                 lines.append(f"结论：{top_analysis.apply_recommendation}")
                 await send_feishu_notification(webhook_url, "\n".join(lines))
             except Exception:

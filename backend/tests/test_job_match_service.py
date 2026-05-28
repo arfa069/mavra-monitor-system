@@ -7,6 +7,28 @@ import pytest
 from app.core.task_registry import CrawlTask, TaskStatus
 
 
+@pytest.mark.asyncio
+async def test_get_jobs_needing_analysis_scopes_jobs_by_user():
+    """Job lookup includes JobSearchConfig.user_id when user_id is provided."""
+    from app.domains.jobs.match_service import _get_jobs_needing_analysis
+
+    empty_result = MagicMock()
+    empty_result.scalars.return_value.all.return_value = []
+    calls = []
+
+    class FakeDB:
+        async def execute(self, statement):
+            calls.append(statement)
+            return empty_result
+
+    await _get_jobs_needing_analysis(FakeDB(), resume_id=1, job_ids=[10], user_id=5)
+
+    assert len(calls) == 2
+    rendered_query = str(calls[1])
+    assert "JOIN jobs_search_configs" in rendered_query
+    assert "jobs_search_configs.user_id" in rendered_query
+
+
 def test_should_notify_match_threshold():
     """Scores above 70 should notify."""
     from app.domains.jobs.match_service import should_notify_match
@@ -127,6 +149,7 @@ async def test_enqueue_job_match_analysis_returns_completed_when_no_work():
     assert result["reason"] == "all_up_to_date"
     assert result["total"] == 0
     mock_db.add.assert_not_called()
+    mock_need.assert_awaited_once_with(mock_db, 1, [10, 20], user_id=1)
 
 
 @pytest.mark.asyncio
@@ -154,7 +177,9 @@ async def test_enqueue_job_match_analysis_creates_task_when_work_exists():
     assert result["task_id"] is not None
     assert result["total"] == 1
     mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
+    assert mock_db.commit.await_count == 2
+    assert mock_db.refresh.await_count == 2
+    mock_need.assert_awaited_once_with(mock_db, 1, [10], user_id=1)
 
 
 @pytest.mark.asyncio

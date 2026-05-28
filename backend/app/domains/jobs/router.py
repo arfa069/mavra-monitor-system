@@ -430,15 +430,22 @@ async def trigger_match_analysis_async(
     })
 
 @router.get("/tasks/{task_id}")
-async def get_match_analysis_task_status(task_id: str, db: AsyncSession = Depends(get_db)):
+async def get_match_analysis_task_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Get status of a match analysis task from the durable crawl_tasks store.
 
     Returns task progress (total/success/errors) and final results when completed.
     """
     from app.domains.crawling.task_store import get_crawl_task_record
 
-    record = await get_crawl_task_record(db, task_id)
-    if not record:
+    if not current_user:
+        raise HTTPException(status_code=401, detail="请先登录")
+
+    record = await get_crawl_task_record(db, task_id, user_id=current_user.id)
+    if not record or record.task_type != "job_match_analysis":
         return JSONResponse(
             content={"status": "error", "reason": "task_not_found"},
             status_code=404,
