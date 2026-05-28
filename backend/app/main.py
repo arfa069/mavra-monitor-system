@@ -197,6 +197,18 @@ _include_application_routers(prefix="/api/v1")
 app.include_router(crawl_router, prefix="/api/v1")
 
 
+@app.get("/v1")
+@app.get("/api/v1")
+async def api_root():
+    """Public API root for clients/probes that open the API base URL."""
+    return {
+        "name": settings.app_name,
+        "status": "ok",
+        "docs": "/docs",
+        "prefixes": ["/v1", "/api/v1"],
+    }
+
+
 def _extract_token_user_id(request: Request) -> int | None:
     """Best-effort decode of bearer token for platform logging."""
     token: str | None = None

@@ -1,22 +1,35 @@
 import asyncio
 
 import pytest
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.core.task_registry import CrawlTask
 from app.database import AsyncSessionLocal
 from app.domains.crawling import task_runner
 from app.domains.crawling.profile_pool import ensure_profile
-from app.domains.products.service import create_product, create_product_cron_config
+from app.domains.products.service import (
+    create_product,
+    upsert_product_profile_binding,
+)
+from app.models.crawl_log import CrawlLog
 from app.models.crawl_profile import CrawlProfile
-from app.models.product import Product, ProductPlatformCron
-from app.schemas.product import ProductCreate, ProductPlatformCronCreate
+from app.models.product import (
+    Product,
+    ProductPlatformCron,
+    ProductPlatformProfileBinding,
+)
+from app.schemas.product import (
+    ProductCreate,
+    ProductPlatformProfileBindingUpdate,
+)
 from tests.db_safety import require_test_database
 
 
 async def _clean_tables():
     require_test_database()
     async with AsyncSessionLocal() as s:
+        await s.execute(delete(CrawlLog))
+        await s.execute(delete(ProductPlatformProfileBinding))
         await s.execute(delete(ProductPlatformCron))
         await s.execute(delete(Product))
         await s.execute(delete(CrawlProfile).where(CrawlProfile.profile_key.not_like("default")))
@@ -24,18 +37,38 @@ async def _clean_tables():
 
 
 @pytest.mark.asyncio
+async def test_log_lane_start_failure_writes_error_logs(monkeypatch):
+    calls = []
+
+    async def fake_save_crawl_log(product_id, platform, status, **kwargs):
+        calls.append((product_id, platform, status, kwargs["error_message"]))
+
+    from app.domains.crawling import service as crawling_service
+
+    monkeypatch.setattr(crawling_service, "save_crawl_log", fake_save_crawl_log)
+
+    await task_runner._log_lane_start_failure(
+        product_ids=[1, 2],
+        platform="taobao",
+        reason="profile startup failed",
+    )
+
+    assert calls == [
+        (1, "taobao", "ERROR", "profile startup failed"),
+        (2, "taobao", "ERROR", "profile startup failed"),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_platform_crawl_task_records_profile_key(monkeypatch):
     await _clean_tables()
     async with AsyncSessionLocal() as db:
-        await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
-        await create_product_cron_config(
+        await ensure_profile(db, profile_key="51job-jd", platform_hint="mixed")
+        await upsert_product_profile_binding(
             db,
             user_id=1,
-            data=ProductPlatformCronCreate(
-                platform="jd",
-                cron_expression="0 9 * * *",
-                cron_timezone="Asia/Shanghai",
-            ),
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="51job-jd"),
         )
         product = await create_product(
             db,
@@ -65,9 +98,50 @@ async def test_platform_crawl_task_records_profile_key(monkeypatch):
     runner = task_runner.CrawlTaskRunner()
     result = await runner.run_products_by_platform(task, platform="jd")
 
-    assert result["profile_key"] == "product-jd-default"
-    assert seen == [("jd", "product-jd-default", [product_id], "task-1")]
-    assert task.profile_key == "product-jd-default"
+    assert result["profile_key"] == "51job-jd"
+    assert seen == [("jd", "51job-jd", [product_id], "task-1")]
+    assert task.profile_key == "51job-jd"
+
+
+@pytest.mark.asyncio
+async def test_platform_crawl_task_fails_when_profile_not_configured():
+    await _clean_tables()
+    async with AsyncSessionLocal() as db:
+        product = await create_product(
+            db,
+            user_id=1,
+            product_data=ProductCreate(
+                platform="jd",
+                url="https://item.jd.com/100.html",
+                title="Demo",
+                active=True,
+            ),
+        )
+
+    task = CrawlTask(task_id="task-missing-profile", source="manual", user_id=1)
+    result = await task_runner.CrawlTaskRunner().run_products_by_platform(task, platform="jd")
+
+    assert result["status"] == "error"
+    assert result["reason"] == "platform_profile_not_configured"
+    assert task.status == "failed"
+    assert task.errors == 1
+    assert task.details == [
+        {
+            "product_id": product.id,
+            "status": "error",
+            "reason": "platform_profile_not_configured",
+            "profile_key": None,
+        }
+    ]
+
+    async with AsyncSessionLocal() as db:
+        logs = (
+            await db.execute(select(CrawlLog).where(CrawlLog.product_id == product.id))
+        ).scalars().all()
+
+    assert len(logs) == 1
+    assert logs[0].status == "ERROR"
+    assert logs[0].error_message == "platform_profile_not_configured"
 
 
 @pytest.mark.asyncio
@@ -75,10 +149,11 @@ async def test_platform_crawl_task_fails_when_profile_lane_cannot_start(monkeypa
     await _clean_tables()
     async with AsyncSessionLocal() as db:
         await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
-        await create_product_cron_config(
+        await upsert_product_profile_binding(
             db,
             user_id=1,
-            data=ProductPlatformCronCreate(platform="jd", profile_key="product-jd-default"),
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-jd-default"),
         )
         product = await create_product(
             db,
@@ -119,6 +194,17 @@ async def test_platform_crawl_task_fails_when_profile_lane_cannot_start(monkeypa
     ]
     assert progress[-1] == ("failed", "profile product-jd-default is already leased", 1)
 
+    async with AsyncSessionLocal() as db:
+        logs = (
+            await db.execute(
+                select(CrawlLog).where(CrawlLog.product_id == product.id)
+            )
+        ).scalars().all()
+
+    assert len(logs) == 1
+    assert logs[0].status == "ERROR"
+    assert logs[0].error_message == "profile product-jd-default is already leased"
+
 
 @pytest.mark.asyncio
 async def test_all_products_group_by_platform_profile(monkeypatch):
@@ -126,15 +212,17 @@ async def test_all_products_group_by_platform_profile(monkeypatch):
     async with AsyncSessionLocal() as db:
         await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
         await ensure_profile(db, profile_key="product-taobao-default", platform_hint="taobao")
-        await create_product_cron_config(
+        await upsert_product_profile_binding(
             db,
             user_id=1,
-            data=ProductPlatformCronCreate(platform="jd", profile_key="product-jd-default"),
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-jd-default"),
         )
-        await create_product_cron_config(
+        await upsert_product_profile_binding(
             db,
             user_id=1,
-            data=ProductPlatformCronCreate(platform="taobao", profile_key="product-taobao-default"),
+            platform="taobao",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-taobao-default"),
         )
         await create_product(
             db,
@@ -331,6 +419,12 @@ async def test_run_all_products_includes_lane_profile_keys(monkeypatch):
     await _clean_tables()
     async with AsyncSessionLocal() as db:
         await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
+        await upsert_product_profile_binding(
+            db,
+            user_id=1,
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-jd-default"),
+        )
         await create_product(
             db,
             user_id=1,
@@ -351,12 +445,63 @@ async def test_run_all_products_includes_lane_profile_keys(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_run_all_products_logs_lane_start_failures(monkeypatch):
+    await _clean_tables()
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
+        await upsert_product_profile_binding(
+            db,
+            user_id=1,
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-jd-default"),
+        )
+        product = await create_product(
+            db,
+            user_id=1,
+            product_data=ProductCreate(platform="jd", url="https://jd.com/1", active=True),
+        )
+
+    async def failing_lane(*, product_ids, platform, profile_key, task_id):
+        raise RuntimeError("profile startup failed")
+
+    monkeypatch.setattr(task_runner, "crawl_products_with_profile", failing_lane)
+
+    task = CrawlTask(task_id="task-lane-failure", source="manual", user_id=1)
+    result = await task_runner.CrawlTaskRunner().run_all_products(task)
+
+    assert result["status"] == "error"
+    assert result["errors"] == 1
+    async with AsyncSessionLocal() as db:
+        logs = (
+            await db.execute(
+                select(CrawlLog).where(CrawlLog.product_id == product.id)
+            )
+        ).scalars().all()
+
+    assert len(logs) == 1
+    assert logs[0].status == "ERROR"
+    assert logs[0].error_message == "profile startup failed"
+
+
+@pytest.mark.asyncio
 async def test_run_all_products_runs_lanes_concurrently(monkeypatch):
     """Multiple profile lanes run concurrently, not serially."""
     await _clean_tables()
     async with AsyncSessionLocal() as db:
         await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
         await ensure_profile(db, profile_key="product-taobao-default", platform_hint="taobao")
+        await upsert_product_profile_binding(
+            db,
+            user_id=1,
+            platform="jd",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-jd-default"),
+        )
+        await upsert_product_profile_binding(
+            db,
+            user_id=1,
+            platform="taobao",
+            data=ProductPlatformProfileBindingUpdate(profile_key="product-taobao-default"),
+        )
         await create_product(
             db,
             user_id=1,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   App,
@@ -25,14 +26,18 @@ import {
   PlusOutlined,
   ReloadOutlined,
   RocketOutlined,
+  SaveOutlined,
+  ScheduleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useNavigate } from "react-router-dom";
 import BatchImportModal from "./components/BatchImportModal";
 import PriceTrendModal from "./components/PriceTrendModal";
 import ProductFormModal, {
   type ProductFormSubmitValues,
 } from "./components/ProductFormModal";
+import { productsApi } from "./api/products";
 import {
   useBatchCreate,
   useBatchDelete,
@@ -41,6 +46,8 @@ import {
   useCrawlLogs,
   useCrawlNow,
   useDeleteProduct,
+  useProductProfileBindings,
+  useUpdateProductProfileBinding,
   useProducts,
   useUpdateProduct,
 } from "./hooks/useProducts";
@@ -49,6 +56,7 @@ import {
   useCreateAlert,
   useUpdateAlert,
 } from "@/features/alerts";
+import { jobsApi } from "@/features/jobs";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import type {
@@ -57,7 +65,10 @@ import type {
   BatchOperationResult,
   CrawlLog,
   Product,
+  ProductPlatformCronSchedule,
+  ProductPlatformProfileBinding,
 } from "./types";
+import type { CrawlProfile } from "@/features/jobs/types";
 
 const PLATFORM_BADGE_CLASS: Record<string, string> = {
   taobao: "platform-badge--taobao",
@@ -70,6 +81,13 @@ const PLATFORM_LABEL: Record<string, string> = {
   jd: "JD",
   amazon: "Amazon",
 };
+
+const PRODUCT_PLATFORMS = ["jd", "taobao", "amazon"];
+const PRODUCT_CRON_CONFIGS_QUERY_KEY = ["products", "cron-configs"] as const;
+const PRODUCT_CRON_SCHEDULES_QUERY_KEY = [
+  "products",
+  "cron-schedules",
+] as const;
 
 function PlatformBadge({ value }: { value: string | null | undefined }) {
   if (!value) return <Tag>-</Tag>;
@@ -85,11 +103,21 @@ type AlertInfo = {
   active: boolean;
 };
 
+type ProductScheduleRow = {
+  platform: string;
+  cron_expression: string | null;
+  cron_timezone: string | null;
+  next_run_at: string | null;
+  configured: boolean;
+};
+
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unknown error";
 
 export default function ProductsPage() {
   const { hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const stagger = useStaggerAnimation(0.05, 0.05);
   const canCrawl = hasPermission("crawl:execute");
   const message = App.useApp().message;
@@ -114,6 +142,7 @@ export default function ProductsPage() {
   }>({
     open: false,
   });
+  const [profileSelections, setProfileSelections] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword), 400);
@@ -133,8 +162,46 @@ export default function ProductsPage() {
   const batchCreate = useBatchCreate();
   const batchDelete = useBatchDelete();
   const crawlNow = useCrawlNow();
+  const updateProfileBinding = useUpdateProductProfileBinding();
+  const deleteCronConfig = useMutation({
+    mutationFn: productsApi.deleteCronConfig,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: PRODUCT_CRON_CONFIGS_QUERY_KEY,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: PRODUCT_CRON_SCHEDULES_QUERY_KEY,
+        }),
+      ]);
+    },
+  });
   const createAlertMutation = useCreateAlert();
   const updateAlertMutation = useUpdateAlert();
+  const { data: profileBindings, isLoading: profileBindingsLoading } =
+    useProductProfileBindings();
+  const { data: productCronConfigs = [], isLoading: cronConfigsLoading } =
+    useQuery({
+      queryKey: PRODUCT_CRON_CONFIGS_QUERY_KEY,
+      queryFn: () => productsApi.getCronConfigs().then((res) => res.data),
+      staleTime: 10_000,
+    });
+  const {
+    data: productCronSchedules = {},
+    isLoading: cronSchedulesLoading,
+  } = useQuery<Record<string, ProductPlatformCronSchedule>>({
+    queryKey: PRODUCT_CRON_SCHEDULES_QUERY_KEY,
+    queryFn: () =>
+      productsApi.getCronSchedules().then((res) => res.data.platforms),
+    staleTime: 10_000,
+  });
+  const { data: crawlProfiles = [], refetch: refetchCrawlProfiles } = useQuery<
+    CrawlProfile[]
+  >({
+    queryKey: ["crawl-profiles"],
+    queryFn: () => jobsApi.getProfiles().then((res) => res.data),
+    staleTime: 10_000,
+  });
   const {
     data: crawlLogs,
     isLoading: logsLoading,
@@ -143,6 +210,10 @@ export default function ProductsPage() {
   const { data: alertsData } = useAllAlerts();
   const productItems = data?.items ?? [];
   const crawlLogItems = crawlLogs ?? [];
+  const profileBindingItems = useMemo(
+    () => profileBindings ?? [],
+    [profileBindings],
+  );
 
   const alertMap = useMemo(() => {
     const map = new Map<number, AlertInfo>();
@@ -155,6 +226,47 @@ export default function ProductsPage() {
     });
     return map;
   }, [alertsData]);
+
+  const savedProfileSelections = useMemo(() => {
+    const next: Record<string, string> = {};
+    profileBindingItems.forEach((binding) => {
+      next[binding.platform] = binding.profile_key ?? "";
+    });
+    return next;
+  }, [profileBindingItems]);
+
+  const profileRows = useMemo<ProductPlatformProfileBinding[]>(
+    () =>
+      PRODUCT_PLATFORMS.map(
+        (platformKey) =>
+          profileBindingItems.find((item) => item.platform === platformKey) ?? {
+            platform: platformKey,
+            profile_key: null,
+            profile_status: null,
+            profile_last_error: null,
+            created_at: null,
+            updated_at: null,
+          },
+      ),
+    [profileBindingItems],
+  );
+  const scheduleRows = useMemo<ProductScheduleRow[]>(
+    () =>
+      PRODUCT_PLATFORMS.map((platformKey) => {
+        const configItem = productCronConfigs.find(
+          (item) => item.platform === platformKey,
+        );
+        const schedule = productCronSchedules[platformKey];
+        return {
+          platform: platformKey,
+          cron_expression: configItem?.cron_expression ?? null,
+          cron_timezone: configItem?.cron_timezone ?? "Asia/Shanghai",
+          next_run_at: schedule?.next_run_at ?? null,
+          configured: Boolean(configItem?.cron_expression),
+        };
+      }),
+    [productCronConfigs, productCronSchedules],
+  );
 
   const showBatchResult = (action: string, results: BatchOperationResult[]) => {
     const successCount = results.filter((item) => item.success).length;
@@ -313,17 +425,180 @@ export default function ProductsPage() {
     });
   };
 
+  const handleSaveProfileBinding = async (platformKey: string) => {
+    const profileKey =
+      profileSelections[platformKey] ?? savedProfileSelections[platformKey];
+    if (!profileKey) {
+      message.warning("Please select a profile first");
+      return;
+    }
+    try {
+      await updateProfileBinding.mutateAsync({
+        platform: platformKey,
+        profile_key: profileKey,
+      });
+      message.success("Profile binding saved");
+    } catch (error) {
+      message.error(`Save failed: ${getErrorMessage(error)}`);
+    }
+  };
+
+  const handleOpenProductProfileLogin = async (
+    platformKey: string,
+    profileKey: string | null,
+  ) => {
+    const selectedProfile =
+      profileSelections[platformKey] ??
+      savedProfileSelections[platformKey] ??
+      profileKey;
+    if (!selectedProfile) {
+      message.warning("Please select a profile first");
+      return;
+    }
+    try {
+      await jobsApi.openProfileLoginSession(selectedProfile, {
+        platform: platformKey,
+      });
+      message.success("Login browser opened");
+      void refetchCrawlProfiles();
+    } catch (error) {
+      message.error(`Open login browser failed: ${getErrorMessage(error)}`);
+    }
+  };
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const handleDeleteSchedule = async (platformKey: string) => {
+    try {
+      await deleteCronConfig.mutateAsync(platformKey);
+      message.success("Schedule deleted");
+    } catch (error) {
+      message.error(`Delete failed: ${getErrorMessage(error)}`);
+    }
+  };
+
+  const profileColumns: ColumnsType<ProductPlatformProfileBinding> = [
+    {
+      title: "Platform",
+      dataIndex: "platform",
+      width: 150,
+      render: (value: string) => (
+        <Space size={10}>
+          <PlatformBadge value={value} />
+          <span>{PLATFORM_LABEL[value] ?? value}</span>
+        </Space>
+      ),
+    },
+    {
+      title: "Profile",
+      dataIndex: "profile_key",
+      width: 240,
+      render: (_value: string | null, record) => (
+        <Select
+          value={
+            (profileSelections[record.platform] ??
+              savedProfileSelections[record.platform]) ||
+            undefined
+          }
+          placeholder="Select profile"
+          style={{ width: 210 }}
+          options={crawlProfiles.map((profile) => ({
+            value: profile.profile_key,
+            label: `${profile.profile_key} (${profile.status})`,
+          }))}
+          onChange={(value) =>
+            setProfileSelections((prev) => ({
+              ...prev,
+              [record.platform]: value ?? "",
+            }))
+          }
+          allowClear
+          className="fg-select"
+        />
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "profile_status",
+      width: 140,
+      render: (value: string | null, record) => {
+        let tag = <Tag>{value || "Unknown"}</Tag>;
+        if (!record.profile_key) tag = <Tag color="warning">Not Configured</Tag>;
+        if (value === "available") tag = <Tag color="success">Available</Tag>;
+        if (value === "disabled") tag = <Tag color="error">Disabled</Tag>;
+        if (value === "login_required") {
+          tag = <Tag color="warning">Login Required</Tag>;
+        }
+        return record.profile_last_error ? (
+          <Tooltip title={record.profile_last_error}>{tag}</Tooltip>
+        ) : (
+          tag
+        );
+      },
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 290,
+      render: (_value: unknown, record) => {
+        const selectedProfile =
+          profileSelections[record.platform] ??
+          savedProfileSelections[record.platform] ??
+          "";
+        const saving = updateProfileBinding.isPending;
+        return (
+          <Space size={8} wrap={false}>
+            <Button
+              size="small"
+              icon={<SaveOutlined />}
+              onClick={() => void handleSaveProfileBinding(record.platform)}
+              disabled={!selectedProfile || saving}
+            >
+              Save
+            </Button>
+            <Button
+              size="small"
+              onClick={() =>
+                void handleOpenProductProfileLogin(
+                  record.platform,
+                  record.profile_key,
+                )
+              }
+              disabled={!selectedProfile}
+            >
+              Open Login Browser
+            </Button>
+          </Space>
+        );
+      },
+    },
+  ];
+
   const columns: ColumnsType<Product> = [
-    { title: "ID", dataIndex: "id", width: 60 },
+    { title: "Product", dataIndex: "title", ellipsis: true },
     {
       title: "Platform",
       dataIndex: "platform",
       width: 90,
       render: (value: string) => <PlatformBadge value={value} />,
     },
-    { title: "Title", dataIndex: "title", ellipsis: true },
     {
-      title: "Status",
+      title: "URL",
+      dataIndex: "url",
+      ellipsis: true,
+      render: (value: string) => (
+        <Tooltip title={value}>
+          <span>{value}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Active",
       dataIndex: "active",
       width: 80,
       render: (value: boolean) =>
@@ -334,33 +609,9 @@ export default function ProductsPage() {
         ),
     },
     {
-      title: "Created",
-      dataIndex: "created_at",
-      width: 180,
-      render: (value: string) =>
-        new Intl.DateTimeFormat("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(value)),
-    },
-    {
-      title: "Alert",
-      key: "alert",
-      width: 80,
-      render: (_value: unknown, record: Product) => {
-        const alert = alertMap.get(record.id);
-        if (!alert) return <Tag>Not set</Tag>;
-        return alert.active ? (
-          <Tag color="orange">{String(alert.threshold_percent)}%</Tag>
-        ) : (
-          <Tag color="default">Inactive</Tag>
-        );
-      },
-    },
-    {
       title: "Actions",
       key: "action",
-      width: 380,
+      width: 320,
       render: (_value: unknown, record: Product) => (
         <Space size={8}>
           <Button
@@ -392,6 +643,65 @@ export default function ProductsPage() {
             <Button size="small" danger icon={<DeleteOutlined />}>
               Delete
             </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  const scheduleColumns: ColumnsType<ProductScheduleRow> = [
+    {
+      title: "Platform",
+      dataIndex: "platform",
+      width: 90,
+      render: (value: string) => PLATFORM_LABEL[value] ?? value,
+    },
+    {
+      title: "Cron Expression",
+      dataIndex: "cron_expression",
+      render: (value: string | null) =>
+        value ? (
+          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            {value}
+          </span>
+        ) : (
+          <Tag>Unset</Tag>
+        ),
+    },
+    {
+      title: "Timezone",
+      dataIndex: "cron_timezone",
+      width: 130,
+      render: (value: string | null) => value || "Asia/Shanghai",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 92,
+      render: (_value: unknown, record) => (
+        <Space size={6}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            aria-label="Edit schedule config"
+            onClick={() => navigate("/schedule")}
+          />
+          <Popconfirm
+            title="Delete this schedule config?"
+            onConfirm={() => handleDeleteSchedule(record.platform)}
+            disabled={!record.configured}
+          >
+            <Button
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              aria-label="Delete schedule config"
+              disabled={!record.configured}
+              loading={
+                deleteCronConfig.isPending &&
+                deleteCronConfig.variables === record.platform
+              }
+            />
           </Popconfirm>
         </Space>
       ),
@@ -456,17 +766,32 @@ export default function ProductsPage() {
 
   return (
     <div className="page-root">
-      {/* Page header — lime color block */}
-      <div className="page-header bg-lime">
-        <div className="page-header-inner">
-          <div>
-            <p className="page-eyebrow">Data Management</p>
-            <h1 className="page-title">Product Management</h1>
-            <p className="page-subtitle">
-              Track price changes for Taobao, JD, and Amazon products
-            </p>
-          </div>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <h1 className="page-title" style={{ marginBottom: 18 }}>
+          Product Management
+        </h1>
+        <Space size={28} style={{ borderBottom: "1px solid var(--color-hairline)", width: "100%" }}>
+          {[
+            ["products", "Products"],
+            ["platform-profiles", "Platform Profiles"],
+            ["crawl-logs", "Crawl Logs"],
+          ].map(([id, label], index) => (
+            <Button
+              key={id}
+              type="text"
+              onClick={() => scrollToSection(id)}
+              style={{
+                padding: "0 0 10px",
+                height: "auto",
+                borderRadius: 0,
+                borderBottom: index === 0 ? "2px solid var(--color-ink)" : "2px solid transparent",
+                fontWeight: index === 0 ? 600 : 400,
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </Space>
       </div>
 
       <motion.div
@@ -475,43 +800,51 @@ export default function ProductsPage() {
         animate="show"
         style={{ width: "100%" }}
       >
-        <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-          {/* Toolbar card */}
-          <motion.div
-            variants={stagger.item}
-            className="fg-card fg-card-toolbar"
-          >
-            <Row gutter={[12, 12]} align="middle">
-              <Col flex="auto">
-                <Space wrap size={8}>
-                  <Button
-                    icon={<ImportOutlined style={{ fontSize: 14 }} />}
-                    onClick={() => setBatchImportOpen(true)}
-                    className="fg-btn-secondary"
+        <Row gutter={[16, 16]} align="top">
+          <Col xs={24} xl={16}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+              <motion.div
+                id="platform-profiles"
+                variants={stagger.item}
+                className="fg-card"
+              >
+                <div className="fg-card-header">
+                  <span
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: 15,
+                      fontWeight: 480,
+                      color: "var(--color-ink)",
+                    }}
                   >
-                    Batch Import
-                  </Button>
-                  <Popconfirm
-                    title="Delete selected items?"
-                    onConfirm={handleBatchDelete}
-                    disabled={selectedRowKeys.length === 0}
+                    Platform Profiles
+                  </span>
+                </div>
+                <div style={{ padding: "20px 24px" }}>
+                  <Table<ProductPlatformProfileBinding>
+                    rowKey="platform"
+                    columns={profileColumns}
+                    dataSource={profileRows}
+                    loading={profileBindingsLoading}
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 780 }}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div id="products" variants={stagger.item} className="fg-card">
+                <div className="fg-card-header">
+                  <span
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: 15,
+                      fontWeight: 480,
+                      color: "var(--color-ink)",
+                    }}
                   >
-                    <Button
-                      danger
-                      icon={<DeleteOutlined style={{ fontSize: 14 }} />}
-                      disabled={selectedRowKeys.length === 0}
-                      className="fg-btn-danger"
-                    >
-                      Batch Delete
-                    </Button>
-                  </Popconfirm>
-                  <Button
-                    icon={<PlusOutlined style={{ fontSize: 14 }} />}
-                    onClick={() => setCreateFormOpen(true)}
-                    className="fg-btn-secondary"
-                  >
-                    Add Product
-                  </Button>
+                    Products
+                  </span>
                   {canCrawl && (
                     <Button
                       icon={<RocketOutlined style={{ fontSize: 14 }} />}
@@ -522,198 +855,292 @@ export default function ProductsPage() {
                       Crawl Now
                     </Button>
                   )}
-                </Space>
-              </Col>
-              <Col>
-                <Space size={8}>
-                  <Input
-                    placeholder="Search title or URL"
-                    autoComplete="off"
-                    suffix={
-                      <SearchOutlined
-                        style={{
-                          color: "var(--color-muted)",
-                          fontSize: 16,
-                        }}
-                      />
-                    }
-                    onChange={(e) => setKeyword(e.target.value)}
-                    style={{
-                      width: 260,
+                </div>
+                <div style={{ padding: "20px 24px" }}>
+                  <Row gutter={[12, 12]} align="middle" style={{ marginBottom: 16 }}>
+                    <Col flex="auto">
+                      <Space wrap size={8}>
+                        <Button
+                          icon={<ImportOutlined style={{ fontSize: 14 }} />}
+                          onClick={() => setBatchImportOpen(true)}
+                          className="fg-btn-secondary"
+                        >
+                          Batch Import
+                        </Button>
+                        <Popconfirm
+                          title="Delete selected items?"
+                          onConfirm={handleBatchDelete}
+                          disabled={selectedRowKeys.length === 0}
+                        >
+                          <Button
+                            danger
+                            icon={<DeleteOutlined style={{ fontSize: 14 }} />}
+                            disabled={selectedRowKeys.length === 0}
+                            className="fg-btn-danger"
+                          >
+                            Batch Delete
+                          </Button>
+                        </Popconfirm>
+                        <Button
+                          icon={<PlusOutlined style={{ fontSize: 14 }} />}
+                          onClick={() => setCreateFormOpen(true)}
+                          className="fg-btn-secondary"
+                        >
+                          Add Product
+                        </Button>
+                      </Space>
+                    </Col>
+                    <Col>
+                      <Space size={8}>
+                        <Input
+                          placeholder="Search title or URL"
+                          autoComplete="off"
+                          suffix={
+                            <SearchOutlined
+                              style={{
+                                color: "var(--color-muted)",
+                                fontSize: 16,
+                              }}
+                            />
+                          }
+                          onChange={(e) => setKeyword(e.target.value)}
+                          style={{ width: 240 }}
+                        />
+                        <Select
+                          placeholder="Platform"
+                          allowClear
+                          style={{ width: 110, fontFamily: "var(--font-body)" }}
+                          options={[
+                            { label: "Taobao", value: "taobao" },
+                            { label: "JD", value: "jd" },
+                            { label: "Amazon", value: "amazon" },
+                          ]}
+                          onChange={(value) => setPlatform(value)}
+                          className="fg-select"
+                        />
+                        <Select
+                          placeholder="Status"
+                          allowClear
+                          style={{ width: 95, fontFamily: "var(--font-body)" }}
+                          options={[
+                            { label: "Active", value: true },
+                            { label: "Inactive", value: false },
+                          ]}
+                          onChange={(value) => setActive(value)}
+                          className="fg-select"
+                        />
+                      </Space>
+                    </Col>
+                  </Row>
+
+                  {isError && (
+                    <Alert
+                      type="error"
+                      message="Load Failed"
+                      description="Unable to fetch product list. Please check your network or try again."
+                      action={
+                        <Button size="small" onClick={() => refetch()}>
+                          Retry
+                        </Button>
+                      }
+                      style={{ marginBottom: 16 }}
+                    />
+                  )}
+
+                  <Table<Product>
+                    rowKey="id"
+                    columns={columns}
+                    dataSource={productItems}
+                    loading={isLoading}
+                    scroll={{ x: "max-content" }}
+                    rowSelection={{
+                      selectedRowKeys,
+                      onChange: (keys) => setSelectedRowKeys(keys),
+                    }}
+                    pagination={{
+                      current: page,
+                      pageSize: size,
+                      total: data?.total ?? 0,
+                      showSizeChanger: true,
+                      showTotal: (totalCount) => `Total ${totalCount} items`,
+                      onChange: (nextPage, nextSize) => {
+                        setPage(nextPage);
+                        if (nextSize) setSize(nextSize);
+                      },
+                    }}
+                    locale={{
+                      emptyText: (
+                        <div style={{ padding: "40px 0", textAlign: "center" }}>
+                          <p
+                            style={{
+                              fontFamily: "var(--font-body)",
+                              fontSize: 16,
+                              fontWeight: 330,
+                              color: "var(--color-muted)",
+                              marginBottom: 16,
+                            }}
+                          >
+                            No products yet. Click to add your first one.
+                          </p>
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined style={{ fontSize: 14 }} />}
+                            onClick={() => setCreateFormOpen(true)}
+                            className="fg-btn-primary"
+                          >
+                            Add First Product
+                          </Button>
+                        </div>
+                      ),
                     }}
                   />
-                  <Select
-                    placeholder="Platform"
-                    allowClear
-                    style={{ width: 110, fontFamily: "var(--font-body)" }}
-                    options={[
-                      { label: "Taobao", value: "taobao" },
-                      { label: "JD", value: "jd" },
-                      { label: "Amazon", value: "amazon" },
-                    ]}
-                    onChange={(value) => setPlatform(value)}
-                    className="fg-select"
-                  />
-                  <Select
-                    placeholder="Status"
-                    allowClear
-                    style={{ width: 95, fontFamily: "var(--font-body)" }}
-                    options={[
-                      { label: "Active", value: true },
-                      { label: "Inactive", value: false },
-                    ]}
-                    onChange={(value) => setActive(value)}
-                    className="fg-select"
-                  />
-                </Space>
-              </Col>
-            </Row>
-          </motion.div>
 
-          {isError && (
-            <Alert
-              type="error"
-              message="Load Failed"
-              description="Unable to fetch product list. Please check your network or try again."
-              action={
-                <Button size="small" onClick={() => refetch()}>
-                  Retry
-                </Button>
-              }
-              style={{ marginBottom: 16 }}
-            />
-          )}
+                  {selectedRowKeys.length > 0 && (
+                    <div style={{ color: "var(--color-muted)", fontSize: 12 }}>
+                      Selected {selectedRowKeys.length} items (current page only)
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
-          <motion.div variants={stagger.item}>
-            <Table<Product>
-              rowKey="id"
-              columns={columns}
-              dataSource={productItems}
-              loading={isLoading}
-              scroll={{ x: "max-content" }}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: (keys) => setSelectedRowKeys(keys),
-              }}
-              pagination={{
-                current: page,
-                pageSize: size,
-                total: data?.total ?? 0,
-                showSizeChanger: true,
-                showTotal: (totalCount) => `Total ${totalCount} items`,
-                onChange: (nextPage, nextSize) => {
-                  setPage(nextPage);
-                  if (nextSize) setSize(nextSize);
-                },
-              }}
-              locale={{
-                emptyText: (
-                  <div style={{ padding: "40px 0", textAlign: "center" }}>
-                    <p
+              <motion.div id="crawl-logs" variants={stagger.item} className="fg-card">
+                <div className="fg-card-header">
+                  <Space>
+                    <HistoryOutlined style={{ fontSize: 14 }} />
+                    <span
                       style={{
                         fontFamily: "var(--font-body)",
-                        fontSize: 16,
-                        fontWeight: 330,
-                        color: "var(--color-muted)",
-                        marginBottom: 16,
+                        fontSize: 15,
+                        fontWeight: 480,
+                        color: "var(--color-ink)",
                       }}
                     >
-                      No products yet. Click to add your first one.
-                    </p>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined style={{ fontSize: 14 }} />}
-                      onClick={() => setCreateFormOpen(true)}
-                      className="fg-btn-primary"
-                    >
-                      Add First Product
-                    </Button>
+                      Recent Crawl Logs
+                    </span>
+                    {crawlLogItems.length > 0 && (
+                      <span
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: 11,
+                          color: "var(--color-muted)",
+                          letterSpacing: "0.4px",
+                        }}
+                      >
+                        ({crawlLogItems.length} items)
+                      </span>
+                    )}
+                  </Space>
+                  <Button
+                    size="small"
+                    icon={<ReloadOutlined style={{ fontSize: 13 }} />}
+                    onClick={() => refetchLogs()}
+                    loading={logsLoading}
+                    className="fg-btn-secondary fg-btn-sm"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+                {logsLoading && crawlLogItems.length === 0 ? (
+                  <div
+                    style={{
+                      padding: 20,
+                      textAlign: "center",
+                      fontFamily: "var(--font-body)",
+                      fontSize: 14,
+                      color: "var(--color-muted)",
+                    }}
+                  >
+                    Loading...
                   </div>
-                ),
-              }}
-            />
-          </motion.div>
+                ) : crawlLogItems.length > 0 ? (
+                  <Table
+                    size="small"
+                    dataSource={crawlLogItems}
+                    rowKey="id"
+                    pagination={false}
+                    scroll={{ x: 760 }}
+                    columns={crawlLogColumns}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      padding: 20,
+                      textAlign: "center",
+                      fontFamily: "var(--font-body)",
+                      fontSize: 14,
+                      color: "var(--color-muted)",
+                    }}
+                  >
+                    No crawl records
+                  </div>
+                )}
+              </motion.div>
+            </Space>
+          </Col>
 
-          {selectedRowKeys.length > 0 && (
-            <div style={{ color: "var(--color-muted)", fontSize: 12 }}>
-              Selected {selectedRowKeys.length} items (current page only)
-            </div>
-          )}
-        </Space>
-      </motion.div>
-
-      <div className="fg-card" style={{ marginTop: 16 }}>
-        <div className="fg-card-header">
-          <Space>
-            <HistoryOutlined style={{ fontSize: 14 }} />
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 15,
-                fontWeight: 480,
-                color: "var(--color-ink)",
-              }}
+          <Col xs={24} xl={8}>
+            <motion.div
+              variants={stagger.item}
+              className="fg-card"
+              style={{ minHeight: 520 }}
             >
-              Recent Crawl Logs
-            </span>
-            {crawlLogItems.length > 0 && (
-              <span
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  color: "var(--color-muted)",
-                  letterSpacing: "0.4px",
-                }}
-              >
-                ({crawlLogItems.length} items)
-              </span>
-            )}
-          </Space>
-          <Button
-            size="small"
-            icon={<ReloadOutlined style={{ fontSize: 13 }} />}
-            onClick={() => refetchLogs()}
-            loading={logsLoading}
-            className="fg-btn-secondary fg-btn-sm"
-          >
-            Refresh
-          </Button>
-        </div>
-        {logsLoading && crawlLogItems.length === 0 ? (
-          <div
-            style={{
-              padding: 20,
-              textAlign: "center",
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              color: "var(--color-muted)",
-            }}
-          >
-            Loading...
-          </div>
-        ) : crawlLogItems.length > 0 ? (
-          <Table
-            size="small"
-            dataSource={crawlLogItems}
-            rowKey="id"
-            pagination={false}
-            scroll={{ x: 800 }}
-            columns={crawlLogColumns}
-          />
-        ) : (
-          <div
-            style={{
-              padding: 20,
-              textAlign: "center",
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              color: "var(--color-muted)",
-            }}
-          >
-            No crawl records
-          </div>
-        )}
-      </div>
+              <div className="fg-card-header">
+                <Space>
+                  <ScheduleOutlined style={{ fontSize: 14 }} />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: 15,
+                      fontWeight: 480,
+                      color: "var(--color-ink)",
+                    }}
+                  >
+                    Schedule Config
+                  </span>
+                </Space>
+                <Button
+                  size="small"
+                  onClick={() => navigate("/schedule")}
+                  className="fg-btn-secondary fg-btn-sm"
+                >
+                  Add Schedule
+                </Button>
+              </div>
+              <div style={{ padding: "20px 24px" }}>
+                <h4
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: 14,
+                    fontWeight: 520,
+                    margin: "0 0 12px",
+                  }}
+                >
+                  Product Crawl Schedule Config
+                </h4>
+                <Table<ProductScheduleRow>
+                  rowKey="platform"
+                  dataSource={scheduleRows}
+                  columns={scheduleColumns}
+                  loading={cronConfigsLoading || cronSchedulesLoading}
+                  pagination={false}
+                  size="small"
+                  scroll={{ x: 520 }}
+                />
+                <p
+                  style={{
+                    margin: "16px 0 0",
+                    color: "var(--color-muted)",
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Schedule controls when to crawl. Platform profiles are configured in the Platform Profiles section.
+                </p>
+              </div>
+            </motion.div>
+          </Col>
+        </Row>
+      </motion.div>
 
       <ProductFormModal
         key={editModal.record?.id ?? "new"}

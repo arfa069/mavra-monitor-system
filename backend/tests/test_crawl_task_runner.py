@@ -78,6 +78,10 @@ async def test_runner_executes_product_task(monkeypatch):
         AsyncMock(return_value=[SimpleNamespace(id=10, platform="jd"), SimpleNamespace(id=11, platform="jd")]),
     )
     monkeypatch.setattr(
+        "app.domains.products.repository.list_product_profile_bindings",
+        AsyncMock(return_value=[SimpleNamespace(platform="jd", profile_key="product-jd-default")]),
+    )
+    monkeypatch.setattr(
         "app.domains.crawling.task_runner.asyncio.sleep",
         AsyncMock(),
     )
@@ -114,6 +118,10 @@ async def test_runner_limits_product_concurrency_to_three(monkeypatch):
     monkeypatch.setattr(
         "app.domains.crawling.service.get_active_products",
         AsyncMock(return_value=[SimpleNamespace(id=i, platform="jd") for i in range(6)]),
+    )
+    monkeypatch.setattr(
+        "app.domains.products.repository.list_product_profile_bindings",
+        AsyncMock(return_value=[SimpleNamespace(platform="jd", profile_key="product-jd-default")]),
     )
     monkeypatch.setattr(
         "app.domains.crawling.task_runner.crawl_products_with_profile",
@@ -154,6 +162,14 @@ async def test_runner_reports_product_progress(monkeypatch):
     monkeypatch.setattr(
         "app.domains.crawling.service.get_active_products",
         fake_get_active_products,
+    )
+    class Binding:
+        platform = "jd"
+        profile_key = "product-jd-default"
+
+    monkeypatch.setattr(
+        "app.domains.products.repository.list_product_profile_bindings",
+        AsyncMock(return_value=[Binding()]),
     )
     monkeypatch.setattr(
         "app.domains.crawling.task_runner.crawl_products_with_profile",

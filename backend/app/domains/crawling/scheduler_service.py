@@ -214,14 +214,13 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
     Persists task state to crawl_tasks.
     """
     from app.domains.products import repository as product_repository
-    from app.domains.products.profile_binding import default_product_profile_key
 
-    # Resolve profile key from cron config
+    # Resolve profile key from product platform binding. The cron config only owns timing.
     async with AsyncSessionLocal() as db:
-        config = await product_repository.get_product_cron_config(
+        binding = await product_repository.get_product_profile_binding(
             db, user_id=user_id, platform=platform
         )
-        profile_key = config.profile_key if config else default_product_profile_key(platform)
+        profile_key = binding.profile_key if binding else None
 
     # Create persistent task record with profile_key
     async with AsyncSessionLocal() as db:

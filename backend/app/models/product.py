@@ -51,4 +51,26 @@ class ProductPlatformCron(Base, TimestampMixin):
         comment="5-segment crontab expression. Null means no scheduled crawl for this platform.",
     )
     cron_timezone = Column(String(50), nullable=True, default="Asia/Shanghai")
-    profile_key = Column(String(80), ForeignKey("crawl_profiles.profile_key"), nullable=False)
+    profile_key = Column(String(80), ForeignKey("crawl_profiles.profile_key"), nullable=True)
+
+
+class ProductPlatformProfileBinding(Base, TimestampMixin):
+    """Per-platform browser profile binding for product crawling."""
+    __tablename__ = "products_platform_profile_bindings"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "platform",
+            name="uq_products_platform_profile_bindings_user_platform",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    platform = Column(String(20), nullable=False)  # 'taobao', 'jd', 'amazon'
+    profile_key = Column(
+        String(80),
+        ForeignKey("crawl_profiles.profile_key", ondelete="CASCADE"),
+        nullable=False,
+    )

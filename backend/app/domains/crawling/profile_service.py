@@ -1,7 +1,7 @@
 import shutil
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crawler_paths import build_profile_dir
@@ -76,7 +76,7 @@ async def rename_profile(
     new_profile_key: str,
 ) -> CrawlProfile:
     from app.models.job import JobSearchConfig
-    from app.models.product import ProductPlatformCron
+    from app.models.product import ProductPlatformCron, ProductPlatformProfileBinding
 
     if profile_key == new_profile_key:
         return await get_profile(db, profile_key)
@@ -126,6 +126,11 @@ async def rename_profile(
         await db.execute(
             update(ProductPlatformCron)
             .where(ProductPlatformCron.profile_key == profile_key)
+            .values(profile_key=new_profile_key)
+        )
+        await db.execute(
+            update(ProductPlatformProfileBinding)
+            .where(ProductPlatformProfileBinding.profile_key == profile_key)
             .values(profile_key=new_profile_key)
         )
         await db.delete(profile)
@@ -205,7 +210,7 @@ async def copy_profile(db: AsyncSession, *, profile_key: str) -> CrawlProfile:
 
 async def delete_profile(db: AsyncSession, *, profile_key: str) -> None:
     from app.models.job import JobSearchConfig
-    from app.models.product import ProductPlatformCron
+    from app.models.product import ProductPlatformCron, ProductPlatformProfileBinding
 
     profile = await get_profile(db, profile_key)
     _assert_not_active(profile)
@@ -213,13 +218,20 @@ async def delete_profile(db: AsyncSession, *, profile_key: str) -> None:
     job_ref = await db.execute(
         select(JobSearchConfig.id).where(JobSearchConfig.profile_key == profile_key).limit(1)
     )
-    product_ref = await db.execute(
-        select(ProductPlatformCron.id).where(ProductPlatformCron.profile_key == profile_key).limit(1)
-    )
-    if job_ref.scalar_one_or_none() is not None or product_ref.scalar_one_or_none() is not None:
+    if job_ref.scalar_one_or_none() is not None:
         raise CrawlProfileInUseError(profile_key)
 
     profile_dir = build_profile_dir(profile_key)
+    await db.execute(
+        delete(ProductPlatformProfileBinding).where(
+            ProductPlatformProfileBinding.profile_key == profile_key
+        )
+    )
+    await db.execute(
+        update(ProductPlatformCron)
+        .where(ProductPlatformCron.profile_key == profile_key)
+        .values(profile_key=None)
+    )
     await db.delete(profile)
     await db.commit()
     if profile_dir.exists():

@@ -11,7 +11,11 @@ from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import MatchResult, UserResume
 from app.models.permission import Permission
 from app.models.price_history import PriceHistory
-from app.models.product import Product, ProductPlatformCron
+from app.models.product import (
+    Product,
+    ProductPlatformCron,
+    ProductPlatformProfileBinding,
+)
 from app.models.role import Role, role_permissions
 from app.models.system_log import SystemLog
 from app.models.user import User
@@ -21,6 +25,7 @@ __all__ = [
     "User",
     "Product",
     "ProductPlatformCron",
+    "ProductPlatformProfileBinding",
     "PriceHistory",
     "Alert",
     "CrawlLog",

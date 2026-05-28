@@ -37,6 +37,7 @@ export const productQueryKeys = {
     hours?: number;
     limit?: number;
   }) => ["crawl-logs", params] as const,
+  profileBindings: ["products", "profile-bindings"] as const,
 };
 
 export const useProducts = (params: {
@@ -143,8 +144,10 @@ export const useCrawlNow = () => {
               details: result.details ?? [],
             };
           }
-          if (status.status === "failed")
+          if (status.status === "failed") {
+            qc.invalidateQueries({ queryKey: ["crawl-logs"] });
             return { type: "error", reason: status.reason };
+          }
         } catch (e) {
           console.warn("Polling error:", e);
         }
@@ -164,3 +167,34 @@ export const useCrawlLogs = (params?: {
     queryFn: () => crawlApi.getLogs(params).then((res) => res.data),
     refetchInterval: 60_000,
   });
+
+export const useProductProfileBindings = () =>
+  useQuery({
+    queryKey: productQueryKeys.profileBindings,
+    queryFn: () => productsApi.getProfileBindings().then((res) => res.data),
+    staleTime: 10_000,
+  });
+
+export const useUpdateProductProfileBinding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      platform,
+      profile_key,
+    }: {
+      platform: string;
+      profile_key: string;
+    }) => productsApi.updateProfileBinding(platform, { profile_key }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: productQueryKeys.profileBindings }),
+  });
+};
+
+export const useDeleteProductProfileBinding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: productsApi.deleteProfileBinding,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: productQueryKeys.profileBindings }),
+  });
+};

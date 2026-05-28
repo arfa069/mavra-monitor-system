@@ -22,9 +22,7 @@ import { configApi } from "@/features/settings";
 import { jobsApi } from "@/features/jobs";
 import { productsApi } from "@/features/products";
 import { useAuth } from "@/shared/contexts/AuthContext";
-import type { CrawlProfile } from "@/features/jobs/types";
 import CronGenerator from "./components/CronGenerator";
-import { ProductProfileCell } from "./components/ProductProfileCell";
 import {
   useScheduleConfig,
   useUpdateScheduleConfig,
@@ -71,15 +69,9 @@ export default function ScheduleConfigPage() {
   const [platformCronInputs, setPlatformCronInputs] = useState<
     Record<string, string>
   >({});
-  const [platformProfileInputs, setPlatformProfileInputs] = useState<
-    Record<string, string>
-  >({});
   const [platformSaving, setPlatformSaving] = useState<Record<string, boolean>>(
     {},
   );
-  const [profiles, setProfiles] = useState<CrawlProfile[]>([]);
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileModalPlatform, setProfileModalPlatform] = useState<string | null>(null);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addPlatform, setAddPlatform] = useState<string | undefined>(undefined);
@@ -110,15 +102,6 @@ export default function ScheduleConfigPage() {
     }
   }, []);
 
-  const loadProfiles = useCallback(async () => {
-    try {
-      const res = await jobsApi.getProfiles();
-      setProfiles(res.data);
-    } catch {
-      // ignore profile load errors
-    }
-  }, []);
-
   const loadPlatformData = useCallback(async () => {
     setPlatformLoading(true);
     try {
@@ -130,13 +113,10 @@ export default function ScheduleConfigPage() {
       setPlatformConfigs(configs);
       setPlatformSchedules(schedulesRes.data.platforms);
       const cronInputs: Record<string, string> = {};
-      const profileInputs: Record<string, string> = {};
       configs.forEach((configItem) => {
         cronInputs[configItem.platform] = configItem.cron_expression || "";
-        profileInputs[configItem.platform] = configItem.profile_key || "";
       });
       setPlatformCronInputs(cronInputs);
-      setPlatformProfileInputs(profileInputs);
     } catch {
       message.error("Failed to load product schedule config");
     } finally {
@@ -185,10 +165,9 @@ export default function ScheduleConfigPage() {
       void fetchSchedulerStatus();
       void loadPlatformData();
       void loadConfigData();
-      void loadProfiles();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchSchedulerStatus, loadPlatformData, loadConfigData, loadProfiles]);
+  }, [fetchSchedulerStatus, loadPlatformData, loadConfigData]);
 
   const handleSaveRetention = async () => {
     try {
@@ -224,16 +203,10 @@ export default function ScheduleConfigPage() {
     }
     setAddSaving(true);
     try {
-      const defaultKeys: Record<string, string> = {
-        jd: "product-jd-default",
-        taobao: "product-taobao-default",
-        amazon: "product-amazon-default",
-      };
       await productsApi.createCronConfig({
         platform: addPlatform,
         cron_expression: value,
         cron_timezone: "Asia/Shanghai",
-        profile_key: defaultKeys[addPlatform],
       });
       message.success("Added");
       setAddModalOpen(false);
@@ -274,7 +247,6 @@ export default function ScheduleConfigPage() {
       await productsApi.updateCronConfig(platform, {
         cron_expression: value,
         cron_timezone: "Asia/Shanghai",
-        profile_key: platformProfileInputs[platform] || undefined,
       });
       message.success("Saved");
       void loadPlatformData();
@@ -282,27 +254,6 @@ export default function ScheduleConfigPage() {
       message.error("Save failed");
     } finally {
       setPlatformSaving((prev) => ({ ...prev, [platform]: false }));
-    }
-  };
-
-  const handleCreateProfile = async () => {
-    if (!profileModalPlatform) return;
-    const defaultKeys: Record<string, string> = {
-      jd: "product-jd-default",
-      taobao: "product-taobao-default",
-      amazon: "product-amazon-default",
-    };
-    const key = defaultKeys[profileModalPlatform];
-    try {
-      await jobsApi.createProfile({ profile_key: key, platform_hint: profileModalPlatform });
-      message.success("Profile created");
-      await loadProfiles();
-    } catch {
-      message.info("Profile may already exist");
-      await loadProfiles();
-    } finally {
-      setProfileModalOpen(false);
-      setProfileModalPlatform(null);
     }
   };
 
@@ -413,36 +364,6 @@ export default function ScheduleConfigPage() {
             Save
           </Button>
         </Space>
-      ),
-    },
-    {
-      title: "Profile",
-      dataIndex: "profile_key",
-      key: "profile_key",
-      render: (_: string, record: ProductPlatformCron) => (
-        <ProductProfileCell
-          value={platformProfileInputs[record.platform] ?? record.profile_key}
-          profiles={profiles}
-          onChange={(profileKey) =>
-            setPlatformProfileInputs((prev) => ({
-              ...prev,
-              [record.platform]: profileKey,
-            }))
-          }
-          onCreate={() => {
-            setProfileModalPlatform(record.platform);
-            setProfileModalOpen(true);
-          }}
-          onReleaseStale={async (profileKey) => {
-            try {
-              await jobsApi.releaseStaleProfile(profileKey);
-              await loadProfiles();
-              message.success("Released");
-            } catch {
-              message.error("Release failed");
-            }
-          }}
-        />
       ),
     },
     {
@@ -840,21 +761,6 @@ export default function ScheduleConfigPage() {
         onApply={handleApplyCron}
       />
 
-      <Modal
-        title="Create Default Profile"
-        open={profileModalOpen}
-        onOk={() => void handleCreateProfile()}
-        onCancel={() => {
-          setProfileModalOpen(false);
-          setProfileModalPlatform(null);
-        }}
-        okText="Create"
-      >
-        <p style={{ marginTop: 16 }}>
-          Create default profile for{" "}
-          <strong>{profileModalPlatform && PLATFORM_LABELS[profileModalPlatform]}</strong>?
-        </p>
-      </Modal>
     </div>
   );
 }

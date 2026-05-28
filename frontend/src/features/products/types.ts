@@ -71,7 +71,7 @@ export interface ProductPlatformCron {
   platform: string;
   cron_expression: string | null;
   cron_timezone: string;
-  profile_key: string;
+  profile_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,13 +80,24 @@ export interface ProductPlatformCronCreate {
   platform: string;
   cron_expression?: string | null;
   cron_timezone?: string | null;
-  profile_key?: string | null;
 }
 
 export interface ProductPlatformCronUpdate {
   cron_expression: string | null;
   cron_timezone?: string | null;
-  profile_key?: string | null;
+}
+
+export interface ProductPlatformProfileBinding {
+  platform: string;
+  profile_key: string | null;
+  profile_status: string | null;
+  profile_last_error: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ProductPlatformProfileBindingUpdate {
+  profile_key: string;
 }
 
 export interface PriceHistoryRecord {

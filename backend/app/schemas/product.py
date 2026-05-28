@@ -6,6 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.alert import AlertResponse
+from app.schemas.crawl_profile import validate_profile_key_value
 from app.schemas.price_history import PriceHistorySummary
 
 
@@ -113,7 +114,7 @@ class ProductPlatformCronResponse(BaseModel):
     platform: str
     cron_expression: str | None
     cron_timezone: str
-    profile_key: str
+    profile_key: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -131,10 +132,6 @@ class ProductPlatformCronCreate(BaseModel):
     cron_timezone: str | None = Field(
         default=None, max_length=50, description="时区",
     )
-    profile_key: str | None = Field(
-        default=None, max_length=80, description="Crawl profile key",
-    )
-
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
@@ -174,10 +171,6 @@ class ProductPlatformCronUpdate(BaseModel):
         default=None, max_length=50,
         description="时区，默认 Asia/Shanghai",
     )
-    profile_key: str | None = Field(
-        default=None, max_length=80, description="Crawl profile key",
-    )
-
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
@@ -205,3 +198,23 @@ class ProductPlatformCronUpdate(BaseModel):
         except Exception:
             raise ValueError(f"Invalid timezone: {v}")
         return val
+
+
+class ProductPlatformProfileBindingResponse(BaseModel):
+    """Product platform to crawl profile binding."""
+    platform: str
+    profile_key: str | None = None
+    profile_status: str | None = None
+    profile_last_error: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ProductPlatformProfileBindingUpdate(BaseModel):
+    """Update product platform profile binding."""
+    profile_key: str = Field(min_length=1, max_length=80)
+
+    @field_validator("profile_key")
+    @classmethod
+    def validate_profile_key(cls, value: str) -> str:
+        return validate_profile_key_value(value)

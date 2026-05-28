@@ -11,6 +11,8 @@ import type {
   ProductPlatformCronCreate,
   ProductPlatformCronUpdate,
   ProductPlatformCronSchedule,
+  ProductPlatformProfileBinding,
+  ProductPlatformProfileBindingUpdate,
 } from "../types";
 
 export const productsApi = {
@@ -69,4 +71,19 @@ export const productsApi = {
     api.get<{ platforms: Record<string, ProductPlatformCronSchedule> }>(
       "/v1/products/cron-schedules",
     ),
+
+  getProfileBindings: () =>
+    api.get<ProductPlatformProfileBinding[]>("/v1/products/profile-bindings"),
+
+  updateProfileBinding: (
+    platform: string,
+    data: ProductPlatformProfileBindingUpdate,
+  ) =>
+    api.put<ProductPlatformProfileBinding>(
+      `/v1/products/profile-bindings/${platform}`,
+      data,
+    ),
+
+  deleteProfileBinding: (platform: string) =>
+    api.delete(`/v1/products/profile-bindings/${platform}`),
 };

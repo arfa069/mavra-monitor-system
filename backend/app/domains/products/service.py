@@ -5,8 +5,8 @@ from urllib.parse import parse_qs, urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.crawling.profile_service import CrawlProfileNotFoundError, get_profile
 from app.domains.products import repository
-from app.domains.products.profile_binding import resolve_product_profile
 from app.models.price_history import PriceHistory
 from app.models.product import Product, ProductPlatformCron
 from app.schemas.product import (
@@ -18,6 +18,8 @@ from app.schemas.product import (
     ProductListResponse,
     ProductPlatformCronCreate,
     ProductPlatformCronUpdate,
+    ProductPlatformProfileBindingResponse,
+    ProductPlatformProfileBindingUpdate,
     ProductUpdate,
 )
 
@@ -160,23 +162,6 @@ async def list_product_cron_configs(
     return await repository.list_product_cron_configs(db, user_id=user_id)
 
 
-async def _resolve_profile_key(
-    db: AsyncSession,
-    *,
-    platform: str,
-    profile_key: str | None,
-) -> str:
-    try:
-        profile = await resolve_product_profile(
-            db,
-            platform=platform,
-            profile_key=profile_key,
-        )
-    except ValueError as exc:
-        raise ProductProfileConfigError(str(exc)) from exc
-    return profile.profile_key
-
-
 async def create_product_cron_config(
     db: AsyncSession, *, user_id: int, data: ProductPlatformCronCreate
 ) -> ProductPlatformCron:
@@ -189,18 +174,13 @@ async def create_product_cron_config(
     if existing:
         raise ProductCronConfigConflictError
 
-    resolved_profile_key = await _resolve_profile_key(
-        db,
-        platform=data.platform,
-        profile_key=data.profile_key,
-    )
     return await repository.create_product_cron_config(
         db,
         user_id=user_id,
         platform=data.platform,
         cron_expression=data.cron_expression,
         cron_timezone=data.cron_timezone,
-        profile_key=resolved_profile_key,
+        profile_key=None,
     )
 
 
@@ -220,17 +200,12 @@ async def update_product_cron_config(
     if not config:
         raise ProductCronConfigNotFoundError
 
-    resolved_profile_key = await _resolve_profile_key(
-        db,
-        platform=platform,
-        profile_key=data.profile_key or config.profile_key,
-    )
     return await repository.update_product_cron_config(
         db,
         config=config,
         cron_expression=data.cron_expression,
         cron_timezone=data.cron_timezone,
-        profile_key=resolved_profile_key,
+        profile_key=None,
     )
 
 
@@ -253,6 +228,81 @@ async def remove_product_cron_config(
     db: AsyncSession, *, config: ProductPlatformCron
 ) -> None:
     await repository.delete_product_cron_config(db, config=config)
+
+
+async def list_product_profile_bindings(
+    db: AsyncSession, *, user_id: int
+) -> list[ProductPlatformProfileBindingResponse]:
+    bindings = await repository.list_product_profile_bindings(db, user_id=user_id)
+    binding_by_platform = {binding.platform: binding for binding in bindings}
+    profiles = await repository.list_crawl_profiles_by_keys(
+        db,
+        profile_keys={binding.profile_key for binding in bindings},
+    )
+
+    response: list[ProductPlatformProfileBindingResponse] = []
+    for platform in VALID_PRODUCT_PLATFORMS:
+        binding = binding_by_platform.get(platform)
+        if binding is None:
+            response.append(ProductPlatformProfileBindingResponse(platform=platform))
+            continue
+
+        profile = profiles.get(binding.profile_key)
+        response.append(
+            ProductPlatformProfileBindingResponse(
+                platform=platform,
+                profile_key=binding.profile_key,
+                profile_status=profile.status if profile else None,
+                profile_last_error=profile.last_error if profile else None,
+                created_at=binding.created_at,
+                updated_at=binding.updated_at,
+            )
+        )
+    return response
+
+
+async def upsert_product_profile_binding(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    platform: str,
+    data: ProductPlatformProfileBindingUpdate,
+) -> ProductPlatformProfileBindingResponse:
+    if platform not in VALID_PRODUCT_PLATFORMS:
+        raise InvalidPlatformError
+    try:
+        profile = await get_profile(db, data.profile_key)
+    except CrawlProfileNotFoundError as exc:
+        raise ProductProfileConfigError(f"Unknown crawl profile: {data.profile_key}") from exc
+
+    binding = await repository.upsert_product_profile_binding(
+        db,
+        user_id=user_id,
+        platform=platform,
+        profile_key=profile.profile_key,
+    )
+    return ProductPlatformProfileBindingResponse(
+        platform=binding.platform,
+        profile_key=binding.profile_key,
+        profile_status=profile.status,
+        profile_last_error=profile.last_error,
+        created_at=binding.created_at,
+        updated_at=binding.updated_at,
+    )
+
+
+async def delete_product_profile_binding(
+    db: AsyncSession, *, user_id: int, platform: str
+) -> None:
+    if platform not in VALID_PRODUCT_PLATFORMS:
+        raise InvalidPlatformError
+    binding = await repository.get_product_profile_binding(
+        db,
+        user_id=user_id,
+        platform=platform,
+    )
+    if binding is not None:
+        await repository.delete_product_profile_binding(db, binding=binding)
 
 
 async def batch_create_products(

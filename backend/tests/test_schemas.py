@@ -192,6 +192,21 @@ class TestProductPlatformCronCreate:
         assert config.cron_timezone == "Asia/Shanghai"
 
 
+class TestProductPlatformProfileBindingUpdate:
+    def test_valid_profile_key(self):
+        from app.schemas.product import ProductPlatformProfileBindingUpdate
+
+        payload = ProductPlatformProfileBindingUpdate(profile_key="51job-jd")
+
+        assert payload.profile_key == "51job-jd"
+
+    def test_rejects_path_traversal_profile_key(self):
+        from app.schemas.product import ProductPlatformProfileBindingUpdate
+
+        with pytest.raises(ValidationError):
+            ProductPlatformProfileBindingUpdate(profile_key="../51job-jd")
+
+
 class TestJobSearchConfigSchemas:
     def test_valid_job_create(self):
         from app.schemas.job import JobSearchConfigCreate

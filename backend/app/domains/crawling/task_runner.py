@@ -16,6 +16,7 @@ from app.database import AsyncSessionLocal
 PRODUCT_CONCURRENCY_LIMIT = 3
 PRODUCT_CRAWL_INTERVAL_MIN = 2.0
 PRODUCT_CRAWL_INTERVAL_MAX = 3.0
+PRODUCT_PROFILE_NOT_CONFIGURED = "platform_profile_not_configured"
 
 ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
 
@@ -47,64 +48,116 @@ async def crawl_products_with_profile(
 
     results: list[dict] = []
     manager = BrowserManager()
-    async with manager.acquire(
-        platform=platform,
-        profile_key=profile_key,
-        owner="product-crawler",
-        task_id=task_id,
-    ) as session:
-        for product_id in product_ids:
-            try:
-                result = await crawling_service.crawl_one_with_session(
-                    product_id=product_id,
-                    session=session,
+    try:
+        async with manager.acquire(
+            platform=platform,
+            profile_key=profile_key,
+            owner="product-crawler",
+            task_id=task_id,
+        ) as session:
+            for product_id in product_ids:
+                try:
+                    result = await crawling_service.crawl_one_with_session(
+                        product_id=product_id,
+                        session=session,
+                    )
+                    result["profile_key"] = profile_key
+                    results.append(result)
+                except Exception as exc:
+                    results.append(
+                        {
+                            "product_id": product_id,
+                            "status": "error",
+                            "reason": str(exc),
+                            "profile_key": profile_key,
+                        }
+                    )
+                await asyncio.sleep(
+                    random.uniform(PRODUCT_CRAWL_INTERVAL_MIN, PRODUCT_CRAWL_INTERVAL_MAX)
                 )
-                result["profile_key"] = profile_key
-                results.append(result)
-            except Exception as exc:
-                results.append(
-                    {
-                        "product_id": product_id,
-                        "status": "error",
-                        "reason": str(exc),
-                        "profile_key": profile_key,
-                    }
-                )
-            await asyncio.sleep(
-                random.uniform(PRODUCT_CRAWL_INTERVAL_MIN, PRODUCT_CRAWL_INTERVAL_MAX)
-            )
+    except Exception as exc:
+        reason = str(exc)
+        await _log_lane_start_failure(
+            product_ids=product_ids,
+            platform=platform,
+            reason=reason,
+        )
+        return [
+            {
+                "product_id": product_id,
+                "status": "error",
+                "reason": reason,
+                "profile_key": profile_key,
+            }
+            for product_id in product_ids
+        ]
     return results
+
+
+async def _log_lane_start_failure(
+    *,
+    product_ids: list[int],
+    platform: str,
+    reason: str,
+) -> None:
+    from app.domains.crawling import service as crawling_service
+
+    for product_id in product_ids:
+        await crawling_service.save_crawl_log(
+            product_id,
+            platform,
+            "ERROR",
+            error_message=reason,
+        )
 
 
 async def _product_profile_groups(
     *,
     user_id: int,
     platform: str | None = None,
-) -> dict[tuple[str, str], list]:
+) -> tuple[dict[tuple[str, str], list], dict[str, list]]:
     """Group active products by (platform, profile_key)."""
     from app.domains.crawling.service import get_active_products
     from app.domains.products import repository as product_repository
-    from app.domains.products.profile_binding import default_product_profile_key
 
     async with AsyncSessionLocal() as db:
         kwargs: dict = {"user_id": user_id}
         if platform is not None:
             kwargs["platform"] = platform
         products = await get_active_products(**kwargs)
+        bindings = await product_repository.list_product_profile_bindings(
+            db,
+            user_id=user_id,
+        )
+        binding_by_platform = {binding.platform: binding for binding in bindings}
         groups: dict[tuple[str, str], list] = {}
+        missing: dict[str, list] = {}
         for product in products:
-            config = await product_repository.get_product_cron_config(
-                db,
-                user_id=user_id,
-                platform=product.platform,
-            )
-            profile_key = (
-                config.profile_key
-                if config is not None
-                else default_product_profile_key(product.platform)
-            )
+            binding = binding_by_platform.get(product.platform)
+            if binding is None:
+                missing.setdefault(product.platform, []).append(product)
+                continue
+            profile_key = binding.profile_key
             groups.setdefault((product.platform, profile_key), []).append(product)
-    return groups
+    return groups, missing
+
+
+async def _missing_profile_details(*, platform: str, products: list) -> list[dict]:
+    product_ids = [product.id for product in products]
+    await _log_lane_start_failure(
+        product_ids=product_ids,
+        platform=platform,
+        reason=PRODUCT_PROFILE_NOT_CONFIGURED,
+    )
+    return [
+        {
+            "product_id": product_id,
+            "status": "error",
+            "reason": PRODUCT_PROFILE_NOT_CONFIGURED,
+            "profile_key": None,
+        }
+        for product_id in product_ids
+    ]
 
 
 class CrawlTaskRunner:
@@ -161,12 +214,31 @@ class CrawlTaskRunner:
         """Run product crawl for a single platform using its configured profile."""
         task.status = TaskStatus.RUNNING
         await self._notify_progress(task)
-        groups = await _product_profile_groups(user_id=task.user_id or 1, platform=platform)
-        if not groups:
+        groups, missing = await _product_profile_groups(user_id=task.user_id or 1, platform=platform)
+        if not groups and not missing:
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
             await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
+
+        if missing:
+            products = next(iter(missing.values()))
+            details = await _missing_profile_details(platform=platform, products=products)
+            task.status = TaskStatus.FAILED
+            task.reason = PRODUCT_PROFILE_NOT_CONFIGURED
+            task.total = len(details)
+            task.errors = len(details)
+            task.details = details
+            await self._notify_progress(task)
+            return {
+                "status": "error",
+                "reason": PRODUCT_PROFILE_NOT_CONFIGURED,
+                "profile_key": None,
+                "total": task.total,
+                "success": 0,
+                "errors": task.errors,
+                "details": task.details,
+            }
 
         if len(groups) != 1:
             task.status = TaskStatus.FAILED
@@ -227,14 +299,15 @@ class CrawlTaskRunner:
     async def run_all_products(self, task: CrawlTask) -> dict:
         task.status = TaskStatus.RUNNING
         await self._notify_progress(task)
-        groups = await _product_profile_groups(user_id=task.user_id or 1)
-        if not groups:
+        groups, missing = await _product_profile_groups(user_id=task.user_id or 1)
+        if not groups and not missing:
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
             await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
         total_products = sum(len(products) for products in groups.values())
+        total_products += sum(len(products) for products in missing.values())
         task.total = total_products
         await self._notify_progress(task)
 
@@ -262,12 +335,16 @@ class CrawlTaskRunner:
             product_ids = [product.id for product in products]
             lane_tasks.append(_run_lane(platform, profile_key, product_ids))
 
-        lane_results = await asyncio.gather(*lane_tasks)
+        lane_results = await asyncio.gather(*lane_tasks) if lane_tasks else []
+        missing_results = [
+            await _missing_profile_details(platform=platform, products=products)
+            for platform, products in missing.items()
+        ]
 
         all_details: list[dict] = []
         total_success = 0
         total_errors = 0
-        for details in lane_results:
+        for details in [*lane_results, *missing_results]:
             all_details.extend(details)
             total_success += sum(1 for item in details if item.get("status") == "success")
             total_errors += sum(1 for item in details if item.get("status") == "error")
@@ -277,10 +354,17 @@ class CrawlTaskRunner:
         task.success = total_success
         task.errors = total_errors
         task.details = all_details
-        task.status = TaskStatus.COMPLETED
+        task.status = (
+            TaskStatus.FAILED
+            if task.total > 0 and total_success == 0 and total_errors > 0
+            else TaskStatus.COMPLETED
+        )
+        if task.status == TaskStatus.FAILED:
+            task.reason = all_details[0].get("reason") if all_details else "crawl_failed"
         await self._notify_progress(task)
         return {
-            "status": "completed",
+            "status": "error" if task.status == TaskStatus.FAILED else "completed",
+            "reason": task.reason,
             "total": task.total,
             "success": task.success,
             "errors": task.errors,

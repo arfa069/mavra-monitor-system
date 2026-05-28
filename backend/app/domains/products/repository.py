@@ -6,8 +6,13 @@ from inspect import isawaitable
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.crawl_profile import CrawlProfile
 from app.models.price_history import PriceHistory
-from app.models.product import Product, ProductPlatformCron
+from app.models.product import (
+    Product,
+    ProductPlatformCron,
+    ProductPlatformProfileBinding,
+)
 
 
 async def create_product(
@@ -106,7 +111,7 @@ async def create_product_cron_config(
     platform: str,
     cron_expression: str | None,
     cron_timezone: str | None,
-    profile_key: str,
+    profile_key: str | None,
 ) -> ProductPlatformCron:
     config = ProductPlatformCron(
         user_id=user_id,
@@ -127,7 +132,7 @@ async def update_product_cron_config(
     config: ProductPlatformCron,
     cron_expression: str | None,
     cron_timezone: str | None,
-    profile_key: str,
+    profile_key: str | None,
 ) -> ProductPlatformCron:
     config.cron_expression = cron_expression
     config.cron_timezone = cron_timezone or "Asia/Shanghai"
@@ -135,6 +140,73 @@ async def update_product_cron_config(
     await db.commit()
     await db.refresh(config)
     return config
+
+
+async def list_product_profile_bindings(
+    db: AsyncSession, *, user_id: int
+) -> list[ProductPlatformProfileBinding]:
+    result = await db.execute(
+        select(ProductPlatformProfileBinding).where(
+            ProductPlatformProfileBinding.user_id == user_id
+        )
+    )
+    return list(result.scalars().all())
+
+
+async def get_product_profile_binding(
+    db: AsyncSession, *, user_id: int, platform: str
+) -> ProductPlatformProfileBinding | None:
+    result = await db.execute(
+        select(ProductPlatformProfileBinding).where(
+            ProductPlatformProfileBinding.user_id == user_id,
+            ProductPlatformProfileBinding.platform == platform,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def upsert_product_profile_binding(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    platform: str,
+    profile_key: str,
+) -> ProductPlatformProfileBinding:
+    binding = await get_product_profile_binding(
+        db,
+        user_id=user_id,
+        platform=platform,
+    )
+    if binding is None:
+        binding = ProductPlatformProfileBinding(
+            user_id=user_id,
+            platform=platform,
+            profile_key=profile_key,
+        )
+        db.add(binding)
+    else:
+        binding.profile_key = profile_key
+    await db.commit()
+    await db.refresh(binding)
+    return binding
+
+
+async def delete_product_profile_binding(
+    db: AsyncSession, *, binding: ProductPlatformProfileBinding
+) -> None:
+    await db.delete(binding)
+    await db.commit()
+
+
+async def list_crawl_profiles_by_keys(
+    db: AsyncSession, *, profile_keys: set[str]
+) -> dict[str, CrawlProfile]:
+    if not profile_keys:
+        return {}
+    result = await db.execute(
+        select(CrawlProfile).where(CrawlProfile.profile_key.in_(profile_keys))
+    )
+    return {profile.profile_key: profile for profile in result.scalars().all()}
 
 
 async def delete_product_cron_config(

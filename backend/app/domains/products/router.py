@@ -23,6 +23,8 @@ from app.schemas.product import (
     ProductPlatformCronCreate,
     ProductPlatformCronResponse,
     ProductPlatformCronUpdate,
+    ProductPlatformProfileBindingResponse,
+    ProductPlatformProfileBindingUpdate,
     ProductResponse,
     ProductUpdate,
 )
@@ -247,6 +249,63 @@ async def get_product_cron_schedules(
     if not scheduler:
         return {"platforms": {}}
     return {"platforms": scheduler.get_next_run_times(user_id=user.id)}
+
+
+@router.get(
+    "/profile-bindings",
+    response_model=list[ProductPlatformProfileBindingResponse],
+)
+async def list_product_profile_bindings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List product platform profile bindings for the current user."""
+    user = _require_user(current_user)
+    return await service.list_product_profile_bindings(db, user_id=user.id)
+
+
+@router.put(
+    "/profile-bindings/{platform}",
+    response_model=ProductPlatformProfileBindingResponse,
+)
+async def upsert_product_profile_binding(
+    platform: str,
+    data: ProductPlatformProfileBindingUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or update a product platform profile binding."""
+    user = _require_user(current_user)
+    try:
+        return await service.upsert_product_profile_binding(
+            db,
+            user_id=user.id,
+            platform=platform,
+            data=data,
+        )
+    except service.InvalidPlatformError as exc:
+        raise _invalid_platform_response(exc) from exc
+    except service.ProductProfileConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/profile-bindings/{platform}")
+async def delete_product_profile_binding(
+    platform: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a product platform profile binding."""
+    user = _require_user(current_user)
+    try:
+        await service.delete_product_profile_binding(
+            db,
+            user_id=user.id,
+            platform=platform,
+        )
+    except service.InvalidPlatformError as exc:
+        raise _invalid_platform_response(exc) from exc
+    return {"message": "Product profile binding deleted"}
 
 
 @router.get("/{product_id}", response_model=ProductResponse)

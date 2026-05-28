@@ -438,6 +438,7 @@ async def test_rename_profile_moves_profile_directory(monkeypatch):
             _make_scalar_result(None),
             MagicMock(),
             MagicMock(),
+            MagicMock(),
         ])
         db.flush = AsyncMock()
         db.delete = AsyncMock()

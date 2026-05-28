@@ -411,6 +411,10 @@ class TestCrawlTaskRunnerIntegration:
             AsyncMock(return_value=[SimpleNamespace(id=99, platform="jd")]),
         )
         monkeypatch.setattr(
+            "app.domains.products.repository.list_product_profile_bindings",
+            AsyncMock(return_value=[SimpleNamespace(platform="jd", profile_key="product-jd-default")]),
+        )
+        monkeypatch.setattr(
             "app.domains.crawling.task_runner.crawl_products_with_profile",
             AsyncMock(side_effect=ValueError("network error")),
         )
@@ -418,7 +422,7 @@ class TestCrawlTaskRunnerIntegration:
         task = create_task("manual", user_id=1)
         result = await CrawlTaskRunner().run_all_products(task)
 
-        assert result["status"] == "completed"
+        assert result["status"] == "error"
         assert task.errors == 1
         assert task.success == 0
 
