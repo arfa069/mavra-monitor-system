@@ -133,3 +133,63 @@ async def test_job_platform_profile_busy_bubbles_to_executor_requeue(monkeypatch
     assert result["status"] == "deferred"
     assert refreshed.status == TaskStatus.PENDING.value
     assert refreshed.reason.startswith("profile_busy:")
+
+
+async def test_execute_job_match_analysis_dispatched(monkeypatch):
+    async def fake_execute(record, task, progress_callback):
+        task.status = TaskStatus.COMPLETED
+        task.success = 3
+        task.total = 3
+        await progress_callback(task)
+        return {"status": "completed"}
+
+    monkeypatch.setattr(executor, "_execute_job_match_analysis", fake_execute)
+
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_match_analysis",
+            user_id=1,
+            entity_type="resume",
+            entity_id="1",
+            payload={"resume_id": 1, "job_ids": [10, 20, 30]},
+        )
+        record.status = TaskStatus.RUNNING.value
+        record.locked_by = "worker-test"
+        await db.commit()
+        await db.refresh(record)
+
+        result = await execute_claimed_task(record, worker_id="worker-test")
+        refreshed = await db.get(type(record), record.id)
+        await db.refresh(refreshed)
+
+    assert result["status"] == "completed"
+    assert refreshed.status == TaskStatus.COMPLETED.value
+    assert refreshed.success == 3
+    assert refreshed.total == 3
+
+
+async def test_execute_job_match_analysis_resume_not_found():
+    async with AsyncSessionLocal() as db:
+        record = await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_match_analysis",
+            user_id=1,
+            entity_type="resume",
+            entity_id="99999",
+            payload={"resume_id": 99999, "job_ids": [10]},
+        )
+        record.status = TaskStatus.RUNNING.value
+        record.locked_by = "worker-test"
+        await db.commit()
+        await db.refresh(record)
+
+        result = await execute_claimed_task(record, worker_id="worker-test")
+        refreshed = await db.get(type(record), record.id)
+        await db.refresh(refreshed)
+
+    assert result["status"] == "error"
+    assert refreshed.status == TaskStatus.FAILED.value
+    assert refreshed.reason == "resume_not_found"

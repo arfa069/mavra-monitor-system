@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from app.database import AsyncSessionLocal
+from app.domains.crawling.task_store import task_types_for_kinds
 from app.models.crawl_task import CrawlTaskRecord
 
 
@@ -109,3 +110,24 @@ async def test_recover_stale_running_tasks_marks_failed():
         assert recovered == 1
         assert record.status == "failed"
         assert record.reason == "test_restart"
+
+
+def test_task_types_for_kinds_analysis_includes_job_match_analysis():
+    assert "job_match_analysis" in task_types_for_kinds({"analysis"})
+
+
+def test_task_types_for_kinds_job_excludes_job_match_analysis():
+    job_types = task_types_for_kinds({"job"})
+    assert "job_match_analysis" not in job_types
+    assert "job_config" in job_types
+
+
+def test_task_types_for_kinds_all_includes_everything():
+    all_types = task_types_for_kinds({"all"})
+    assert "job_match_analysis" in all_types
+    assert "job_config" in all_types
+    assert "product_all" in all_types
+
+
+def test_task_types_for_kinds_empty_set_returns_empty():
+    assert task_types_for_kinds(set()) == set()

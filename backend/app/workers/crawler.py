@@ -49,7 +49,7 @@ def _signal_handler(signum: int, _frame) -> None:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kind", choices=["job", "product", "all"], default="all")
+    parser.add_argument("--kind", choices=["job", "product", "analysis", "all"], default="all")
     parser.add_argument("--platform", action="append", default=[])
     parser.add_argument("--worker-id", default="")
     parser.add_argument("--once", action="store_true")

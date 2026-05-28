@@ -90,6 +90,8 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
             result = await _execute_job_all(record, task, progress_callback)
         elif record.task_type == "job_platform_profile":
             result = await _execute_job_platform_profile(record, task, progress_callback)
+        elif record.task_type == "job_match_analysis":
+            result = await _execute_job_match_analysis(record, task, progress_callback)
         else:
             result = {"status": "error", "reason": f"unsupported_task_type:{record.task_type}"}
 
@@ -255,3 +257,34 @@ async def _execute_job_platform_profile(record: CrawlTaskRecord, task, progress_
     from app.domains.jobs.crawl_service import execute_job_platform_profile_task
 
     return await execute_job_platform_profile_task(record, task, progress_callback=progress_callback)
+
+
+async def _execute_job_match_analysis(record: CrawlTaskRecord, task, progress_callback) -> dict:
+    from app.domains.jobs.match_service import _execute_match_analysis
+
+    payload = record.payload_json or {}
+    resume_id = payload.get("resume_id")
+    job_ids = payload.get("job_ids", [])
+    user_id = record.user_id
+
+    if not resume_id or not job_ids:
+        task.status = TaskStatus.FAILED
+        task.reason = "invalid_payload"
+        await progress_callback(task)
+        return {"status": "error", "reason": "invalid_payload"}
+
+    async with AsyncSessionLocal() as db:
+        await _execute_match_analysis(
+            task,
+            resume_id=resume_id,
+            job_ids=job_ids,
+            db=db,
+            progress_callback=progress_callback,
+            user_id=user_id,
+        )
+
+    if task.status == TaskStatus.COMPLETED:
+        return {"status": "completed"}
+    if task.status == TaskStatus.FAILED:
+        return {"status": "error", "reason": task.reason or "analysis_failed"}
+    return {"status": "error", "reason": "unexpected_task_status"}

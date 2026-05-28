@@ -24,6 +24,8 @@ async def _get_jobs_needing_analysis(
     db,
     resume_id: int,
     job_ids: list[int],
+    *,
+    user_id: int | None = None,
 ) -> list:
     """Return jobs that need match analysis for the given resume.
 
@@ -38,8 +40,13 @@ async def _get_jobs_needing_analysis(
     )
     match_map = {m.job_id: m for m in existing_result.scalars().all()}
 
-    # 2. Get target jobs
-    jobs_result = await db.execute(select(Job).where(Job.id.in_(job_ids)))
+    # 2. Get target jobs, scoped to the task user when available.
+    jobs_query = select(Job).join(
+        JobSearchConfig, Job.search_config_id == JobSearchConfig.id
+    ).where(Job.id.in_(job_ids))
+    if user_id is not None:
+        jobs_query = jobs_query.where(JobSearchConfig.user_id == user_id)
+    jobs_result = await db.execute(jobs_query)
     jobs = list(jobs_result.scalars().all())
 
     need_analysis = []
@@ -83,25 +90,49 @@ async def run_match_analysis_task(
         task.reason = str(e)
 
 
-async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
-    """Internal: execute match analysis with an open db session."""
+async def _execute_match_analysis(
+    task,
+    resume_id: int,
+    job_ids: list[int],
+    db,
+    *,
+    progress_callback=None,
+    user_id: int | None = None,
+) -> None:
+    """Internal: execute match analysis with an open db session.
+
+    Supports both in-memory task_registry path and durable crawl_tasks
+    worker path via progress_callback.
+    """
     from app.core.task_registry import TaskStatus
 
     # 1. Get the resume
     resume = await db.get(UserResume, resume_id)
-    if not resume or resume.user_id != 1:
+    if not resume or (user_id is not None and resume.user_id != user_id):
         task.status = TaskStatus.FAILED
         task.reason = "resume_not_found"
+        if progress_callback is not None:
+            await progress_callback(task)
         return
 
     # 2. Filter to jobs needing analysis
-    jobs_to_analyze = await _get_jobs_needing_analysis(db, resume_id, job_ids)
+    jobs_to_analyze = await _get_jobs_needing_analysis(
+        db,
+        resume_id,
+        job_ids,
+        user_id=resume.user_id if user_id is None else user_id,
+    )
     task.total = len(jobs_to_analyze)
 
     if not jobs_to_analyze:
         task.status = TaskStatus.COMPLETED
         task.reason = "all_up_to_date"
+        if progress_callback is not None:
+            await progress_callback(task)
         return
+
+    if progress_callback is not None:
+        await progress_callback(task)
 
     # 3. Get user for notifications (cached)
     user = await get_cached_user_config(db)
@@ -117,6 +148,8 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
 
         if not valid_jobs:
             task.errors += len(batch)
+            if progress_callback is not None:
+                await progress_callback(task)
             continue
 
         # 并发分析
@@ -154,6 +187,9 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
             if should_notify_match(result.apply_recommendation):
                 notify_jobs.append((job, result))
 
+        if progress_callback is not None:
+            await progress_callback(task)
+
     # 汇总飞书通知（只发一条）
     webhook_url = user.get("feishu_webhook_url") if user else None
     if notify_jobs and webhook_url:
@@ -162,20 +198,82 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
                 f"职位匹配提醒（共 {len(notify_jobs)} 个高分职位）",
                 f"简历：{resume.name}",
             ]
-            for job, analysis in sorted(
+            sorted_notify_jobs = sorted(
                 notify_jobs,
                 key=lambda x: recommendation_rank(x[1].apply_recommendation),
                 reverse=True,
-            ):
+            )
+            for job, analysis in sorted_notify_jobs:
                 lines.append(
                     f"• {job.title or '-'} / {job.company or '-'}（{analysis.apply_recommendation}）"
                 )
-            lines.append(f"结论：{analysis.apply_recommendation}")
+            top_analysis = sorted_notify_jobs[0][1]
+            lines.append(f"结论：{top_analysis.apply_recommendation}")
             await send_feishu_notification(webhook_url, "\n".join(lines))
         except Exception:
             pass
 
-    task.status = TaskStatus.COMPLETED
+    # Determine final status
+    attempted = task.success + task.errors
+    if task.success == 0 and attempted > 0:
+        task.status = TaskStatus.FAILED
+        task.reason = "all_items_failed"
+    else:
+        task.status = TaskStatus.COMPLETED
+    if progress_callback is not None:
+        await progress_callback(task)
+
+
+async def enqueue_job_match_analysis(
+    db,
+    *,
+    resume_id: int,
+    job_ids: list[int],
+    user_id: int,
+    source: str = "manual",
+) -> dict:
+    """Create a durable crawl_task for job match analysis.
+
+    Returns {"task_id": str|None, "total": int, "status": str, "reason": str|None}.
+    If no jobs need analysis, returns completed without creating a task.
+    """
+    from app.domains.crawling.task_store import create_crawl_task_record
+
+    jobs_to_analyze = await _get_jobs_needing_analysis(
+        db,
+        resume_id,
+        job_ids,
+        user_id=user_id,
+    )
+    if not jobs_to_analyze:
+        return {
+            "task_id": None,
+            "total": 0,
+            "status": "completed",
+            "reason": "all_up_to_date",
+        }
+
+    record = await create_crawl_task_record(
+        db,
+        source=source,
+        task_type="job_match_analysis",
+        user_id=user_id,
+        entity_type="resume",
+        entity_id=str(resume_id),
+        payload={
+            "resume_id": resume_id,
+            "job_ids": [j.id for j in jobs_to_analyze],
+        },
+    )
+    record.total = len(jobs_to_analyze)
+    await db.commit()
+    await db.refresh(record)
+    return {
+        "task_id": record.task_id,
+        "total": len(jobs_to_analyze),
+        "status": "pending",
+        "reason": None,
+    }
 
 
 def should_notify_match(recommendation: str | None) -> bool:
@@ -291,14 +389,17 @@ async def analyze_resume_vs_jobs(
                     f"职位匹配提醒（共 {len(notify_jobs)} 个高分职位）",
                     f"简历：{resume.name}",
                 ]
-                for job, analysis in sorted(
+                sorted_notify_jobs = sorted(
                     notify_jobs,
                     key=lambda x: recommendation_rank(x[1].apply_recommendation),
                     reverse=True,
-                ):
+                )
+                for job, analysis in sorted_notify_jobs:
                     lines.append(
                         f"• {job.title or '-'} / {job.company or '-'}（{analysis.apply_recommendation}）"
                     )
+                top_analysis = sorted_notify_jobs[0][1]
+                lines.append(f"结论：{top_analysis.apply_recommendation}")
                 await send_feishu_notification(webhook_url, "\n".join(lines))
             except Exception:
                 pass
