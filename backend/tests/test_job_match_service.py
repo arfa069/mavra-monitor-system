@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core.task_registry import CrawlTask, TaskStatus
+
 
 def test_should_notify_match_threshold():
     """Scores above 70 should notify."""
@@ -153,3 +155,64 @@ async def test_enqueue_job_match_analysis_creates_task_when_work_exists():
     assert result["total"] == 1
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_execute_match_analysis_all_items_failed(monkeypatch):
+    """All LLM calls fail → task fails with all_items_failed."""
+    from app.domains.jobs.match_service import _execute_match_analysis
+
+    mock_db = AsyncMock()
+
+    # Mock resume
+    resume = MagicMock()
+    resume.user_id = 1
+    resume.id = 1
+    resume.name = "Test"
+    resume.resume_text = "Python"
+    mock_db.get = AsyncMock(return_value=resume)
+
+    # Mock job needing analysis
+    mock_job = MagicMock()
+    mock_job.id = 10
+    mock_job.title = "Python Engineer"
+    mock_job.company = "TestCo"
+    mock_job.salary = "20-30K"
+    mock_job.location = "Shanghai"
+    mock_job.description = "Build APIs"
+    mock_job.experience = "3-5年"
+    mock_job.education = "本科"
+
+    monkeypatch.setattr(
+        "app.domains.jobs.match_service._get_jobs_needing_analysis",
+        AsyncMock(return_value=[mock_job]),
+    )
+
+    monkeypatch.setattr(
+        "app.domains.jobs.match_service.get_cached_user_config",
+        AsyncMock(return_value={}),
+    )
+
+    # Mock upsert_match_result to avoid DB dependency
+    monkeypatch.setattr(
+        "app.domains.jobs.match_service.upsert_match_result",
+        AsyncMock(return_value=(MagicMock(), True)),
+    )
+
+    # Mock LLM provider to always fail
+    class FailingProvider:
+        async def analyze_match(self, **kwargs):
+            raise Exception("LLM failure")
+
+    monkeypatch.setattr(
+        "app.domains.jobs.match_service.get_llm_provider",
+        lambda: FailingProvider(),
+    )
+
+    task = CrawlTask(task_id="test", status=TaskStatus.RUNNING)
+    await _execute_match_analysis(task, resume_id=1, job_ids=[10], db=mock_db)
+
+    assert task.status == TaskStatus.FAILED
+    assert task.reason == "all_items_failed"
+    assert task.errors > 0
+    assert task.success == 0

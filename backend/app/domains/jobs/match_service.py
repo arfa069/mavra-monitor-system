@@ -194,7 +194,9 @@ async def _execute_match_analysis(
                 lines.append(
                     f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
                 )
-            lines.append(f"结论：{analysis.apply_recommendation}")
+            # Use the highest-scoring analysis for the summary recommendation
+            top_analysis = notify_jobs[0][1]
+            lines.append(f"结论：{top_analysis.apply_recommendation}")
             await send_feishu_notification(webhook_url, "\n".join(lines))
         except Exception:
             pass
@@ -302,7 +304,7 @@ async def analyze_resume_vs_jobs(
         created = 0
         updated = 0
         skipped = 0
-        batch_size = 10
+        batch_size = 3
         notify_jobs = []
 
         # Batch valid jobs first
@@ -366,6 +368,9 @@ async def analyze_resume_vs_jobs(
                     lines.append(
                         f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
                     )
+                # Use the highest-scoring analysis for the summary recommendation
+                top_analysis = notify_jobs[0][1]
+                lines.append(f"结论：{top_analysis.apply_recommendation}")
                 await send_feishu_notification(webhook_url, "\n".join(lines))
             except Exception:
                 pass
