@@ -143,3 +143,83 @@ async def test_unfiltered_job_worker_claims_full_parent_task():
     assert claimed is not None
     assert claimed.task_type == task.task_type
     assert claimed.platform is None
+
+
+async def test_analysis_worker_claims_job_match_analysis_task():
+    await _clear_pending_tasks("job_match_analysis")
+    async with AsyncSessionLocal() as db:
+        await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_match_analysis",
+            platform=None,
+            profile_key=None,
+            user_id=1,
+            entity_type="resume",
+            entity_id="1",
+            payload={"resume_id": 1, "job_ids": [10, 20]},
+        )
+
+        claimed = await claim_next_pending_task(
+            db,
+            worker_id="worker-analysis-1",
+            kinds={"analysis"},
+            platforms=None,
+        )
+
+    assert claimed is not None
+    assert claimed.task_type == "job_match_analysis"
+    assert claimed.status == "running"
+    assert claimed.locked_by == "worker-analysis-1"
+
+
+async def test_job_worker_does_not_claim_analysis_task():
+    await _clear_pending_tasks("job_match_analysis")
+    async with AsyncSessionLocal() as db:
+        await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_match_analysis",
+            platform=None,
+            profile_key=None,
+            user_id=1,
+            entity_type="resume",
+            entity_id="1",
+            payload={"resume_id": 1, "job_ids": [10]},
+        )
+
+        claimed = await claim_next_pending_task(
+            db,
+            worker_id="worker-job-only",
+            kinds={"job"},
+            platforms=None,
+        )
+
+    assert claimed is None
+
+
+async def test_all_worker_claims_analysis_task():
+    for tt in ("job_config", "job_all", "job_platform_profile", "product_all", "product_platform", "job_match_analysis"):
+        await _clear_pending_tasks(tt)
+    async with AsyncSessionLocal() as db:
+        task = await create_crawl_task_record(
+            db,
+            source="manual",
+            task_type="job_match_analysis",
+            platform=None,
+            profile_key=None,
+            user_id=1,
+            entity_type="resume",
+            entity_id="1",
+            payload={"resume_id": 1, "job_ids": [10]},
+        )
+
+        claimed = await claim_next_pending_task(
+            db,
+            worker_id="worker-all",
+            kinds={"all"},
+            platforms=None,
+        )
+
+    assert claimed is not None
+    assert claimed.task_type == task.task_type

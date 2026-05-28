@@ -17,6 +17,7 @@ DEFAULT_TASK_LEASE_SECONDS = 60 * 60
 
 JOB_TASK_TYPES = {"job_config", "job_all", "job_platform_profile"}
 PRODUCT_TASK_TYPES = {"product_all", "product_platform"}
+ANALYSIS_TASK_TYPES = {"job_match_analysis"}
 
 
 def task_types_for_kinds(kinds: set[str]) -> set[str]:
@@ -24,10 +25,13 @@ def task_types_for_kinds(kinds: set[str]) -> set[str]:
     if "all" in kinds:
         task_types.update(JOB_TASK_TYPES)
         task_types.update(PRODUCT_TASK_TYPES)
+        task_types.update(ANALYSIS_TASK_TYPES)
     if "job" in kinds:
         task_types.update(JOB_TASK_TYPES)
     if "product" in kinds:
         task_types.update(PRODUCT_TASK_TYPES)
+    if "analysis" in kinds:
+        task_types.update(ANALYSIS_TASK_TYPES)
     return task_types
 
 

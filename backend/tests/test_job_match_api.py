@@ -107,85 +107,8 @@ async def test_create_resume_returns_created_entity(mock_get_current_user):
 
 
 @pytest.mark.asyncio
-async def test_trigger_match_analysis_returns_serialized_results(mock_get_current_user):
-    """POST /jobs/match-results/analyze returns match results payload."""
-    from importlib import import_module
-
-    from app.database import get_db
-    from app.models.job import Job
-    from app.models.job_match import MatchResult, UserResume
-
-    jobs_router_module = import_module("app.domains.jobs.router")
-
-    resume = MagicMock(spec=UserResume)
-    resume.id = 1
-    resume.user_id = 1
-
-    job = MagicMock(spec=Job)
-    job.title = "Python Engineer"
-    job.company = "Acme"
-    job.salary = "20-30K"
-    job.location = "Shanghai"
-    job.url = "https://example.com/jobs/1"
-    job.description = "Build APIs"
-
-    match = MagicMock(spec=MatchResult)
-    match.id = 7
-    match.user_id = 1
-    match.resume_id = 1
-    match.job_id = 10
-    match.match_score = 88
-    match.match_reason = "Strong Python background"
-    match.apply_recommendation = "强烈推荐"
-    match.llm_model_used = "gpt-4o-mini"
-    match.created_at = datetime.now(UTC)
-    match.updated_at = datetime.now(UTC)
-    match.job = job
-
-    mock_resume_result = MagicMock()
-    mock_resume_result.scalar_one_or_none.return_value = resume
-
-    mock_session = AsyncMock()
-    mock_session.get = AsyncMock(return_value=resume)
-
-    async def _override_get_db():
-        yield mock_session
-
-    async def _fake_analyze_resume_vs_jobs(resume_id: int, job_ids: list[int] | None):
-        assert resume_id == 1
-        assert job_ids == [10]
-        return {
-            "processed": 1,
-            "created": 1,
-            "updated": 0,
-            "skipped": 0,
-            "items": [match],
-        }
-
-    app.dependency_overrides[get_db] = _override_get_db
-    original = jobs_router_module.analyze_resume_vs_jobs
-    try:
-        jobs_router_module.analyze_resume_vs_jobs = _fake_analyze_resume_vs_jobs
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post(
-                "/jobs/match-results/analyze",
-                json={"resume_id": 1, "job_ids": [10]},
-            )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["processed"] == 1
-        assert data["items"][0]["match_score"] == 88
-        assert data["items"][0]["job_title"] == "Python Engineer"
-    finally:
-        jobs_router_module.analyze_resume_vs_jobs = original
-        app.dependency_overrides.clear()
-
-
-@pytest.mark.skip(reason="pre-existing bug: patches non-existent app.domains.jobs.create_task")
-@pytest.mark.asyncio
-async def test_analyze_async_creates_task_when_jobs_need_analysis(mock_get_current_user):
-    """POST /match-results/analyze-async should create a background task."""
+async def test_trigger_match_analysis_enqueues_durable_task(mock_get_current_user):
+    """POST /jobs/match-results/analyze enqueues a durable crawl_task."""
     from app.database import get_db
     from app.models.job_match import UserResume
 
@@ -201,18 +124,98 @@ async def test_analyze_async_creates_task_when_jobs_need_analysis(mock_get_curre
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    with patch("app.domains.jobs.router._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter, \
-         patch("app.domains.jobs.router.create_task") as mock_create_task, \
-         patch("asyncio.create_task") as mock_asyncio_create_task:
+    with patch("app.domains.jobs.router.enqueue_job_match_analysis", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = {
+            "task_id": "durable-abc",
+            "total": 5,
+            "status": "pending",
+            "reason": None,
+        }
 
-        # Mock a job needing analysis
-        mock_job = MagicMock()
-        mock_job.id = 10
-        mock_filter.return_value = [mock_job]
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.post(
+                    "/jobs/match-results/analyze",
+                    json={"resume_id": 1, "job_ids": [10]},
+                )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "pending"
+            assert data["task_id"] == "durable-abc"
+            assert data["total"] == 5
+            mock_enqueue.assert_called_once()
+        finally:
+            app.dependency_overrides.clear()
 
-        mock_task = MagicMock()
-        mock_task.task_id = "abc123"
-        mock_create_task.return_value = mock_task
+
+@pytest.mark.asyncio
+async def test_trigger_match_analysis_returns_completed_when_all_up_to_date(mock_get_current_user):
+    """POST /jobs/match-results/analyze returns completed when no jobs need analysis."""
+    from app.database import get_db
+    from app.models.job_match import UserResume
+
+    resume = MagicMock(spec=UserResume)
+    resume.id = 1
+    resume.user_id = 1
+
+    mock_session = AsyncMock()
+    mock_session.get = AsyncMock(return_value=resume)
+
+    async def _override_get_db():
+        yield mock_session
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    with patch("app.domains.jobs.router.enqueue_job_match_analysis", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = {
+            "task_id": None,
+            "total": 0,
+            "status": "completed",
+            "reason": "all_up_to_date",
+        }
+
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.post(
+                    "/jobs/match-results/analyze",
+                    json={"resume_id": 1, "job_ids": [10]},
+                )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "completed"
+            assert data["task_id"] is None
+            assert data["reason"] == "all_up_to_date"
+        finally:
+            app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_analyze_async_enqueues_durable_task(mock_get_current_user):
+    """POST /jobs/match-results/analyze-async enqueues a durable crawl_task."""
+    from app.database import get_db
+    from app.models.job_match import UserResume
+
+    resume = MagicMock(spec=UserResume)
+    resume.id = 1
+    resume.user_id = 1
+
+    mock_session = AsyncMock()
+    mock_session.get = AsyncMock(return_value=resume)
+
+    async def _override_get_db():
+        yield mock_session
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    with patch("app.domains.jobs.router.enqueue_job_match_analysis", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = {
+            "task_id": "durable-xyz",
+            "total": 3,
+            "status": "pending",
+            "reason": None,
+        }
 
         try:
             transport = ASGITransport(app=app)
@@ -224,16 +227,16 @@ async def test_analyze_async_creates_task_when_jobs_need_analysis(mock_get_curre
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "pending"
-            assert data["task_id"] == "abc123"
-            assert data["total"] == 1
-            mock_asyncio_create_task.assert_called_once()
+            assert data["task_id"] == "durable-xyz"
+            assert data["total"] == 3
+            mock_enqueue.assert_called_once()
         finally:
             app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
 async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_current_user):
-    """POST /match-results/analyze-async should return completed if no jobs need analysis."""
+    """POST /jobs/match-results/analyze-async returns completed if no jobs need analysis."""
     from app.database import get_db
     from app.models.job_match import UserResume
 
@@ -249,8 +252,13 @@ async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_curr
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    with patch("app.domains.jobs.router._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_filter:
-        mock_filter.return_value = []
+    with patch("app.domains.jobs.router.enqueue_job_match_analysis", new_callable=AsyncMock) as mock_enqueue:
+        mock_enqueue.return_value = {
+            "task_id": None,
+            "total": 0,
+            "status": "completed",
+            "reason": "all_up_to_date",
+        }
 
         try:
             transport = ASGITransport(app=app)
@@ -269,14 +277,21 @@ async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_curr
 
 
 @pytest.mark.asyncio
-async def test_get_task_status_returns_task_state():
-    """GET /jobs/tasks/{task_id} should return task status."""
-    from app.core.task_registry import CrawlTask, TaskStatus, _crawl_tasks
+async def test_get_task_status_returns_task_state_from_crawl_tasks(mock_get_current_user):
+    """GET /jobs/tasks/{task_id} should return task status from crawl_tasks."""
+    mock_record = MagicMock()
+    mock_record.task_id = "xyz789"
+    mock_record.status = "running"
+    mock_record.total = 5
+    mock_record.success = 2
+    mock_record.errors = 1
+    mock_record.reason = None
+    mock_record.locked_by = "worker:test"
+    mock_record.heartbeat_at = None
+    mock_record.lease_until = None
 
-    task = CrawlTask(task_id="xyz789", status=TaskStatus.RUNNING, total=5, success=2, errors=1)
-    _crawl_tasks["xyz789"] = task
-
-    try:
+    with patch("app.domains.crawling.task_store.get_crawl_task_record", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_record
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/jobs/tasks/xyz789")
@@ -287,17 +302,18 @@ async def test_get_task_status_returns_task_state():
         assert data["total"] == 5
         assert data["success"] == 2
         assert data["errors"] == 1
-    finally:
-        _crawl_tasks.pop("xyz789", None)
+        assert data["worker_id"] == "worker:test"
 
 
 @pytest.mark.asyncio
 async def test_get_task_status_returns_404_for_missing_task():
     """GET /jobs/tasks/{task_id} should 404 for unknown task."""
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/jobs/tasks/nonexistent")
-    assert response.status_code == 404
-    data = response.json()
-    assert data["status"] == "error"
-    assert data["reason"] == "task_not_found"
+    with patch("app.domains.crawling.task_store.get_crawl_task_record", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = None
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/jobs/tasks/nonexistent")
+        assert response.status_code == 404
+        data = response.json()
+        assert data["status"] == "error"
+        assert data["reason"] == "task_not_found"

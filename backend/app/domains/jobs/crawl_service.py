@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.system_log import emit_system_log_detached
 from app.database import AsyncSessionLocal
-from app.domains.jobs.match_service import analyze_resume_vs_jobs
+from app.domains.jobs.match_service import enqueue_job_match_analysis
 from app.domains.jobs.notification_service import send_new_job_notification
 from app.domains.jobs.runtime import JobCrawlRuntimeContext
 from app.models.job import Job, JobSearchConfig
@@ -573,9 +573,33 @@ async def process_job_results(
             resumes = list(resume_result.scalars().all())
             for resume in resumes:
                 try:
-                    await analyze_resume_vs_jobs(resume.id, new_job_ids)
+                    enqueue_result = await enqueue_job_match_analysis(
+                        db,
+                        resume_id=resume.id,
+                        job_ids=new_job_ids,
+                        user_id=config.user_id,
+                        source="crawl_auto",
+                    )
+                    if enqueue_result["status"] == "pending":
+                        await emit_system_log_detached(
+                            category="runtime",
+                            event_type="job_match_analysis.enqueued",
+                            source="jobs",
+                            severity="info",
+                            status="pending",
+                            message=f"Auto match analysis enqueued for resume {resume.id}",
+                            user_id=config.user_id,
+                            entity_type="resume",
+                            entity_id=str(resume.id),
+                            payload={
+                                "task_id": enqueue_result["task_id"],
+                                "resume_id": resume.id,
+                                "job_count": enqueue_result["total"],
+                                "source": "crawl_auto",
+                            },
+                        )
                 except Exception:
-                    logger.exception("Failed to run match analysis for resume %s", resume.id)
+                    logger.exception("Failed to enqueue match analysis for resume %s", resume.id)
 
     return {
         "new_count": new_count,

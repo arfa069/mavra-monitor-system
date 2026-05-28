@@ -1,6 +1,6 @@
 """Unit tests for job match service helpers."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -101,3 +101,55 @@ async def test_upsert_match_result_updates_existing_record():
     assert mock_db.execute.await_count == 2
     # No separate db.get() needed — RETURNING returns the row directly
     mock_db.get.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_enqueue_job_match_analysis_returns_completed_when_no_work():
+    """enqueue_job_match_analysis returns completed without creating task when all up to date."""
+    from app.domains.jobs.match_service import enqueue_job_match_analysis
+
+    with patch("app.domains.jobs.match_service._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_need:
+        mock_need.return_value = []
+
+        mock_db = AsyncMock()
+        result = await enqueue_job_match_analysis(
+            mock_db,
+            resume_id=1,
+            job_ids=[10, 20],
+            user_id=1,
+            source="manual",
+        )
+
+    assert result["status"] == "completed"
+    assert result["task_id"] is None
+    assert result["reason"] == "all_up_to_date"
+    assert result["total"] == 0
+    mock_db.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_enqueue_job_match_analysis_creates_task_when_work_exists():
+    """enqueue_job_match_analysis creates a crawl_task record when jobs need analysis."""
+    from app.domains.jobs.match_service import enqueue_job_match_analysis
+
+    mock_job = MagicMock()
+    mock_job.id = 10
+
+    with patch("app.domains.jobs.match_service._get_jobs_needing_analysis", new_callable=AsyncMock) as mock_need:
+        mock_need.return_value = [mock_job]
+
+        mock_db = AsyncMock()
+        mock_db.add = MagicMock()
+        result = await enqueue_job_match_analysis(
+            mock_db,
+            resume_id=1,
+            job_ids=[10],
+            user_id=1,
+            source="manual",
+        )
+
+    assert result["status"] == "pending"
+    assert result["task_id"] is not None
+    assert result["total"] == 1
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()

@@ -1,7 +1,5 @@
 """Job search API router."""
 
-import asyncio
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +8,6 @@ from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.core.system_log import emit_system_log_detached
-from app.core.task_registry import get_task
 from app.database import get_db
 from app.domains.jobs import service as job_service
 from app.domains.jobs.crawl_service import (
@@ -18,9 +15,7 @@ from app.domains.jobs.crawl_service import (
     crawl_single_config_background,
 )
 from app.domains.jobs.match_service import (
-    _get_jobs_needing_analysis,
-    analyze_resume_vs_jobs,
-    run_match_analysis_task,
+    enqueue_job_match_analysis,
 )
 from app.domains.jobs.scheduler import JobConfigScheduler
 from app.models.job_match import MatchResult
@@ -36,7 +31,6 @@ from app.schemas.job import (
 from app.schemas.job_crawl_log import JobCrawlLogResponse
 from app.schemas.job_match import (
     MatchAnalyzeRequest,
-    MatchAnalyzeResponse,
     MatchResultListResponse,
     MatchResultResponse,
     UserResumeCreate,
@@ -306,127 +300,18 @@ async def list_match_results(
 
     )
 
-@router.post("/match-results/analyze", response_model=MatchAnalyzeResponse)
-
+@router.post("/match-results/analyze")
 async def trigger_match_analysis(
-
     data: MatchAnalyzeRequest,
-
     current_user: User = Depends(get_current_user),
-
     db: AsyncSession = Depends(get_db),
-
 ):
+    """Enqueue match analysis as a durable task.
 
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
-
-    try:
-        await job_service.validate_resume_owner(
-            db, user_id=current_user.id, resume_id=data.resume_id
-        )
-    except job_service.UserResumeNotFoundError:
-        raise HTTPException(status_code=404, detail="Resume not found")
-
-    await emit_system_log_detached(
-
-        category="runtime",
-
-        event_type="match_analysis.started",
-
-        source="jobs",
-
-        severity="info",
-
-        status="running",
-
-        message=f"Match analysis for resume {data.resume_id} started",
-
-        user_id=current_user.id,
-
-        entity_type="resume",
-
-        entity_id=str(data.resume_id),
-
-        payload={"job_ids": data.job_ids},
-
-    )
-
-    result = await analyze_resume_vs_jobs(data.resume_id, data.job_ids)
-
-    await emit_system_log_detached(
-
-        category="runtime",
-
-        event_type="match_analysis.completed",
-
-        source="jobs",
-
-        severity="info",
-
-        status="completed",
-
-        message=f"Match analysis for resume {data.resume_id} completed",
-
-        user_id=current_user.id,
-
-        entity_type="resume",
-
-        entity_id=str(data.resume_id),
-
-        payload={
-
-            "processed": result["processed"],
-
-            "created": result["created"],
-
-            "updated": result["updated"],
-
-            "skipped": result["skipped"],
-
-        },
-
-    )
-
-    return MatchAnalyzeResponse(
-
-        processed=result["processed"],
-
-        created=result["created"],
-
-        updated=result["updated"],
-
-        skipped=result["skipped"],
-
-        items=[_serialize_match_result(item) for item in result["items"]],
-
-    )
-
-@router.post("/match-results/analyze-async")
-
-async def trigger_match_analysis_async(
-
-    data: MatchAnalyzeRequest,
-
-    current_user: User = Depends(get_current_user),
-
-    db: AsyncSession = Depends(get_db),
-
-):
-
-    """Trigger async match analysis, returning task_id for polling.
-
-    The analysis runs in background, updating task progress.
-
-    Poll GET /jobs/tasks/{task_id} for status.
-
+    This endpoint no longer executes LLM analysis inline.
+    It creates a crawl_tasks record and returns a task_id for polling.
     """
-
-    from app.core.task_registry import create_task
-
     if not current_user:
-
         raise HTTPException(status_code=401, detail="请先登录")
 
     try:
@@ -435,118 +320,141 @@ async def trigger_match_analysis_async(
         )
     except job_service.UserResumeNotFoundError:
         raise HTTPException(status_code=404, detail="Resume not found")
-
-    # Build job_ids list
 
     job_ids = data.job_ids
-
     if job_ids is None:
-
-        # Get all active jobs for user
         job_ids = await job_service.list_user_job_ids(db, user_id=current_user.id)
 
-    # Check which jobs actually need analysis
-
-    jobs_to_analyze = await _get_jobs_needing_analysis(db, data.resume_id, job_ids)
-
-    if not jobs_to_analyze:
-
-        return JSONResponse(content={
-
-            "status": "completed",
-
-            "task_id": None,
-
-            "total": 0,
-
-            "reason": "all_up_to_date",
-
-            "message": "所有职位已是最新，无需分析",
-
-        })
-
-    # Create background task with actual count
-
-    task = create_task(
-
-        source="manual",
-
+    result = await enqueue_job_match_analysis(
+        db,
+        resume_id=data.resume_id,
+        job_ids=job_ids,
         user_id=current_user.id,
-
-        entity_type="resume",
-
-        entity_id=str(data.resume_id),
-
+        source="manual",
     )
 
-    task.total = len(jobs_to_analyze)
+    if result["status"] == "completed":
+        return JSONResponse(content={
+            "status": "completed",
+            "task_id": None,
+            "total": 0,
+            "reason": "all_up_to_date",
+        })
 
-    # Start analysis in background (pass job ids that need analysis)
-
-    asyncio.create_task(
-
-        run_match_analysis_task(task, data.resume_id, [j.id for j in jobs_to_analyze])
-
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_match_analysis.enqueued",
+        source="jobs",
+        severity="info",
+        status="pending",
+        message=f"Match analysis enqueued for resume {data.resume_id}",
+        user_id=current_user.id,
+        entity_type="resume",
+        entity_id=str(data.resume_id),
+        payload={
+            "task_id": result["task_id"],
+            "resume_id": data.resume_id,
+            "job_count": result["total"],
+            "source": "manual",
+        },
     )
 
     return JSONResponse(content={
-
         "status": "pending",
+        "task_id": result["task_id"],
+        "total": result["total"],
+    })
 
-        "task_id": task.task_id,
+@router.post("/match-results/analyze-async")
+async def trigger_match_analysis_async(
+    data: MatchAnalyzeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Trigger async match analysis, returning task_id for polling.
 
-        "total": len(jobs_to_analyze),
+    Creates a durable crawl_tasks record. Poll GET /jobs/tasks/{task_id} for status.
+    """
+    if not current_user:
+        raise HTTPException(status_code=401, detail="请先登录")
 
-        "message": f"分析任务已启动，通过 GET /jobs/tasks/{task.task_id} 查询进度",
+    try:
+        await job_service.validate_resume_owner(
+            db, user_id=current_user.id, resume_id=data.resume_id
+        )
+    except job_service.UserResumeNotFoundError:
+        raise HTTPException(status_code=404, detail="Resume not found")
 
+    job_ids = data.job_ids
+    if job_ids is None:
+        job_ids = await job_service.list_user_job_ids(db, user_id=current_user.id)
+
+    result = await enqueue_job_match_analysis(
+        db,
+        resume_id=data.resume_id,
+        job_ids=job_ids,
+        user_id=current_user.id,
+        source="manual",
+    )
+
+    if result["status"] == "completed":
+        return JSONResponse(content={
+            "status": "completed",
+            "task_id": None,
+            "total": 0,
+            "reason": "all_up_to_date",
+        })
+
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_match_analysis.enqueued",
+        source="jobs",
+        severity="info",
+        status="pending",
+        message=f"Match analysis enqueued for resume {data.resume_id}",
+        user_id=current_user.id,
+        entity_type="resume",
+        entity_id=str(data.resume_id),
+        payload={
+            "task_id": result["task_id"],
+            "resume_id": data.resume_id,
+            "job_count": result["total"],
+            "source": "manual",
+        },
+    )
+
+    return JSONResponse(content={
+        "status": "pending",
+        "task_id": result["task_id"],
+        "total": result["total"],
     })
 
 @router.get("/tasks/{task_id}")
-
-async def get_match_analysis_task_status(task_id: str):
-
-    """Get status of a match analysis task.
+async def get_match_analysis_task_status(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Get status of a match analysis task from the durable crawl_tasks store.
 
     Returns task progress (total/success/errors) and final results when completed.
-
     """
+    from app.domains.crawling.task_store import get_crawl_task_record
 
-
-    task = get_task(task_id)
-
-    if not task:
-
+    record = await get_crawl_task_record(db, task_id)
+    if not record:
         return JSONResponse(
-
             content={"status": "error", "reason": "task_not_found"},
-
             status_code=404,
-
         )
 
-    response = {
-
-        "task_id": task.task_id,
-
-        "status": task.status.value,
-
-        "total": task.total,
-
-        "success": task.success,
-
-        "errors": task.errors,
-
-        "reason": task.reason,
-
-    }
-
-    # Include details when completed
-
-    if task.status.value == "completed":
-
-        response["details"] = task.details
-
-    return JSONResponse(content=response)
+    return JSONResponse(content={
+        "task_id": record.task_id,
+        "status": record.status,
+        "total": record.total,
+        "success": record.success,
+        "errors": record.errors,
+        "reason": record.reason,
+        "worker_id": record.locked_by,
+        "heartbeat_at": record.heartbeat_at.isoformat() if record.heartbeat_at else None,
+        "lease_until": record.lease_until.isoformat() if record.lease_until else None,
+    })
 
 @router.get("/configs/{config_id}", response_model=JobSearchConfigResponse)
 

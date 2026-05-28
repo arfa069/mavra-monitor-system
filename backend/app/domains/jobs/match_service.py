@@ -79,15 +79,29 @@ async def run_match_analysis_task(
         task.reason = str(e)
 
 
-async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
-    """Internal: execute match analysis with an open db session."""
+async def _execute_match_analysis(
+    task,
+    resume_id: int,
+    job_ids: list[int],
+    db,
+    *,
+    progress_callback=None,
+    user_id: int | None = None,
+) -> None:
+    """Internal: execute match analysis with an open db session.
+
+    Supports both in-memory task_registry path and durable crawl_tasks
+    worker path via progress_callback.
+    """
     from app.core.task_registry import TaskStatus
 
     # 1. Get the resume
     resume = await db.get(UserResume, resume_id)
-    if not resume or resume.user_id != 1:
+    if not resume or (user_id is not None and resume.user_id != user_id):
         task.status = TaskStatus.FAILED
         task.reason = "resume_not_found"
+        if progress_callback is not None:
+            await progress_callback(task)
         return
 
     # 2. Filter to jobs needing analysis
@@ -97,13 +111,18 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
     if not jobs_to_analyze:
         task.status = TaskStatus.COMPLETED
         task.reason = "all_up_to_date"
+        if progress_callback is not None:
+            await progress_callback(task)
         return
+
+    if progress_callback is not None:
+        await progress_callback(task)
 
     # 3. Get user for notifications (cached)
     user = await get_cached_user_config(db)
 
     # 4. Analyze in batches of 3 (concurrent)
-    batch_size = 10
+    batch_size = 3
     provider = get_llm_provider()
     notify_jobs = []  # 高分职位，汇总后发一条飞书
 
@@ -119,6 +138,8 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
 
         if not valid_jobs:
             task.errors += len(batch)
+            if progress_callback is not None:
+                await progress_callback(task)
             continue
 
         # 并发分析
@@ -156,6 +177,9 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
             if should_notify_match(result.match_score):
                 notify_jobs.append((job, result))
 
+        if progress_callback is not None:
+            await progress_callback(task)
+
     # 汇总飞书通知（只发一条）
     webhook_url = user.get("feishu_webhook_url") if user else None
     if notify_jobs and webhook_url:
@@ -175,7 +199,59 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
         except Exception:
             pass
 
-    task.status = TaskStatus.COMPLETED
+    # Determine final status
+    attempted = task.success + task.errors
+    if task.success == 0 and attempted > 0:
+        task.status = TaskStatus.FAILED
+        task.reason = "all_items_failed"
+    else:
+        task.status = TaskStatus.COMPLETED
+    if progress_callback is not None:
+        await progress_callback(task)
+
+
+async def enqueue_job_match_analysis(
+    db,
+    *,
+    resume_id: int,
+    job_ids: list[int],
+    user_id: int,
+    source: str = "manual",
+) -> dict:
+    """Create a durable crawl_task for job match analysis.
+
+    Returns {"task_id": str|None, "total": int, "status": str, "reason": str|None}.
+    If no jobs need analysis, returns completed without creating a task.
+    """
+    from app.domains.crawling.task_store import create_crawl_task_record
+
+    jobs_to_analyze = await _get_jobs_needing_analysis(db, resume_id, job_ids)
+    if not jobs_to_analyze:
+        return {
+            "task_id": None,
+            "total": 0,
+            "status": "completed",
+            "reason": "all_up_to_date",
+        }
+
+    record = await create_crawl_task_record(
+        db,
+        source=source,
+        task_type="job_match_analysis",
+        user_id=user_id,
+        entity_type="resume",
+        entity_id=str(resume_id),
+        payload={
+            "resume_id": resume_id,
+            "job_ids": [j.id for j in jobs_to_analyze],
+        },
+    )
+    return {
+        "task_id": record.task_id,
+        "total": len(jobs_to_analyze),
+        "status": "pending",
+        "reason": None,
+    }
 
 
 def should_notify_match(score: int) -> bool:
