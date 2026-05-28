@@ -147,6 +147,14 @@ export const jobsApi = {
   updateProfile: (profileKey: string, data: CrawlProfileUpdate) =>
     api.patch<CrawlProfile>(`/v1/crawl-profiles/${profileKey}`, data),
 
+  renameProfile: (profileKey: string, newProfileKey: string) =>
+    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/rename`, {
+      profile_key: newProfileKey,
+    }),
+
+  copyProfile: (profileKey: string) =>
+    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/copy`),
+
   deleteProfile: (profileKey: string) =>
     api.delete(`/v1/crawl-profiles/${profileKey}`),
 

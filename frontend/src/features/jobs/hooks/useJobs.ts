@@ -304,6 +304,26 @@ export const useDeleteCrawlProfile = () => {
   });
 };
 
+export const useRenameCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ profileKey, newProfileKey }: { profileKey: string; newProfileKey: string }) =>
+      jobsApi.renameProfile(profileKey, newProfileKey),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: jobQueryKeys.profiles });
+      qc.invalidateQueries({ queryKey: ["job-configs"] });
+    },
+  });
+};
+
+export const useCopyCrawlProfile = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: jobsApi.copyProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
+  });
+};
+
 export const useReleaseStaleCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({

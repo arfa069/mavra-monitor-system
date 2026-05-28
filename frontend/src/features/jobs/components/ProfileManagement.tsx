@@ -9,6 +9,8 @@ interface ProfileManagementProps {
   loading?: boolean;
   onCreate: (profileKey: string, platformHint?: string | null) => Promise<void>;
   onDelete: (profileKey: string) => Promise<void>;
+  onRename: (profileKey: string, newProfileKey: string) => Promise<void>;
+  onCopy: (profileKey: string) => Promise<void>;
   onUpdateStatus: (profileKey: string, status: "available" | "login_required" | "disabled") => Promise<void>;
   onReleaseStale: (profileKey: string) => Promise<void>;
   capabilities?: CrawlProfileRuntimeCapabilities;
@@ -24,6 +26,8 @@ export default function ProfileManagement({
   loading,
   onCreate,
   onDelete,
+  onRename,
+  onCopy,
   onUpdateStatus,
   onReleaseStale,
   capabilities,
@@ -38,7 +42,9 @@ export default function ProfileManagement({
   const [backupOpen, setBackupOpen] = useState(false);
   const [backupMode, setBackupMode] = useState<"import" | "export">("import");
   const [backupProfile, setBackupProfile] = useState<CrawlProfile | null>(null);
+  const [renameProfile, setRenameProfile] = useState<CrawlProfile | null>(null);
   const [form] = Form.useForm<{ profile_key: string; platform_hint?: string }>();
+  const [renameForm] = Form.useForm<{ profile_key: string }>();
   const [backupForm] = Form.useForm<{
     password: string;
     force?: boolean;
@@ -102,6 +108,22 @@ export default function ProfileManagement({
               }]
             : []),
           {
+            key: "rename",
+            label: "Rename",
+            onClick: () => {
+              renameForm.setFieldsValue({ profile_key: record.profile_key });
+              setRenameProfile(record);
+            },
+          },
+          {
+            key: "copy",
+            label: "Copy",
+            onClick: async () => {
+              await onCopy(record.profile_key);
+              message.success("Profile copied");
+            },
+          },
+          {
             key: "available",
             label: "Mark Available",
             onClick: () => onUpdateStatus(record.profile_key, "available"),
@@ -146,6 +168,15 @@ export default function ProfileManagement({
     form.resetFields();
     setOpen(false);
     message.success("Profile created");
+  };
+
+  const handleRename = async () => {
+    if (!renameProfile) return;
+    const values = await renameForm.validateFields();
+    await onRename(renameProfile.profile_key, values.profile_key);
+    renameForm.resetFields();
+    setRenameProfile(null);
+    message.success("Profile renamed");
   };
 
   const normFile = (event: { fileList?: UploadFile[] } | UploadFile[]) =>
@@ -203,6 +234,21 @@ export default function ProfileManagement({
               { value: "taobao", label: "Taobao" },
               { value: "amazon", label: "Amazon" },
             ]} />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title="Rename Profile"
+        open={!!renameProfile}
+        onOk={handleRename}
+        onCancel={() => {
+          renameForm.resetFields();
+          setRenameProfile(null);
+        }}
+      >
+        <Form form={renameForm} layout="vertical">
+          <Form.Item name="profile_key" label="New Profile Key" rules={[{ required: true }]}>
+            <Input autoComplete="off" />
           </Form.Item>
         </Form>
       </Modal>

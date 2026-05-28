@@ -5,6 +5,7 @@ import type { ColumnsType } from "antd/es/table";
 import {
   useCrawlAllJobs,
   useCrawlSingleJob,
+  useCopyCrawlProfile,
   useCreateCrawlProfile,
   useCreateJobConfig,
   useCrawlProfiles,
@@ -19,6 +20,7 @@ import {
   useMatchResults,
   useOpenProfileLoginSession,
   useProfileRuntimeCapabilities,
+  useRenameCrawlProfile,
   useReleaseStaleCrawlProfile,
   useTestCrawlProfile,
   useUpdateCrawlProfile,
@@ -78,6 +80,8 @@ export default function JobsPage() {
   const createProfile = useCreateCrawlProfile();
   const updateProfile = useUpdateCrawlProfile();
   const deleteProfile = useDeleteCrawlProfile();
+  const renameProfile = useRenameCrawlProfile();
+  const copyProfile = useCopyCrawlProfile();
   const releaseStaleProfile = useReleaseStaleCrawlProfile();
   const openProfileLoginSession = useOpenProfileLoginSession();
   const closeProfileLoginSession = useCloseProfileLoginSession();
@@ -102,6 +106,14 @@ export default function JobsPage() {
 
   const handleDeleteProfile = async (profileKey: string) => {
     await deleteProfile.mutateAsync(profileKey);
+  };
+
+  const handleRenameProfile = async (profileKey: string, newProfileKey: string) => {
+    await renameProfile.mutateAsync({ profileKey, newProfileKey });
+  };
+
+  const handleCopyProfile = async (profileKey: string) => {
+    await copyProfile.mutateAsync(profileKey);
   };
 
   const handleOpenLoginSession = async (profileKey: string, platform: string) => {
@@ -290,6 +302,30 @@ export default function JobsPage() {
       ),
     },
     {
+      key: "profiles",
+      label: "Profiles Management",
+      children: (
+        <Card size="small" title="Crawler Profiles">
+          <ProfileManagement
+            profiles={profiles}
+            loading={profilesLoading}
+            onCreate={handleCreateProfile}
+            onDelete={handleDeleteProfile}
+            onRename={handleRenameProfile}
+            onCopy={handleCopyProfile}
+            onUpdateStatus={handleUpdateProfileStatus}
+            onReleaseStale={handleReleaseStaleProfile}
+            capabilities={profileCapabilities}
+            onOpenLoginSession={handleOpenLoginSession}
+            onCloseLoginSession={handleCloseLoginSession}
+            onTestProfile={handleTestProfile}
+            onExportBackup={handleExportBackup}
+            onImportBackup={handleImportBackup}
+          />
+        </Card>
+      ),
+    },
+    {
       key: "resume",
       label: "Resume Management",
       children: <ResumeManager />,
@@ -311,28 +347,6 @@ export default function JobsPage() {
             loading={logsLoading}
             size="small"
             pagination={false}
-          />
-        </Card>
-      ),
-    },
-    {
-      key: "profiles",
-      label: "Profiles",
-      children: (
-        <Card size="small" title="Crawler Profiles">
-          <ProfileManagement
-            profiles={profiles}
-            loading={profilesLoading}
-            onCreate={handleCreateProfile}
-            onDelete={handleDeleteProfile}
-            onUpdateStatus={handleUpdateProfileStatus}
-            onReleaseStale={handleReleaseStaleProfile}
-            capabilities={profileCapabilities}
-            onOpenLoginSession={handleOpenLoginSession}
-            onCloseLoginSession={handleCloseLoginSession}
-            onTestProfile={handleTestProfile}
-            onExportBackup={handleExportBackup}
-            onImportBackup={handleImportBackup}
           />
         </Card>
       ),

@@ -30,6 +30,15 @@ class CrawlProfileUpdate(BaseModel):
     last_error: str | None = None
 
 
+class CrawlProfileRenameRequest(BaseModel):
+    profile_key: str = Field(min_length=1, max_length=80)
+
+    @field_validator("profile_key")
+    @classmethod
+    def validate_profile_key(cls, value: str) -> str:
+        return validate_profile_key_value(value)
+
+
 class CrawlProfileResponse(BaseModel):
     profile_key: str
     profile_dir: str

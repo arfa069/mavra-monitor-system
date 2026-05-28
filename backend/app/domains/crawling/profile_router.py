@@ -12,6 +12,7 @@ from app.schemas.crawl_profile import (
     CrawlProfileCreate,
     CrawlProfileLoginSessionRequest,
     CrawlProfileLoginSessionResponse,
+    CrawlProfileRenameRequest,
     CrawlProfileResponse,
     CrawlProfileRuntimeCapabilities,
     CrawlProfileTestRequest,
@@ -53,6 +54,47 @@ async def create_profile(
         profile_key=data.profile_key,
         platform_hint=data.platform_hint,
     )
+
+
+@router.post("/{profile_key}/rename", response_model=CrawlProfileResponse)
+async def rename_profile(
+    profile_key: str,
+    data: CrawlProfileRenameRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if profile_runtime_service.is_login_session_open(profile_key):
+        raise HTTPException(status_code=409, detail="Profile login session is already open")
+    try:
+        return await profile_service.rename_profile(
+            db,
+            profile_key=profile_key,
+            new_profile_key=data.profile_key,
+        )
+    except profile_service.CrawlProfileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Profile not found") from exc
+    except profile_service.CrawlProfileLeaseActiveError as exc:
+        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except profile_service.CrawlProfileAlreadyExistsError as exc:
+        raise HTTPException(status_code=409, detail="Profile already exists") from exc
+
+
+@router.post("/{profile_key}/copy", response_model=CrawlProfileResponse, status_code=status.HTTP_201_CREATED)
+async def copy_profile(
+    profile_key: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if profile_runtime_service.is_login_session_open(profile_key):
+        raise HTTPException(status_code=409, detail="Profile login session is already open")
+    try:
+        return await profile_service.copy_profile(db, profile_key=profile_key)
+    except profile_service.CrawlProfileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Profile not found") from exc
+    except profile_service.CrawlProfileLeaseActiveError as exc:
+        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except profile_service.CrawlProfileAlreadyExistsError as exc:
+        raise HTTPException(status_code=409, detail="Profile already exists") from exc
 
 
 @router.delete("/{profile_key}", status_code=status.HTTP_204_NO_CONTENT)

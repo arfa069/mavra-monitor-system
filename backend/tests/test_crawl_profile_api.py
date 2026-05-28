@@ -180,6 +180,55 @@ async def test_delete_profile_rejects_open_login_session(mock_auth, mock_db):
 
 
 @pytest.mark.asyncio
+async def test_rename_profile_rejects_open_login_session(mock_auth, mock_db):
+    from app.domains.crawling import profile_runtime_service
+
+    profile_runtime_service._sessions["job-a"] = profile_runtime_service.LoginSession(
+        profile_key="job-a",
+        platform="boss",
+        start_url="https://www.zhipin.com/",
+        context=MagicMock(),
+        page=MagicMock(),
+        started_at=0,
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/v1/crawl-profiles/job-a/rename",
+                json={"profile_key": "job-b"},
+            )
+
+        assert response.status_code == 409
+    finally:
+        profile_runtime_service._sessions.pop("job-a", None)
+        profile_runtime_service._profile_locks.pop("job-a", None)
+
+
+@pytest.mark.asyncio
+async def test_copy_profile_rejects_open_login_session(mock_auth, mock_db):
+    from app.domains.crawling import profile_runtime_service
+
+    profile_runtime_service._sessions["job-a"] = profile_runtime_service.LoginSession(
+        profile_key="job-a",
+        platform="boss",
+        start_url="https://www.zhipin.com/",
+        context=MagicMock(),
+        page=MagicMock(),
+        started_at=0,
+    )
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/v1/crawl-profiles/job-a/copy")
+
+        assert response.status_code == 409
+    finally:
+        profile_runtime_service._sessions.pop("job-a", None)
+        profile_runtime_service._profile_locks.pop("job-a", None)
+
+
+@pytest.mark.asyncio
 async def test_runtime_capabilities_endpoint(mock_auth):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -350,3 +399,113 @@ def test_clear_profile_dir_removes_existing_files():
             import shutil
 
             shutil.rmtree(tmp_path)
+
+
+def test_copy_profile_key_stays_within_limit():
+    from app.domains.crawling.profile_service import _copy_profile_key
+
+    assert _copy_profile_key("a" * 80) == ("a" * 75) + "-copy"
+    assert _copy_profile_key("a" * 80, 2) == ("a" * 73) + "-copy-2"
+
+
+@pytest.mark.asyncio
+async def test_rename_profile_moves_profile_directory(monkeypatch):
+    import shutil
+    from pathlib import Path
+
+    from app.domains.crawling import profile_service
+    from app.models.crawl_profile import CrawlProfile
+
+    base = Path("tmp-test-profile-rename")
+    old_dir = base / "profiles" / "old-profile"
+    new_dir = base / "profiles" / "new-profile"
+    try:
+        old_dir.mkdir(parents=True)
+        (old_dir / "cookie.txt").write_text("cookie")
+        current = datetime.now(UTC)
+        profile = CrawlProfile(
+            profile_key="old-profile",
+            profile_dir=str(old_dir),
+            status="available",
+            platform_hint="boss",
+            created_at=current,
+            updated_at=current,
+        )
+        db = AsyncMock()
+        db.add = MagicMock()
+        db.execute = AsyncMock(side_effect=[
+            _make_scalar_result(profile),
+            _make_scalar_result(None),
+            MagicMock(),
+            MagicMock(),
+        ])
+        db.flush = AsyncMock()
+        db.delete = AsyncMock()
+        db.commit = AsyncMock()
+        db.refresh = AsyncMock()
+        monkeypatch.setattr(
+            profile_service,
+            "build_profile_dir",
+            lambda profile_key: base / "profiles" / profile_key,
+        )
+        monkeypatch.setattr(profile_service, "emit_system_log_detached", AsyncMock())
+
+        renamed = await profile_service.rename_profile(
+            db,
+            profile_key="old-profile",
+            new_profile_key="new-profile",
+        )
+
+        assert renamed.profile_key == "new-profile"
+        assert not old_dir.exists()
+        assert (new_dir / "cookie.txt").read_text() == "cookie"
+    finally:
+        if base.exists():
+            shutil.rmtree(base)
+
+
+@pytest.mark.asyncio
+async def test_copy_profile_creates_copy_directory(monkeypatch):
+    import shutil
+    from pathlib import Path
+
+    from app.domains.crawling import profile_service
+    from app.models.crawl_profile import CrawlProfile
+
+    base = Path("tmp-test-profile-copy")
+    source_dir = base / "profiles" / "boss-default-2"
+    copied_dir = base / "profiles" / "boss-default-2-copy"
+    try:
+        source_dir.mkdir(parents=True)
+        (source_dir / "cookie.txt").write_text("cookie")
+        current = datetime.now(UTC)
+        profile = CrawlProfile(
+            profile_key="boss-default-2",
+            profile_dir=str(source_dir),
+            status="available",
+            platform_hint="boss",
+            created_at=current,
+            updated_at=current,
+        )
+        db = AsyncMock()
+        db.add = MagicMock()
+        db.execute = AsyncMock(side_effect=[
+            _make_scalar_result(profile),
+            _make_scalar_result(None),
+        ])
+        db.commit = AsyncMock()
+        db.refresh = AsyncMock()
+        monkeypatch.setattr(
+            profile_service,
+            "build_profile_dir",
+            lambda profile_key: base / "profiles" / profile_key,
+        )
+        monkeypatch.setattr(profile_service, "emit_system_log_detached", AsyncMock())
+
+        copied = await profile_service.copy_profile(db, profile_key="boss-default-2")
+
+        assert copied.profile_key == "boss-default-2-copy"
+        assert (copied_dir / "cookie.txt").read_text() == "cookie"
+    finally:
+        if base.exists():
+            shutil.rmtree(base)
