@@ -122,16 +122,15 @@ export default function JobDrawer({ open, job, onClose }: JobDrawerProps) {
                 <Space>
                   <Tag
                     color={
-                      currentMatch.match_score >= 80
+                      currentMatch.apply_recommendation === "强烈推荐"
                         ? "green"
-                        : currentMatch.match_score >= 60
-                          ? "orange"
+                        : currentMatch.apply_recommendation === "可以考虑"
+                          ? "blue"
                           : "default"
                     }
                   >
-                    {currentMatch.match_score} pts
+                    {currentMatch.apply_recommendation || "-"}
                   </Tag>
-                  <Tag>{currentMatch.apply_recommendation || "-"}</Tag>
                 </Space>
                 <Typography.Paragraph style={{ marginBottom: 0 }}>
                   {currentMatch.match_reason || "-"}

@@ -18,7 +18,7 @@ import type { MatchResultWithJob } from "../types";
 export default function MatchResultList() {
   const message = App.useApp().message;
   const [resumeId, setResumeId] = useState<number | undefined>();
-  const [minScore, setMinScore] = useState<number>(70);
+  const [recommendation, setRecommendation] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const [taskProgress, setTaskProgress] = useState<{
@@ -35,7 +35,7 @@ export default function MatchResultList() {
     refetch,
   } = useMatchResults({
     resume_id: resumeId,
-    min_score: minScore,
+    recommendation,
     page,
     page_size: pageSize,
   });
@@ -103,26 +103,14 @@ export default function MatchResultList() {
   const columns: ColumnsType<MatchResultWithJob> = useMemo(
     () => [
       {
-        title: "Match Score",
-        dataIndex: "match_score",
-        width: 90,
-        render: (score: number) => (
-          <Tag
-            color={score >= 80 ? "green" : score >= 60 ? "orange" : "default"}
-          >
-            {score}
-          </Tag>
-        ),
-      },
-      {
         title: "Recommendation",
         dataIndex: "apply_recommendation",
         width: 110,
         render: (value: string | null) => {
           const color =
-            value === "Strongly Recommended"
+            value === "强烈推荐"
               ? "green"
-              : value === "Consider"
+              : value === "可以考虑"
                 ? "blue"
                 : "default";
           return <Tag color={color}>{value || "-"}</Tag>;
@@ -202,16 +190,17 @@ export default function MatchResultList() {
         />
         <Select
           style={{ width: 160 }}
-          value={minScore}
+          allowClear
+          placeholder="Recommendation"
+          value={recommendation}
           onChange={(value) => {
-            setMinScore(value);
+            setRecommendation(value);
             setPage(1);
           }}
           options={[
-            { label: "All Scores", value: 0 },
-            { label: "70+", value: 70 },
-            { label: "80+", value: 80 },
-            { label: "90+", value: 90 },
+            { label: "强烈推荐", value: "强烈推荐" },
+            { label: "可以考虑", value: "可以考虑" },
+            { label: "不太匹配", value: "不太匹配" },
           ]}
         />
         <Button

@@ -276,14 +276,14 @@ server: {
 **Tab 结构：**
 
 - `configs` Tab：搜索配置列表 + 职位列表
-- `profiles` Tab：爬虫 profile 列表、创建、状态更新、释放过期租约
+- `profiles` Tab（显示为 `Profiles Management`，位于 Search Config 右侧）：爬虫 profile 列表、创建、改名、复制、删除、状态更新、登录浏览器、测试、导入/导出、释放过期租约
 - `resume` Tab：简历管理器
 - `matches` Tab：匹配结果列表
 
 **核心功能：**
 
 - 搜索配置 CRUD + `profile_key` 选择 + 手动触发爬取
-- Profile 管理：调用 `/v1/crawl-profiles` 管理 `available/login_required/disabled` 状态和过期 lease
+- Profile 管理：调用 `/v1/crawl-profiles` 管理 `available/login_required/disabled` 状态、过期 lease、登录浏览器、测试、导入/导出，以及安全的 rename/copy/delete
 - 职位列表：关键词/公司在客户端筛选，分页
 - 匹配分数展示：`MatchResultList` 中取最高分
 - 详情抽屉（JobDrawer）：展示职位完整信息
@@ -349,7 +349,7 @@ server: {
 | `PriceTrendModal`  | 弹窗   | 价格历史折线图展示          |
 | `JobConfigList`    | 列表   | 搜索配置列表 + 爬取触发     |
 | `JobConfigForm`    | 表单   | 新增/编辑搜索配置           |
-| `ProfileManagement` | 面板  | 爬虫 profile 创建、状态更新、过期 lease 释放 |
+| `ProfileManagement` | 面板  | 爬虫 profile 创建、改名、复制、删除、状态更新、登录浏览器、测试、导入/导出、过期 lease 释放 |
 | `JobList`          | 列表   | 职位列表 + 筛选 + 分页      |
 | `JobDrawer`        | 抽屉   | 职位详情（侧滑展示）        |
 | `MatchResultList`  | 列表   | 匹配结果 + 分数筛选         |

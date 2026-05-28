@@ -1,17 +1,37 @@
 """Unit tests for job match service helpers."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 
 def test_should_notify_match_threshold():
-    """Scores above 70 should notify."""
+    """Consider-or-better recommendations should notify."""
     from app.domains.jobs.match_service import should_notify_match
 
-    assert should_notify_match(71) is True
-    assert should_notify_match(100) is True
-    assert should_notify_match(70) is False
+    assert should_notify_match("强烈推荐") is True
+    assert should_notify_match("可以考虑") is True
+    assert should_notify_match("不太匹配") is False
+    assert should_notify_match(None) is False
+
+
+def test_job_has_required_match_fields_ignores_salary_and_location():
+    """Match analysis requires title/company/description, not salary/location."""
+    from app.domains.jobs.match_service import job_has_required_match_fields
+
+    assert job_has_required_match_fields(
+        SimpleNamespace(
+            title="Python Engineer",
+            company="Acme",
+            description="Build APIs",
+            salary=None,
+            location=None,
+        )
+    )
+    assert not job_has_required_match_fields(
+        SimpleNamespace(title="Python Engineer", company="Acme", description="")
+    )
 
 
 @pytest.mark.asyncio

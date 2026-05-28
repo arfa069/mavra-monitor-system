@@ -18,7 +18,7 @@ export const jobMatchApi = {
   listMatchResults: (params?: {
     resume_id?: number;
     job_id?: number;
-    min_score?: number;
+    recommendation?: string;
     page?: number;
     page_size?: number;
   }) => api.get<MatchResultListResponse>("/v1/jobs/match-results", { params }),

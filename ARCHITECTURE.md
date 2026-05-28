@@ -48,7 +48,7 @@ Browser clients authenticate with HttpOnly access/refresh cookies, short-lived a
 
 ## Crawling Strategy
 
-Crawl tasks run **asynchronously in FastAPI's event loop** — no Celery or external worker yet. The `POST /products/crawl/crawl-now` endpoint creates an in-memory task and routes execution through `CrawlTaskRunner`; product crawl execution is protected by a global semaphore and runs up to 3 products concurrently with a 2–3s randomized post-crawl interval.
+Crawl tasks are persisted in PostgreSQL. In normal mode, FastAPI and APScheduler only enqueue `crawl_tasks`; independent `python -m app.workers.crawler` processes claim pending tasks with row locks, heartbeat, execute via `CrawlTaskRunner`, and write results back. Inline execution is a local fallback only when `CRAWLER_INLINE_EXECUTION_ENABLED=true`.
 
 ### Cron Scheduling
 
@@ -359,7 +359,8 @@ This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot scrip
 
 - Browser profiles live under project-root `profiles/{key}` and are ignored by git.
 - One profile can store login state for multiple platforms, but one profile directory can only be leased by one crawl task at a time. Use multiple profile keys when multiple crawler slots are needed.
-- Profile metadata/status/leases live in `crawl_profiles`; `/crawl-profiles` lists, creates, updates status, and releases expired leases.
+- Profile metadata/status/leases live in `crawl_profiles`; `/crawl-profiles` lists, creates, renames, copies, deletes unused idle profiles, updates status, opens local login sessions, imports/exports encrypted backups, and releases expired leases.
+- Profile folders must be renamed or copied through the UI/API, not manually in `profiles/`, because job configs and product cron rows store `profile_key` references.
 - `emit_system_log()` redacts payloads before storage, and Event Center normalizers redact again before display. Sensitive cookie/token/webhook/security fields should not appear in runtime or audit event details.
 
 ## Data Retention
@@ -393,4 +394,5 @@ All settings via environment variables in `.env` (loaded via Pydantic Settings):
 | CRAWL_PROXY_ENABLED | Enable proxy for crawling                     | `false`                    |
 | CRAWL_PROXY_URL     | Proxy URL                                     |                            |
 | DATA_RETENTION_DAYS | Days to retain price history                  | `365`                      |
-| JD_COOKIE           | JD cookie string for login session            |                            |
+| JD_COOKIE_FALLBACK_ENABLED | Enable emergency JD cookie injection fallback | `false`                    |
+| JD_COOKIE           | JD cookie string used only when fallback is enabled |                       |

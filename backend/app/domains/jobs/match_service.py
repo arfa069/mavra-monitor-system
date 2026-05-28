@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import case, desc, select
 from sqlalchemy.orm import selectinload
 
 from app.core.user_config_cache import get_cached_user_config
@@ -14,6 +14,10 @@ from app.domains.jobs.llm.provider import MatchAnalysis, get_llm_provider
 from app.integrations.feishu import send_feishu_notification
 from app.models.job import Job, JobSearchConfig
 from app.models.job_match import MatchResult, UserResume
+
+MATCH_ANALYSIS_BATCH_SIZE = 3
+NOTIFIABLE_RECOMMENDATIONS = {"强烈推荐", "可以考虑"}
+RECOMMENDATION_RANK = {"强烈推荐": 3, "可以考虑": 2, "不太匹配": 1}
 
 
 async def _get_jobs_needing_analysis(
@@ -102,20 +106,14 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
     # 3. Get user for notifications (cached)
     user = await get_cached_user_config(db)
 
-    # 4. Analyze in batches of 3 (concurrent)
-    batch_size = 10
     provider = get_llm_provider()
     notify_jobs = []  # 高分职位，汇总后发一条飞书
 
-    for i in range(0, len(jobs_to_analyze), batch_size):
-        batch = jobs_to_analyze[i : i + batch_size]
+    for i in range(0, len(jobs_to_analyze), MATCH_ANALYSIS_BATCH_SIZE):
+        batch = jobs_to_analyze[i : i + MATCH_ANALYSIS_BATCH_SIZE]
 
         # 过滤无内容的 job
-        valid_jobs = [
-            j
-            for j in batch
-            if any([j.title, j.company, j.salary, j.location, j.description])
-        ]
+        valid_jobs = [j for j in batch if job_has_required_match_fields(j)]
 
         if not valid_jobs:
             task.errors += len(batch)
@@ -153,7 +151,7 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
             task.success += 1
             await db.commit()
 
-            if should_notify_match(result.match_score):
+            if should_notify_match(result.apply_recommendation):
                 notify_jobs.append((job, result))
 
     # 汇总飞书通知（只发一条）
@@ -165,10 +163,12 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
                 f"简历：{resume.name}",
             ]
             for job, analysis in sorted(
-                notify_jobs, key=lambda x: x[1].match_score, reverse=True
+                notify_jobs,
+                key=lambda x: recommendation_rank(x[1].apply_recommendation),
+                reverse=True,
             ):
                 lines.append(
-                    f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
+                    f"• {job.title or '-'} / {job.company or '-'}（{analysis.apply_recommendation}）"
                 )
             lines.append(f"结论：{analysis.apply_recommendation}")
             await send_feishu_notification(webhook_url, "\n".join(lines))
@@ -178,10 +178,22 @@ async def _execute_match_analysis(task, resume_id, job_ids, db) -> None:
     task.status = TaskStatus.COMPLETED
 
 
-def should_notify_match(score: int) -> bool:
-    """Whether a match score should trigger notification."""
+def should_notify_match(recommendation: str | None) -> bool:
+    """Whether a match recommendation should trigger notification."""
 
-    return score > 70
+    return recommendation in NOTIFIABLE_RECOMMENDATIONS
+
+
+def recommendation_rank(recommendation: str | None) -> int:
+    """Sort rank for match recommendations."""
+
+    return RECOMMENDATION_RANK.get(recommendation or "", 0)
+
+
+def job_has_required_match_fields(job) -> bool:
+    """Whether a job has enough text fields for match analysis."""
+
+    return all([job.title, job.company, job.description])
 
 
 async def analyze_resume_vs_jobs(
@@ -226,19 +238,14 @@ async def analyze_resume_vs_jobs(
         created = 0
         updated = 0
         skipped = 0
-        batch_size = 10
         notify_jobs = []
 
         # Batch valid jobs first
-        valid_jobs = [
-            j
-            for j in jobs
-            if any([j.title, j.company, j.salary, j.location, j.description])
-        ]
+        valid_jobs = [j for j in jobs if job_has_required_match_fields(j)]
         skipped = len(jobs) - len(valid_jobs)
 
-        for i in range(0, len(valid_jobs), batch_size):
-            batch = valid_jobs[i : i + batch_size]
+        for i in range(0, len(valid_jobs), MATCH_ANALYSIS_BATCH_SIZE):
+            batch = valid_jobs[i : i + MATCH_ANALYSIS_BATCH_SIZE]
 
             # Concurrent LLM analysis for the batch
             tasks = [
@@ -274,7 +281,7 @@ async def analyze_resume_vs_jobs(
                     updated += 1
                 await db.commit()
 
-                if should_notify_match(result.match_score):
+                if should_notify_match(result.apply_recommendation):
                     notify_jobs.append((job, result))
 
         # Batch notification (one message with all high-score jobs)
@@ -285,10 +292,12 @@ async def analyze_resume_vs_jobs(
                     f"简历：{resume.name}",
                 ]
                 for job, analysis in sorted(
-                    notify_jobs, key=lambda x: x[1].match_score, reverse=True
+                    notify_jobs,
+                    key=lambda x: recommendation_rank(x[1].apply_recommendation),
+                    reverse=True,
                 ):
                     lines.append(
-                        f"• {job.title or '-'} / {job.company or '-'}（{analysis.match_score}分）"
+                        f"• {job.title or '-'} / {job.company or '-'}（{analysis.apply_recommendation}）"
                     )
                 await send_feishu_notification(webhook_url, "\n".join(lines))
             except Exception:
@@ -298,7 +307,17 @@ async def analyze_resume_vs_jobs(
             select(MatchResult)
             .options(selectinload(MatchResult.job))
             .where(MatchResult.resume_id == resume.id)
-            .order_by(MatchResult.match_score.desc(), MatchResult.updated_at.desc())
+            .order_by(
+                desc(
+                    case(
+                        (MatchResult.apply_recommendation == "强烈推荐", 3),
+                        (MatchResult.apply_recommendation == "可以考虑", 2),
+                        (MatchResult.apply_recommendation == "不太匹配", 1),
+                        else_=0,
+                    )
+                ),
+                MatchResult.updated_at.desc(),
+            )
         )
         items = list(items_result.scalars().all())
 

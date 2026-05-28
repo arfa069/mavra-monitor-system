@@ -17,7 +17,7 @@ interface JobListProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
-  matchScores?: Record<number, number>;
+  matchRecommendations?: Record<number, string>;
 }
 
 type StatusFilterValue = "all" | "active" | "inactive";
@@ -35,7 +35,7 @@ export default function JobList({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  matchScores,
+  matchRecommendations,
 }: JobListProps) {
   const statusValue: StatusFilterValue =
     filters.is_active === undefined
@@ -68,16 +68,22 @@ export default function JobList({
       },
       {
         title: "Match",
-        key: "match_score",
-        width: 90,
+        key: "match_recommendation",
+        width: 110,
         render: (_, record) => {
-          const score = matchScores?.[record.id];
-          if (!score) return null;
+          const recommendation = matchRecommendations?.[record.id];
+          if (!recommendation) return null;
           return (
             <Tag
-              color={score >= 80 ? "green" : score >= 60 ? "orange" : "default"}
+              color={
+                recommendation === "强烈推荐"
+                  ? "green"
+                  : recommendation === "可以考虑"
+                    ? "blue"
+                    : "default"
+              }
             >
-              {score}
+              {recommendation}
             </Tag>
           );
         },
@@ -136,7 +142,7 @@ export default function JobList({
         ),
       },
     ],
-    [matchScores, onViewDetail],
+    [matchRecommendations, onViewDetail],
   );
 
   return (

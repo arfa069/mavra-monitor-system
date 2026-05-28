@@ -78,7 +78,7 @@ export const jobsApi = {
   getMatchResults: (params?: {
     resume_id?: number;
     job_id?: number;
-    min_score?: number;
+    recommendation?: string;
     page?: number;
     page_size?: number;
   }) => api.get("/v1/jobs/match-results", { params }),

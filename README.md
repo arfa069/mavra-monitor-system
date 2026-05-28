@@ -57,7 +57,8 @@ CDP_URL=http://127.0.0.1:9222
 CRAWL_PROXY_ENABLED=false
 CRAWL_PROXY_URL=http://user:pass@host:port
 
-# Platform credentials (optional)
+# JD cookie fallback (optional, disabled unless JD_COOKIE_FALLBACK_ENABLED=true)
+JD_COOKIE_FALLBACK_ENABLED=false
 JD_COOKIE=...
 ```
 
@@ -81,6 +82,7 @@ JD_COOKIE=...
 | POST             | /alerts                           | Create an alert                                    | 是    |
 | GET              | /alerts                           | List all alerts                                    | 是    |
 | POST             | /products/crawl/crawl-now         | Crawl all active products                          | 是    |
+| GET              | /products/crawl/workers           | List crawler worker heartbeats/capabilities        | 是    |
 | GET              | /products/crawl/logs              | Get recent crawl logs                              | 是    |
 | POST             | /products/crawl/cleanup           | Delete old price history and crawl logs            | 是    |
 | GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      | 是    |
@@ -102,8 +104,17 @@ JD_COOKIE=...
 | GET              | /jobs/crawl/status/{task_id}      | Poll persisted job crawl task status               | 是    |
 | GET              | /jobs/crawl/result/{task_id}      | Get completed job crawl result                     | 是    |
 | GET/POST         | /crawl-profiles                   | List/Create crawler browser profiles               | 是    |
+| GET              | /crawl-profiles/runtime-capabilities | Show local browser/profile runtime support       | 是    |
 | PATCH            | /crawl-profiles/{profile_key}     | Update profile status/platform hint/error          | 是    |
+| POST             | /crawl-profiles/{profile_key}/rename | Rename profile and sync config references       | 是    |
+| POST             | /crawl-profiles/{profile_key}/copy | Copy profile directory and metadata               | 是    |
+| DELETE           | /crawl-profiles/{profile_key}     | Delete unused, idle profile and local directory    | 是    |
 | POST             | /crawl-profiles/{profile_key}/release-stale | Release expired profile lease only        | 是    |
+| POST/GET         | /crawl-profiles/{profile_key}/login-session | Open or inspect local login browser session | 是    |
+| POST             | /crawl-profiles/{profile_key}/login-session/close | Close local login browser session       | 是    |
+| POST             | /crawl-profiles/{profile_key}/test | Test profile login/runtime state                  | 是    |
+| POST             | /crawl-profiles/{profile_key}/export | Export encrypted profile backup                 | admin |
+| POST             | /crawl-profiles/{profile_key}/import | Import encrypted profile backup                 | admin |
 
 ## 认证 API
 
@@ -254,7 +265,7 @@ cd frontend && npm run dev
 - **Redis**: Cache layer
 - **Feishu Webhook**: Notification service
 
-Crawl tasks run **directly in FastAPI's async context** — no Celery or background worker needed. Each crawl uses a 90s timeout with platform-specific price selectors.
+Crawl tasks are durable records in PostgreSQL. In normal production mode, FastAPI and APScheduler only enqueue `crawl_tasks`; one or more `python -m app.workers.crawler` processes claim pending tasks, heartbeat, execute crawls, and persist results. Inline execution is only a local fallback when `CRAWLER_INLINE_EXECUTION_ENABLED=true`.
 
 ### Cron Scheduling (APScheduler)
 
@@ -285,7 +296,8 @@ Product crawls still use the app-level crawl semaphore. Job crawls use database-
 ### Job Platform Notes
 
 - Browser profiles live under project-root `profiles/{key}` and are ignored by git. Profile metadata/status is managed through `/crawl-profiles` and persisted in `crawl_profiles`.
-- Crawl runtime state is persisted in `crawl_tasks`; profile metadata and leases are persisted in `crawl_profiles`. Crawlers still execute inside FastAPI/APScheduler, while PostgreSQL row locks protect `DatabaseProfilePool` acquisition and heartbeat renewal.
+- Do not manually rename profile folders under `profiles/`. Use Jobs -> Profiles Management so the folder, `crawl_profiles`, job configs, and product cron references stay aligned. Copy uses Windows-style names such as `<profile>-copy` and `<profile>-copy-2`.
+- Crawl runtime state is persisted in `crawl_tasks`; profile metadata and leases are persisted in `crawl_profiles`; worker heartbeats are persisted in `crawler_workers`. PostgreSQL row locks protect both task claiming and `DatabaseProfilePool` acquisition/heartbeat renewal.
 - Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
 - Event Center/system log payloads are centrally redacted before storage and again before display, so cookie/token/webhook/security fields are not exposed in runtime or audit event details.
 - 51job uses `curl_cffi` search and HTML detail parsing.

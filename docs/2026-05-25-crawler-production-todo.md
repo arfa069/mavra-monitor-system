@@ -49,9 +49,9 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 | --- | --- | --- |
 | 新增 `crawl_tasks` 数据模型和迁移 | done | pending/running/completed/failed 状态可持久化，含 JSONB details/payload、lease 字段 |
 | 新增 `crawl_profiles` 数据模型和迁移 | done | profile 状态、路径、lease owner/task_id/until 可管理 |
-| 手动触发写入 `crawl_tasks` | done | 商品和职位手动爬取写入持久表；job all-crawl 创建 parent `job_all` + child `job_platform` |
+| 手动触发写入 `crawl_tasks` | done | 商品和职位手动爬取写入持久表；job all-crawl 创建 parent `job_all` + child `job_platform_profile` |
 | APScheduler 写入 `crawl_tasks` | done | 定时商品（product_platform）和职位（job_config）爬取写入持久表并更新进度 |
-| runner 支持领取 pending task | todo | 当前 runner 由调用方直接启动，非 worker pull 模式；Phase 5 独立 worker 再实现 |
+| runner 支持领取 pending task | done | Phase 5 已由独立 crawler worker claim pending task；`CrawlTaskRunner` 只负责具体执行 |
 | profile lease 改为 DB lock | done | `DatabaseProfilePool` 使用 `SELECT ... FOR UPDATE` 原子获取，含 `_get_or_create_profile_for_update` 处理并发创建竞争 |
 | 前端任务状态查询切到持久任务表 | done | 商品 `/crawl/status/{task_id}` 和 `/crawl/result/{task_id}`、职位 `/jobs/crawl/status/{task_id}` 和 `/jobs/crawl/result/{task_id}` 均从 `crawl_tasks` 读取 |
 | running 超时恢复策略 | done | 启动时 `recover_crawler_runtime_state()` 标记过期 running 任务为 `failed`（reason: worker_restarted）并释放过期 profile lease |
@@ -61,7 +61,7 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 - 旧 lease 已不能释放或续期新任务持有的同名 profile，避免过期任务误伤新任务。
 - 定时职位爬取已与手动职位爬取一致，进入 `DatabaseProfilePool` lease 后再执行 runner。
-- 全量职位爬取的 `job_platform` 子任务失败会写回持久任务表，父任务在存在子平台错误时标记为 `failed`，不再误报 completed。
+- 全量职位爬取的 `job_platform_profile` 子任务失败会写回持久任务表，父任务在存在子平台错误时标记为 `failed`，不再误报 completed。
 - 已完成验证：后端完整 `pytest -q` 为 `519 passed, 21 skipped`；后端 E2E `tests/test_e2e_crawl_flow.py` 为 `3 passed`；前端真实浏览器联调完成默认账号登录、Jobs 页、`/api/v1/auth/me`、`/api/v1/jobs/configs` 和 Event Center 页面验证。
 
 ## Phase 3：职位平台生产化
@@ -84,7 +84,7 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 - `profile_key` added to `JobSearchConfig` model, schemas, migration, and service validation.
 - Profile management API (`/v1/crawl-profiles`) with list/create/update/release-stale endpoints.
-- Profile management UI with React Query hooks, profile select in config form, and Profiles tab on Jobs page.
+- Profile management UI with React Query hooks, profile select in config form, and Profiles Management tab on Jobs page.
 - `JobCrawlRuntimeContext` dataclass passes `profile_dir` and metadata into all platform adapters.
 - Single and scheduled crawls resolve `profile_key` from config; full crawl groups child tasks by `(platform, profile_key)`.
 - Shared `JobRuntimeJsonlLogger` writes JSONL events for Boss, 51job, and Liepin.
@@ -126,6 +126,13 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 - Backend targeted tests: 11 passed for new product profile tests.
 - Backend lint: all modified files pass `ruff check`.
 - Frontend build: pass.
+
+**Profile management follow-up (2026-05-28)**
+
+- Profiles Management supports create, rename, copy, delete, status update, login browser, test, encrypted import/export, and stale lease release.
+- Rename syncs `crawl_profiles`, `profiles/{key}`, job config `profile_key`, and product cron `profile_key`.
+- Copy creates a new local directory and DB record using `<profile>-copy` or `<profile>-copy-2` style names.
+- Delete is blocked while leased, while a login session is open, or while referenced by job configs/product cron settings.
 
 ## Phase 5：独立 Crawler Worker 化
 

@@ -109,8 +109,10 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 - 前端改动：运行相关检查；提交前默认运行 `npm run lint` 和 `npm run build`。
 - 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
 - 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
-- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/default/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
-- Profile 是并发资源：一个 profile 可保存多个平台登录态，但同一时刻只能被一个爬取任务占用；需要并发时使用多个 profile key，而不是让多个任务同时打开同一目录。
+- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/{profile_key}/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
+- Profile 是并发资源：一个 profile 可保存多个平台登录态，但同一时刻只能被一个爬取任务或登录浏览器占用；需要并发时使用多个 profile key，而不是让多个任务同时打开同一目录。
+- Profile 文件夹不要手动改名/复制/删除；必须用 Jobs -> Profiles Management 或 `/v1/crawl-profiles`，这样会同步 `crawl_profiles`、职位配置、商品平台定时配置和 `profiles/{key}` 本地目录。
+- `JD_COOKIE` 只是京东应急 fallback，默认不会使用；只有显式设置 `JD_COOKIE_FALLBACK_ENABLED=true` 时才会注入。
 - Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
 - 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
 - 猎聘正常爬取路径应完全不开浏览器 tab：搜索 POST `api-c.liepin.com`，详情 HTTP 解析 `/job/` 和 `/a/` 两类页面；只有验证 CDP target 数量时需要读取 `http://127.0.0.1:9222/json`。
@@ -119,6 +121,6 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 ## 8. Design System
 
 - 未经用户明确批准，不得偏离设计系统。
-- 在做任何视觉或 UI 决策前，必须先阅读 `DESIGN.md`。
-- 字体、颜色、间距、组件风格和整体美学方向均以 `DESIGN.md` 为准。
-- 进行 UI 审查或 QA 时，必须指出任何不符合 `DESIGN.md` 的实现。
+- 在做任何视觉或 UI 决策前，必须先阅读 `doc/DESIGN.md`。
+- 字体、颜色、间距、组件风格和整体美学方向均以 `doc/DESIGN.md` 为准。
+- 进行 UI 审查或 QA 时，必须指出任何不符合 `doc/DESIGN.md` 的实现。

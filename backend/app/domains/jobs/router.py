@@ -270,6 +270,8 @@ async def list_match_results(
 
     min_score: int | None = Query(default=None, ge=0, le=100),
 
+    recommendation: str | None = Query(default=None),
+
     page: int = Query(default=1, ge=1),
 
     page_size: int = Query(default=20, ge=1, le=100),
@@ -290,6 +292,7 @@ async def list_match_results(
         resume_id=resume_id,
         job_id=job_id,
         min_score=min_score,
+        recommendation=recommendation,
         page=page,
         page_size=page_size,
     )

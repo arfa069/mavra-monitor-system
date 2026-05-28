@@ -36,7 +36,7 @@ export const jobQueryKeys = {
   matchResults: (params?: {
     resume_id?: number;
     job_id?: number;
-    min_score?: number;
+    recommendation?: string;
     page?: number;
     page_size?: number;
   }) => ["match-results", params] as const,
@@ -239,7 +239,7 @@ export const useDeleteResume = () => {
 export const useMatchResults = (params?: {
   resume_id?: number;
   job_id?: number;
-  min_score?: number;
+  recommendation?: string;
   page?: number;
   page_size?: number;
 }) =>

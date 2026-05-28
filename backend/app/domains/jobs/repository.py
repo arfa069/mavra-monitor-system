@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from inspect import isawaitable
 
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -127,16 +127,23 @@ async def list_match_results(
     resume_id: int | None,
     job_id: int | None,
     min_score: int | None,
+    recommendation: str | None,
     page: int,
     page_size: int,
 ) -> tuple[list[MatchResult], int]:
+    recommendation_rank = case(
+        (MatchResult.apply_recommendation == "强烈推荐", 3),
+        (MatchResult.apply_recommendation == "可以考虑", 2),
+        (MatchResult.apply_recommendation == "不太匹配", 1),
+        else_=0,
+    )
     query = (
         select(MatchResult)
         .join(UserResume, MatchResult.resume_id == UserResume.id)
         .join(Job, MatchResult.job_id == Job.id)
         .options(selectinload(MatchResult.job))
         .where(UserResume.user_id == user_id)
-        .order_by(desc(MatchResult.match_score), desc(MatchResult.updated_at))
+        .order_by(desc(recommendation_rank), desc(MatchResult.updated_at))
     )
     count_query = (
         select(func.count())
@@ -154,6 +161,9 @@ async def list_match_results(
     if min_score is not None:
         query = query.where(MatchResult.match_score >= min_score)
         count_query = count_query.where(MatchResult.match_score >= min_score)
+    if recommendation:
+        query = query.where(MatchResult.apply_recommendation == recommendation)
+        count_query = count_query.where(MatchResult.apply_recommendation == recommendation)
 
     total = (await db.execute(count_query)).scalar() or 0
     result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))

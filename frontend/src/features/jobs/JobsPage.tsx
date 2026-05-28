@@ -147,10 +147,24 @@ export default function JobsPage() {
     await importProfileBackup.mutateAsync({ profileKey, file, password, force });
   };
 
-  const matchScores = useMemo(() => {
-    const map: Record<number, number> = {};
+  const matchRecommendations = useMemo(() => {
+    const recommendationRank: Record<string, number> = {
+      强烈推荐: 3,
+      可以考虑: 2,
+      不太匹配: 1,
+    };
+    const map: Record<number, string> = {};
     allMatches?.items.forEach((item) => {
-      map[item.job_id] = Math.max(map[item.job_id] ?? 0, item.match_score);
+      const recommendation = item.apply_recommendation;
+      if (!recommendation) return;
+      const current = map[item.job_id];
+      if (
+        !current ||
+        (recommendationRank[recommendation] ?? 0) >
+          (recommendationRank[current] ?? 0)
+      ) {
+        map[item.job_id] = recommendation;
+      }
     });
     return map;
   }, [allMatches]);
@@ -296,7 +310,7 @@ export default function JobsPage() {
             pageSize={pageSize}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
-            matchScores={matchScores}
+            matchRecommendations={matchRecommendations}
           />
         </>
       ),
