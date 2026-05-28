@@ -96,7 +96,7 @@ powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
 ## 6.关键约定
 
 - user_id 硬编码为 1（单用户系统）已添加多用户认证，原有 user_id=1 硬编码仍适用于商品/职位爬取
-- 系统的测试用户: default123 密码:123456
+- 系统的测试用户: default 密码:123456
 - 所有时间戳字段使用 UTC 时区（`datetime.now(timezone.utc)`）
 - 价格比较使用 Decimal 避免浮点误差
 - LLM provider 通过 `LLMProviderFactory` 切换，支持 Anthropic/OpenAI/Ollama
