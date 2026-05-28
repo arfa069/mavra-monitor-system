@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import uuid
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -42,9 +43,17 @@ def classify_liepin_failure(*, status_code: int, text: str) -> str:
 class LiepinAdapter(BasePlatformAdapter):
     """Adapter for Liepin job search crawling."""
 
-    def __init__(self, *, runtime_context=None, log_path=None, log_enabled=True):
+    def __init__(
+        self,
+        *,
+        profile_dir: str | Path | None = None,
+        runtime_context=None,
+        log_path=None,
+        log_enabled=True,
+    ):
         super().__init__()
         self.runtime_context = runtime_context
+        self.profile_dir = Path(profile_dir) if profile_dir is not None else None
         self._session: CffiSession | None = None
         from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
         self.runtime_logger = JobRuntimeJsonlLogger(

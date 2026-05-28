@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -32,6 +33,25 @@ def test_create_adapter_supports_liepin(monkeypatch):
     adapter = job_crawl._create_adapter("liepin")
 
     assert isinstance(adapter, FakeLiepinAdapter)
+
+
+def test_create_liepin_adapter_accepts_runtime_profile_dir():
+    from app.domains.jobs import crawl_service as job_crawl
+    from app.domains.jobs.runtime import JobCrawlRuntimeContext
+
+    context = JobCrawlRuntimeContext(
+        platform="liepin",
+        profile_key="boss-default-2",
+        profile_dir=Path("profiles/boss-default-2"),
+        task_id="task-1",
+        config_id=3,
+        run_id="run-1",
+    )
+
+    adapter = job_crawl._create_adapter("liepin", runtime_context=context)
+
+    assert adapter.runtime_context == context
+    assert adapter.profile_dir == Path("profiles/boss-default-2")
 
 
 @pytest.mark.asyncio
