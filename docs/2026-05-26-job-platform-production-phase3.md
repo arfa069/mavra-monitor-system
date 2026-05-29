@@ -118,6 +118,7 @@
 ## Task 1: Add `profile_key` to Job Configs
 
 **Files:**
+
 - Create: `backend/alembic/versions/2026_05_26_add_job_config_profile_key.py`
 - Modify: `backend/app/models/job.py`
 - Modify: `backend/app/schemas/job.py`
@@ -359,6 +360,7 @@ git commit -m "Add profile key to job configs"
 ## Task 2: Add Profile Management Backend API
 
 **Files:**
+
 - Create: `backend/app/schemas/crawl_profile.py`
 - Create: `backend/app/domains/crawling/profile_service.py`
 - Create: `backend/app/domains/crawling/profile_router.py`
@@ -726,6 +728,7 @@ git commit -m "Add crawl profile management API"
 ## Task 3: Pass Lease Runtime Context Into Job Adapters
 
 **Files:**
+
 - Create: `backend/app/domains/jobs/runtime.py`
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Modify: `backend/app/domains/crawling/task_runner.py`
@@ -931,6 +934,7 @@ git commit -m "Pass job crawl runtime context to adapters"
 ## Task 4: Use Config `profile_key` for Single and Scheduled Crawls
 
 **Files:**
+
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Modify: `backend/tests/test_integration_crawl_phase2.py`
 - Modify: `backend/tests/test_job_crawl.py`
@@ -1067,6 +1071,7 @@ git commit -m "Use job config profile key for single crawls"
 ## Task 5: Group Full Job Crawl by `(platform, profile_key)`
 
 **Files:**
+
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Test: `backend/tests/test_job_crawl_profile_grouping.py`
 
@@ -1239,6 +1244,7 @@ git commit -m "Group full job crawls by platform and profile"
 ## Task 6: Add Shared JSONL Runtime Logging
 
 **Files:**
+
 - Create: `backend/app/platforms/job_runtime_logging.py`
 - Modify: `backend/app/platforms/boss_cloak_experimental.py`
 - Modify: `backend/app/platforms/job51.py`
@@ -1388,6 +1394,7 @@ git commit -m "Add shared job crawler JSONL logging"
 ## Task 7: Implement Boss Failure Classification and Profile Status Events
 
 **Files:**
+
 - Modify: `backend/app/platforms/boss_cloak_experimental.py`
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Modify: `backend/app/domains/crawling/profile_service.py`
@@ -1523,6 +1530,7 @@ git commit -m "Classify Boss anti bot profile failures"
 ## Task 8: Add 51job JSONL Logging, WAF Fuse, and HTTP Experiment
 
 **Files:**
+
 - Modify: `backend/app/platforms/job51.py`
 - Modify: `backend/app/domains/jobs/router.py`
 - Test: `backend/tests/test_job_phase3_integration.py`
@@ -1711,6 +1719,7 @@ git commit -m "Add 51job WAF fuse and HTTP experiment"
 ## Task 9: Make Liepin HTTP-Only and Classify Failures
 
 **Files:**
+
 - Modify: `backend/app/platforms/liepin.py`
 - Test: `backend/tests/test_liepin_http_only_phase3.py`
 
@@ -1811,6 +1820,7 @@ git commit -m "Make Liepin job crawling HTTP only"
 ## Task 10: Add Frontend Profile Management and Config Selection
 
 **Files:**
+
 - Modify: `frontend/src/features/jobs/types.ts`
 - Modify: `frontend/src/features/jobs/api/jobs.ts`
 - Modify: `frontend/src/features/jobs/hooks/useJobs.ts`
@@ -1898,8 +1908,13 @@ export function useCreateCrawlProfile() {
 export function useUpdateCrawlProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ profileKey, data }: { profileKey: string; data: CrawlProfileUpdate }) =>
-      jobsApi.updateProfile(profileKey, data),
+    mutationFn: ({
+      profileKey,
+      data,
+    }: {
+      profileKey: string;
+      data: CrawlProfileUpdate;
+    }) => jobsApi.updateProfile(profileKey, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crawl-profiles"] }),
   });
 }
@@ -1930,21 +1945,21 @@ Set default:
 Add form item after platform:
 
 ```tsx
-        <Form.Item
-          name="profile_key"
-          label="Profile"
-          rules={[{ required: true, message: "Please select profile" }]}
-        >
-          <Select
-            showSearch
-            optionFilterProp="label"
-            options={(profiles || []).map((profile) => ({
-              value: profile.profile_key,
-              label: `${profile.profile_key} (${profile.status})`,
-              disabled: profile.status === "disabled",
-            }))}
-          />
-        </Form.Item>
+<Form.Item
+  name="profile_key"
+  label="Profile"
+  rules={[{ required: true, message: "Please select profile" }]}
+>
+  <Select
+    showSearch
+    optionFilterProp="label"
+    options={(profiles || []).map((profile) => ({
+      value: profile.profile_key,
+      label: `${profile.profile_key} (${profile.status})`,
+      disabled: profile.status === "disabled",
+    }))}
+  />
+</Form.Item>
 ```
 
 - [ ] **Step 4: Show profile tag in config cards**
@@ -1952,9 +1967,7 @@ Add form item after platform:
 In `JobConfigList.tsx`, add:
 
 ```tsx
-                      <Tag color="geekblue">
-                        Profile: {config.profile_key || "default"}
-                      </Tag>
+<Tag color="geekblue">Profile: {config.profile_key || "default"}</Tag>
 ```
 
 Pass `profiles` into both `JobConfigForm` instances.
@@ -1965,7 +1978,17 @@ Create `frontend/src/features/jobs/components/ProfileManagement.tsx`:
 
 ```tsx
 import { useState } from "react";
-import { App, Button, Form, Input, Modal, Select, Space, Table, Tag } from "antd";
+import {
+  App,
+  Button,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { CrawlProfile } from "../types";
 
@@ -1973,7 +1996,10 @@ interface ProfileManagementProps {
   profiles?: CrawlProfile[];
   loading?: boolean;
   onCreate: (profileKey: string, platformHint?: string | null) => Promise<void>;
-  onUpdateStatus: (profileKey: string, status: "available" | "login_required" | "disabled") => Promise<void>;
+  onUpdateStatus: (
+    profileKey: string,
+    status: "available" | "login_required" | "disabled",
+  ) => Promise<void>;
   onReleaseStale: (profileKey: string) => Promise<void>;
 }
 
@@ -1986,7 +2012,10 @@ export default function ProfileManagement({
 }: ProfileManagementProps) {
   const message = App.useApp().message;
   const [open, setOpen] = useState(false);
-  const [form] = Form.useForm<{ profile_key: string; platform_hint?: string }>();
+  const [form] = Form.useForm<{
+    profile_key: string;
+    platform_hint?: string;
+  }>();
 
   const columns: ColumnsType<CrawlProfile> = [
     { title: "Profile", dataIndex: "profile_key", width: 140 },
@@ -1995,23 +2024,70 @@ export default function ProfileManagement({
       dataIndex: "status",
       width: 130,
       render: (value: CrawlProfile["status"]) => {
-        const color = value === "available" ? "success" : value === "leased" ? "processing" : value === "disabled" ? "default" : "warning";
+        const color =
+          value === "available"
+            ? "success"
+            : value === "leased"
+              ? "processing"
+              : value === "disabled"
+                ? "default"
+                : "warning";
         return <Tag color={color}>{value}</Tag>;
       },
     },
-    { title: "Platform", dataIndex: "platform_hint", width: 120, render: (value) => value || "-" },
-    { title: "Task", dataIndex: "lease_task_id", width: 180, render: (value) => value || "-" },
-    { title: "Lease Until", dataIndex: "lease_until", width: 180, render: (value) => value ? new Date(value).toLocaleString() : "-" },
-    { title: "Last Error", dataIndex: "last_error", render: (value) => value || "-" },
+    {
+      title: "Platform",
+      dataIndex: "platform_hint",
+      width: 120,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Task",
+      dataIndex: "lease_task_id",
+      width: 180,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Lease Until",
+      dataIndex: "lease_until",
+      width: 180,
+      render: (value) => (value ? new Date(value).toLocaleString() : "-"),
+    },
+    {
+      title: "Last Error",
+      dataIndex: "last_error",
+      render: (value) => value || "-",
+    },
     {
       title: "Actions",
       width: 280,
       render: (_, record) => (
         <Space wrap>
-          <Button size="small" onClick={() => onUpdateStatus(record.profile_key, "available")}>Available</Button>
-          <Button size="small" onClick={() => onUpdateStatus(record.profile_key, "login_required")}>Login Required</Button>
-          <Button size="small" danger onClick={() => onUpdateStatus(record.profile_key, "disabled")}>Disable</Button>
-          <Button size="small" onClick={() => onReleaseStale(record.profile_key)}>Release Stale</Button>
+          <Button
+            size="small"
+            onClick={() => onUpdateStatus(record.profile_key, "available")}
+          >
+            Available
+          </Button>
+          <Button
+            size="small"
+            onClick={() => onUpdateStatus(record.profile_key, "login_required")}
+          >
+            Login Required
+          </Button>
+          <Button
+            size="small"
+            danger
+            onClick={() => onUpdateStatus(record.profile_key, "disabled")}
+          >
+            Disable
+          </Button>
+          <Button
+            size="small"
+            onClick={() => onReleaseStale(record.profile_key)}
+          >
+            Release Stale
+          </Button>
         </Space>
       ),
     },
@@ -2027,7 +2103,13 @@ export default function ProfileManagement({
 
   return (
     <>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }}>
+      <Space
+        style={{
+          width: "100%",
+          justifyContent: "space-between",
+          marginBottom: 12,
+        }}
+      >
         <span />
         <Button onClick={() => setOpen(true)}>Create Profile</Button>
       </Space>
@@ -2038,17 +2120,29 @@ export default function ProfileManagement({
         loading={loading}
         size="small"
       />
-      <Modal title="Create Profile" open={open} onOk={handleCreate} onCancel={() => setOpen(false)}>
+      <Modal
+        title="Create Profile"
+        open={open}
+        onOk={handleCreate}
+        onCancel={() => setOpen(false)}
+      >
         <Form form={form} layout="vertical">
-          <Form.Item name="profile_key" label="Profile Key" rules={[{ required: true }]}>
+          <Form.Item
+            name="profile_key"
+            label="Profile Key"
+            rules={[{ required: true }]}
+          >
             <Input placeholder="job-a" autoComplete="off" />
           </Form.Item>
           <Form.Item name="platform_hint" label="Platform Hint">
-            <Select allowClear options={[
-              { value: "boss", label: "Boss" },
-              { value: "51job", label: "51job" },
-              { value: "liepin", label: "Liepin" },
-            ]} />
+            <Select
+              allowClear
+              options={[
+                { value: "boss", label: "Boss" },
+                { value: "51job", label: "51job" },
+                { value: "liepin", label: "Liepin" },
+              ]}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -2067,8 +2161,14 @@ const createProfile = useCreateCrawlProfile();
 const updateProfile = useUpdateCrawlProfile();
 const releaseStaleProfile = useReleaseStaleCrawlProfile();
 
-const handleCreateProfile = async (profileKey: string, platformHint?: string | null) => {
-  await createProfile.mutateAsync({ profile_key: profileKey, platform_hint: platformHint });
+const handleCreateProfile = async (
+  profileKey: string,
+  platformHint?: string | null,
+) => {
+  await createProfile.mutateAsync({
+    profile_key: profileKey,
+    platform_hint: platformHint,
+  });
 };
 
 const handleUpdateProfileStatus = async (
@@ -2131,6 +2231,7 @@ git commit -m "Add job crawler profile management UI"
 ## Task 11: End-to-End Verification and Documentation
 
 **Files:**
+
 - Modify: `docs/2026-05-25-crawler-production-todo.md`
 - Test: backend and frontend suites
 

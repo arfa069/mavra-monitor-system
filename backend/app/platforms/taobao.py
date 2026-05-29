@@ -7,6 +7,7 @@ from app.platforms.strategies import (
     CSSSelectorStrategy,
     JSDeeScanStrategy,
 )
+from app.platforms.taobao_opencli import crawl_taobao_via_opencli
 
 
 class TaobaoAdapter(BasePlatformAdapter):
@@ -15,6 +16,38 @@ class TaobaoAdapter(BasePlatformAdapter):
     Uses CSSSelectorStrategy as primary extraction method.
     Uses JSDeeScanStrategy as fallback if taobao_js_deep_scan_enabled is set in config.
     """
+
+    async def crawl_with_page(self, url: str, page) -> dict[str, Any]:
+        """Crawl Taobao page via OpenCLI first, fall back to Playwright strategies."""
+        import logging
+        _log = logging.getLogger(__name__)
+
+        opencli_result = await crawl_taobao_via_opencli(url)
+        if opencli_result.success and opencli_result.price:
+            _log.info("OpenCLI returned taobao price %s for %s", opencli_result.price, url)
+            return {
+                "success": True,
+                "price": opencli_result.price,
+                "currency": opencli_result.currency,
+                "title": opencli_result.title or "",
+            }
+
+        # OpenCLI succeeded but returned no price — don't waste a Playwright call
+        if opencli_result.success:
+            _log.warning("OpenCLI returned no price for %s", url)
+            return {
+                "success": False,
+                "error": "Taobao price not found (via OpenCLI)",
+            }
+
+        # OpenCLI failed for technical reasons (not simply disabled) ? fallback
+        if opencli_result.error and "taobao_opencli_enabled is False" not in opencli_result.error:
+            _log.warning(
+                "OpenCLI taobao failed (%s), falling back to Playwright for %s",
+                opencli_result.error, url,
+            )
+
+        return await super().crawl_with_page(url, page)
 
     def __init__(self):
         """Initialize Taobao adapter with strategies.

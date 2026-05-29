@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from app.domains.crawling.profile_pool import (
 from app.domains.crawling.profile_service import get_profile
 
 BLOCKED_PROFILE_STATUSES = {LOGIN_REQUIRED, DISABLED, COOLING_DOWN}
+logger = logging.getLogger(__name__)
 
 
 class BrowserProfileUnavailableError(RuntimeError):
@@ -56,13 +58,26 @@ class BrowserSession:
     async def close_page(self, page: Page) -> None:
         try:
             await page.close()
+        except Exception as exc:
+            logger.debug(
+                "Ignoring product browser page close failure for profile %s: %s",
+                self.profile_key,
+                exc,
+            )
         finally:
             self._open_pages.discard(page)
 
     async def close(self) -> None:
         for page in list(self._open_pages):
             await self.close_page(page)
-        await self.context.close()
+        try:
+            await self.context.close()
+        except Exception as exc:
+            logger.debug(
+                "Ignoring product browser context close failure for profile %s: %s",
+                self.profile_key,
+                exc,
+            )
 
 
 class BrowserManager:

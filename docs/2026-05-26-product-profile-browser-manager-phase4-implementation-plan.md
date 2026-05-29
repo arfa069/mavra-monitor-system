@@ -1711,21 +1711,21 @@ In `frontend/src/features/products/api/products.ts`, update cron types:
 
 ```ts
 export interface ProductPlatformCronConfig {
-  id: number
-  user_id: number
-  platform: ProductPlatform
-  cron_expression: string | null
-  cron_timezone: string
-  profile_key: string
-  created_at: string
-  updated_at: string
+  id: number;
+  user_id: number;
+  platform: ProductPlatform;
+  cron_expression: string | null;
+  cron_timezone: string;
+  profile_key: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductPlatformCronPayload {
-  platform?: ProductPlatform
-  cron_expression?: string | null
-  cron_timezone?: string | null
-  profile_key?: string | null
+  platform?: ProductPlatform;
+  cron_expression?: string | null;
+  cron_timezone?: string | null;
+  profile_key?: string | null;
 }
 ```
 
@@ -1736,25 +1736,25 @@ Use `profile_key` in create/update request bodies.
 Create `frontend/src/features/schedule/components/ProductProfileCell.tsx`:
 
 ```tsx
-import { Button, Select, Space, Tag, Tooltip, Typography } from 'antd'
-import { Lock, RotateCcw, Plus } from 'lucide-react'
-import type { CrawlProfile } from '@/features/jobs/types'
+import { Button, Select, Space, Tag, Tooltip, Typography } from "antd";
+import { Lock, RotateCcw, Plus } from "lucide-react";
+import type { CrawlProfile } from "@/features/jobs/types";
 
 type Props = {
-  value: string
-  profiles: CrawlProfile[]
-  onChange: (profileKey: string) => void
-  onCreate: () => void
-  onReleaseStale: (profileKey: string) => void
-}
+  value: string;
+  profiles: CrawlProfile[];
+  onChange: (profileKey: string) => void;
+  onCreate: () => void;
+  onReleaseStale: (profileKey: string) => void;
+};
 
 const STATUS_COLOR: Record<string, string> = {
-  available: 'green',
-  leased: 'blue',
-  login_required: 'orange',
-  cooling_down: 'gold',
-  disabled: 'red',
-}
+  available: "green",
+  leased: "blue",
+  login_required: "orange",
+  cooling_down: "gold",
+  disabled: "red",
+};
 
 export function ProductProfileCell({
   value,
@@ -1763,15 +1763,15 @@ export function ProductProfileCell({
   onCreate,
   onReleaseStale,
 }: Props) {
-  const profile = profiles.find((item) => item.profile_key === value)
+  const profile = profiles.find((item) => item.profile_key === value);
   const options = profiles.map((item) => ({
     label: item.profile_key,
     value: item.profile_key,
-  }))
+  }));
 
   return (
-    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-      <Space.Compact style={{ width: '100%' }}>
+    <Space direction="vertical" size={4} style={{ width: "100%" }}>
+      <Space.Compact style={{ width: "100%" }}>
         <Select
           value={value}
           options={options}
@@ -1792,8 +1792,8 @@ export function ProductProfileCell({
         </Tooltip>
       </Space.Compact>
       <Space size={6} wrap>
-        <Tag color={STATUS_COLOR[profile?.status ?? ''] ?? 'default'}>
-          {profile?.status ?? 'missing'}
+        <Tag color={STATUS_COLOR[profile?.status ?? ""] ?? "default"}>
+          {profile?.status ?? "missing"}
         </Tag>
         {profile?.lease_until ? <Lock size={14} /> : null}
         {profile?.last_error ? (
@@ -1803,7 +1803,7 @@ export function ProductProfileCell({
         ) : null}
       </Space>
     </Space>
-  )
+  );
 }
 ```
 
@@ -1813,13 +1813,13 @@ In `frontend/src/features/jobs/components/ProfileManagement.tsx`, add product pl
 
 ```ts
 const PLATFORM_HINT_OPTIONS = [
-  { label: 'Boss', value: 'boss' },
-  { label: '51job', value: '51job' },
-  { label: 'Liepin', value: 'liepin' },
-  { label: 'JD', value: 'jd' },
-  { label: 'Taobao', value: 'taobao' },
-  { label: 'Amazon', value: 'amazon' },
-]
+  { label: "Boss", value: "boss" },
+  { label: "51job", value: "51job" },
+  { label: "Liepin", value: "liepin" },
+  { label: "JD", value: "jd" },
+  { label: "Taobao", value: "taobao" },
+  { label: "Amazon", value: "amazon" },
+];
 ```
 
 - [ ] **Step 4: Wire ScheduleConfigPage to profiles**
@@ -1827,16 +1827,16 @@ const PLATFORM_HINT_OPTIONS = [
 In `frontend/src/features/schedule/ScheduleConfigPage.tsx`, load profiles:
 
 ```tsx
-const [profiles, setProfiles] = useState<CrawlProfile[]>([])
+const [profiles, setProfiles] = useState<CrawlProfile[]>([]);
 
 const loadProfiles = useCallback(async () => {
-  const data = await jobsApi.getProfiles()
-  setProfiles(data)
-}, [])
+  const data = await jobsApi.getProfiles();
+  setProfiles(data);
+}, []);
 
 useEffect(() => {
-  void loadProfiles()
-}, [loadProfiles])
+  void loadProfiles();
+}, [loadProfiles]);
 ```
 
 When rendering product cron rows, add a `Profile` column using `ProductProfileCell`:
@@ -1868,22 +1868,22 @@ await productsApi.updateCronConfig(platform, {
   cron_expression: draft.cron_expression,
   cron_timezone: draft.cron_timezone,
   profile_key: draft.profile_key,
-})
+});
 ```
 
 Create profile from Schedule page with platform default key:
 
 ```tsx
 const DEFAULT_PRODUCT_PROFILE_KEYS: Record<ProductPlatform, string> = {
-  jd: 'product-jd-default',
-  taobao: 'product-taobao-default',
-  amazon: 'product-amazon-default',
-}
+  jd: "product-jd-default",
+  taobao: "product-taobao-default",
+  amazon: "product-amazon-default",
+};
 
 await jobsApi.createProfile({
   profile_key: DEFAULT_PRODUCT_PROFILE_KEYS[platform],
   platform_hint: platform,
-})
+});
 ```
 
 If the profile already exists, show a non-blocking message and refresh profiles.
@@ -1893,20 +1893,22 @@ If the profile already exists, show a non-blocking message and refresh profiles.
 Create `frontend/tests/e2e/product-profile-schedule.spec.ts`:
 
 ```ts
-import { test, expect } from '@playwright/test'
+import { test, expect } from "@playwright/test";
 
-test('schedule page exposes product profile binding controls', async ({ page }) => {
-  await page.goto('http://127.0.0.1:3000')
-  await page.getByPlaceholder('Username').fill('default123')
-  await page.getByPlaceholder('Password').fill('123456')
-  await page.getByRole('button', { name: /login/i }).click()
+test("schedule page exposes product profile binding controls", async ({
+  page,
+}) => {
+  await page.goto("http://127.0.0.1:3000");
+  await page.getByPlaceholder("Username").fill("default123");
+  await page.getByPlaceholder("Password").fill("123456");
+  await page.getByRole("button", { name: /login/i }).click();
 
-  await page.getByRole('link', { name: /schedule/i }).click()
+  await page.getByRole("link", { name: /schedule/i }).click();
 
-  await expect(page.getByText('product-jd-default')).toBeVisible()
-  await expect(page.getByText('product-taobao-default')).toBeVisible()
-  await expect(page.getByText('product-amazon-default')).toBeVisible()
-})
+  await expect(page.getByText("product-jd-default")).toBeVisible();
+  await expect(page.getByText("product-taobao-default")).toBeVisible();
+  await expect(page.getByText("product-amazon-default")).toBeVisible();
+});
 ```
 
 Adjust selectors to the existing login labels if the current app uses Chinese text. Keep the assertion on the three default profile keys.
@@ -2102,13 +2104,13 @@ Type consistency:
 
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-|--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | not run | Optional; Phase 4 scope was already narrowed during brainstorming |
-| Codex Review | `/codex review` | Independent 2nd opinion | 0 | not run | Not run for plan-stage review |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | clear after amendments | 5 issues found and resolved in plan: ProfilePool API, runner shape, AsyncSession boundaries, test fixtures, profile_dir consistency |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 | not run | Recommended before implementing Schedule page UI |
-| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | not run | Not required for this backend-heavy plan |
+| Review        | Trigger               | Why                             | Runs | Status                 | Findings                                                                                                                            |
+| ------------- | --------------------- | ------------------------------- | ---- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| CEO Review    | `/plan-ceo-review`    | Scope & strategy                | 0    | not run                | Optional; Phase 4 scope was already narrowed during brainstorming                                                                   |
+| Codex Review  | `/codex review`       | Independent 2nd opinion         | 0    | not run                | Not run for plan-stage review                                                                                                       |
+| Eng Review    | `/plan-eng-review`    | Architecture & tests (required) | 1    | clear after amendments | 5 issues found and resolved in plan: ProfilePool API, runner shape, AsyncSession boundaries, test fixtures, profile_dir consistency |
+| Design Review | `/plan-design-review` | UI/UX gaps                      | 0    | not run                | Recommended before implementing Schedule page UI                                                                                    |
+| DX Review     | `/plan-devex-review`  | Developer experience gaps       | 0    | not run                | Not required for this backend-heavy plan                                                                                            |
 
 - **UNRESOLVED:** 0.
 - **VERDICT:** ENG CLEARED AFTER PLAN AMENDMENTS - ready to implement Phase 4.

@@ -1,5 +1,4 @@
 """Platform adapters package."""
-from app.platforms.amazon import AmazonAdapter
 from app.platforms.base import BasePlatformAdapter
 from app.platforms.boss import BossZhipinAdapter
 from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
@@ -12,7 +11,6 @@ __all__ = [
     "BasePlatformAdapter",
     "TaobaoAdapter",
     "JDAdapter",
-    "AmazonAdapter",
     "BossZhipinAdapter",
     "BossCloakExperimentalAdapter",
     "Job51Adapter",

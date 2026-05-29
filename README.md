@@ -66,55 +66,55 @@ JD_COOKIE=...
 
 > **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
 
-| Method           | Path                              | Description                                        | 认证  |
-| ---------------- | --------------------------------- | -------------------------------------------------- | ----- |
-| GET              | /health                           | Health check (database + Redis + scheduler)        | 否    |
-| GET              | /config                           | Get current configuration                          | 是    |
-| POST             | /config                           | Create or update full configuration                | 是    |
-| PATCH            | /config                           | Partial update configuration (cron/tz/hours)       | 是    |
-| POST             | /products                         | Add a product to track                             | 是    |
-| GET              | /products                         | List products (paginated: page, size, total, etc.) | 是    |
-| GET              | /products/{id}                    | Get product details                                | 是    |
-| GET              | /products/{id}/history            | Get price history                                  | 是    |
-| POST             | /products/batch-create            | Batch import products                              | 是    |
-| POST             | /products/batch-delete            | Batch delete products                              | 是    |
-| POST             | /products/batch-update            | Batch enable/disable products                      | 是    |
-| POST             | /alerts                           | Create an alert                                    | 是    |
-| GET              | /alerts                           | List all alerts                                    | 是    |
-| POST             | /products/crawl/crawl-now         | Crawl all active products                          | 是    |
-| GET              | /products/crawl/workers           | List crawler worker heartbeats/capabilities        | 是    |
-| GET              | /products/crawl/logs              | Get recent crawl logs                              | 是    |
-| POST             | /products/crawl/cleanup           | Delete old price history and crawl logs            | 是    |
-| GET              | /scheduler/status                 | Scheduler status (both product and job crawl)      | 是    |
-| GET              | /dashboard/kpi                    | User KPI and admin system KPI                      | 是    |
-| GET              | /dashboard/events                 | Dashboard KPI SSE stream                           | 是    |
-| GET              | /dashboard/trends                 | Dashboard chart data (`type`, `days`)              | 是    |
-| GET              | /dashboard/alerts/recent          | Recent alerts for admin dashboard                  | admin |
-| GET/POST/DELETE  | /jobs/resumes                     | List/Create/Delete resumes                         | 是    |
-| PATCH            | /jobs/resumes/{id}                | Update a resume                                    | 是    |
-| GET              | /jobs/match-results               | List match results                                 | 是    |
-| POST             | /jobs/match-results/analyze       | Analyze resume vs jobs (sync)                      | 是    |
-| POST             | /jobs/match-results/analyze-async | Analyze resume vs jobs (async)                     | 是    |
-| GET              | /jobs/tasks/{task_id}             | Poll async task status                             | 是    |
-| GET/POST         | /jobs/configs                     | List/Create job search configs                     | 是    |
-| GET/PATCH/DELETE | /jobs/configs/{id}                | Manage a job search config                         | 是    |
-| GET              | /jobs                             | List crawled jobs (paginated)                      | 是    |
-| POST             | /jobs/crawl-now                   | Crawl all active job configs                       | 是    |
-| POST             | /jobs/crawl-now/{id}              | Crawl single job config                            | 是    |
-| GET              | /jobs/crawl/status/{task_id}      | Poll persisted job crawl task status               | 是    |
-| GET              | /jobs/crawl/result/{task_id}      | Get completed job crawl result                     | 是    |
-| GET/POST         | /crawl-profiles                   | List/Create crawler browser profiles               | 是    |
-| GET              | /crawl-profiles/runtime-capabilities | Show local browser/profile runtime support       | 是    |
-| PATCH            | /crawl-profiles/{profile_key}     | Update profile status/platform hint/error          | 是    |
-| POST             | /crawl-profiles/{profile_key}/rename | Rename profile and sync config references       | 是    |
-| POST             | /crawl-profiles/{profile_key}/copy | Copy profile directory and metadata               | 是    |
-| DELETE           | /crawl-profiles/{profile_key}     | Delete unused, idle profile and local directory    | 是    |
-| POST             | /crawl-profiles/{profile_key}/release-stale | Release expired profile lease only        | 是    |
-| POST/GET         | /crawl-profiles/{profile_key}/login-session | Open or inspect local login browser session | 是    |
-| POST             | /crawl-profiles/{profile_key}/login-session/close | Close local login browser session       | 是    |
-| POST             | /crawl-profiles/{profile_key}/test | Test profile login/runtime state                  | 是    |
-| POST             | /crawl-profiles/{profile_key}/export | Export encrypted profile backup                 | admin |
-| POST             | /crawl-profiles/{profile_key}/import | Import encrypted profile backup                 | admin |
+| Method           | Path                                              | Description                                        | 认证  |
+| ---------------- | ------------------------------------------------- | -------------------------------------------------- | ----- |
+| GET              | /health                                           | Health check (database + Redis + scheduler)        | 否    |
+| GET              | /config                                           | Get current configuration                          | 是    |
+| POST             | /config                                           | Create or update full configuration                | 是    |
+| PATCH            | /config                                           | Partial update configuration (cron/tz/hours)       | 是    |
+| POST             | /products                                         | Add a product to track                             | 是    |
+| GET              | /products                                         | List products (paginated: page, size, total, etc.) | 是    |
+| GET              | /products/{id}                                    | Get product details                                | 是    |
+| GET              | /products/{id}/history                            | Get price history                                  | 是    |
+| POST             | /products/batch-create                            | Batch import products                              | 是    |
+| POST             | /products/batch-delete                            | Batch delete products                              | 是    |
+| POST             | /products/batch-update                            | Batch enable/disable products                      | 是    |
+| POST             | /alerts                                           | Create an alert                                    | 是    |
+| GET              | /alerts                                           | List all alerts                                    | 是    |
+| POST             | /products/crawl/crawl-now                         | Crawl all active products                          | 是    |
+| GET              | /products/crawl/workers                           | List crawler worker heartbeats/capabilities        | 是    |
+| GET              | /products/crawl/logs                              | Get recent crawl logs                              | 是    |
+| POST             | /products/crawl/cleanup                           | Delete old price history and crawl logs            | 是    |
+| GET              | /scheduler/status                                 | Scheduler status (both product and job crawl)      | 是    |
+| GET              | /dashboard/kpi                                    | User KPI and admin system KPI                      | 是    |
+| GET              | /dashboard/events                                 | Dashboard KPI SSE stream                           | 是    |
+| GET              | /dashboard/trends                                 | Dashboard chart data (`type`, `days`)              | 是    |
+| GET              | /dashboard/alerts/recent                          | Recent alerts for admin dashboard                  | admin |
+| GET/POST/DELETE  | /jobs/resumes                                     | List/Create/Delete resumes                         | 是    |
+| PATCH            | /jobs/resumes/{id}                                | Update a resume                                    | 是    |
+| GET              | /jobs/match-results                               | List match results                                 | 是    |
+| POST             | /jobs/match-results/analyze                       | Analyze resume vs jobs (sync)                      | 是    |
+| POST             | /jobs/match-results/analyze-async                 | Analyze resume vs jobs (async)                     | 是    |
+| GET              | /jobs/tasks/{task_id}                             | Poll async task status                             | 是    |
+| GET/POST         | /jobs/configs                                     | List/Create job search configs                     | 是    |
+| GET/PATCH/DELETE | /jobs/configs/{id}                                | Manage a job search config                         | 是    |
+| GET              | /jobs                                             | List crawled jobs (paginated)                      | 是    |
+| POST             | /jobs/crawl-now                                   | Crawl all active job configs                       | 是    |
+| POST             | /jobs/crawl-now/{id}                              | Crawl single job config                            | 是    |
+| GET              | /jobs/crawl/status/{task_id}                      | Poll persisted job crawl task status               | 是    |
+| GET              | /jobs/crawl/result/{task_id}                      | Get completed job crawl result                     | 是    |
+| GET/POST         | /crawl-profiles                                   | List/Create crawler browser profiles               | 是    |
+| GET              | /crawl-profiles/runtime-capabilities              | Show local browser/profile runtime support         | 是    |
+| PATCH            | /crawl-profiles/{profile_key}                     | Update profile status/platform hint/error          | 是    |
+| POST             | /crawl-profiles/{profile_key}/rename              | Rename profile and sync config references          | 是    |
+| POST             | /crawl-profiles/{profile_key}/copy                | Copy profile directory and metadata                | 是    |
+| DELETE           | /crawl-profiles/{profile_key}                     | Delete unused, idle profile and local directory    | 是    |
+| POST             | /crawl-profiles/{profile_key}/release-stale       | Release expired profile lease only                 | 是    |
+| POST/GET         | /crawl-profiles/{profile_key}/login-session       | Open or inspect local login browser session        | 是    |
+| POST             | /crawl-profiles/{profile_key}/login-session/close | Close local login browser session                  | 是    |
+| POST             | /crawl-profiles/{profile_key}/test                | Test profile login/runtime state                   | 是    |
+| POST             | /crawl-profiles/{profile_key}/export              | Export encrypted profile backup                    | admin |
+| POST             | /crawl-profiles/{profile_key}/import              | Import encrypted profile backup                    | admin |
 
 ## 认证 API
 

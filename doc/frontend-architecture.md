@@ -191,16 +191,16 @@ interface AuthContextType {
 
 业务数据通过 TanStack React Query 管理。已拆分的 feature 在各自 `features/*/hooks` 中维护 query/mutation hooks；`hooks/api.ts` 已删除，避免继续形成新的共享热点文件。业务页面和 feature 内部组件从本 feature 的 `types.ts` 导入类型，跨 feature 只通过对方 `index.ts` 暴露的稳定入口或共享基础设施导入。
 
-| Hook                                    | 用途             | 缓存策略               |
-| --------------------------------------- | ---------------- | ---------------------- |
-| `features/products/useProducts()`       | 商品列表 + 分页  | `staleTime: 10s`       |
-| `features/jobs/useJobs()`               | 职位列表 + 分页  | `staleTime: 30s`       |
-| `features/jobs/useJobConfigs()`         | 职位搜索配置列表 | 无持久化               |
+| Hook                                    | 用途              | 缓存策略               |
+| --------------------------------------- | ----------------- | ---------------------- |
+| `features/products/useProducts()`       | 商品列表 + 分页   | `staleTime: 10s`       |
+| `features/jobs/useJobs()`               | 职位列表 + 分页   | `staleTime: 30s`       |
+| `features/jobs/useJobConfigs()`         | 职位搜索配置列表  | 无持久化               |
 | `features/jobs/useCrawlProfiles()`      | 爬虫 profile 列表 | 无持久化               |
-| `features/jobs/useMatchResults()`       | LLM 匹配结果     | 无持久化               |
-| `features/products/useCrawlLogs()`      | 商品爬取日志     | `refetchInterval: 60s` |
-| `features/jobs/useResumes()`            | 用户简历列表     | 无持久化               |
-| `features/schedule/useScheduleConfig()` | 用户配置         | 无持久化               |
+| `features/jobs/useMatchResults()`       | LLM 匹配结果      | 无持久化               |
+| `features/products/useCrawlLogs()`      | 商品爬取日志      | `refetchInterval: 60s` |
+| `features/jobs/useResumes()`            | 用户简历列表      | 无持久化               |
+| `features/schedule/useScheduleConfig()` | 用户配置          | 无持久化               |
 
 **Mutation 后自动失效**：`useMutation` 的 `onSuccess` 回调中调用 `qc.invalidateQueries` 刷新相关缓存。
 
@@ -342,18 +342,18 @@ server: {
 
 ### 7.2 业务组件
 
-| 组件               | 类型   | 说明                        |
-| ------------------ | ------ | --------------------------- |
-| `ProductFormModal` | 弹窗   | 新增/编辑商品，支持告警配置 |
-| `BatchImportModal` | 弹窗   | 批量导入，URL 去重检测      |
-| `PriceTrendModal`  | 弹窗   | 价格历史折线图展示          |
-| `JobConfigList`    | 列表   | 搜索配置列表 + 爬取触发     |
-| `JobConfigForm`    | 表单   | 新增/编辑搜索配置           |
-| `ProfileManagement` | 面板  | 爬虫 profile 创建、改名、复制、删除、状态更新、登录浏览器、测试、导入/导出、过期 lease 释放 |
-| `JobList`          | 列表   | 职位列表 + 筛选 + 分页      |
-| `JobDrawer`        | 抽屉   | 职位详情（侧滑展示）        |
-| `MatchResultList`  | 列表   | 匹配结果 + 分数筛选         |
-| `ResumeManager`    | 管理器 | 简历 CRUD                   |
+| 组件                | 类型   | 说明                                                                                        |
+| ------------------- | ------ | ------------------------------------------------------------------------------------------- |
+| `ProductFormModal`  | 弹窗   | 新增/编辑商品，支持告警配置                                                                 |
+| `BatchImportModal`  | 弹窗   | 批量导入，URL 去重检测                                                                      |
+| `PriceTrendModal`   | 弹窗   | 价格历史折线图展示                                                                          |
+| `JobConfigList`     | 列表   | 搜索配置列表 + 爬取触发                                                                     |
+| `JobConfigForm`     | 表单   | 新增/编辑搜索配置                                                                           |
+| `ProfileManagement` | 面板   | 爬虫 profile 创建、改名、复制、删除、状态更新、登录浏览器、测试、导入/导出、过期 lease 释放 |
+| `JobList`           | 列表   | 职位列表 + 筛选 + 分页                                                                      |
+| `JobDrawer`         | 抽屉   | 职位详情（侧滑展示）                                                                        |
+| `MatchResultList`   | 列表   | 匹配结果 + 分数筛选                                                                         |
+| `ResumeManager`     | 管理器 | 简历 CRUD                                                                                   |
 
 ## 8. 类型定义
 

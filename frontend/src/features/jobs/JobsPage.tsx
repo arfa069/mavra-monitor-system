@@ -89,8 +89,14 @@ export default function JobsPage() {
   const exportProfileBackup = useExportProfileBackup();
   const importProfileBackup = useImportProfileBackup();
 
-  const handleCreateProfile = async (profileKey: string, platformHint?: string | null) => {
-    await createProfile.mutateAsync({ profile_key: profileKey, platform_hint: platformHint });
+  const handleCreateProfile = async (
+    profileKey: string,
+    platformHint?: string | null,
+  ) => {
+    await createProfile.mutateAsync({
+      profile_key: profileKey,
+      platform_hint: platformHint,
+    });
   };
 
   const handleReleaseStaleProfile = async (profileKey: string) => {
@@ -108,7 +114,10 @@ export default function JobsPage() {
     await deleteProfile.mutateAsync(profileKey);
   };
 
-  const handleRenameProfile = async (profileKey: string, newProfileKey: string) => {
+  const handleRenameProfile = async (
+    profileKey: string,
+    newProfileKey: string,
+  ) => {
     await renameProfile.mutateAsync({ profileKey, newProfileKey });
   };
 
@@ -116,7 +125,10 @@ export default function JobsPage() {
     await copyProfile.mutateAsync(profileKey);
   };
 
-  const handleOpenLoginSession = async (profileKey: string, platform: string) => {
+  const handleOpenLoginSession = async (
+    profileKey: string,
+    platform: string,
+  ) => {
     await openProfileLoginSession.mutateAsync({ profileKey, platform });
   };
 
@@ -129,7 +141,10 @@ export default function JobsPage() {
   };
 
   const handleExportBackup = async (profileKey: string, password: string) => {
-    const response = await exportProfileBackup.mutateAsync({ profileKey, password });
+    const response = await exportProfileBackup.mutateAsync({
+      profileKey,
+      password,
+    });
     const url = URL.createObjectURL(response.data);
     const link = document.createElement("a");
     link.href = url;
@@ -144,7 +159,12 @@ export default function JobsPage() {
     password: string,
     force: boolean,
   ) => {
-    await importProfileBackup.mutateAsync({ profileKey, file, password, force });
+    await importProfileBackup.mutateAsync({
+      profileKey,
+      file,
+      password,
+      force,
+    });
   };
 
   const matchRecommendations = useMemo(() => {

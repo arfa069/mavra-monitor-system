@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Switch } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Switch,
+} from "antd";
 import type { JobSearchConfig, JobSearchConfigCreate } from "../types";
 
 import type { CrawlProfile } from "../types";
@@ -8,7 +17,10 @@ interface JobConfigFormProps {
   open: boolean;
   record?: JobSearchConfig | null;
   profiles?: CrawlProfile[];
-  onCreateProfile?: (profileKey: string, platformHint?: string | null) => Promise<void>;
+  onCreateProfile?: (
+    profileKey: string,
+    platformHint?: string | null,
+  ) => Promise<void>;
   onCancel: () => void;
   onSubmit: (values: Partial<JobSearchConfigCreate>) => Promise<void>;
   confirmLoading?: boolean;
@@ -209,7 +221,11 @@ export default function JobConfigForm({
         onCancel={() => setProfileModalOpen(false)}
       >
         <Form form={profileForm} layout="vertical">
-          <Form.Item name="profile_key" label="Profile Key" rules={[{ required: true }]}>
+          <Form.Item
+            name="profile_key"
+            label="Profile Key"
+            rules={[{ required: true }]}
+          >
             <Input placeholder={`${platform}-default-2`} autoComplete="off" />
           </Form.Item>
         </Form>

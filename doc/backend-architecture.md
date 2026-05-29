@@ -160,24 +160,24 @@ async def lifespan(app: FastAPI):
 
 基于 Pydantic Settings，按优先级从环境变量或 `.env` 文件加载：
 
-| 配置项                | 说明                        | 默认值                   |
-| --------------------- | --------------------------- | ------------------------ |
-| `database_url`        | PostgreSQL 连接 URL         | postgresql+asyncpg://... |
-| `redis_url`           | Redis 连接 URL              | redis://localhost:6379/0 |
-| `redis_password`      | Redis 密码（可选）          |                          |
-| `feishu_webhook_url`  | 飞书 Webhook URL            |                          |
-| `jwt_secret_key`      | JWT 签名密钥                | （需在生产环境修改）     |
-| `cdp_enabled`         | 启用 CDP 模式连接已有浏览器 | false                    |
-| `cdp_url`             | CDP 端点                    | http://127.0.0.1:9222    |
-| `crawl_proxy_enabled` | 启用代理                    | false                    |
-| `crawl_proxy_url`     | 代理 URL                    |                          |
-| `data_retention_days` | 数据保留天数                | 365                      |
-| `jd_cookie_fallback_enabled` | 是否启用 JD Cookie 应急注入 fallback | false                    |
-| `jd_cookie`           | JD 登录态 Cookie；仅 fallback 显式启用时使用 |                          |
-| `job_match_provider`  | LLM provider                | minimax                  |
-| `minimax_api_key`     | MiniMax API Key             |                          |
-| `openai_api_key`      | OpenAI API Key              |                          |
-| `ollama_base_url`     | Ollama 服务地址             | http://127.0.0.1:11434   |
+| 配置项                       | 说明                                         | 默认值                   |
+| ---------------------------- | -------------------------------------------- | ------------------------ |
+| `database_url`               | PostgreSQL 连接 URL                          | postgresql+asyncpg://... |
+| `redis_url`                  | Redis 连接 URL                               | redis://localhost:6379/0 |
+| `redis_password`             | Redis 密码（可选）                           |                          |
+| `feishu_webhook_url`         | 飞书 Webhook URL                             |                          |
+| `jwt_secret_key`             | JWT 签名密钥                                 | （需在生产环境修改）     |
+| `cdp_enabled`                | 启用 CDP 模式连接已有浏览器                  | false                    |
+| `cdp_url`                    | CDP 端点                                     | http://127.0.0.1:9222    |
+| `crawl_proxy_enabled`        | 启用代理                                     | false                    |
+| `crawl_proxy_url`            | 代理 URL                                     |                          |
+| `data_retention_days`        | 数据保留天数                                 | 365                      |
+| `jd_cookie_fallback_enabled` | 是否启用 JD Cookie 应急注入 fallback         | false                    |
+| `jd_cookie`                  | JD 登录态 Cookie；仅 fallback 显式启用时使用 |                          |
+| `job_match_provider`         | LLM provider                                 | minimax                  |
+| `minimax_api_key`            | MiniMax API Key                              |                          |
+| `openai_api_key`             | OpenAI API Key                               |                          |
+| `ollama_base_url`            | Ollama 服务地址                              | http://127.0.0.1:11434   |
 
 Redis URL 支持在 `redis_password` 字段设置密码时会自动拼接为 `redis://:password@host:port/0` 格式。
 
@@ -234,19 +234,19 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 兼容前缀            | v1 前缀                                            | 路由文件                       | 说明                                                 |
-| ------------------- | -------------------------------------------------- | ------------------------------ | ---------------------------------------------------- |
-| `/auth`             | `/v1/auth`, `/api/v1/auth`                         | `domains/auth/router.py`       | 注册/登录/登出/当前用户                              |
-| `/config`           | `/v1/config`, `/api/v1/config`                     | `domains/config/router.py`     | 用户配置（飞书 Webhook、数据保留期）                 |
-| `/products`         | `/v1/products`, `/api/v1/products`                 | `domains/products/router.py`   | 商品 CRUD + 批量操作                                 |
-| `/alerts`           | `/v1/alerts`, `/api/v1/alerts`                     | `domains/alerts/router.py`     | 告警管理                                             |
-| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl`                       | `domains/crawling/router.py`   | 商品爬取触发 + 日志查询 + worker 观测                 |
+| 兼容前缀            | v1 前缀                                            | 路由文件                             | 说明                                                                            |
+| ------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `/auth`             | `/v1/auth`, `/api/v1/auth`                         | `domains/auth/router.py`             | 注册/登录/登出/当前用户                                                         |
+| `/config`           | `/v1/config`, `/api/v1/config`                     | `domains/config/router.py`           | 用户配置（飞书 Webhook、数据保留期）                                            |
+| `/products`         | `/v1/products`, `/api/v1/products`                 | `domains/products/router.py`         | 商品 CRUD + 批量操作                                                            |
+| `/alerts`           | `/v1/alerts`, `/api/v1/alerts`                     | `domains/alerts/router.py`           | 告警管理                                                                        |
+| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl`                       | `domains/crawling/router.py`         | 商品爬取触发 + 日志查询 + worker 观测                                           |
 | `/crawl-profiles`   | `/v1/crawl-profiles`, `/api/v1/crawl-profiles`     | `domains/crawling/profile_router.py` | profile 列表/创建/改名/复制/删除/状态更新/登录浏览器/测试/导入导出/过期租约释放 |
-| `/jobs`             | `/v1/jobs`, `/api/v1/jobs`                         | `domains/jobs/router.py`       | 职位搜索配置 + 爬取 + 匹配分析                       |
-| `/admin`            | `/v1/admin`, `/api/v1/admin`                       | `domains/admin/router.py`      | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
-| `/events`           | `/v1/events`, `/api/v1/events`                     | `domains/events/router.py`     | 事件中心列表和 SSE                                   |
-| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard`               | `domains/dashboard/router.py`  | Dashboard KPI / 趋势 / SSE                           |
-| `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py` | APScheduler 状态（admin/super_admin）                |
+| `/jobs`             | `/v1/jobs`, `/api/v1/jobs`                         | `domains/jobs/router.py`             | 职位搜索配置 + 爬取 + 匹配分析                                                  |
+| `/admin`            | `/v1/admin`, `/api/v1/admin`                       | `domains/admin/router.py`            | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin）                            |
+| `/events`           | `/v1/events`, `/api/v1/events`                     | `domains/events/router.py`           | 事件中心列表和 SSE                                                              |
+| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard`               | `domains/dashboard/router.py`        | Dashboard KPI / 趋势 / SSE                                                      |
+| `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py`       | APScheduler 状态（admin/super_admin）                                           |
 
 `main.py` 同时注册旧路径、`/v1` 和 `/api/v1`。前端开发环境中 Vite 代理会去掉浏览器 URL 的 `/api` 前缀，因此浏览器请求 `/api/v1/...` 到达后端时对应 `/v1/...`。
 

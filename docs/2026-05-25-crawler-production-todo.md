@@ -19,43 +19,43 @@
 
 ## 阶段总览
 
-| 阶段 | 状态 | 主要输出 | 备注 |
-| --- | --- | --- | --- |
-| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查 | 已实现；review 修复已完成 |
+| 阶段    | 状态 | 主要输出                                                        | 备注                                                                             |
+| ------- | ---- | --------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Phase 1 | done | `CrawlTaskRunner`、profile 路径简化、安全检查                   | 已实现；review 修复已完成                                                        |
 | Phase 2 | done | `crawl_tasks`、`crawl_profiles`、DB Profile Pool、profile lease | task 和 lease 持久化完成；review 修复与真实联调已完成，匹配分析仍走内存 registry |
-| Phase 3 | done | Boss/51job/猎聘生产化策略 | 先职位后商品 |
-| Phase 4 | done | 商品 profile 化、受控 browser manager | CDP 优化重点 |
-| Phase 5 | done | 独立 crawler worker | 默认 worker-only；FastAPI/APScheduler 只入队 |
+| Phase 3 | done | Boss/51job/猎聘生产化策略                                       | 先职位后商品                                                                     |
+| Phase 4 | done | 商品 profile 化、受控 browser manager                           | CDP 优化重点                                                                     |
+| Phase 5 | done | 独立 crawler worker                                             | 默认 worker-only；FastAPI/APScheduler 只入队                                     |
 
 ## Phase 1：任务执行边界和生产安全底座
 
-| 任务 | 状态 | 验收 |
-| --- | --- | --- |
-| 新增 `CrawlTaskRunner`，统一商品和职位执行入口 | done | 手动和定时爬取都可通过 runner 执行 |
-| FastAPI 手动触发先创建任务，再调用 runner | done | 原接口响应兼容，Event Center 正常 |
-| APScheduler 定时触发先创建任务，再调用 runner | done | 定时职位和商品任务行为不变 |
-| 增加 profile 默认路径 | done | profile 自动解析到项目根 `profiles/{key}`，不再依赖环境变量 |
-| 定义 Profile Pool / Profile Lease 接口 | done | 第一阶段可先单机锁实现 |
-| adapter profile path 改由配置或 Profile Pool 注入 | done | Boss、51job adapter 不再各自写死路径 |
-| 增加 CDP 端口安全检查 | done | 发现非 localhost 监听时阻止启动或告警 |
-| 增加日志脱敏 filter | done | cookie/token/webhook/security 字段不进日志 |
-| 增加 profile 状态 Event Center 事件 | todo | login_required/cooling_down 等状态可见 |
+| 任务                                              | 状态 | 验收                                                        |
+| ------------------------------------------------- | ---- | ----------------------------------------------------------- |
+| 新增 `CrawlTaskRunner`，统一商品和职位执行入口    | done | 手动和定时爬取都可通过 runner 执行                          |
+| FastAPI 手动触发先创建任务，再调用 runner         | done | 原接口响应兼容，Event Center 正常                           |
+| APScheduler 定时触发先创建任务，再调用 runner     | done | 定时职位和商品任务行为不变                                  |
+| 增加 profile 默认路径                             | done | profile 自动解析到项目根 `profiles/{key}`，不再依赖环境变量 |
+| 定义 Profile Pool / Profile Lease 接口            | done | 第一阶段可先单机锁实现                                      |
+| adapter profile path 改由配置或 Profile Pool 注入 | done | Boss、51job adapter 不再各自写死路径                        |
+| 增加 CDP 端口安全检查                             | done | 发现非 localhost 监听时阻止启动或告警                       |
+| 增加日志脱敏 filter                               | done | cookie/token/webhook/security 字段不进日志                  |
+| 增加 profile 状态 Event Center 事件               | todo | login_required/cooling_down 等状态可见                      |
 
 ## Phase 2：持久化任务和 Profile Pool
 
 Profile 规则：一个 profile 可以保存多个平台登录态，但同一时刻只能被一个爬取任务占用；任务只跑一个平台。Phase 2 使用 DB `SELECT ... FOR UPDATE` 行锁实现原子租约，不使用 Redis。
 
-| 任务 | 状态 | 验收 |
-| --- | --- | --- |
-| 新增 `crawl_tasks` 数据模型和迁移 | done | pending/running/completed/failed 状态可持久化，含 JSONB details/payload、lease 字段 |
-| 新增 `crawl_profiles` 数据模型和迁移 | done | profile 状态、路径、lease owner/task_id/until 可管理 |
-| 手动触发写入 `crawl_tasks` | done | 商品和职位手动爬取写入持久表；job all-crawl 创建 parent `job_all` + child `job_platform_profile` |
-| APScheduler 写入 `crawl_tasks` | done | 定时商品（product_platform）和职位（job_config）爬取写入持久表并更新进度 |
-| runner 支持领取 pending task | done | Phase 5 已由独立 crawler worker claim pending task；`CrawlTaskRunner` 只负责具体执行 |
-| profile lease 改为 DB lock | done | `DatabaseProfilePool` 使用 `SELECT ... FOR UPDATE` 原子获取，含 `_get_or_create_profile_for_update` 处理并发创建竞争 |
-| 前端任务状态查询切到持久任务表 | done | 商品 `/crawl/status/{task_id}` 和 `/crawl/result/{task_id}`、职位 `/jobs/crawl/status/{task_id}` 和 `/jobs/crawl/result/{task_id}` 均从 `crawl_tasks` 读取 |
-| running 超时恢复策略 | done | 启动时 `recover_crawler_runtime_state()` 标记过期 running 任务为 `failed`（reason: worker_restarted）并释放过期 profile lease |
-| 心跳续期 | done | `task_store.renew_task_lease()` 更新 heartbeat_at/lease_until；`profile_pool.renew()` 更新 lease_until/last_used_at；职位手动/定时/全量子任务持有 profile lease 时均会续期 |
+| 任务                                 | 状态 | 验收                                                                                                                                                                       |
+| ------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 新增 `crawl_tasks` 数据模型和迁移    | done | pending/running/completed/failed 状态可持久化，含 JSONB details/payload、lease 字段                                                                                        |
+| 新增 `crawl_profiles` 数据模型和迁移 | done | profile 状态、路径、lease owner/task_id/until 可管理                                                                                                                       |
+| 手动触发写入 `crawl_tasks`           | done | 商品和职位手动爬取写入持久表；job all-crawl 创建 parent `job_all` + child `job_platform_profile`                                                                           |
+| APScheduler 写入 `crawl_tasks`       | done | 定时商品（product_platform）和职位（job_config）爬取写入持久表并更新进度                                                                                                   |
+| runner 支持领取 pending task         | done | Phase 5 已由独立 crawler worker claim pending task；`CrawlTaskRunner` 只负责具体执行                                                                                       |
+| profile lease 改为 DB lock           | done | `DatabaseProfilePool` 使用 `SELECT ... FOR UPDATE` 原子获取，含 `_get_or_create_profile_for_update` 处理并发创建竞争                                                       |
+| 前端任务状态查询切到持久任务表       | done | 商品 `/crawl/status/{task_id}` 和 `/crawl/result/{task_id}`、职位 `/jobs/crawl/status/{task_id}` 和 `/jobs/crawl/result/{task_id}` 均从 `crawl_tasks` 读取                 |
+| running 超时恢复策略                 | done | 启动时 `recover_crawler_runtime_state()` 标记过期 running 任务为 `failed`（reason: worker_restarted）并释放过期 profile lease                                              |
+| 心跳续期                             | done | `task_store.renew_task_lease()` 更新 heartbeat_at/lease_until；`profile_pool.renew()` 更新 lease_until/last_used_at；职位手动/定时/全量子任务持有 profile lease 时均会续期 |
 
 **Phase 2 review follow-up（2026-05-26）**
 
@@ -66,19 +66,19 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 ## Phase 3：职位平台生产化
 
-| 任务 | 状态 | 验收 |
-| --- | --- | --- |
-| Boss 接入 Profile Pool | done | profile path 由 lease 注入 |
-| Boss 多 profile 并行 | done | 不同 profile lane 可并行；同一 profile 内串行 |
-| Boss anti-bot code 统一分类 | done | 36/37/38 触发 session refresh 事件 |
-| Boss profile login_required 状态 | done | 多次 cookie 刷新失败后返回 `profile_login_required` 分类 |
-| 51job 接入 Profile Pool | done | 不再依赖 adapter 默认 profile path |
-| 51job JSONL 日志 | done | 记录 crawl_start/list_page/waf/crawl_finish |
-| 51job WAF 熔断 | done | 多次 WAF 后快速停止，不空转 |
-| 51job HTTP 下沉实验 | done | 输出成功率、耗时、WAF 命中率 |
-| 猎聘默认关闭 CDP fallback | done | `_crawl_via_cdp` 和 `_crawl_detail_via_cdp` 已移除；正常路径不打开浏览器 |
-| 猎聘 HTTP 失败分类 | done | `classify_liepin_failure` 区分 XSRF、challenge、空结果、详情失败 |
-| 猎聘 JSONL 日志 | done | 与 Boss/51job 日志字段对齐 |
+| 任务                             | 状态 | 验收                                                                     |
+| -------------------------------- | ---- | ------------------------------------------------------------------------ |
+| Boss 接入 Profile Pool           | done | profile path 由 lease 注入                                               |
+| Boss 多 profile 并行             | done | 不同 profile lane 可并行；同一 profile 内串行                            |
+| Boss anti-bot code 统一分类      | done | 36/37/38 触发 session refresh 事件                                       |
+| Boss profile login_required 状态 | done | 多次 cookie 刷新失败后返回 `profile_login_required` 分类                 |
+| 51job 接入 Profile Pool          | done | 不再依赖 adapter 默认 profile path                                       |
+| 51job JSONL 日志                 | done | 记录 crawl_start/list_page/waf/crawl_finish                              |
+| 51job WAF 熔断                   | done | 多次 WAF 后快速停止，不空转                                              |
+| 51job HTTP 下沉实验              | done | 输出成功率、耗时、WAF 命中率                                             |
+| 猎聘默认关闭 CDP fallback        | done | `_crawl_via_cdp` 和 `_crawl_detail_via_cdp` 已移除；正常路径不打开浏览器 |
+| 猎聘 HTTP 失败分类               | done | `classify_liepin_failure` 区分 XSRF、challenge、空结果、详情失败         |
+| 猎聘 JSONL 日志                  | done | 与 Boss/51job 日志字段对齐                                               |
 
 **Phase 3 verification (2026-05-26)**
 
@@ -97,17 +97,17 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 ## Phase 4：商品爬取改造
 
-| 任务 | 状态 | 验收 |
-| --- | --- | --- |
-| 建立 Product Profile Pool | done | `products_platform_crons.profile_key` 外键绑定 `crawl_profiles`；默认 profile 自动创建 |
-| 新增 BrowserManager | done | `BrowserManager` 按 profile 租约启动 persistent context；`BrowserSession` 控制 page 生命周期 |
-| 限制单 profile page 数 | done | `BrowserSession.max_pages=1`，超限抛 `BrowserPageLimitError` |
-| 京东改为 profile 登录态优先 | done | `JDAdapter` 通过 `crawl_with_page` 复用 BrowserManager 提供的已登录 page |
-| `JD_COOKIE` 降级为 fallback | done | `jd_cookie_fallback_enabled=False` 默认关闭；仅当显式启用时注入 cookie |
-| 淘宝/天猫独立 profile | done | `product-taobao-default` profile；`TaobaoAdapter.classify_failure` 检测 login_required/anti_bot |
-| 亚马逊独立 profile | done | `product-amazon-default` profile；`AmazonAdapter.classify_failure` 检测 login_required/anti_bot |
-| 前端 Schedule 页绑定 product profile | done | `ProductProfileCell` 支持选择/创建/释放 profile；保存时携带 `profile_key` |
-| profile 失败分类和 Event Center | done | `login_required`/`disabled`/`cooling_down` 在启动前拦截；爬取失败更新 profile 状态并 emit system log |
+| 任务                                 | 状态 | 验收                                                                                                 |
+| ------------------------------------ | ---- | ---------------------------------------------------------------------------------------------------- |
+| 建立 Product Profile Pool            | done | `products_platform_crons.profile_key` 外键绑定 `crawl_profiles`；默认 profile 自动创建               |
+| 新增 BrowserManager                  | done | `BrowserManager` 按 profile 租约启动 persistent context；`BrowserSession` 控制 page 生命周期         |
+| 限制单 profile page 数               | done | `BrowserSession.max_pages=1`，超限抛 `BrowserPageLimitError`                                         |
+| 京东改为 profile 登录态优先          | done | `JDAdapter` 通过 `crawl_with_page` 复用 BrowserManager 提供的已登录 page                             |
+| `JD_COOKIE` 降级为 fallback          | done | `jd_cookie_fallback_enabled=False` 默认关闭；仅当显式启用时注入 cookie                               |
+| 淘宝/天猫独立 profile                | done | `product-taobao-default` profile；`TaobaoAdapter.classify_failure` 检测 login_required/anti_bot      |
+| 亚马逊独立 profile                   | done | `product-amazon-default` profile；`AmazonAdapter.classify_failure` 检测 login_required/anti_bot      |
+| 前端 Schedule 页绑定 product profile | done | `ProductProfileCell` 支持选择/创建/释放 profile；保存时携带 `profile_key`                            |
+| profile 失败分类和 Event Center      | done | `login_required`/`disabled`/`cooling_down` 在启动前拦截；爬取失败更新 profile 状态并 emit system log |
 
 **Phase 4 verification (2026-05-26)**
 
@@ -138,20 +138,20 @@ Profile 规则：一个 profile 可以保存多个平台登录态，但同一时
 
 设计原则：生产默认 `worker-only`，FastAPI 和 APScheduler 只创建 `pending` 任务；独立 worker 从 PostgreSQL `crawl_tasks` 领取任务并执行。仅当显式设置 `CRAWLER_INLINE_EXECUTION_ENABLED=true` 时，允许本地开发 fallback 继续由 API 进程内联执行。
 
-| 任务 | 状态 | 验收 |
-| --- | --- | --- |
-| 新增 `python -m app.workers.crawler` 入口 | done | worker 可独立启动，支持 `--kind`/`--platform`/`--once` 参数 |
-| 新增 `crawler_workers` registry | done | 可查看 worker_id、kind、platform、hostname、pid、status、heartbeat |
-| worker 领取 `crawl_tasks` | done | API 不执行爬虫；worker 使用 DB row lock / `SKIP LOCKED` claim pending task |
-| worker 心跳 | done | `crawl_tasks.heartbeat_at` 和 `crawler_workers.last_heartbeat_at` 可识别 worker/task 存活状态 |
-| worker 崩溃恢复 | done | lease 超时 running task 被标记 failed，过期 profile lease 被释放 |
-| 按平台启动专用 worker | done | 支持 `--kind job --platform boss`、`--kind product --platform jd` 等过滤 |
-| 全量爬取 coordinator worker | done | `job_all`/`product_all` 由不带 platform 的 worker 领取；parent 聚合 child 结果后才完成 |
-| APScheduler 只创建 task | done | 商品和职位定时器只 enqueue，不直接调用 `CrawlTaskRunner` |
-| 多 worker profile lease 验证 | done | 多 worker 不抢同一 profile；同一 profile 同一时刻只被一个任务占用 |
-| profile busy 重排队 | done | profile 被占用时任务 requeue/defer，不直接标记 failed |
-| Event Center / logging 覆盖 | done | 记录 worker started/stopped、task claimed/completed/failed、recovery |
-| 前端任务状态可观测 | done | status/result 返回 worker_id、heartbeat、lease、reason、details |
+| 任务                                      | 状态 | 验收                                                                                          |
+| ----------------------------------------- | ---- | --------------------------------------------------------------------------------------------- |
+| 新增 `python -m app.workers.crawler` 入口 | done | worker 可独立启动，支持 `--kind`/`--platform`/`--once` 参数                                   |
+| 新增 `crawler_workers` registry           | done | 可查看 worker_id、kind、platform、hostname、pid、status、heartbeat                            |
+| worker 领取 `crawl_tasks`                 | done | API 不执行爬虫；worker 使用 DB row lock / `SKIP LOCKED` claim pending task                    |
+| worker 心跳                               | done | `crawl_tasks.heartbeat_at` 和 `crawler_workers.last_heartbeat_at` 可识别 worker/task 存活状态 |
+| worker 崩溃恢复                           | done | lease 超时 running task 被标记 failed，过期 profile lease 被释放                              |
+| 按平台启动专用 worker                     | done | 支持 `--kind job --platform boss`、`--kind product --platform jd` 等过滤                      |
+| 全量爬取 coordinator worker               | done | `job_all`/`product_all` 由不带 platform 的 worker 领取；parent 聚合 child 结果后才完成        |
+| APScheduler 只创建 task                   | done | 商品和职位定时器只 enqueue，不直接调用 `CrawlTaskRunner`                                      |
+| 多 worker profile lease 验证              | done | 多 worker 不抢同一 profile；同一 profile 同一时刻只被一个任务占用                             |
+| profile busy 重排队                       | done | profile 被占用时任务 requeue/defer，不直接标记 failed                                         |
+| Event Center / logging 覆盖               | done | 记录 worker started/stopped、task claimed/completed/failed、recovery                          |
+| 前端任务状态可观测                        | done | status/result 返回 worker_id、heartbeat、lease、reason、details                               |
 
 **Phase 5 verification (2026-05-27)**
 

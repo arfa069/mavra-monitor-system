@@ -383,16 +383,16 @@ This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot scrip
 
 All settings via environment variables in `.env` (loaded via Pydantic Settings):
 
-| Variable            | Description                                   | Default                    |
-| ------------------- | --------------------------------------------- | -------------------------- |
-| DATABASE_URL        | PostgreSQL async connection URL               | `postgresql+asyncpg://...` |
-| REDIS_URL           | Redis connection URL                          | `redis://localhost:6379/0` |
-| REDIS_PASSWORD      | Redis password (alternative to URL)           |                            |
-| FEISHU_WEBHOOK_URL  | Feishu webhook URL for notifications          |                            |
-| CDP_ENABLED         | Enable CDP mode (connect to existing browser) | `false`                    |
-| CDP_URL             | CDP endpoint for existing browser             | `http://127.0.0.1:9222`    |
-| CRAWL_PROXY_ENABLED | Enable proxy for crawling                     | `false`                    |
-| CRAWL_PROXY_URL     | Proxy URL                                     |                            |
-| DATA_RETENTION_DAYS | Days to retain price history                  | `365`                      |
-| JD_COOKIE_FALLBACK_ENABLED | Enable emergency JD cookie injection fallback | `false`                    |
-| JD_COOKIE           | JD cookie string used only when fallback is enabled |                       |
+| Variable                   | Description                                         | Default                    |
+| -------------------------- | --------------------------------------------------- | -------------------------- |
+| DATABASE_URL               | PostgreSQL async connection URL                     | `postgresql+asyncpg://...` |
+| REDIS_URL                  | Redis connection URL                                | `redis://localhost:6379/0` |
+| REDIS_PASSWORD             | Redis password (alternative to URL)                 |                            |
+| FEISHU_WEBHOOK_URL         | Feishu webhook URL for notifications                |                            |
+| CDP_ENABLED                | Enable CDP mode (connect to existing browser)       | `false`                    |
+| CDP_URL                    | CDP endpoint for existing browser                   | `http://127.0.0.1:9222`    |
+| CRAWL_PROXY_ENABLED        | Enable proxy for crawling                           | `false`                    |
+| CRAWL_PROXY_URL            | Proxy URL                                           |                            |
+| DATA_RETENTION_DAYS        | Days to retain price history                        | `365`                      |
+| JD_COOKIE_FALLBACK_ENABLED | Enable emergency JD cookie injection fallback       | `false`                    |
+| JD_COOKIE                  | JD cookie string used only when fallback is enabled |                            |

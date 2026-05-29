@@ -59,3 +59,16 @@ def test_jd_login_required_reason_is_profile_specific():
 
     assert adapter.classify_failure("https://passport.jd.com/login.aspx", "") == "login_required"
     assert adapter.classify_failure("https://item.jd.com/100.html", "请登录后查看") == "login_required"
+
+
+def test_jd_frequent_verification_is_anti_bot():
+    adapter = JDAdapter()
+
+    assert (
+        adapter.classify_failure(
+            "https://pc-frequent-pro.pf.jd.com/?from=pc_item&reason=403",
+            "",
+        )
+        == "anti_bot"
+    )
+    assert adapter.classify_failure("https://item.jd.com/100.html", "安全验证") == "anti_bot"

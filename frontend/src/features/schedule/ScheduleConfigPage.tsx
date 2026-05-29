@@ -760,7 +760,6 @@ export default function ScheduleConfigPage() {
         }}
         onApply={handleApplyCron}
       />
-
     </div>
   );
 }

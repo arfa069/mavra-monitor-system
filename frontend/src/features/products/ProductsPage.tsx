@@ -26,7 +26,6 @@ import {
   PlusOutlined,
   ReloadOutlined,
   RocketOutlined,
-  SaveOutlined,
   ScheduleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -46,8 +45,6 @@ import {
   useCrawlLogs,
   useCrawlNow,
   useDeleteProduct,
-  useProductProfileBindings,
-  useUpdateProductProfileBinding,
   useProducts,
   useUpdateProduct,
 } from "./hooks/useProducts";
@@ -56,7 +53,6 @@ import {
   useCreateAlert,
   useUpdateAlert,
 } from "@/features/alerts";
-import { jobsApi } from "@/features/jobs";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import type {
@@ -66,9 +62,7 @@ import type {
   CrawlLog,
   Product,
   ProductPlatformCronSchedule,
-  ProductPlatformProfileBinding,
 } from "./types";
-import type { CrawlProfile } from "@/features/jobs/types";
 
 const PLATFORM_BADGE_CLASS: Record<string, string> = {
   taobao: "platform-badge--taobao",
@@ -142,7 +136,6 @@ export default function ProductsPage() {
   }>({
     open: false,
   });
-  const [profileSelections, setProfileSelections] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedKeyword(keyword), 400);
@@ -162,7 +155,6 @@ export default function ProductsPage() {
   const batchCreate = useBatchCreate();
   const batchDelete = useBatchDelete();
   const crawlNow = useCrawlNow();
-  const updateProfileBinding = useUpdateProductProfileBinding();
   const deleteCronConfig = useMutation({
     mutationFn: productsApi.deleteCronConfig,
     onSuccess: async () => {
@@ -178,30 +170,19 @@ export default function ProductsPage() {
   });
   const createAlertMutation = useCreateAlert();
   const updateAlertMutation = useUpdateAlert();
-  const { data: profileBindings, isLoading: profileBindingsLoading } =
-    useProductProfileBindings();
   const { data: productCronConfigs = [], isLoading: cronConfigsLoading } =
     useQuery({
       queryKey: PRODUCT_CRON_CONFIGS_QUERY_KEY,
       queryFn: () => productsApi.getCronConfigs().then((res) => res.data),
       staleTime: 10_000,
     });
-  const {
-    data: productCronSchedules = {},
-    isLoading: cronSchedulesLoading,
-  } = useQuery<Record<string, ProductPlatformCronSchedule>>({
-    queryKey: PRODUCT_CRON_SCHEDULES_QUERY_KEY,
-    queryFn: () =>
-      productsApi.getCronSchedules().then((res) => res.data.platforms),
-    staleTime: 10_000,
-  });
-  const { data: crawlProfiles = [], refetch: refetchCrawlProfiles } = useQuery<
-    CrawlProfile[]
-  >({
-    queryKey: ["crawl-profiles"],
-    queryFn: () => jobsApi.getProfiles().then((res) => res.data),
-    staleTime: 10_000,
-  });
+  const { data: productCronSchedules = {}, isLoading: cronSchedulesLoading } =
+    useQuery<Record<string, ProductPlatformCronSchedule>>({
+      queryKey: PRODUCT_CRON_SCHEDULES_QUERY_KEY,
+      queryFn: () =>
+        productsApi.getCronSchedules().then((res) => res.data.platforms),
+      staleTime: 10_000,
+    });
   const {
     data: crawlLogs,
     isLoading: logsLoading,
@@ -210,11 +191,6 @@ export default function ProductsPage() {
   const { data: alertsData } = useAllAlerts();
   const productItems = data?.items ?? [];
   const crawlLogItems = crawlLogs ?? [];
-  const profileBindingItems = useMemo(
-    () => profileBindings ?? [],
-    [profileBindings],
-  );
-
   const alertMap = useMemo(() => {
     const map = new Map<number, AlertInfo>();
     alertsData?.forEach((alert) => {
@@ -227,29 +203,6 @@ export default function ProductsPage() {
     return map;
   }, [alertsData]);
 
-  const savedProfileSelections = useMemo(() => {
-    const next: Record<string, string> = {};
-    profileBindingItems.forEach((binding) => {
-      next[binding.platform] = binding.profile_key ?? "";
-    });
-    return next;
-  }, [profileBindingItems]);
-
-  const profileRows = useMemo<ProductPlatformProfileBinding[]>(
-    () =>
-      PRODUCT_PLATFORMS.map(
-        (platformKey) =>
-          profileBindingItems.find((item) => item.platform === platformKey) ?? {
-            platform: platformKey,
-            profile_key: null,
-            profile_status: null,
-            profile_last_error: null,
-            created_at: null,
-            updated_at: null,
-          },
-      ),
-    [profileBindingItems],
-  );
   const scheduleRows = useMemo<ProductScheduleRow[]>(
     () =>
       PRODUCT_PLATFORMS.map((platformKey) => {
@@ -425,47 +378,6 @@ export default function ProductsPage() {
     });
   };
 
-  const handleSaveProfileBinding = async (platformKey: string) => {
-    const profileKey =
-      profileSelections[platformKey] ?? savedProfileSelections[platformKey];
-    if (!profileKey) {
-      message.warning("Please select a profile first");
-      return;
-    }
-    try {
-      await updateProfileBinding.mutateAsync({
-        platform: platformKey,
-        profile_key: profileKey,
-      });
-      message.success("Profile binding saved");
-    } catch (error) {
-      message.error(`Save failed: ${getErrorMessage(error)}`);
-    }
-  };
-
-  const handleOpenProductProfileLogin = async (
-    platformKey: string,
-    profileKey: string | null,
-  ) => {
-    const selectedProfile =
-      profileSelections[platformKey] ??
-      savedProfileSelections[platformKey] ??
-      profileKey;
-    if (!selectedProfile) {
-      message.warning("Please select a profile first");
-      return;
-    }
-    try {
-      await jobsApi.openProfileLoginSession(selectedProfile, {
-        platform: platformKey,
-      });
-      message.success("Login browser opened");
-      void refetchCrawlProfiles();
-    } catch (error) {
-      message.error(`Open login browser failed: ${getErrorMessage(error)}`);
-    }
-  };
-
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({
       behavior: "smooth",
@@ -481,103 +393,6 @@ export default function ProductsPage() {
       message.error(`Delete failed: ${getErrorMessage(error)}`);
     }
   };
-
-  const profileColumns: ColumnsType<ProductPlatformProfileBinding> = [
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      width: 150,
-      render: (value: string) => (
-        <Space size={10}>
-          <PlatformBadge value={value} />
-          <span>{PLATFORM_LABEL[value] ?? value}</span>
-        </Space>
-      ),
-    },
-    {
-      title: "Profile",
-      dataIndex: "profile_key",
-      width: 240,
-      render: (_value: string | null, record) => (
-        <Select
-          value={
-            (profileSelections[record.platform] ??
-              savedProfileSelections[record.platform]) ||
-            undefined
-          }
-          placeholder="Select profile"
-          style={{ width: 210 }}
-          options={crawlProfiles.map((profile) => ({
-            value: profile.profile_key,
-            label: `${profile.profile_key} (${profile.status})`,
-          }))}
-          onChange={(value) =>
-            setProfileSelections((prev) => ({
-              ...prev,
-              [record.platform]: value ?? "",
-            }))
-          }
-          allowClear
-          className="fg-select"
-        />
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "profile_status",
-      width: 140,
-      render: (value: string | null, record) => {
-        let tag = <Tag>{value || "Unknown"}</Tag>;
-        if (!record.profile_key) tag = <Tag color="warning">Not Configured</Tag>;
-        if (value === "available") tag = <Tag color="success">Available</Tag>;
-        if (value === "disabled") tag = <Tag color="error">Disabled</Tag>;
-        if (value === "login_required") {
-          tag = <Tag color="warning">Login Required</Tag>;
-        }
-        return record.profile_last_error ? (
-          <Tooltip title={record.profile_last_error}>{tag}</Tooltip>
-        ) : (
-          tag
-        );
-      },
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 290,
-      render: (_value: unknown, record) => {
-        const selectedProfile =
-          profileSelections[record.platform] ??
-          savedProfileSelections[record.platform] ??
-          "";
-        const saving = updateProfileBinding.isPending;
-        return (
-          <Space size={8} wrap={false}>
-            <Button
-              size="small"
-              icon={<SaveOutlined />}
-              onClick={() => void handleSaveProfileBinding(record.platform)}
-              disabled={!selectedProfile || saving}
-            >
-              Save
-            </Button>
-            <Button
-              size="small"
-              onClick={() =>
-                void handleOpenProductProfileLogin(
-                  record.platform,
-                  record.profile_key,
-                )
-              }
-              disabled={!selectedProfile}
-            >
-              Open Login Browser
-            </Button>
-          </Space>
-        );
-      },
-    },
-  ];
 
   const columns: ColumnsType<Product> = [
     { title: "Product", dataIndex: "title", ellipsis: true },
@@ -770,10 +585,15 @@ export default function ProductsPage() {
         <h1 className="page-title" style={{ marginBottom: 18 }}>
           Product Management
         </h1>
-        <Space size={28} style={{ borderBottom: "1px solid var(--color-hairline)", width: "100%" }}>
+        <Space
+          size={28}
+          style={{
+            borderBottom: "1px solid var(--color-hairline)",
+            width: "100%",
+          }}
+        >
           {[
             ["products", "Products"],
-            ["platform-profiles", "Platform Profiles"],
             ["crawl-logs", "Crawl Logs"],
           ].map(([id, label], index) => (
             <Button
@@ -784,7 +604,10 @@ export default function ProductsPage() {
                 padding: "0 0 10px",
                 height: "auto",
                 borderRadius: 0,
-                borderBottom: index === 0 ? "2px solid var(--color-ink)" : "2px solid transparent",
+                borderBottom:
+                  index === 0
+                    ? "2px solid var(--color-ink)"
+                    : "2px solid transparent",
                 fontWeight: index === 0 ? 600 : 400,
               }}
             >
@@ -802,38 +625,16 @@ export default function ProductsPage() {
       >
         <Row gutter={[16, 16]} align="top">
           <Col xs={24} xl={16}>
-            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+            <Space
+              orientation="vertical"
+              size="middle"
+              style={{ width: "100%" }}
+            >
               <motion.div
-                id="platform-profiles"
+                id="products"
                 variants={stagger.item}
                 className="fg-card"
               >
-                <div className="fg-card-header">
-                  <span
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: 15,
-                      fontWeight: 480,
-                      color: "var(--color-ink)",
-                    }}
-                  >
-                    Platform Profiles
-                  </span>
-                </div>
-                <div style={{ padding: "20px 24px" }}>
-                  <Table<ProductPlatformProfileBinding>
-                    rowKey="platform"
-                    columns={profileColumns}
-                    dataSource={profileRows}
-                    loading={profileBindingsLoading}
-                    pagination={false}
-                    size="small"
-                    scroll={{ x: 780 }}
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div id="products" variants={stagger.item} className="fg-card">
                 <div className="fg-card-header">
                   <span
                     style={{
@@ -857,7 +658,11 @@ export default function ProductsPage() {
                   )}
                 </div>
                 <div style={{ padding: "20px 24px" }}>
-                  <Row gutter={[12, 12]} align="middle" style={{ marginBottom: 16 }}>
+                  <Row
+                    gutter={[12, 12]}
+                    align="middle"
+                    style={{ marginBottom: 16 }}
+                  >
                     <Col flex="auto">
                       <Space wrap size={8}>
                         <Button
@@ -997,13 +802,18 @@ export default function ProductsPage() {
 
                   {selectedRowKeys.length > 0 && (
                     <div style={{ color: "var(--color-muted)", fontSize: 12 }}>
-                      Selected {selectedRowKeys.length} items (current page only)
+                      Selected {selectedRowKeys.length} items (current page
+                      only)
                     </div>
                   )}
                 </div>
               </motion.div>
 
-              <motion.div id="crawl-logs" variants={stagger.item} className="fg-card">
+              <motion.div
+                id="crawl-logs"
+                variants={stagger.item}
+                className="fg-card"
+              >
                 <div className="fg-card-header">
                   <Space>
                     <HistoryOutlined style={{ fontSize: 14 }} />
@@ -1134,7 +944,7 @@ export default function ProductsPage() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Schedule controls when to crawl. Platform profiles are configured in the Platform Profiles section.
+                  Schedule controls when to crawl products automatically.
                 </p>
               </div>
             </motion.div>

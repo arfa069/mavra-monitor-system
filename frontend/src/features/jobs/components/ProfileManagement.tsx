@@ -1,5 +1,19 @@
 import { useState } from "react";
-import { App, Button, Checkbox, Dropdown, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, Upload } from "antd";
+import {
+  App,
+  Button,
+  Checkbox,
+  Dropdown,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Upload,
+} from "antd";
 import type { UploadFile } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { CrawlProfile, CrawlProfileRuntimeCapabilities } from "../types";
@@ -11,14 +25,22 @@ interface ProfileManagementProps {
   onDelete: (profileKey: string) => Promise<void>;
   onRename: (profileKey: string, newProfileKey: string) => Promise<void>;
   onCopy: (profileKey: string) => Promise<void>;
-  onUpdateStatus: (profileKey: string, status: "available" | "login_required" | "disabled") => Promise<void>;
+  onUpdateStatus: (
+    profileKey: string,
+    status: "available" | "login_required" | "disabled",
+  ) => Promise<void>;
   onReleaseStale: (profileKey: string) => Promise<void>;
   capabilities?: CrawlProfileRuntimeCapabilities;
   onOpenLoginSession: (profileKey: string, platform: string) => Promise<void>;
   onCloseLoginSession: (profileKey: string) => Promise<void>;
   onTestProfile: (profileKey: string, platform: string) => Promise<void>;
   onExportBackup: (profileKey: string, password: string) => Promise<void>;
-  onImportBackup: (profileKey: string, file: File, password: string, force: boolean) => Promise<void>;
+  onImportBackup: (
+    profileKey: string,
+    file: File,
+    password: string,
+    force: boolean,
+  ) => Promise<void>;
 }
 
 export default function ProfileManagement({
@@ -43,7 +65,10 @@ export default function ProfileManagement({
   const [backupMode, setBackupMode] = useState<"import" | "export">("import");
   const [backupProfile, setBackupProfile] = useState<CrawlProfile | null>(null);
   const [renameProfile, setRenameProfile] = useState<CrawlProfile | null>(null);
-  const [form] = Form.useForm<{ profile_key: string; platform_hint?: string }>();
+  const [form] = Form.useForm<{
+    profile_key: string;
+    platform_hint?: string;
+  }>();
   const [renameForm] = Form.useForm<{ profile_key: string }>();
   const [backupForm] = Form.useForm<{
     password: string;
@@ -60,25 +85,55 @@ export default function ProfileManagement({
       dataIndex: "status",
       width: 110,
       render: (value: CrawlProfile["status"]) => {
-        const color = value === "available" ? "success" : value === "leased" ? "processing" : value === "disabled" ? "default" : "warning";
+        const color =
+          value === "available"
+            ? "success"
+            : value === "leased"
+              ? "processing"
+              : value === "disabled"
+                ? "default"
+                : "warning";
         return <Tag color={color}>{value}</Tag>;
       },
     },
-    { title: "Platform", dataIndex: "platform_hint", width: 90, render: (value) => value || "-" },
-    { title: "Task", dataIndex: "lease_task_id", width: 110, render: (value) => value || "-" },
-    { title: "Lease Until", dataIndex: "lease_until", width: 140, render: (value) => value ? new Date(value).toLocaleString() : "-" },
-    { title: "Last Error", dataIndex: "last_error", width: 100, render: (value) => value || "-" },
+    {
+      title: "Platform",
+      dataIndex: "platform_hint",
+      width: 90,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Task",
+      dataIndex: "lease_task_id",
+      width: 110,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Lease Until",
+      dataIndex: "lease_until",
+      width: 140,
+      render: (value) => (value ? new Date(value).toLocaleString() : "-"),
+    },
+    {
+      title: "Last Error",
+      dataIndex: "last_error",
+      width: 100,
+      render: (value) => value || "-",
+    },
     {
       title: "Actions",
       width: 280,
       render: (_, record) => {
         const menuItems = [
           ...(capabilities?.supports_login_session
-            ? [{
-                key: "open-login-browser",
-                label: "Open Login Browser",
-                onClick: () => onOpenLoginSession(record.profile_key, platformFor(record)),
-              }]
+            ? [
+                {
+                  key: "open-login-browser",
+                  label: "Open Login Browser",
+                  onClick: () =>
+                    onOpenLoginSession(record.profile_key, platformFor(record)),
+                },
+              ]
             : []),
           {
             key: "close-browser",
@@ -86,26 +141,30 @@ export default function ProfileManagement({
             onClick: () => onCloseLoginSession(record.profile_key),
           },
           ...(capabilities?.supports_profile_import
-            ? [{
-                key: "import",
-                label: "Import",
-                onClick: () => {
-                  setBackupMode("import");
-                  setBackupProfile(record);
-                  setBackupOpen(true);
+            ? [
+                {
+                  key: "import",
+                  label: "Import",
+                  onClick: () => {
+                    setBackupMode("import");
+                    setBackupProfile(record);
+                    setBackupOpen(true);
+                  },
                 },
-              }]
+              ]
             : []),
           ...(capabilities?.supports_profile_export
-            ? [{
-                key: "export",
-                label: "Export",
-                onClick: () => {
-                  setBackupMode("export");
-                  setBackupProfile(record);
-                  setBackupOpen(true);
+            ? [
+                {
+                  key: "export",
+                  label: "Export",
+                  onClick: () => {
+                    setBackupMode("export");
+                    setBackupProfile(record);
+                    setBackupOpen(true);
+                  },
                 },
-              }]
+              ]
             : []),
           {
             key: "rename",
@@ -145,7 +204,14 @@ export default function ProfileManagement({
             <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
               <Button size="small">Edit</Button>
             </Dropdown>
-            <Button size="small" onClick={() => onTestProfile(record.profile_key, platformFor(record))}>Test</Button>
+            <Button
+              size="small"
+              onClick={() =>
+                onTestProfile(record.profile_key, platformFor(record))
+              }
+            >
+              Test
+            </Button>
             <Popconfirm
               title="Delete profile?"
               description="This removes the profile record and local files when it is not in use."
@@ -153,9 +219,17 @@ export default function ProfileManagement({
               okButtonProps={{ danger: true }}
               onConfirm={() => onDelete(record.profile_key)}
             >
-              <Button size="small" danger>Delete</Button>
+              <Button size="small" danger>
+                Delete
+              </Button>
             </Popconfirm>
-            <Button size="small" danger onClick={() => onUpdateStatus(record.profile_key, "disabled")}>Disable</Button>
+            <Button
+              size="small"
+              danger
+              onClick={() => onUpdateStatus(record.profile_key, "disabled")}
+            >
+              Disable
+            </Button>
           </Space>
         );
       },
@@ -209,7 +283,13 @@ export default function ProfileManagement({
 
   return (
     <>
-      <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 12 }}>
+      <Space
+        style={{
+          width: "100%",
+          justifyContent: "space-between",
+          marginBottom: 12,
+        }}
+      >
         <Tag>{capabilities?.mode || "loading"}</Tag>
         <Button onClick={() => setOpen(true)}>Create Profile</Button>
       </Space>
@@ -220,20 +300,32 @@ export default function ProfileManagement({
         loading={loading}
         size="small"
       />
-      <Modal title="Create Profile" open={open} onOk={handleCreate} onCancel={() => setOpen(false)}>
+      <Modal
+        title="Create Profile"
+        open={open}
+        onOk={handleCreate}
+        onCancel={() => setOpen(false)}
+      >
         <Form form={form} layout="vertical">
-          <Form.Item name="profile_key" label="Profile Key" rules={[{ required: true }]}>
+          <Form.Item
+            name="profile_key"
+            label="Profile Key"
+            rules={[{ required: true }]}
+          >
             <Input placeholder="job-a" autoComplete="off" />
           </Form.Item>
           <Form.Item name="platform_hint" label="Platform Hint">
-            <Select allowClear options={[
-              { value: "boss", label: "Boss" },
-              { value: "51job", label: "51job" },
-              { value: "liepin", label: "Liepin" },
-              { value: "jd", label: "JD" },
-              { value: "taobao", label: "Taobao" },
-              { value: "amazon", label: "Amazon" },
-            ]} />
+            <Select
+              allowClear
+              options={[
+                { value: "boss", label: "Boss" },
+                { value: "51job", label: "51job" },
+                { value: "liepin", label: "Liepin" },
+                { value: "jd", label: "JD" },
+                { value: "taobao", label: "Taobao" },
+                { value: "amazon", label: "Amazon" },
+              ]}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -247,7 +339,11 @@ export default function ProfileManagement({
         }}
       >
         <Form form={renameForm} layout="vertical">
-          <Form.Item name="profile_key" label="New Profile Key" rules={[{ required: true }]}>
+          <Form.Item
+            name="profile_key"
+            label="New Profile Key"
+            rules={[{ required: true }]}
+          >
             <Input autoComplete="off" />
           </Form.Item>
         </Form>
@@ -263,12 +359,22 @@ export default function ProfileManagement({
         }}
       >
         <Form form={backupForm} layout="vertical">
-          <Form.Item name="password" label="Backup Password" rules={[{ required: true, min: 8 }]}>
+          <Form.Item
+            name="password"
+            label="Backup Password"
+            rules={[{ required: true, min: 8 }]}
+          >
             <Input.Password autoComplete="new-password" />
           </Form.Item>
           {backupMode === "import" && (
             <>
-              <Form.Item name="file" label="Backup File" valuePropName="fileList" getValueFromEvent={normFile} rules={[{ required: true }]}>
+              <Form.Item
+                name="file"
+                label="Backup File"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
+                rules={[{ required: true }]}
+              >
                 <Upload beforeUpload={() => false} maxCount={1}>
                   <Button>Select Backup</Button>
                 </Upload>

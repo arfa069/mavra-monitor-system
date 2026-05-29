@@ -3,6 +3,7 @@ from typing import Any
 
 from app.config import settings
 from app.platforms.base import BasePlatformAdapter
+from app.platforms.jd_opencli import crawl_jd_via_opencli
 from app.platforms.middleware.cookie_injection import CookieInjectionMiddleware
 from app.platforms.strategies import (
     ChainedPriceStrategy,
@@ -28,6 +29,56 @@ class JDAdapter(BasePlatformAdapter, CookieInjectionMiddleware):
     # Class-level injection tracking
     _shared_cookies_injected: bool = False
     _shared_cookie_context_id: int | None = None
+
+    async def crawl_with_page(self, url: str, page) -> dict[str, Any]:
+        """Crawl JD page via OpenCLI first, fall back to Playwright strategies."""
+        import logging
+        _log = logging.getLogger(__name__)
+
+        # Try OpenCLI first (if enabled)
+        opencli_result = await crawl_jd_via_opencli(url)
+        if opencli_result.success and opencli_result.price:
+            _log.info("OpenCLI returned price %s for %s", opencli_result.price, url)
+            return {
+                "success": True,
+                "price": opencli_result.price,
+                "currency": opencli_result.currency,
+                "title": opencli_result.title or "",
+            }
+
+        # OpenCLI detected auth / security issues ? surface them
+        if opencli_result.is_login_page:
+            _log.warning("OpenCLI detected login page for %s", url)
+            return {
+                "success": False,
+                "error": "JD login required (via OpenCLI)",
+                "failure_type": "login_required",
+            }
+        if opencli_result.has_security_challenge or opencli_result.looks_blocked:
+            _log.warning("OpenCLI detected anti-bot challenge for %s", url)
+            return {
+                "success": False,
+                "error": "JD anti-bot verification required (via OpenCLI)",
+                "failure_type": "anti_bot",
+            }
+
+        # OpenCLI succeeded but returned no price — don't waste a Playwright call
+        if opencli_result.success:
+            _log.warning("OpenCLI returned no price for %s", url)
+            return {
+                "success": False,
+                "error": "JD price not found (via OpenCLI)",
+            }
+
+        # OpenCLI failed for technical reasons (not simply disabled) ? fallback
+        if opencli_result.error and "jd_opencli_enabled is False" not in opencli_result.error:
+            _log.warning(
+                "OpenCLI failed (%s), falling back to Playwright for %s",
+                opencli_result.error, url,
+            )
+
+        # Fallback: use parent Playwright-based crawling
+        return await super().crawl_with_page(url, page)
 
     def __init__(self):
         """Initialize JD adapter with strategies."""
@@ -61,6 +112,13 @@ class JDAdapter(BasePlatformAdapter, CookieInjectionMiddleware):
 
     def classify_failure(self, url: str, content: str) -> str | None:
         lowered = content.lower()
+        if (
+            "pc-frequent-pro.pf.jd.com" in url
+            or "reason=403" in url
+            or "访问频繁" in content
+            or "安全验证" in content
+        ):
+            return "anti_bot"
         if "passport.jd.com" in url or "请登录" in content or "login" in lowered:
             return "login_required"
         return None

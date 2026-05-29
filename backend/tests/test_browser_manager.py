@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 
 import pytest
+import shutil
+from pathlib import Path
 from sqlalchemy import delete, select
 
 from app.database import AsyncSessionLocal
@@ -12,12 +14,21 @@ from app.domains.crawling.profile_pool import LOGIN_REQUIRED, ensure_profile
 from app.models.crawl_profile import CrawlProfile
 
 
+def _profile_dir(profile_key: str) -> Path:
+    from app.core.crawler_paths import build_profile_dir
+    return build_profile_dir(profile_key)
+
+
 async def _clean_profile(profile_key: str):
     async with AsyncSessionLocal() as s:
         await s.execute(
             delete(CrawlProfile).where(CrawlProfile.profile_key == profile_key)
         )
         await s.commit()
+    # Also clean up directory on disk
+    d = _profile_dir(profile_key)
+    if d.exists():
+        shutil.rmtree(d, ignore_errors=True)
 
 
 class FakePage:
@@ -40,6 +51,25 @@ class FakeContext:
 
     async def close(self):
         self.closed = True
+
+
+class BrokenClosePage(FakePage):
+    async def close(self):
+        self.closed = True
+        raise RuntimeError("Page.close: Target page, context or browser has been closed")
+
+
+class BrokenCloseContext(FakeContext):
+    async def new_page(self):
+        page = BrokenClosePage()
+        self.pages.append(page)
+        return page
+
+    async def close(self):
+        self.closed = True
+        raise RuntimeError(
+            "BrowserContext.close: Target page, context or browser has been closed"
+        )
 
 
 class FakeChromium:
@@ -86,6 +116,36 @@ async def test_browser_manager_acquires_and_releases_profile():
         assert session.profile_key == profile_key
 
     assert fake_context.closed is True
+
+
+@pytest.mark.asyncio
+async def test_browser_manager_ignores_already_closed_browser_cleanup():
+    profile_key = "product-jd-test-close-already-closed"
+    await _clean_profile(profile_key)
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key=profile_key, platform_hint="jd")
+    fake_context = BrokenCloseContext()
+    manager = BrowserManager(
+        db_factory=lambda: AsyncSessionLocal(),
+        playwright_factory=lambda: fake_playwright_factory(fake_context),
+    )
+
+    async with manager.acquire(
+        platform="jd",
+        profile_key=profile_key,
+        owner="test-owner",
+        task_id="task-1",
+    ) as session:
+        page = await session.new_page()
+        await session.close_page(page)
+
+    assert fake_context.closed is True
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(CrawlProfile).where(CrawlProfile.profile_key == profile_key)
+        )
+        profile = result.scalar_one()
+        assert profile.lease_owner is None
 
 
 @pytest.mark.asyncio

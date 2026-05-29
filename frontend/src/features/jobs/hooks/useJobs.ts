@@ -134,8 +134,14 @@ export const useCrawlAllJobs = () => {
     }> => {
       const response = await jobsApi.crawlAll();
       const taskId = response.data.task_id;
-      for (let attempt = 0; attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS));
+      for (
+        let attempt = 0;
+        attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS;
+        attempt += 1
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS),
+        );
         try {
           const statusRes = await jobsApi.getCrawlStatus(taskId);
           const s = statusRes.data;
@@ -176,8 +182,14 @@ export const useCrawlSingleJob = () => {
     }> => {
       const response = await jobsApi.crawlSingle(configId);
       const taskId = response.data.task_id;
-      for (let attempt = 0; attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS));
+      for (
+        let attempt = 0;
+        attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS;
+        attempt += 1
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS),
+        );
         try {
           const statusRes = await jobsApi.getCrawlStatus(taskId);
           const s = statusRes.data;
@@ -276,7 +288,8 @@ export const useCrawlProfiles = () =>
 export const useProfileRuntimeCapabilities = () =>
   useQuery({
     queryKey: ["crawl-profile-runtime-capabilities"],
-    queryFn: () => jobsApi.getProfileRuntimeCapabilities().then((res) => res.data),
+    queryFn: () =>
+      jobsApi.getProfileRuntimeCapabilities().then((res) => res.data),
   });
 
 export const useCreateCrawlProfile = () => {
@@ -290,8 +303,13 @@ export const useCreateCrawlProfile = () => {
 export const useUpdateCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ profileKey, data }: { profileKey: string; data: Parameters<typeof jobsApi.updateProfile>[1] }) =>
-      jobsApi.updateProfile(profileKey, data),
+    mutationFn: ({
+      profileKey,
+      data,
+    }: {
+      profileKey: string;
+      data: Parameters<typeof jobsApi.updateProfile>[1];
+    }) => jobsApi.updateProfile(profileKey, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
   });
 };
@@ -307,8 +325,13 @@ export const useDeleteCrawlProfile = () => {
 export const useRenameCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ profileKey, newProfileKey }: { profileKey: string; newProfileKey: string }) =>
-      jobsApi.renameProfile(profileKey, newProfileKey),
+    mutationFn: ({
+      profileKey,
+      newProfileKey,
+    }: {
+      profileKey: string;
+      newProfileKey: string;
+    }) => jobsApi.renameProfile(profileKey, newProfileKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: jobQueryKeys.profiles });
       qc.invalidateQueries({ queryKey: ["job-configs"] });
@@ -334,8 +357,13 @@ export const useReleaseStaleCrawlProfile = () => {
 
 export const useOpenProfileLoginSession = () =>
   useMutation({
-    mutationFn: ({ profileKey, platform }: { profileKey: string; platform: string }) =>
-      jobsApi.openProfileLoginSession(profileKey, { platform }),
+    mutationFn: ({
+      profileKey,
+      platform,
+    }: {
+      profileKey: string;
+      platform: string;
+    }) => jobsApi.openProfileLoginSession(profileKey, { platform }),
   });
 
 export const useCloseProfileLoginSession = () =>
@@ -346,16 +374,26 @@ export const useCloseProfileLoginSession = () =>
 export const useTestCrawlProfile = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ profileKey, platform }: { profileKey: string; platform: string }) =>
-      jobsApi.testProfile(profileKey, { platform }),
+    mutationFn: ({
+      profileKey,
+      platform,
+    }: {
+      profileKey: string;
+      platform: string;
+    }) => jobsApi.testProfile(profileKey, { platform }),
     onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
   });
 };
 
 export const useExportProfileBackup = () =>
   useMutation({
-    mutationFn: ({ profileKey, password }: { profileKey: string; password: string }) =>
-      jobsApi.exportProfileBackup(profileKey, password),
+    mutationFn: ({
+      profileKey,
+      password,
+    }: {
+      profileKey: string;
+      password: string;
+    }) => jobsApi.exportProfileBackup(profileKey, password),
   });
 
 export const useImportProfileBackup = () => {

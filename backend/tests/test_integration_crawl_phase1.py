@@ -407,6 +407,10 @@ class TestCrawlTaskRunnerIntegration:
         from app.domains.crawling.task_runner import CrawlTaskRunner
 
         monkeypatch.setattr(
+            "app.domains.crawling.task_runner._opencli_enabled_for",
+            lambda p: False,
+        )
+        monkeypatch.setattr(
             "app.domains.crawling.service.get_active_products",
             AsyncMock(return_value=[SimpleNamespace(id=99, platform="jd")]),
         )

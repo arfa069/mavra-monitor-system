@@ -20,7 +20,11 @@ import {
 } from "@ant-design/icons";
 import JobConfigForm from "./JobConfigForm";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
-import type { CrawlProfile, JobSearchConfig, JobSearchConfigCreate } from "../types";
+import type {
+  CrawlProfile,
+  JobSearchConfig,
+  JobSearchConfigCreate,
+} from "../types";
 
 interface JobConfigListProps {
   configs?: JobSearchConfig[];
@@ -30,7 +34,10 @@ interface JobConfigListProps {
   onUpdate: (id: number, data: Partial<JobSearchConfigCreate>) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
   onCrawl?: (id: number) => Promise<void>;
-  onCreateProfile?: (profileKey: string, platformHint?: string | null) => Promise<void>;
+  onCreateProfile?: (
+    profileKey: string,
+    platformHint?: string | null,
+  ) => Promise<void>;
   createLoading?: boolean;
   updateLoading?: boolean;
   crawlLoading?: boolean;

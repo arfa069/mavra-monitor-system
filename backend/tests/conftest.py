@@ -46,3 +46,29 @@ def another_user() -> dict:
         "password": "anotherpassword456",
     }
 
+
+import shutil
+from pathlib import Path
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _clean_test_profiles():
+    """Clean up test-created profile directories after each test."""
+    yield
+    profiles_root = Path(__file__).resolve().parent.parent / "profiles"
+    if profiles_root.exists():
+        for d in profiles_root.iterdir():
+            if d.is_dir() and ("test" in d.name or d.name.startswith("job-")):
+                shutil.rmtree(d, ignore_errors=True)
+
+import tempfile
+from pathlib import Path
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _temp_profile_root(tmp_path_factory):
+    """Redirect test profile directories to a temp location."""
+    import app.core.crawler_paths as cp
+    temp_root = tmp_path_factory.mktemp("test_profiles")
+    cp._project_root = lambda: temp_root
+    yield

@@ -185,7 +185,12 @@ export const jobsApi = {
       { responseType: "blob" },
     ),
 
-  importProfileBackup: (profileKey: string, file: File, password: string, force: boolean) => {
+  importProfileBackup: (
+    profileKey: string,
+    file: File,
+    password: string,
+    force: boolean,
+  ) => {
     const form = new FormData();
     form.append("file", file);
     form.append("password", password);

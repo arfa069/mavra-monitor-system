@@ -6,7 +6,7 @@ from sqlalchemy import delete, select
 from app.core.task_registry import CrawlTask
 from app.database import AsyncSessionLocal
 from app.domains.crawling import task_runner
-from app.domains.crawling.profile_pool import ensure_profile
+from app.domains.crawling.profile_pool import LOGIN_REQUIRED, ensure_profile
 from app.domains.products.service import (
     create_product,
     upsert_product_profile_binding,
@@ -390,6 +390,84 @@ async def test_crawl_one_emits_page_timeout_event_for_timeout_result(monkeypatch
     timeout_events = [e for e in emitted if e.get("event_type") == "product_browser.page_timeout"]
     assert len(timeout_events) == 1
     assert timeout_events[0]["entity_id"] == "product-jd-default"
+
+
+@pytest.mark.asyncio
+async def test_crawl_one_marks_profile_login_required_for_anti_bot(monkeypatch):
+    """Anti-bot pages should stop repeated product crawls until the profile is fixed."""
+    await _clean_tables()
+    async with AsyncSessionLocal() as db:
+        await ensure_profile(db, profile_key="product-jd-default", platform_hint="jd")
+        product = await create_product(
+            db,
+            user_id=1,
+            product_data=ProductCreate(
+                platform="jd",
+                url="https://item.jd.com/anti-bot.html",
+                title="Anti Bot Demo",
+                active=True,
+            ),
+        )
+
+    emitted = []
+
+    async def fake_emit(**kwargs):
+        emitted.append(kwargs)
+
+    monkeypatch.setattr("app.core.system_log.emit_system_log_detached", fake_emit)
+
+    class FakePage:
+        url = "https://pc-frequent-pro.pf.jd.com/?from=pc_item&reason=403"
+
+        async def content(self):
+            return "安全验证"
+
+    class FakeAdapter:
+        async def crawl_with_page(self, url, page):
+            return {"success": False, "error": "All chained strategies failed"}
+
+        def classify_failure(self, url, content):
+            return "anti_bot"
+
+    monkeypatch.setattr(
+        "app.domains.crawling.service.PLATFORM_ADAPTERS",
+        {"jd": FakeAdapter},
+    )
+
+    class FakeSession:
+        profile_key = "product-jd-default"
+        platform = "jd"
+
+        async def new_page(self):
+            return FakePage()
+
+        async def close_page(self, page):
+            pass
+
+    from app.domains.crawling.service import crawl_one_with_session
+
+    result = await crawl_one_with_session(product_id=product.id, session=FakeSession())
+
+    assert result["status"] == "error"
+    async with AsyncSessionLocal() as db:
+        profile = (
+            await db.execute(
+                select(CrawlProfile).where(
+                    CrawlProfile.profile_key == "product-jd-default"
+                )
+            )
+        ).scalar_one()
+        log = (
+            await db.execute(select(CrawlLog).where(CrawlLog.product_id == product.id))
+        ).scalar_one()
+
+    assert profile.status == LOGIN_REQUIRED
+    assert "anti-bot verification required" in profile.last_error
+    assert "anti-bot verification required" in log.error_message
+    anti_bot_events = [
+        event for event in emitted if event.get("event_type") == "product_profile.anti_bot"
+    ]
+    assert len(anti_bot_events) == 1
 
 
 @pytest.mark.asyncio

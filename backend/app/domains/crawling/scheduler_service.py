@@ -299,9 +299,9 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
 
 async def _cleanup_all_shared_browsers() -> None:
     """Close all shared browser instances after crawl task."""
-    from app.platforms import AmazonAdapter, JDAdapter, TaobaoAdapter
+    from app.platforms import JDAdapter, TaobaoAdapter
 
-    for adapter_class in [TaobaoAdapter, JDAdapter, AmazonAdapter]:
+    for adapter_class in [TaobaoAdapter, JDAdapter]:
         try:
             await adapter_class._close_shared_browser()
         except Exception as exc:

@@ -6,6 +6,11 @@ import pytest
 def test_build_profile_dir_defaults_to_project_root():
     """Without explicit root, resolves relative to project root."""
     from app.core import crawler_paths
+    # Restore original _project_root in case it was patched by conftest
+    import app.core.crawler_paths as cp
+    def _original_root():
+        return Path(cp.__file__).resolve().parent.parent.parent.parent
+    cp._project_root = _original_root
 
     result = crawler_paths.build_profile_dir("default")
     expected_root = Path(crawler_paths.__file__).resolve().parent.parent.parent.parent

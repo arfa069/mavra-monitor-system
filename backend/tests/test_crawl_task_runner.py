@@ -74,6 +74,14 @@ async def test_runner_executes_product_task(monkeypatch):
     task = create_task("manual", user_id=1, entity_type="crawl_task")
     runner = CrawlTaskRunner()
     monkeypatch.setattr(
+        "app.domains.crawling.task_runner._opencli_enabled_for",
+        lambda p: False,
+    )
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner._opencli_enabled_for",
+        lambda p: False,
+    )
+    monkeypatch.setattr(
         "app.domains.crawling.service.get_active_products",
         AsyncMock(return_value=[SimpleNamespace(id=10, platform="jd"), SimpleNamespace(id=11, platform="jd")]),
     )
@@ -115,6 +123,10 @@ async def test_runner_limits_product_concurrency_to_three(monkeypatch):
         call_count += 1
         return [{"status": "success", "product_id": pid} for pid in product_ids]
 
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner._opencli_enabled_for",
+        lambda p: False,
+    )
     monkeypatch.setattr(
         "app.domains.crawling.service.get_active_products",
         AsyncMock(return_value=[SimpleNamespace(id=i, platform="jd") for i in range(6)]),
@@ -159,6 +171,10 @@ async def test_runner_reports_product_progress(monkeypatch):
     async def on_progress(task):
         progress.append((task.status.value, task.total, task.success, task.errors))
 
+    monkeypatch.setattr(
+        "app.domains.crawling.task_runner._opencli_enabled_for",
+        lambda p: False,
+    )
     monkeypatch.setattr(
         "app.domains.crawling.service.get_active_products",
         fake_get_active_products,

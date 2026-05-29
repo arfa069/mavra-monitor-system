@@ -13,29 +13,24 @@ from collections.abc import Awaitable, Callable
 from app.core.task_registry import CrawlTask, TaskStatus
 from app.database import AsyncSessionLocal
 
-PRODUCT_CONCURRENCY_LIMIT = 3
 PRODUCT_CRAWL_INTERVAL_MIN = 2.0
 PRODUCT_CRAWL_INTERVAL_MAX = 3.0
+
+def _opencli_enabled_for(platform: str) -> bool:
+    """Check if OpenCLI is enabled for the given product platform."""
+    from app.config import settings
+    if platform == "jd":
+        return settings.jd_opencli_enabled
+    if platform == "taobao":
+        return settings.taobao_opencli_enabled
+    return False
+
 PRODUCT_PROFILE_NOT_CONFIGURED = "platform_profile_not_configured"
 
 ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
 
 
-async def _crawl_product_with_semaphore(
-    product_id: int,
-    semaphore: asyncio.Semaphore,
-) -> dict:
-    async with semaphore:
-        from app.domains.crawling.router import _crawl_one
-
-        result = await _crawl_one(product_id)
-        await asyncio.sleep(
-            random.uniform(PRODUCT_CRAWL_INTERVAL_MIN, PRODUCT_CRAWL_INTERVAL_MAX)
-        )
-        return result
-
-
-async def crawl_products_with_profile(
+async def crawl_products_with_profile (
     *,
     product_ids: list[int],
     platform: str,
@@ -299,14 +294,39 @@ class CrawlTaskRunner:
     async def run_all_products(self, task: CrawlTask) -> dict:
         task.status = TaskStatus.RUNNING
         await self._notify_progress(task)
-        groups, missing = await _product_profile_groups(user_id=task.user_id or 1)
-        if not groups and not missing:
+
+        from app.domains.crawling import service as crawling_service
+
+        user_id = task.user_id or 1
+        groups, missing = await _product_profile_groups(user_id=user_id)
+
+        # ---- OpenCLI: crawl directly without profiles, one by one ----
+        opencli_details: list[dict] = []
+        for (platform, profile_key), products in list(groups.items()):
+            if _opencli_enabled_for(platform):
+                del groups[(platform, profile_key)]
+                for product in products:
+                    try:
+                        result = await crawling_service.crawl_one_opencli(
+                            product_id=product.id, platform=platform
+                        )
+                        opencli_details.append(result)
+                    except Exception as exc:
+                        opencli_details.append({
+                            "product_id": product.id,
+                            "status": "error",
+                            "reason": str(exc),
+                            "profile_key": profile_key,
+                        })
+
+        if not groups and not missing and not opencli_details:
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
             await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
-        total_products = sum(len(products) for products in groups.values())
+        total_products = len(opencli_details)
+        total_products += sum(len(products) for products in groups.values())
         total_products += sum(len(products) for products in missing.values())
         task.total = total_products
         await self._notify_progress(task)
@@ -344,7 +364,7 @@ class CrawlTaskRunner:
         all_details: list[dict] = []
         total_success = 0
         total_errors = 0
-        for details in [*lane_results, *missing_results]:
+        for details in [opencli_details, *lane_results, *missing_results]:
             all_details.extend(details)
             total_success += sum(1 for item in details if item.get("status") == "success")
             total_errors += sum(1 for item in details if item.get("status") == "error")

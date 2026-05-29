@@ -77,6 +77,7 @@ Phase 2-5 remain tracked in [docs/2026-05-25-crawler-production-todo.md](2026-05
 ## Task 1: Add Cross-Platform Crawler Paths
 
 **Files:**
+
 - Create: `backend/app/core/crawler_paths.py`
 - Test: `backend/tests/test_crawler_paths.py`
 
@@ -242,6 +243,7 @@ def test_build_profile_dir_rejects_dot_key(tmp_path)
 ```
 
 **Notable:** Adapter profile defaults changed from:
+
 ```python
 # Before: ~/.cloakbrowser/profiles/{platform}-test
 # Plan:   settings.resolved_crawler_profile_root / "profiles" / platform / "default"
@@ -255,6 +257,7 @@ The `cdp_allow_non_local` setting was kept in `config.py`.
 ## Task 2: Add Profile Lease Interfaces
 
 **Files:**
+
 - Create: `backend/app/core/profile_lease.py`
 - Test: `backend/tests/test_profile_lease.py`
 
@@ -295,6 +298,7 @@ async def test_profile_lease_allows_different_profiles_for_same_platform(tmp_pat
 ## Task 3: Add CDP Safety Validation
 
 **Files:**
+
 - Create: `backend/app/core/cdp_security.py`
 - Modify: `backend/app/config.py`
 - Modify: `backend/app/platforms/base.py`
@@ -331,6 +335,7 @@ Identical to plan. 9 tests covering: localhost, loopback, IPv6 `::1`, external I
 ## Task 4: Add Central Log Redaction
 
 **Files:**
+
 - Create: `backend/app/core/log_redaction.py`
 - Test: `backend/tests/test_log_redaction.py`
 
@@ -349,9 +354,10 @@ Identical to plan. 9 tests covering: localhost, loopback, IPv6 `::1`, external I
 ### Actual implementation
 
 **Changes from plan:**
+
 1. **`_redact_string` was inlined** — `redact_payload` directly formats the redacted string.
 2. **Added `set` type handling** — `isinstance(value, set)` branch iterates each element.
-3. **`"***REDACTED***"` for full redact** instead of calling a separate helper.
+3. **`"\***REDACTED**\*"` for full redact** instead of calling a separate helper.
 
 **Final `redact_payload`:**
 
@@ -400,6 +406,7 @@ test_normalize_audit_log_redacts_existing_details()
 ## Task 5: Add CrawlTaskRunner Boundary
 
 **Files:**
+
 - Create: `backend/app/domains/crawling/task_runner.py`
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Modify: `backend/app/domains/crawling/scheduler_service.py`
@@ -435,6 +442,7 @@ Identical to plan. Event Center emits were preserved in the caller. Additional t
 ## Task 6: Inject Profile Roots Into Job Adapters
 
 **Files:**
+
 - Modify: `backend/app/platforms/boss_cloak_experimental.py`
 - Modify: `backend/app/platforms/job51.py`
 - Test: `backend/tests/test_boss_cloak_experimental.py`
@@ -473,6 +481,7 @@ No `from app.config import settings` import needed. Tests changed from monkeypat
 ## Task 7: Wire Product Crawl Through CrawlTaskRunner
 
 **Files:**
+
 - Modify: `backend/app/domains/crawling/task_runner.py`
 - Modify: `backend/app/domains/crawling/scheduler_service.py`
 - Test: `backend/tests/test_crawl_task_runner.py`
@@ -529,18 +538,18 @@ Notable: the mock target was changed from `app.domains.crawling.router._crawl_on
 
 The following were planned but ultimately removed:
 
-| Item | Planned | Final |
-|------|---------|-------|
-| `PRICE_MONITOR_HOME` env var | Configurable home root | Removed — always project-relative |
-| `CRAWLER_PROFILE_ROOT` env var | Override profile root | Removed — always `profiles/{key}` |
-| `price_monitor_home` field | Settings field | Removed |
-| `crawler_profile_root` field | Settings field | Removed |
-| `resolved_price_monitor_home` | Computed property | Removed |
-| `resolved_crawler_profile_root` | Computed property | Removed |
-| `default_price_monitor_home()` | Cross-platform default | Removed — `_project_root()` via `__file__` |
-| `resolve_price_monitor_home()` | Env var / arg resolver | Removed |
-| `VALID_PLATFORMS` | Validated set | Removed — no platform-based paths |
-| `profiles/{platform}/{key}` | Platform subdirectory | Simplified to `profiles/{key}` |
+| Item                            | Planned                | Final                                      |
+| ------------------------------- | ---------------------- | ------------------------------------------ |
+| `PRICE_MONITOR_HOME` env var    | Configurable home root | Removed — always project-relative          |
+| `CRAWLER_PROFILE_ROOT` env var  | Override profile root  | Removed — always `profiles/{key}`          |
+| `price_monitor_home` field      | Settings field         | Removed                                    |
+| `crawler_profile_root` field    | Settings field         | Removed                                    |
+| `resolved_price_monitor_home`   | Computed property      | Removed                                    |
+| `resolved_crawler_profile_root` | Computed property      | Removed                                    |
+| `default_price_monitor_home()`  | Cross-platform default | Removed — `_project_root()` via `__file__` |
+| `resolve_price_monitor_home()`  | Env var / arg resolver | Removed                                    |
+| `VALID_PLATFORMS`               | Validated set          | Removed — no platform-based paths          |
+| `profiles/{platform}/{key}`     | Platform subdirectory  | Simplified to `profiles/{key}`             |
 
 The remaining env vars / settings (`CDP_ALLOW_NON_LOCAL`, `CDP_ENABLED`, `CDP_URL`) are unchanged.
 

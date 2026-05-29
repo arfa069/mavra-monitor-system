@@ -121,36 +121,46 @@ async def crawl_one_with_session(
                 error_message = str(result_data.get("error", ""))
                 if "timeout" in error_message.lower():
                     await _emit_page_timeout_event(session)
-                # Check for login wall / anti-bot before closing page
-                try:
-                    page_url = page.url
-                    page_content = await page.content()
-                    failure_type = adapter.classify_failure(page_url, page_content)
-                    if failure_type == "login_required":
-                        from app.core.system_log import emit_system_log_detached
-                        from app.domains.crawling.profile_pool import LOGIN_REQUIRED
-                        from app.domains.crawling.profile_service import update_profile
+                # Adapter may surface failure_type directly (e.g. OpenCLI)
+                failure_type = result_data.get("failure_type")
+                if not failure_type:
+                    # Check for login wall / anti-bot via page inspection
+                    try:
+                        page_url = page.url
+                        page_content = await page.content()
+                        failure_type = adapter.classify_failure(page_url, page_content)
+                    except Exception:
+                        failure_type = None
+                if failure_type in {"login_required", "anti_bot"}:
+                    from app.core.system_log import emit_system_log_detached
+                    from app.domains.crawling.profile_pool import LOGIN_REQUIRED
+                    from app.domains.crawling.profile_service import update_profile
 
-                        await update_profile(
-                            db,
-                            profile_key=session.profile_key,
-                            status=LOGIN_REQUIRED,
-                            platform_hint=session.platform,
-                            last_error=f"{product.platform} login required for {product.url}",
-                        )
-                        await emit_system_log_detached(
-                            category="runtime",
-                            event_type="product_profile.login_required",
-                            source="crawler",
-                            severity="warning",
-                            status="failed",
-                            message=f"Product profile {session.profile_key} requires login",
-                            entity_type="crawl_profile",
-                            entity_id=session.profile_key,
-                            payload={"profile_key": session.profile_key, "platform": product.platform},
-                        )
-                except Exception:
-                    pass
+                    action = (
+                        "login required"
+                        if failure_type == "login_required"
+                        else "anti-bot verification required"
+                    )
+                    last_error = f"{product.platform} {action} for {product.url}"
+                    result_data["error"] = last_error
+                    await update_profile(
+                        db,
+                        profile_key=session.profile_key,
+                        status=LOGIN_REQUIRED,
+                        platform_hint=session.platform,
+                        last_error=last_error,
+                    )
+                    await emit_system_log_detached(
+                        category="runtime",
+                        event_type=f"product_profile.{failure_type}",
+                        source="crawler",
+                        severity="warning",
+                        status="failed",
+                        message=f"Product profile {session.profile_key} requires {action}",
+                        entity_type="crawl_profile",
+                        entity_id=session.profile_key,
+                        payload={"profile_key": session.profile_key, "platform": product.platform},
+                    )
             return await _persist_product_crawl_result(db, product=product, result_data=result_data)
         except Exception as e:
             from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -160,6 +170,71 @@ async def crawl_one_with_session(
             return {"status": "error", "product_id": product_id, "error": str(e)}
         finally:
             await session.close_page(page)
+
+
+async def crawl_one_opencli(
+    *,
+    product_id: int,
+    platform: str,
+) -> dict:
+    """Crawl a single product via OpenCLI (no browser session needed)."""
+    _get_adapters()
+
+    async with AsyncSessionLocal() as db:
+        product = await repository.get_product(db, product_id=product_id)
+        if not product or not product.active:
+            return {"status": "skipped", "product_id": product_id}
+
+        adapter_class = PLATFORM_ADAPTERS.get(platform)
+        if not adapter_class:
+            error_msg = f"Unknown platform: {platform}"
+            await save_crawl_log(product_id, platform, "ERROR", error_message=error_msg)
+            return {"status": "error", "product_id": product_id, "error": error_msg}
+
+        adapter = adapter_class()
+
+        # Create a lightweight mock page - OpenCLI won't use it
+        class _OpenCLIPage:
+            url = product.url
+
+            async def goto(self, url, **kw):
+                pass
+
+            async def wait_for_selector(self, *a, **kw):
+                pass
+
+            async def evaluate(self, *a):
+                return None
+
+            async def wait_for_timeout(self, *a):
+                pass
+
+            async def content(self):
+                return "<html></html>"
+
+            def locator(self, sel):
+                # Playwright page.locator() is synchronous, returns a Locator
+                class _Locator:
+                    @property
+                    def first(self):
+                        return self
+
+                    async def count(self):
+                        return 0
+
+                    async def text_content(self):
+                        return ""
+
+                return _Locator()
+
+            async def title(self):
+                return ""
+
+        page = _OpenCLIPage()
+        result_data = await adapter.crawl_with_page(product.url, page)
+        return await _persist_product_crawl_result(
+            db, product=product, result_data=result_data
+        )
 
 
 async def crawl_one(product_id: int) -> dict:

@@ -123,6 +123,7 @@ Running task and profile leases must be renewed while work is active. Long crawl
 ## Task 1: Add Persistent Crawl Models And Migration
 
 **Files:**
+
 - Create: `backend/app/models/crawl_task.py`
 - Create: `backend/app/models/crawl_profile.py`
 - Modify: `backend/app/models/__init__.py`
@@ -424,6 +425,7 @@ git commit -m "feat: add persistent crawler task models"
 ## Task 2: Add Persistent Crawl Task Store
 
 **Files:**
+
 - Create: `backend/app/domains/crawling/task_store.py`
 - Test: `backend/tests/test_crawl_task_store.py`
 
@@ -749,6 +751,7 @@ git commit -m "feat: add persistent crawl task store"
 ## Task 3: Add DB-Backed Profile Pool
 
 **Files:**
+
 - Create: `backend/app/domains/crawling/profile_pool.py`
 - Test: `backend/tests/test_profile_pool.py`
 
@@ -1155,6 +1158,7 @@ git commit -m "feat: add database profile pool"
 ## Task 4: Add Runner Progress Callback And Profile Lease Hook
 
 **Files:**
+
 - Modify: `backend/app/domains/crawling/task_runner.py`
 - Test: `backend/tests/test_crawl_task_runner.py`
 
@@ -1265,6 +1269,7 @@ git commit -m "feat: report crawl task runner progress"
 ## Task 5: Persist Product Crawl Tasks
 
 **Files:**
+
 - Modify: `backend/app/domains/crawling/scheduler_service.py`
 - Modify: `backend/app/domains/crawling/router.py`
 - Test: `backend/tests/test_integration_crawl_phase2.py`
@@ -1527,6 +1532,7 @@ git commit -m "feat: persist product crawl tasks"
 ## Task 6: Persist Job Crawl Tasks
 
 **Files:**
+
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Modify: `backend/app/domains/jobs/router.py`
 - Test: `backend/tests/test_integration_crawl_phase2.py`
@@ -1731,6 +1737,7 @@ git commit -m "feat: persist job crawl tasks"
 ## Task 7: Wire Profile Pool Into Job Crawl Execution
 
 **Files:**
+
 - Modify: `backend/app/domains/crawling/task_runner.py`
 - Modify: `backend/app/domains/jobs/crawl_service.py`
 - Test: `backend/tests/test_integration_crawl_phase2.py`
@@ -1871,6 +1878,7 @@ git commit -m "feat: lease crawler profiles from database"
 ## Task 8: Add Startup Recovery For Stale Tasks And Leases
 
 **Files:**
+
 - Modify: `backend/app/main.py`
 - Test: `backend/tests/test_integration_crawl_phase2.py`
 
@@ -1988,6 +1996,7 @@ git commit -m "feat: recover stale crawler runtime state"
 ## Task 9: Frontend/API Compatibility Check
 
 **Files:**
+
 - Modify only if needed: `frontend/src/features/products/api/crawl.ts`
 - Modify only if needed: `frontend/src/features/jobs/api/jobs.ts`
 - Test: existing frontend build
@@ -2057,6 +2066,7 @@ git commit -m "fix: keep crawl task api types compatible"
 ## Task 10: Documentation And TODO Sync
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `ARCHITECTURE.md`
 - Modify: `doc/backend-architecture.md`
@@ -2106,6 +2116,7 @@ git commit -m "docs: document crawler phase2 persistence"
 ## Task 11: Full Verification And Real E2E
 
 **Files:**
+
 - No code changes expected.
 
 - [ ] **Step 1: Run backend lint**
