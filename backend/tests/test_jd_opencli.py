@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.platforms.jd import JDAdapter
 from app.platforms.jd_opencli import (
     crawl_jd_via_opencli,
     extract_sku,
@@ -29,30 +28,13 @@ class TestExtractSku:
 
 class TestCrawlJdViaOpencli:
     @pytest.mark.asyncio
-    async def test_disabled_returns_error(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', False
-        )
-        result = await crawl_jd_via_opencli(
-            'https://item.jd.com/100147630258.html'
-        )
-        assert result.success is False
-        assert 'jd_opencli_enabled is False' in result.error
-
-    @pytest.mark.asyncio
     async def test_no_sku_returns_error(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
         result = await crawl_jd_via_opencli('https://www.jd.com/')
         assert result.success is False
         assert 'Cannot extract SKU' in result.error
 
     @pytest.mark.asyncio
     async def test_successful_crawl(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
         monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_command', 'opencli'
         )
@@ -97,9 +79,6 @@ class TestCrawlJdViaOpencli:
     @pytest.mark.asyncio
     async def test_detects_login_page(self, monkeypatch):
         monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
         )
 
@@ -136,9 +115,6 @@ class TestCrawlJdViaOpencli:
     @pytest.mark.asyncio
     async def test_detects_security_challenge(self, monkeypatch):
         monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
         )
 
@@ -170,9 +146,6 @@ class TestCrawlJdViaOpencli:
 
     @pytest.mark.asyncio
     async def test_detects_looks_blocked(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
         monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
         )
@@ -206,9 +179,6 @@ class TestCrawlJdViaOpencli:
     @pytest.mark.asyncio
     async def test_command_not_found(self, monkeypatch):
         monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_command',
             'nonexistent-opencli',
         )
@@ -229,9 +199,6 @@ class TestCrawlJdViaOpencli:
 
     @pytest.mark.asyncio
     async def test_nonzero_exit_code(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
         monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
         )
@@ -258,9 +225,6 @@ class TestCrawlJdViaOpencli:
 
     @pytest.mark.asyncio
     async def test_timeout(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
         monkeypatch.setattr(
             'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 0.01
         )
@@ -289,218 +253,3 @@ class TestCrawlJdViaOpencli:
         assert 'timed out' in result.error.lower()
 
 
-class TestJDAdapterOpencliIntegration:
-    @pytest.mark.asyncio
-    async def test_crawl_with_page_uses_opencli_when_successful(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
-        )
-
-        output = json.dumps([{
-            'price': '3198.9',
-            'title': 'AMD 9800X3D',
-            'shop': 'AMD Store',
-            'pageState': {
-                'isLoginPage': False,
-                'hasSecurityChallenge': False,
-                'looksBlocked': False,
-            },
-        }]).encode()
-
-        mock_proc = MagicMock()
-        mock_proc.returncode = 0
-        mock_proc.communicate = AsyncMock(return_value=(output, b''))
-
-        async def mock_create_subprocess_shell(*args, **kwargs):
-            return mock_proc
-
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.asyncio.create_subprocess_shell',
-            mock_create_subprocess_shell,
-        )
-
-        class FakePage:
-            goto_calls = []
-
-            async def goto(self, url, **kwargs):
-                FakePage.goto_calls.append(url)
-
-            async def wait_for_selector(self, *args, **kwargs):
-                pass
-
-            async def evaluate(self, *args):
-                pass
-
-            async def wait_for_timeout(self, *args):
-                pass
-
-        adapter = JDAdapter()
-        page = FakePage()
-        result = await adapter.crawl_with_page(
-            'https://item.jd.com/100147630258.html', page
-        )
-
-        assert result['success'] is True
-        assert result['price'] == '3198.9'
-        assert result['title'] == 'AMD 9800X3D'
-        assert FakePage.goto_calls == []
-
-    @pytest.mark.asyncio
-    async def test_crawl_with_page_returns_login_required(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
-        )
-
-        output = json.dumps([{
-            'price': '',
-            'pageState': {
-                'isLoginPage': True,
-                'hasSecurityChallenge': False,
-                'looksBlocked': False,
-            },
-        }]).encode()
-
-        mock_proc = MagicMock()
-        mock_proc.returncode = 0
-        mock_proc.communicate = AsyncMock(return_value=(output, b''))
-
-        async def mock_create_subprocess_shell(*args, **kwargs):
-            return mock_proc
-
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.asyncio.create_subprocess_shell',
-            mock_create_subprocess_shell,
-        )
-
-        adapter = JDAdapter()
-
-        class FakePage:
-            pass
-
-        result = await adapter.crawl_with_page(
-            'https://item.jd.com/100147630258.html', FakePage()
-        )
-        assert result['success'] is False
-        assert result.get('failure_type') == 'login_required'
-
-    @pytest.mark.asyncio
-    async def test_crawl_with_page_returns_anti_bot(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
-        )
-
-        output = json.dumps([{
-            'price': '',
-            'pageState': {
-                'isLoginPage': False,
-                'hasSecurityChallenge': True,
-                'looksBlocked': False,
-            },
-        }]).encode()
-
-        mock_proc = MagicMock()
-        mock_proc.returncode = 0
-        mock_proc.communicate = AsyncMock(return_value=(output, b''))
-
-        async def mock_create_subprocess_shell(*args, **kwargs):
-            return mock_proc
-
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.asyncio.create_subprocess_shell',
-            mock_create_subprocess_shell,
-        )
-
-        adapter = JDAdapter()
-
-        class FakePage:
-            pass
-
-        result = await adapter.crawl_with_page(
-            'https://item.jd.com/100147630258.html', FakePage()
-        )
-        assert result['success'] is False
-        assert result.get('failure_type') == 'anti_bot'
-
-    @pytest.mark.asyncio
-    async def test_crawl_with_page_falls_back_to_playwright(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', True
-        )
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_timeout_seconds', 30.0
-        )
-
-        mock_proc = MagicMock()
-        mock_proc.returncode = 1
-        mock_proc.communicate = AsyncMock(return_value=(b'', b'some error'))
-
-        async def mock_create_subprocess_shell(*args, **kwargs):
-            return mock_proc
-
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.asyncio.create_subprocess_shell',
-            mock_create_subprocess_shell,
-        )
-
-        adapter = JDAdapter()
-
-        class FakePage:
-            goto_calls = []
-            url = 'https://item.jd.com/100147630258.html'
-
-            async def goto(self, url, **kwargs):
-                FakePage.goto_calls.append(url)
-
-            async def wait_for_selector(self, *args, **kwargs):
-                pass
-
-            async def evaluate(self, *args):
-                pass
-
-            async def wait_for_timeout(self, *args):
-                pass
-
-        page = FakePage()
-        _ = await adapter.crawl_with_page(
-            'https://item.jd.com/100147630258.html', page
-        )
-        assert FakePage.goto_calls == ['https://item.jd.com/100147630258.html']
-
-    @pytest.mark.asyncio
-    async def test_crawl_with_page_disabled_skips_opencli(self, monkeypatch):
-        monkeypatch.setattr(
-            'app.platforms.jd_opencli.settings.jd_opencli_enabled', False
-        )
-
-        adapter = JDAdapter()
-
-        class FakePage:
-            goto_calls = []
-            url = 'https://item.jd.com/100147630258.html'
-
-            async def goto(self, url, **kwargs):
-                FakePage.goto_calls.append(url)
-
-            async def wait_for_selector(self, *args, **kwargs):
-                pass
-
-            async def evaluate(self, *args):
-                pass
-
-            async def wait_for_timeout(self, *args):
-                pass
-
-        page = FakePage()
-        _ = await adapter.crawl_with_page(
-            'https://item.jd.com/100147630258.html', page
-        )
-        assert FakePage.goto_calls == ['https://item.jd.com/100147630258.html']

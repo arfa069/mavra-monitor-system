@@ -6,11 +6,14 @@ business crawler execution.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
 
 from app.core.task_registry import CrawlTask, TaskStatus
 
 ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
+
+logger = logging.getLogger(__name__)
 
 
 class CrawlTaskRunner:
@@ -81,6 +84,7 @@ class CrawlTaskRunner:
 
         task.total = len(products)
         await self._notify_progress(task)
+        logger.info("Task %s: crawling %d products for platform %s", task.task_id, task.total, platform)
 
         details: list[dict] = []
         for product in products:
@@ -99,6 +103,10 @@ class CrawlTaskRunner:
 
         task.success = sum(1 for d in details if d.get("status") == "success")
         task.errors = sum(1 for d in details if d.get("status") == "error")
+        logger.info(
+            "Task %s: platform products crawl done (%d/%d success, %d errors)",
+            task.task_id, task.success, task.total, task.errors,
+        )
         task.details = details
         task.status = (
             TaskStatus.FAILED
@@ -133,11 +141,13 @@ class CrawlTaskRunner:
         if not products:
             task.status = TaskStatus.COMPLETED
             task.reason = "no_active_products"
+            logger.info("Task %s: no active products, skipping", task.task_id)
             await self._notify_progress(task)
             return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
 
         task.total = len(products)
         await self._notify_progress(task)
+        logger.info("Task %s: crawling %d products (all platforms)", task.task_id, task.total)
 
         details: list[dict] = []
         for product in products:
@@ -156,6 +166,10 @@ class CrawlTaskRunner:
 
         task.success = sum(1 for d in details if d.get("status") == "success")
         task.errors = sum(1 for d in details if d.get("status") == "error")
+        logger.info(
+            "Task %s: all products crawl done (%d/%d success, %d errors)",
+            task.task_id, task.success, task.total, task.errors,
+        )
         task.details = details
         task.status = (
             TaskStatus.FAILED

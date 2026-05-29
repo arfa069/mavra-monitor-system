@@ -34,11 +34,6 @@ def extract_sku(url: str) -> str | None:
 
 
 async def crawl_jd_via_opencli(url: str) -> OpenCLIJdResult:
-    if not settings.jd_opencli_enabled:
-        return OpenCLIJdResult(
-            success=False, error="jd_opencli_enabled is False"
-        )
-
     sku = extract_sku(url)
     if not sku:
         return OpenCLIJdResult(

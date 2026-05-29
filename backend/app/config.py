@@ -88,14 +88,10 @@ class Settings(BaseSettings):
     crawler_task_max_requeue_attempts: int = 5
 
     # JD OpenCLI integration
-    # When enabled, JD crawling prefers opencli jd item <sku> -f json over Playwright.
-    # Requires: opencli installed, Browser Bridge enabled, Chrome logged into JD.
-    jd_opencli_enabled: bool = False
     jd_opencli_command: str = "opencli"
     jd_opencli_timeout_seconds: float = 60.0
 
     # Taobao OpenCLI integration
-    taobao_opencli_enabled: bool = False
     taobao_opencli_command: str = "opencli"
     taobao_opencli_timeout_seconds: float = 60.0
 

@@ -68,6 +68,10 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
             "profile_key": record.profile_key,
         },
     )
+    logger.info(
+        "Worker %s claimed task %s (type=%s, platform=%s)",
+        worker_id, record.task_id, record.task_type, record.platform or "any",
+    )
 
     heartbeat_task = asyncio.create_task(
         run_task_heartbeat(task_id=record.task_id, worker_id=worker_id)

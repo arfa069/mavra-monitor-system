@@ -91,6 +91,7 @@ async def run_worker(args: argparse.Namespace) -> None:
             pid=os.getpid(),
         )
 
+    logger.info("Crawler worker %s started (kind=%s, platforms=%s)", worker_id, args.kind, args.platform)
     await emit_system_log_detached(
         category="runtime",
         event_type="crawler_worker.started",

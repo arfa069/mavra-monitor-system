@@ -30,11 +30,6 @@ def extract_item_id(url: str) -> str | None:
 
 
 async def crawl_taobao_via_opencli(url: str) -> OpenCLITaobaoResult:
-    if not settings.taobao_opencli_enabled:
-        return OpenCLITaobaoResult(
-            success=False, error="taobao_opencli_enabled is False"
-        )
-
     item_id = extract_item_id(url)
     if not item_id:
         return OpenCLITaobaoResult(
