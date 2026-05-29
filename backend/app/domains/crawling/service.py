@@ -20,26 +20,7 @@ from app.models.price_history import PriceHistory
 from app.models.product import Product
 from app.models.user import User
 
-# Deferred import to avoid circular dependency
-_browser_manager = None
-
-PLATFORM_ADAPTERS = {}
 logger = logging.getLogger(__name__)
-
-
-def _get_adapters():
-    """Lazy-load adapters to avoid circular imports."""
-    global PLATFORM_ADAPTERS
-    if not PLATFORM_ADAPTERS:
-        from app.platforms import AmazonAdapter, JDAdapter, TaobaoAdapter
-
-        PLATFORM_ADAPTERS.update(
-            {
-                "taobao": TaobaoAdapter,
-                "jd": JDAdapter,
-                "amazon": AmazonAdapter,
-            }
-        )
 
 
 async def _emit_page_timeout_event(session: BrowserSession) -> None:
@@ -70,106 +51,40 @@ async def _persist_product_crawl_result(
         currency = result_data.get("currency", "CNY")
         scraped_at = datetime.now(UTC)
 
-        await save_price_history(product_id=product.id, price=price, currency=currency, scraped_at=scraped_at)
-        await save_crawl_log(
-            product.id, product.platform, "SUCCESS", price=price, currency=currency
-        )
-        await check_price_alerts(product.id, price)
+        # Persist data defensively: don't let DB failures mask a successful crawl
+        try:
+            await save_price_history(product_id=product.id, price=price, currency=currency, scraped_at=scraped_at)
+        except Exception:
+            logger.exception("save_price_history failed for product %s", product.id)
+        try:
+            await save_crawl_log(
+                product.id, product.platform, "SUCCESS", price=price, currency=currency
+            )
+        except Exception:
+            logger.exception("save_crawl_log failed for product %s", product.id)
+        try:
+            await check_price_alerts(product.id, price)
+        except Exception:
+            logger.exception("check_price_alerts failed for product %s", product.id)
 
         new_title = result_data.get("title")
         if new_title and not product.title:
-            product.title = new_title
-            await repository.commit(db)
+            try:
+                product.title = new_title
+                await repository.commit(db)
+            except Exception:
+                logger.exception("commit title failed for product %s", product.id)
 
         return {"status": "success", "product_id": product.id, "price": float(price)}
 
     error_msg = result_data.get("error", "Unknown error")
-    await save_crawl_log(
-        product.id, product.platform, "ERROR", error_message=error_msg
-    )
-    return {"status": "error", "product_id": product.id}
-
-
-async def crawl_one_with_session(
-    *,
-    product_id: int,
-    session: BrowserSession,
-) -> dict:
-    """Crawl a single product using a BrowserManager session."""
-    _get_adapters()
-
-    async with AsyncSessionLocal() as db:
-        product = await repository.get_product(db, product_id=product_id)
-        if not product or not product.active:
-            return {"status": "skipped", "product_id": product_id}
-
-        adapter_class = PLATFORM_ADAPTERS.get(product.platform)
-        if not adapter_class:
-            await save_crawl_log(
-                product_id,
-                product.platform,
-                "ERROR",
-                error_message=f"Unknown platform: {product.platform}",
-            )
-            return {"status": "error", "product_id": product_id}
-
-        adapter = adapter_class()
-        page = await session.new_page()
-        try:
-            result_data = await adapter.crawl_with_page(product.url, page)
-            if not result_data.get("success"):
-                error_message = str(result_data.get("error", ""))
-                if "timeout" in error_message.lower():
-                    await _emit_page_timeout_event(session)
-                # Adapter may surface failure_type directly (e.g. OpenCLI)
-                failure_type = result_data.get("failure_type")
-                if not failure_type:
-                    # Check for login wall / anti-bot via page inspection
-                    try:
-                        page_url = page.url
-                        page_content = await page.content()
-                        failure_type = adapter.classify_failure(page_url, page_content)
-                    except Exception:
-                        failure_type = None
-                if failure_type in {"login_required", "anti_bot"}:
-                    from app.core.system_log import emit_system_log_detached
-                    from app.domains.crawling.profile_pool import LOGIN_REQUIRED
-                    from app.domains.crawling.profile_service import update_profile
-
-                    action = (
-                        "login required"
-                        if failure_type == "login_required"
-                        else "anti-bot verification required"
-                    )
-                    last_error = f"{product.platform} {action} for {product.url}"
-                    result_data["error"] = last_error
-                    await update_profile(
-                        db,
-                        profile_key=session.profile_key,
-                        status=LOGIN_REQUIRED,
-                        platform_hint=session.platform,
-                        last_error=last_error,
-                    )
-                    await emit_system_log_detached(
-                        category="runtime",
-                        event_type=f"product_profile.{failure_type}",
-                        source="crawler",
-                        severity="warning",
-                        status="failed",
-                        message=f"Product profile {session.profile_key} requires {action}",
-                        entity_type="crawl_profile",
-                        entity_id=session.profile_key,
-                        payload={"profile_key": session.profile_key, "platform": product.platform},
-                    )
-            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
-        except Exception as e:
-            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-            if isinstance(e, PlaywrightTimeoutError):
-                await _emit_page_timeout_event(session)
-            await save_crawl_log(product_id, product.platform, "ERROR", error_message=str(e))
-            return {"status": "error", "product_id": product_id, "error": str(e)}
-        finally:
-            await session.close_page(page)
+    try:
+        await save_crawl_log(
+            product.id, product.platform, "ERROR", error_message=error_msg
+        )
+    except Exception:
+        logger.exception("save_crawl_log (error) failed for product %s", product.id)
+    return {"status": "error", "product_id": product.id, "reason": error_msg}
 
 
 async def crawl_one_opencli(
@@ -178,94 +93,71 @@ async def crawl_one_opencli(
     platform: str,
 ) -> dict:
     """Crawl a single product via OpenCLI (no browser session needed)."""
-    _get_adapters()
+    try:
+        async with AsyncSessionLocal() as db:
+            product = await repository.get_product(db, product_id=product_id)
+            if not product or not product.active:
+                return {"status": "skipped", "product_id": product_id}
 
-    async with AsyncSessionLocal() as db:
-        product = await repository.get_product(db, product_id=product_id)
-        if not product or not product.active:
-            return {"status": "skipped", "product_id": product_id}
+            if platform == "jd":
+                from app.platforms.jd_opencli import crawl_jd_via_opencli
 
-        adapter_class = PLATFORM_ADAPTERS.get(platform)
-        if not adapter_class:
-            error_msg = f"Unknown platform: {platform}"
-            await save_crawl_log(product_id, platform, "ERROR", error_message=error_msg)
-            return {"status": "error", "product_id": product_id, "error": error_msg}
+                opencli_result = await crawl_jd_via_opencli(product.url)
+                if opencli_result.success and opencli_result.price:
+                    result_data = {
+                        "success": True,
+                        "price": opencli_result.price,
+                        "currency": opencli_result.currency,
+                        "title": opencli_result.title or "",
+                    }
+                elif opencli_result.success:
+                    result_data = {
+                        "success": False,
+                        "error": "JD price not found (via OpenCLI)",
+                    }
+                else:
+                    result_data = {
+                        "success": False,
+                        "error": opencli_result.error or "JD OpenCLI failed",
+                    }
+            elif platform == "taobao":
+                from app.platforms.taobao_opencli import crawl_taobao_via_opencli
 
-        adapter = adapter_class()
+                opencli_result = await crawl_taobao_via_opencli(product.url)
+                if opencli_result.success and opencli_result.price:
+                    result_data = {
+                        "success": True,
+                        "price": opencli_result.price,
+                        "currency": opencli_result.currency,
+                        "title": opencli_result.title or "",
+                    }
+                elif opencli_result.success:
+                    result_data = {
+                        "success": False,
+                        "error": "Taobao price not found (via OpenCLI)",
+                    }
+                else:
+                    result_data = {
+                        "success": False,
+                        "error": opencli_result.error or "Taobao OpenCLI failed",
+                    }
+            else:
+                error_msg = f"Unknown platform: {platform}"
+                await save_crawl_log(product_id, platform, "ERROR", error_message=error_msg)
+                return {"status": "error", "product_id": product_id, "reason": error_msg}
 
-        # Create a lightweight mock page - OpenCLI won't use it
-        class _OpenCLIPage:
-            url = product.url
-
-            async def goto(self, url, **kw):
-                pass
-
-            async def wait_for_selector(self, *a, **kw):
-                pass
-
-            async def evaluate(self, *a):
-                return None
-
-            async def wait_for_timeout(self, *a):
-                pass
-
-            async def content(self):
-                return "<html></html>"
-
-            def locator(self, sel):
-                # Playwright page.locator() is synchronous, returns a Locator
-                class _Locator:
-                    @property
-                    def first(self):
-                        return self
-
-                    async def count(self):
-                        return 0
-
-                    async def text_content(self):
-                        return ""
-
-                return _Locator()
-
-            async def title(self):
-                return ""
-
-        page = _OpenCLIPage()
-        result_data = await adapter.crawl_with_page(product.url, page)
-        return await _persist_product_crawl_result(
-            db, product=product, result_data=result_data
-        )
+            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
+    except Exception as exc:
+        logger.exception("crawl_one_opencli failed for product %s", product_id)
+        return {"status": "error", "product_id": product_id, "reason": str(exc)}
 
 
 async def crawl_one(product_id: int) -> dict:
-    """Core crawl logic, run in the same event loop as the caller."""
-    _get_adapters()
+    """Core crawl logic, run in the same event loop as the caller.
 
-    async with AsyncSessionLocal() as db:
-        product = await repository.get_product(db, product_id=product_id)
-
-        if not product or not product.active:
-            return {"status": "skipped", "product_id": product_id}
-
-        adapter_class = PLATFORM_ADAPTERS.get(product.platform)
-        if not adapter_class:
-            await save_crawl_log(
-                product_id,
-                product.platform,
-                "ERROR",
-                error_message=f"Unknown platform: {product.platform}",
-            )
-            return {"status": "error", "product_id": product_id}
-
-        adapter = adapter_class()
-
-        try:
-            result_data = await adapter.crawl(product.url)
-            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
-        except Exception as e:
-            platform_name = product.platform if product else "unknown"
-            await save_crawl_log(product_id, platform_name, "ERROR", error_message=str(e))
-            return {"status": "error", "product_id": product_id, "error": str(e)}
+    Deprecated: browser-based adapters have been removed; use crawl_one_opencli.
+    """
+    return await crawl_one_opencli(product_id=product_id, platform="")
 
 
 async def get_active_products(

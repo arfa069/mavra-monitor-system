@@ -31,7 +31,7 @@ function Get-PortUsage {
 }
 
 function Close-ServiceWindows {
-    $keywords = @("uvicorn", "npm", "vite", "node", "python")
+    $keywords = @("uvicorn", "npm", "vite", "node", "python", "crawler")
     $toClose = @()
 
     $procs = Get-CimInstance Win32_Process | Where-Object {
@@ -92,10 +92,15 @@ if ($backendPort) {
     }
 }
 
-if ($portIssues) {
+# 检查已有 Crawler Worker 进程
+$workerProcs = Get-CimInstance Win32_Process | Where-Object {
+    $_.Name -match "python" -and $_.CommandLine -match "app\.workers\.crawler"
+}
+
+if ($portIssues -or $workerProcs) {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Yellow
-    Write-Host "  Ports in use - closing windows" -ForegroundColor Yellow
+    Write-Host "  Processes in use - closing windows" -ForegroundColor Yellow
     Write-Host "========================================" -ForegroundColor Yellow
 
     Close-ServiceWindows
@@ -109,11 +114,19 @@ if ($portIssues) {
         }
     }
 
+    foreach ($proc in $workerProcs) {
+        if ($proc.ProcessId -ne $PID) {
+            Write-Host "  Stopping worker: $($proc.Name) (PID: $($proc.ProcessId))" -ForegroundColor DarkGray
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     Start-Sleep -Milliseconds 500
 }
 
 Write-Host "  [OK] Port 3000 (Frontend): Free" -ForegroundColor Green
 Write-Host "  [OK] Port 8000 (Backend):  Free" -ForegroundColor Green
+Write-Host "  [OK] Crawler Worker:        Free" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "[Backend] Starting..." -ForegroundColor Cyan

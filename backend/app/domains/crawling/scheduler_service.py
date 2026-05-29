@@ -298,11 +298,8 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
 
 
 async def _cleanup_all_shared_browsers() -> None:
-    """Close all shared browser instances after crawl task."""
-    from app.platforms import JDAdapter, TaobaoAdapter
+    """Close all shared browser instances after crawl task.
 
-    for adapter_class in [TaobaoAdapter, JDAdapter]:
-        try:
-            await adapter_class._close_shared_browser()
-        except Exception as exc:
-            logger.warning("Failed to close shared browser for class %s: %s", adapter_class.__name__, exc)
+    No-op: browser-based product adapters have been removed.
+    Product crawling now uses OpenCLI without shared browsers.
+    """
