@@ -708,7 +708,7 @@ async def get_job_crawl_logs(
 
     search_config_id: int | None = Query(None, description="Filter by search config ID"),
 
-    status: str | None = Query(None, regex="^(SUCCESS|ERROR)$"),
+    status: str | None = Query(None, pattern="^(SUCCESS|ERROR)$"),
 
     hours: int = Query(168, ge=1, le=720),
 
