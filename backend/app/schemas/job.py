@@ -184,6 +184,7 @@ class JobResponse(BaseModel):
     first_seen_at: datetime
     last_updated_at: datetime
     is_active: bool
+    apply_recommendation: str | None = None
 
     model_config = {"from_attributes": True}
 

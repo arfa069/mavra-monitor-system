@@ -672,7 +672,7 @@ async def list_jobs(
 
         raise HTTPException(status_code=401, detail="请先登录")
 
-    items, total = await job_service.list_jobs(
+    items, total, rec_map = await job_service.list_jobs(
         db,
         user_id=current_user.id,
         search_config_id=search_config_id,
@@ -688,9 +688,15 @@ async def list_jobs(
         page_size=page_size,
     )
 
+    resp_items = []
+    for job in items:
+        job_resp = JobResponse.model_validate(job)
+        job_resp.apply_recommendation = rec_map.get(job.id)
+        resp_items.append(job_resp)
+
     return JobListResponse(
 
-        items=items,
+        items=resp_items,
 
         total=total,
 

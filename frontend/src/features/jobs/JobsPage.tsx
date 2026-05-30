@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Card, message, Table, Tag, Tabs } from "antd";
+
 import type { ColumnsType } from "antd/es/table";
 import {
   useCrawlAllJobs,
@@ -359,22 +360,42 @@ export default function JobsPage() {
             />
           </Card>
 
-          <JobList
-            jobs={jobsResp?.items || []}
-            total={jobsResp?.total || 0}
-            isLoading={jobsLoading}
-            onViewDetail={handleViewDetail}
-            onCrawlAll={canCrawl ? handleCrawlAll : undefined}
-            crawlAllLoading={crawlAll.isPending}
-            crawlAllDisabled={crawlingConfigIds.size > 0}
-            filters={{ keyword, is_active: isActive }}
-            onFilterChange={handleFilterChange}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            matchRecommendations={matchRecommendations}
-          />
+          <motion.div
+            variants={stagger.item}
+            className="fg-card"
+            style={{ marginTop: 16 }}
+          >
+            <div className="fg-card-header">
+              <span
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: 15,
+                  fontWeight: 480,
+                  color: "var(--color-ink)",
+                }}
+              >
+                Jobs List
+              </span>
+            </div>
+            <div style={{ padding: "20px 24px" }}>
+              <JobList
+                jobs={jobsResp?.items || []}
+                total={jobsResp?.total || 0}
+                isLoading={jobsLoading}
+                onViewDetail={handleViewDetail}
+                onCrawlAll={canCrawl ? handleCrawlAll : undefined}
+                crawlAllLoading={crawlAll.isPending}
+                crawlAllDisabled={crawlingConfigIds.size > 0}
+                filters={{ keyword, is_active: isActive }}
+                onFilterChange={handleFilterChange}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                matchRecommendations={matchRecommendations}
+              />
+            </div>
+          </motion.div>
         </>
       ),
     },

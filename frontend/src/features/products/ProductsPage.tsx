@@ -395,7 +395,7 @@ export default function ProductsPage() {
   };
 
   const columns: ColumnsType<Product> = [
-    { title: "Product", dataIndex: "title", width: 150, ellipsis: true },
+    { title: "Product", dataIndex: "title", width: 160, ellipsis: true },
     {
       title: "Platform",
       dataIndex: "platform",
@@ -405,7 +405,7 @@ export default function ProductsPage() {
     {
       title: "URL",
       dataIndex: "url",
-      width: 200,
+      width: 140,
       ellipsis: true,
       render: (value: string) => (
         <Tooltip title={value}>
@@ -427,38 +427,39 @@ export default function ProductsPage() {
     {
       title: "Actions",
       key: "action",
-      width: 320,
+      width: 160,
+      align: "right",
       render: (_value: unknown, record: Product) => (
-        <Space size={8}>
-          <Button
-            size="small"
-            icon={<ExportOutlined />}
-            aria-label="Open product link in new window"
-            onClick={() => window.open(record.url, "_blank")}
-          >
-            View
-          </Button>
-          <Button
-            size="small"
-            icon={<LineChartOutlined />}
-            onClick={() => setTrendModal({ open: true, product: record })}
-          >
-            Trend
-          </Button>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => setEditModal({ open: true, record })}
-          >
-            Edit
-          </Button>
+        <Space size={6} style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Tooltip title="Open product link">
+            <Button
+              size="small"
+              icon={<ExportOutlined />}
+              aria-label="Open product link in new window"
+              onClick={() => window.open(record.url, "_blank")}
+            />
+          </Tooltip>
+          <Tooltip title="View price trend">
+            <Button
+              size="small"
+              icon={<LineChartOutlined />}
+              onClick={() => setTrendModal({ open: true, product: record })}
+            />
+          </Tooltip>
+          <Tooltip title="Edit product">
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => setEditModal({ open: true, record })}
+            />
+          </Tooltip>
           <Popconfirm
             title="Delete this product?"
             onConfirm={() => handleDelete(record.id)}
           >
-            <Button size="small" danger icon={<DeleteOutlined />}>
-              Delete
-            </Button>
+            <Tooltip title="Delete product">
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -624,7 +625,7 @@ export default function ProductsPage() {
         animate="show"
         style={{ width: "100%" }}
       >
-        <Row gutter={[16, 16]} align="top">
+        <Row gutter={[16, 16]} align="stretch">
           <Col xs={24} xl={16}>
             <Space
               orientation="vertical"
@@ -758,7 +759,7 @@ export default function ProductsPage() {
                     columns={columns}
                     dataSource={productItems}
                     loading={isLoading}
-                    scroll={{ x: "max-content" }}
+                    scroll={{ x: 670 }}
                     rowSelection={{
                       selectedRowKeys,
                       onChange: (keys) => setSelectedRowKeys(keys),
@@ -889,11 +890,11 @@ export default function ProductsPage() {
             </Space>
           </Col>
 
-          <Col xs={24} xl={8}>
+          <Col xs={24} xl={8} style={{ display: "flex" }}>
             <motion.div
               variants={stagger.item}
               className="fg-card"
-              style={{ minHeight: 520 }}
+              style={{ flex: 1, minHeight: 520 }}
             >
               <div className="fg-card-header">
                 <Space>

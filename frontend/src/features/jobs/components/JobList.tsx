@@ -73,7 +73,8 @@ export default function JobList({
         key: "match_recommendation",
         width: 110,
         render: (_, record) => {
-          const recommendation = matchRecommendations?.[record.id];
+          const recommendation =
+            record.apply_recommendation ?? matchRecommendations?.[record.id];
           if (!recommendation) return null;
           return (
             <Tag

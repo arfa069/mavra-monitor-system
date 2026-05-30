@@ -146,6 +146,7 @@ export interface Job {
   last_updated_at: string;
   is_active: boolean;
   permissions?: Record<string, boolean> | null;
+  apply_recommendation?: string | null;
 }
 
 export interface JobListResponse {

@@ -8,11 +8,11 @@ import {
   Popconfirm,
   Space,
   Spin,
-  Switch,
   Tag,
   Typography,
 } from "antd";
 import {
+  CheckCircleFilled,
   DeleteOutlined,
   EditOutlined,
   PlayCircleOutlined,
@@ -156,50 +156,52 @@ export default function JobConfigList({
                       <Tag color="geekblue">
                         Profile: {config.profile_key || "default"}
                       </Tag>
-                      <Switch
-                        size="small"
-                        checked={config.enable_match_analysis}
-                        checkedChildren="Auto-match"
-                        unCheckedChildren="Auto-match"
-                        onChange={(checked) =>
-                          void handleToggleMatch(config, checked)
-                        }
-                      />
                     </Space>
                   }
                 >
-                  <Typography.Paragraph
-                    ellipsis={{ rows: 1 }}
-                    style={{ marginBottom: 8 }}
-                  >
-                    {config.url}
-                  </Typography.Paragraph>
-                  <Space wrap size={8}>
-                    {onCrawl && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Typography.Paragraph
+                      ellipsis={{ rows: 1 }}
+                      style={{ flex: 1, margin: 0 }}
+                    >
+                      {config.url}
+                    </Typography.Paragraph>
+                    <Space size={8}>
+                      {onCrawl && (
+                        <Button
+                          icon={<PlayCircleOutlined />}
+                          loading={crawlingConfigIds?.has(config.id)}
+                          disabled={(crawlingConfigIds?.size ?? 0) > 0 || crawlAllPending}
+                          onClick={() => onCrawl(config.id)}
+                        >
+                          Crawl
+                        </Button>
+                      )}
                       <Button
-                        icon={<PlayCircleOutlined />}
-                        loading={crawlingConfigIds?.has(config.id)}
-                        disabled={(crawlingConfigIds?.size ?? 0) > 0 || crawlAllPending}
-                        onClick={() => onCrawl(config.id)}
+                        icon={<EditOutlined />}
+                        onClick={() => setEditRecord(config)}
                       >
-                        Crawl
+                        Edit
                       </Button>
-                    )}
-                    <Button
-                      icon={<EditOutlined />}
-                      onClick={() => setEditRecord(config)}
-                    >
-                      Edit
-                    </Button>
-                    <Popconfirm
-                      title="Confirm delete this config?"
-                      onConfirm={() => onDelete(config.id)}
-                    >
-                      <Button danger icon={<DeleteOutlined />}>
-                        Delete
+                      <Popconfirm
+                        title="Confirm delete this config?"
+                        onConfirm={() => onDelete(config.id)}
+                      >
+                        <Button danger icon={<DeleteOutlined />}>
+                          Delete
+                        </Button>
+                      </Popconfirm>
+                      <Button
+                        size="small"
+                        icon={config.enable_match_analysis ? <CheckCircleFilled /> : undefined}
+                        onClick={() =>
+                          void handleToggleMatch(config, !config.enable_match_analysis)
+                        }
+                      >
+                        Auto-match
                       </Button>
-                    </Popconfirm>
-                  </Space>
+                    </Space>
+                  </div>
                 </Card>
               </motion.div>
             ))}

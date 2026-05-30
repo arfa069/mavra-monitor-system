@@ -218,7 +218,7 @@ async def list_jobs(
     sort_order: str,
     page: int,
     page_size: int,
-) -> tuple[list[Job], int]:
+) -> tuple[list[Job], int, dict[int, str | None]]:
     query = (
         select(Job)
         .join(JobSearchConfig)
@@ -268,7 +268,30 @@ async def list_jobs(
 
     total = (await db.execute(count_query)).scalar() or 0
     result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))
-    return list(result.scalars().all()), total
+    jobs = list(result.scalars().all())
+
+    # 查这些 job 的最佳 match recommendation
+    rec_map: dict[int, str | None] = {}
+    if jobs:
+        job_ids = [j.id for j in jobs]
+        rank = case(
+            (MatchResult.apply_recommendation == "强烈推荐", 3),
+            (MatchResult.apply_recommendation == "可以考虑", 2),
+            (MatchResult.apply_recommendation == "不太匹配", 1),
+            else_=0,
+        )
+        match_rows = await db.execute(
+            select(MatchResult.job_id, MatchResult.apply_recommendation)
+            .where(
+                MatchResult.job_id.in_(job_ids),
+                MatchResult.user_id == user_id,
+            )
+            .order_by(MatchResult.job_id, rank.desc())
+            .distinct(MatchResult.job_id)
+        )
+        rec_map = {row.job_id: row.apply_recommendation for row in match_rows}
+
+    return jobs, total, rec_map
 
 
 async def get_job_by_job_id(
