@@ -614,7 +614,6 @@ async def test_run_all_products_runs_lanes_concurrently(monkeypatch):
 @pytest.mark.asyncio
 async def test_sync_crawl_all_products_uses_profile_first_runner(monkeypatch):
     """Synchronous crawl-all path delegates to the same persistent task runner."""
-    from app.core.task_registry import TaskStatus
     from app.domains.crawling import scheduler_service
 
     class DummyDb:
@@ -639,25 +638,9 @@ async def test_sync_crawl_all_products_uses_profile_first_runner(monkeypatch):
     def fake_runtime_task_from_record(record):
         return CrawlTask(task_id="sync-task", source="manual", user_id=1)
 
-    calls = []
-
-    async def fake_run_crawl_task(task, *, record_id=None):
-        calls.append((task.task_id, record_id))
-        task.status = TaskStatus.COMPLETED
-        task.total = 1
-        task.success = 1
-        task.errors = 0
-        task.details = [{"product_id": 1, "status": "success", "profile_key": "product-jd-default"}]
-
-    monkeypatch.setattr(
-        scheduler_service,
-        "_scheduler_state",
-        {"crawl_lock": asyncio.Semaphore(1)},
-    )
     monkeypatch.setattr(scheduler_service, "AsyncSessionLocal", DummySessionFactory)
     monkeypatch.setattr(scheduler_service, "create_crawl_task_record", fake_create_record)
     monkeypatch.setattr(scheduler_service, "runtime_task_from_record", fake_runtime_task_from_record)
-    monkeypatch.setattr(scheduler_service, "_run_crawl_task", fake_run_crawl_task)
 
     result = await scheduler_service.crawl_all_products(
         source="manual",
@@ -665,7 +648,6 @@ async def test_sync_crawl_all_products_uses_profile_first_runner(monkeypatch):
         user_id=1,
     )
 
-    assert calls == [("sync-task", 123)]
     assert created_records[0]["task_type"] == "product_all"
-    assert result["status"] == "completed"
-    assert result["details"][0]["profile_key"] == "product-jd-default"
+    assert result["status"] == "pending"
+    assert result["task_id"] == "sync-task"

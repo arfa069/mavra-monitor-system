@@ -151,7 +151,6 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_manual_job_config_enqueue_emits_event_center_log(monkeypatch):
-    from app.config import settings
     from app.domains.jobs import crawl_service
 
     emitted = []
@@ -191,7 +190,6 @@ async def test_manual_job_config_enqueue_emits_event_center_log(monkeypatch):
     task.task_id = "manual-task-123"
     task.user_id = 7
 
-    monkeypatch.setattr(settings, "crawler_inline_execution_enabled", False)
     monkeypatch.setattr(crawl_service, "AsyncSessionLocal", lambda: FakeSession())
     monkeypatch.setattr(crawl_service, "emit_system_log_detached", fake_emit)
     monkeypatch.setattr("app.domains.crawling.task_store.create_crawl_task_record", fake_create)

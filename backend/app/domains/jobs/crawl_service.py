@@ -831,8 +831,6 @@ async def crawl_scheduled_config(
     cron_expression: str | None = None,
 ) -> dict:
     """Run a scheduled job crawl and mirror manual crawls in Event Center."""
-    from app.config import settings
-    from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         create_crawl_task_record,
         runtime_task_from_record,
@@ -871,100 +869,8 @@ async def crawl_scheduled_config(
             payload=payload,
         )
         task = runtime_task_from_record(record)
-        record_id = record.id
 
-    if not settings.crawler_inline_execution_enabled:
-        return {"status": "pending", "task_id": task.task_id}
-
-    async def _persist_cron_progress(progress_task: CrawlTask) -> None:
-        await _persist_crawl_task_progress(record_id, progress_task)
-
-    try:
-        from app.domains.crawling.profile_pool import (
-            DatabaseProfilePool,
-            ProfileAlreadyLeasedError,
-            ProfileUnavailableError,
-        )
-        from app.domains.crawling.task_runner import CrawlTaskRunner
-
-        pool = DatabaseProfilePool()
-        try:
-            async with AsyncSessionLocal() as lease_db:
-                async with pool.lease(
-                    lease_db,
-                    platform=config_platform,
-                    profile_key=profile_key,
-                    owner=task.task_id,
-                    task_id=task.task_id,
-                ) as lease:
-                    heartbeat_task = asyncio.create_task(
-                        _profile_lease_heartbeat(record_id, pool, lease)
-                    )
-                    try:
-                        await emit_system_log_detached(
-                            category="runtime",
-                            event_type="job_crawl.started",
-                            source="jobs",
-                            severity="info",
-                            status="running",
-                            message=f"Scheduled job crawl for config {config_id} started",
-                            user_id=user_id,
-                            entity_type="job_config",
-                            entity_id=str(config_id),
-                            payload=payload,
-                        )
-                        runtime_context = JobCrawlRuntimeContext(
-                            platform=config_platform,
-                            profile_key=lease.profile_key,
-                            profile_dir=lease.profile_dir,
-                            task_id=task.task_id,
-                            config_id=config_id,
-                            run_id=task.task_id,
-                            log_context={"source": task.source, "profile_key": lease.profile_key},
-                        )
-                        result = await CrawlTaskRunner(
-                            progress_callback=_persist_cron_progress
-                        ).run_job_config(task, config_id=config_id, runtime_context=runtime_context)
-                    finally:
-                        await _stop_heartbeat(heartbeat_task)
-        except (ProfileAlreadyLeasedError, ProfileUnavailableError) as exc:
-            task.status = TaskStatus.FAILED
-            task.reason = str(exc)
-            await _persist_cron_progress(task)
-            result = {"status": "error", "error": str(exc)}
-
-        ok = result.get("status") != "error"
-        await _persist_cron_progress(task)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="job_crawl.completed" if ok else "job_crawl.failed",
-            source="jobs",
-            severity="info" if ok else "error",
-            status="completed" if ok else "failed",
-            message=f"Scheduled job crawl for config {config_id} {'completed' if ok else 'failed'}",
-            user_id=user_id,
-            entity_type="job_config",
-            entity_id=str(config_id),
-            payload={**payload, **result},
-        )
-        return result
-    except Exception as exc:
-        task.status = TaskStatus.FAILED
-        task.reason = str(exc)
-        await _persist_cron_progress(task)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="job_crawl.failed",
-            source="jobs",
-            severity="error",
-            status="failed",
-            message=f"Scheduled job crawl for config {config_id} failed",
-            user_id=user_id,
-            entity_type="job_config",
-            entity_id=str(config_id),
-            payload={**payload, "reason": str(exc)},
-        )
-        raise
+    return {"status": "pending", "task_id": task.task_id}
 
 
 async def crawl_all_job_searches(
@@ -1081,8 +987,6 @@ async def crawl_single_config_background(
     user_id: int | None = None,
 ) -> CrawlTask:
     """后台运行单配置爬取，立即返回 task 对象。"""
-    from app.config import settings
-    from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
         create_crawl_task_record,
         runtime_task_from_record,
@@ -1106,7 +1010,6 @@ async def crawl_single_config_background(
             payload={"config_id": config_id, "platform": config_platform, "profile_key": profile_key},
         )
         task = runtime_task_from_record(record)
-        record_id = record.id
 
     await _emit_job_crawl_enqueued(
         task=task,
@@ -1120,111 +1023,14 @@ async def crawl_single_config_background(
         },
     )
 
-    if not settings.crawler_inline_execution_enabled:
-        return task
-
-    async def _persist_cron_progress(progress_task: CrawlTask) -> None:
-        await _persist_crawl_task_progress(record_id, progress_task)
-
-    async def _run():
-        try:
-            # Acquire profile before running the crawl
-            from app.domains.crawling.profile_pool import (
-                DatabaseProfilePool,
-                ProfileAlreadyLeasedError,
-                ProfileUnavailableError,
-            )
-
-            pool = DatabaseProfilePool()
-            try:
-                async with AsyncSessionLocal() as lease_db:
-                    async with pool.lease(
-                        lease_db,
-                        platform=config_platform,
-                        profile_key=profile_key,
-                        owner=task.task_id,
-                        task_id=task.task_id,
-                    ) as lease:
-                        heartbeat_task = asyncio.create_task(
-                            _profile_lease_heartbeat(record_id, pool, lease)
-                        )
-                        try:
-                            await emit_system_log_detached(
-                                category="runtime",
-                                event_type="job_crawl.started",
-                                source="jobs",
-                                severity="info",
-                                status="running",
-                                message=f"Job crawl for config {config_id} started",
-                                user_id=task.user_id,
-                                entity_type="job_config",
-                                entity_id=str(config_id),
-                                payload={"task_id": task.task_id, "config_id": config_id},
-                            )
-                            from app.domains.crawling.task_runner import CrawlTaskRunner
-
-                            runtime_context = JobCrawlRuntimeContext(
-                                platform=config_platform,
-                                profile_key=lease.profile_key,
-                                profile_dir=lease.profile_dir,
-                                task_id=task.task_id,
-                                config_id=config_id,
-                                run_id=task.task_id,
-                                log_context={"source": task.source, "profile_key": lease.profile_key},
-                            )
-                            result = await CrawlTaskRunner(
-                                progress_callback=_persist_cron_progress
-                            ).run_job_config(task, config_id=config_id, runtime_context=runtime_context)
-                        finally:
-                            await _stop_heartbeat(heartbeat_task)
-                    ok = result.get("status") != "error"
-                    await _persist_cron_progress(task)
-                    await emit_system_log_detached(
-                        category="runtime",
-                        event_type="job_crawl.completed" if ok else "job_crawl.failed",
-                        source="jobs",
-                        severity="info" if ok else "error",
-                        status="completed" if ok else "failed",
-                        message=f"Job crawl for config {config_id} {'completed' if ok else 'failed'}",
-                        user_id=task.user_id,
-                        entity_type="job_config",
-                        entity_id=str(config_id),
-                        payload={"task_id": task.task_id, **result},
-                    )
-            except (ProfileAlreadyLeasedError, ProfileUnavailableError) as exc:
-                task.status = TaskStatus.FAILED
-                task.reason = str(exc)
-                await _persist_cron_progress(task)
-        except Exception as e:
-            task.status = TaskStatus.FAILED
-            task.reason = str(e)
-            await _persist_cron_progress(task)
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.failed",
-                source="jobs",
-                severity="error",
-                status="failed",
-                message=f"Job crawl for config {config_id} failed",
-                user_id=task.user_id,
-                entity_type="job_config",
-                entity_id=str(config_id),
-                payload={"task_id": task.task_id, "reason": task.reason},
-            )
-
-    asyncio.create_task(_run())
     return task
 
 
 async def crawl_all_job_searches_background(*, user_id: int | None = None) -> CrawlTask:
     """后台运行全量爬取，立即返回 task 对象。"""
-    from app.config import settings
-    from app.core.task_registry import TaskStatus
     from app.domains.crawling.task_store import (
-        CrawlTaskRecord,
         create_crawl_task_record,
         runtime_task_from_record,
-        sync_record_from_runtime_task,
     )
 
     async with AsyncSessionLocal() as db:
@@ -1240,7 +1046,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
             payload={"user_id": user_id, "source": "manual"},
         )
         parent_task = runtime_task_from_record(parent_record)
-        parent_record_id = parent_record.id
 
     await _emit_job_crawl_enqueued(
         task=parent_task,
@@ -1250,258 +1055,6 @@ async def crawl_all_job_searches_background(*, user_id: int | None = None) -> Cr
         payload={"source": "manual"},
     )
 
-    if not settings.crawler_inline_execution_enabled:
-        return parent_task
-
-    async def _persist_parent(progress_task: CrawlTask) -> None:
-        async with AsyncSessionLocal() as db:
-            record = await db.get(CrawlTaskRecord, parent_record_id)
-            if record is not None:
-                await sync_record_from_runtime_task(db, record, progress_task)
-
-    parent_task.status = TaskStatus.RUNNING
-    await _persist_parent(parent_task)
-
-    async def _run():
-        try:
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.started",
-                source="jobs",
-                severity="info",
-                status="running",
-                message="Job crawl for all active configs started",
-                user_id=parent_task.user_id,
-                entity_type="job_crawl",
-                entity_id=parent_task.task_id,
-                payload={"task_id": parent_task.task_id},
-            )
-
-            # Load configs grouped by platform
-            async with AsyncSessionLocal() as db:
-                from sqlalchemy import select
-
-                from app.models.job import JobSearchConfig
-
-                filters = [JobSearchConfig.active]
-                if user_id is not None:
-                    filters.append(JobSearchConfig.user_id == user_id)
-                result = await db.execute(
-                    select(JobSearchConfig).where(*filters)
-                )
-                configs = list(result.scalars().all())
-
-            if not configs:
-                parent_task.status = TaskStatus.COMPLETED
-                parent_task.total = 0
-                parent_task.success = 0
-                parent_task.errors = 0
-                await _persist_parent(parent_task)
-                return
-
-            # Group by (platform, profile_key), create child tasks
-            groups = _group_job_configs_for_profile_leases(configs)
-
-            total_configs = len(configs)
-            parent_task.total = total_configs
-            parent_task.success = 0
-            parent_task.errors = 0
-            await _persist_parent(parent_task)
-
-            async def _run_group(
-                platform: str,
-                profile_key: str,
-                platform_configs: list[JobSearchConfig],
-            ) -> dict:
-                metadata = _job_group_task_metadata(
-                    platform, profile_key, parent_task.task_id
-                )
-                async with AsyncSessionLocal() as db:
-                    child_record = await create_crawl_task_record(
-                        db,
-                        source="manual",
-                        task_type=metadata["task_type"],
-                        platform=metadata["platform"],
-                        profile_key=metadata["profile_key"],
-                        parent_task_id=metadata["payload"]["parent_task_id"],
-                        user_id=user_id,
-                        entity_type=metadata["entity_type"],
-                        entity_id=metadata["entity_id"],
-                        payload=metadata["payload"],
-                    )
-                    child_record_id = child_record.id
-
-                async def _persist_child(progress_task: CrawlTask) -> None:
-                    async with AsyncSessionLocal() as db:
-                        record = await db.get(CrawlTaskRecord, child_record_id)
-                        if record is not None:
-                            await sync_record_from_runtime_task(db, record, progress_task)
-
-                from app.domains.crawling.profile_pool import DatabaseProfilePool
-
-                child_task = runtime_task_from_record(child_record)
-                child_task.status = TaskStatus.RUNNING
-                child_task.total = len(platform_configs)
-                await _persist_child(child_task)
-                pool = DatabaseProfilePool()
-                child_details = []
-                child_success = 0
-                child_errors = 0
-                try:
-                    async with AsyncSessionLocal() as lease_db:
-                        async with pool.lease(
-                            lease_db,
-                            platform=platform,
-                            profile_key=profile_key,
-                            owner=child_task.task_id,
-                            task_id=child_task.task_id,
-                        ) as lease:
-                            from app.domains.crawling.task_runner import CrawlTaskRunner
-
-                            heartbeat_task = asyncio.create_task(
-                                _profile_lease_heartbeat(
-                                    child_record_id,
-                                    pool,
-                                    lease,
-                                )
-                            )
-                            try:
-                                for idx, config in enumerate(platform_configs):
-                                    runtime_context = JobCrawlRuntimeContext(
-                                        platform=platform,
-                                        profile_key=lease.profile_key,
-                                        profile_dir=lease.profile_dir,
-                                        task_id=child_task.task_id,
-                                        config_id=config.id,
-                                        run_id=child_task.task_id,
-                                        log_context={"parent_task_id": parent_task.task_id},
-                                    )
-                                    result = await CrawlTaskRunner(
-                                        progress_callback=_persist_child
-                                    ).run_job_config(
-                                        child_task,
-                                        config_id=config.id,
-                                        runtime_context=runtime_context,
-                                    )
-                                    detail = {"config_id": config.id, **result}
-                                    child_details.append(detail)
-                                    if result.get("status") == "success":
-                                        child_success += 1
-                                    else:
-                                        child_errors += 1
-
-                                    if idx < len(platform_configs) - 1:
-                                        await asyncio.sleep(random.uniform(3, 6))
-                            finally:
-                                await _stop_heartbeat(heartbeat_task)
-                except Exception as exc:
-                    remaining_configs = platform_configs[child_success + child_errors:]
-                    child_errors += len(remaining_configs)
-                    failed_details = [
-                        {
-                            "config_id": config.id,
-                            "status": "error",
-                            "error": str(exc),
-                        }
-                        for config in remaining_configs
-                    ]
-                    child_details.extend(failed_details)
-
-                child_task.total = len(platform_configs)
-                child_task.success = child_success
-                child_task.errors = child_errors
-                child_task.details = child_details
-                child_task.status = (
-                    TaskStatus.COMPLETED
-                    if child_errors == 0
-                    else TaskStatus.FAILED
-                )
-                if child_errors:
-                    child_task.reason = "platform_crawl_failed"
-
-                async with AsyncSessionLocal() as db:
-                    record = await db.get(CrawlTaskRecord, child_record_id)
-                    if record is not None:
-                        await sync_record_from_runtime_task(db, record, child_task)
-
-                return {
-                    "success": child_success,
-                    "errors": child_errors,
-                    "details": child_details,
-                }
-
-            async def _run_profile_lane(
-                lane_groups: list[tuple[str, str, list[JobSearchConfig]]],
-            ) -> list[dict]:
-                lane_results = []
-                for platform, profile_key, platform_configs in lane_groups:
-                    lane_results.append(
-                        await _run_group(platform, profile_key, platform_configs)
-                    )
-                return lane_results
-
-            lanes = _group_profile_lanes_for_parallelism(groups)
-
-            lane_results = await asyncio.gather(
-                *(_run_profile_lane(lane_groups) for lane_groups in lanes.values()),
-                return_exceptions=True,
-            )
-
-            all_details = []
-            for lane_result in lane_results:
-                if isinstance(lane_result, Exception):
-                    parent_task.errors += 1
-                    all_details.append(
-                        {
-                            "status": "error",
-                            "error": str(lane_result),
-                        }
-                    )
-                    continue
-                for group_result in lane_result:
-                    parent_task.success += group_result["success"]
-                    parent_task.errors += group_result["errors"]
-                    all_details.extend(group_result["details"])
-
-            parent_task.status = (
-                TaskStatus.COMPLETED
-                if parent_task.errors == 0
-                else TaskStatus.FAILED
-            )
-            parent_task.details = all_details
-            await _persist_parent(parent_task)
-
-            ok = parent_task.errors == 0
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.completed" if ok else "job_crawl.failed",
-                source="jobs",
-                severity="info" if ok else "error",
-                status="completed" if ok else "failed",
-                message=f"Job crawl for all active configs {'completed' if ok else 'failed'}",
-                user_id=parent_task.user_id,
-                entity_type="job_crawl",
-                entity_id=parent_task.task_id,
-                payload={"task_id": parent_task.task_id, "total": parent_task.total, "success": parent_task.success, "errors": parent_task.errors},
-            )
-        except Exception as e:
-            parent_task.status = TaskStatus.FAILED
-            parent_task.reason = str(e)
-            await _persist_parent(parent_task)
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="job_crawl.failed",
-                source="jobs",
-                severity="error",
-                status="failed",
-                message="Job crawl for all active configs failed",
-                user_id=parent_task.user_id,
-                entity_type="job_crawl",
-                entity_id=parent_task.task_id,
-                payload={"task_id": parent_task.task_id, "reason": parent_task.reason},
-            )
-
-    asyncio.create_task(_run())
     return parent_task
 
 

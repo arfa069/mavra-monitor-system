@@ -73,19 +73,6 @@ def install_auth_and_db_overrides(db_session):
 async def test_product_crawl_now_persists_task(phase2_client, monkeypatch, cleanup_phase2_overrides):
     """POST /api/v1/crawl/crawl-now creates a crawl_tasks row."""
     await _clean_crawl_tables()
-    import asyncio
-
-    async def fake_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
-        task.status = "completed"
-
-    monkeypatch.setattr(
-        "app.domains.crawling.scheduler_service._run_crawl_in_lock",
-        fake_run_crawl_in_lock,
-    )
-    monkeypatch.setattr(
-        "app.domains.crawling.scheduler_service._scheduler_state",
-        {"crawl_lock": asyncio.Semaphore(1)},
-    )
 
     async with AsyncSessionLocal() as db:
         install_auth_and_db_overrides(db)

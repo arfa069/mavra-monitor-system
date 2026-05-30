@@ -21,7 +21,6 @@ Phase C Integration & Regression Tests
     - 关键响应字段截图
     - API 请求/响应记录
 """
-import asyncio
 from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -414,21 +413,6 @@ class TestManualCrawlRegression:
     async def test_c08_crawl_now_endpoint_exists(self, mock_get_current_user, monkeypatch):
         """C-08: /products/crawl/crawl-now 端点存在"""
         from app.database import get_db
-        from app.domains.crawling import scheduler_service
-
-        async def _noop_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
-            return None
-
-        monkeypatch.setattr(
-            scheduler_service,
-            "_scheduler_state",
-            {"crawl_lock": asyncio.Semaphore(1)},
-        )
-        monkeypatch.setattr(
-            scheduler_service,
-            "_run_crawl_in_lock",
-            _noop_run_crawl_in_lock,
-        )
 
         # Mock DB for require_permission DB lookup
         mock_result = MagicMock()
@@ -806,24 +790,15 @@ class TestSchedulerConcurrencyProtection:
     """C-E09: 上次任务未完成时本次触发跳过"""
 
     @pytest.mark.asyncio
-    async def test_ce09_concurrent_crawl_returns_skipped(self):
-        """C-E09: 并发爬取返回 skipped 状态"""
+    async def test_ce09_crawl_now_returns_pending(self):
+        """C-E09: crawl_all_products 永远返回 pending（内联模式已移除）"""
+        from app.domains.crawling.scheduler_service import crawl_all_products
 
-        # Mock existing job
-        mock_job = MagicMock()
-        mock_job.next_run_time = None
+        result = await crawl_all_products(source="manual")
 
-        mock_state = MagicMock()
-        mock_state.crawl_lock = MagicMock()
-        mock_state.crawl_lock.locked.return_value = True  # 锁已被占用
-
-        with patch("app.domains.crawling.scheduler_service._scheduler_state", mock_state):
-            from app.domains.crawling.scheduler_service import crawl_all_products
-            result = await crawl_all_products(source="manual")
-
-        assert result["status"] == "skipped"
-        assert result["reason"] == "another_crawl_in_progress"
-        print(f"[C-E09] PASS: concurrent crawl returns skipped, reason={result['reason']}")
+        assert result["status"] == "pending"
+        assert "task_id" in result
+        print(f"[C-E09] PASS: crawl_all_products returns pending, task_id={result.get('task_id')}")
 
 
 # =============================================================================

@@ -3,7 +3,6 @@
 Uses ASGITransport to test endpoints without a running server.
 Mocks auth, DB, and scheduler state where needed.
 """
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -45,21 +44,6 @@ class TestCrawlNowEndpoint:
     @pytest.mark.asyncio
     async def test_crawl_now_returns_task_id(self, mock_user, monkeypatch):
         """Returns pending status and task_id when crawl starts."""
-        from app.domains.crawling import scheduler_service
-
-        async def _noop_run_crawl_in_lock(task, crawl_lock, *, record_id=None):
-            return None
-
-        monkeypatch.setattr(
-            scheduler_service,
-            "_scheduler_state",
-            {"crawl_lock": asyncio.Semaphore(1)},
-        )
-        monkeypatch.setattr(
-            scheduler_service,
-            "_run_crawl_in_lock",
-            _noop_run_crawl_in_lock,
-        )
 
         # Mock DB for require_permission lookup
         mock_result = MagicMock()
