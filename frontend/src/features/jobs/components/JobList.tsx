@@ -11,6 +11,7 @@ interface JobListProps {
   onViewDetail: (job: Job) => void;
   onCrawlAll?: () => Promise<void>;
   crawlAllLoading?: boolean;
+  crawlAllDisabled?: boolean;
   filters: { keyword?: string; is_active?: boolean };
   onFilterChange: (filters: { keyword?: string; is_active?: boolean }) => void;
   page: number;
@@ -29,6 +30,7 @@ export default function JobList({
   onViewDetail,
   onCrawlAll,
   crawlAllLoading,
+  crawlAllDisabled,
   filters,
   onFilterChange,
   page,
@@ -184,6 +186,7 @@ export default function JobList({
           <Button
             icon={<ReloadOutlined />}
             loading={crawlAllLoading}
+            disabled={crawlAllDisabled}
             onClick={onCrawlAll}
           >
             Crawl All

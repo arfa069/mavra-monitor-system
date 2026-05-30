@@ -159,7 +159,7 @@ export default function MatchResultList() {
     <Card
       title={
         <Space>
-          <span>Match Results</span>
+          <span>Analysis Results</span>
           {taskProgress && (
             <span
               style={{
@@ -218,7 +218,7 @@ export default function MatchResultList() {
           <Spin />
         </div>
       ) : !matchResults?.items.length ? (
-        <Empty description="No Match Results" />
+        <Empty description="No Analysis Results" />
       ) : (
         <Table
           rowKey="id"

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Card, Table, Tag, Tabs } from "antd";
+import { Card, message, Table, Tag, Tabs } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   useCrawlAllJobs,
@@ -47,6 +48,18 @@ export default function JobsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [activeTab, setActiveTab] = useState("configs");
+
+  const qc = useQueryClient();
+  const CRAWLING_IDS_KEY = ["crawling", "config-ids"] as const;
+  const { data: crawlingConfigIds = new Set<number>() } = useQuery({
+    queryKey: CRAWLING_IDS_KEY,
+    initialData: new Set<number>(),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+  const updateCrawlingIds = (updater: (prev: Set<number>) => Set<number>) => {
+    qc.setQueryData(CRAWLING_IDS_KEY, updater);
+  };
 
   const {
     data: configs,
@@ -270,15 +283,43 @@ export default function JobsPage() {
   };
 
   const handleCrawlSingle = async (id: number) => {
-    await crawlSingle.mutateAsync(id);
-    await refetchJobs();
-    await refetchConfigs();
+    const msgKey = `crawl-single-${id}`;
+    message.loading({ content: `Starting crawl for config #${id}...`, key: msgKey, duration: 0 });
+    updateCrawlingIds((prev) => new Set(prev).add(id));
+    try {
+      const result = await crawlSingle.mutateAsync(id);
+      if (result.type === "error") {
+        message.error({ content: `Crawl #${id} failed: ${result.reason || "Unknown error"}`, key: msgKey });
+      } else {
+        message.success({ content: `Crawl #${id} completed: ${result.success} succeeded, ${result.errors} failed`, key: msgKey });
+      }
+      await refetchJobs();
+      await refetchConfigs();
+    } catch (error) {
+      message.error({ content: `Crawl #${id} request failed: ${error instanceof Error ? error.message : "Unknown error"}`, key: msgKey });
+    } finally {
+      updateCrawlingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
   };
 
   const handleCrawlAll = async () => {
-    await crawlAll.mutateAsync();
-    await refetchJobs();
-    await refetchConfigs();
+    message.loading({ content: "Starting crawl for all configs...", key: "crawl-all", duration: 0 });
+    try {
+      const result = await crawlAll.mutateAsync();
+      if (result.type === "error") {
+        message.error({ content: `Crawl all failed: ${result.reason || "Unknown error"}`, key: "crawl-all" });
+      } else {
+        message.success({ content: `Crawl all completed: ${result.success} succeeded, ${result.errors} failed`, key: "crawl-all" });
+      }
+      await refetchJobs();
+      await refetchConfigs();
+    } catch (error) {
+      message.error({ content: `Crawl all request failed: ${error instanceof Error ? error.message : "Unknown error"}`, key: "crawl-all" });
+    }
   };
 
   const handleViewDetail = (job: Job) => {
@@ -313,7 +354,8 @@ export default function JobsPage() {
               onCrawl={canCrawl ? handleCrawlSingle : undefined}
               createLoading={createConfig.isPending}
               updateLoading={updateConfig.isPending}
-              crawlLoading={crawlSingle.isPending}
+              crawlingConfigIds={crawlingConfigIds}
+              crawlAllPending={crawlAll.isPending}
             />
           </Card>
 
@@ -324,6 +366,7 @@ export default function JobsPage() {
             onViewDetail={handleViewDetail}
             onCrawlAll={canCrawl ? handleCrawlAll : undefined}
             crawlAllLoading={crawlAll.isPending}
+            crawlAllDisabled={crawlingConfigIds.size > 0}
             filters={{ keyword, is_active: isActive }}
             onFilterChange={handleFilterChange}
             page={page}
@@ -366,7 +409,7 @@ export default function JobsPage() {
     },
     {
       key: "matches",
-      label: "Match Results",
+      label: "Analysis Results",
       children: <MatchResultList />,
     },
     {

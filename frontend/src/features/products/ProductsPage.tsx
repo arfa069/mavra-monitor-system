@@ -395,7 +395,7 @@ export default function ProductsPage() {
   };
 
   const columns: ColumnsType<Product> = [
-    { title: "Product", dataIndex: "title", ellipsis: true },
+    { title: "Product", dataIndex: "title", width: 150, ellipsis: true },
     {
       title: "Platform",
       dataIndex: "platform",
@@ -405,6 +405,7 @@ export default function ProductsPage() {
     {
       title: "URL",
       dataIndex: "url",
+      width: 200,
       ellipsis: true,
       render: (value: string) => (
         <Tooltip title={value}>

@@ -40,7 +40,8 @@ interface JobConfigListProps {
   ) => Promise<void>;
   createLoading?: boolean;
   updateLoading?: boolean;
-  crawlLoading?: boolean;
+  crawlingConfigIds?: Set<number>;
+  crawlAllPending?: boolean;
 }
 
 export default function JobConfigList({
@@ -54,7 +55,8 @@ export default function JobConfigList({
   onCreateProfile,
   createLoading,
   updateLoading,
-  crawlLoading,
+  crawlingConfigIds,
+  crawlAllPending,
 }: JobConfigListProps) {
   const message = App.useApp().message;
   const stagger = useStaggerAnimation(0.05, 0.05);
@@ -176,7 +178,8 @@ export default function JobConfigList({
                     {onCrawl && (
                       <Button
                         icon={<PlayCircleOutlined />}
-                        loading={crawlLoading}
+                        loading={crawlingConfigIds?.has(config.id)}
+                        disabled={(crawlingConfigIds?.size ?? 0) > 0 || crawlAllPending}
                         onClick={() => onCrawl(config.id)}
                       >
                         Crawl
