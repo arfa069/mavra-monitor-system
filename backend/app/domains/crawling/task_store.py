@@ -6,7 +6,7 @@ import socket
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -150,6 +150,7 @@ async def sync_record_from_runtime_task(
         record.finished_at = now
         record.locked_by = None
         record.lease_until = None
+        record.available_at = None
     await db.commit()
     await db.refresh(record)
     return record
@@ -168,6 +169,7 @@ async def mark_task_running(
     record.locked_by = owner or _owner()
     record.lease_until = current + timedelta(seconds=lease_seconds)
     record.heartbeat_at = current
+    record.available_at = None
     record.started_at = record.started_at or current
     record.updated_at = current
     await db.commit()
@@ -195,6 +197,10 @@ async def claim_next_pending_task(
             CrawlTaskRecord.status == TaskStatus.PENDING.value,
             CrawlTaskRecord.task_type.in_(task_types),
             CrawlTaskRecord.attempt_count < settings.crawler_task_max_requeue_attempts,
+            or_(
+                CrawlTaskRecord.available_at.is_(None),
+                CrawlTaskRecord.available_at <= current,
+            ),
         )
         .order_by(CrawlTaskRecord.created_at.asc(), CrawlTaskRecord.id.asc())
         .with_for_update(skip_locked=True)
@@ -214,6 +220,7 @@ async def claim_next_pending_task(
     record.locked_by = worker_id
     record.lease_until = current + timedelta(seconds=lease_seconds)
     record.heartbeat_at = current
+    record.available_at = None
     record.started_at = record.started_at or current
     record.updated_at = current
     await db.commit()
@@ -253,6 +260,7 @@ async def requeue_claimed_task(
     *,
     worker_id: str,
     reason: str,
+    retry_delay_seconds: float | None = None,
     now: datetime | None = None,
 ) -> bool:
     current = now or _now()
@@ -273,12 +281,18 @@ async def requeue_claimed_task(
         record.locked_by = None
         record.lease_until = None
         record.heartbeat_at = None
+        record.available_at = None
         record.finished_at = current
     else:
         record.status = TaskStatus.PENDING.value
         record.locked_by = None
         record.lease_until = None
         record.heartbeat_at = None
+        record.available_at = (
+            current + timedelta(seconds=retry_delay_seconds)
+            if retry_delay_seconds and retry_delay_seconds > 0
+            else None
+        )
         record.reason = reason
     record.updated_at = current
     await db.commit()
@@ -305,6 +319,7 @@ async def recover_stale_running_tasks(
         record.reason = owner_reason
         record.locked_by = None
         record.lease_until = None
+        record.available_at = None
         record.finished_at = current
         record.updated_at = current
     await db.commit()

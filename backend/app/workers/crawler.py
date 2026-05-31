@@ -56,6 +56,19 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _should_run_maintenance(
+    *,
+    last_run_at: float | None,
+    now: float,
+    interval_seconds: float,
+) -> bool:
+    return (
+        last_run_at is None
+        or interval_seconds <= 0
+        or now - last_run_at >= interval_seconds
+    )
+
+
 async def _recover_runtime_state() -> None:
     from app.domains.jobs.crawl_service import aggregate_waiting_job_parent_tasks
 
@@ -105,10 +118,18 @@ async def run_worker(args: argparse.Namespace) -> None:
     )
 
     active_task: asyncio.Task | None = None
+    last_maintenance_at: float | None = None
 
     try:
         while not _shutdown_event.is_set():
-            await _recover_runtime_state()
+            loop_time = asyncio.get_running_loop().time()
+            if _should_run_maintenance(
+                last_run_at=last_maintenance_at,
+                now=loop_time,
+                interval_seconds=settings.crawler_worker_maintenance_interval_seconds,
+            ):
+                await _recover_runtime_state()
+                last_maintenance_at = loop_time
             async with AsyncSessionLocal() as db:
                 hb = await heartbeat_worker(db, worker_id)
                 if hb is None:

@@ -66,7 +66,7 @@ async def test_list_jobs_returns_paginated_response(mock_get_current_user):
     mock_items.scalars.return_value.all.return_value = [mock_job]
 
     mock_session = AsyncMock()
-    mock_session.execute = AsyncMock(side_effect=[mock_count, mock_items])
+    mock_session.execute = AsyncMock(side_effect=[mock_count, mock_items, []])
 
     async def _override_get_db():
         yield mock_session

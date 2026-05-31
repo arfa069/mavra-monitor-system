@@ -1,5 +1,7 @@
 """Pytest configuration and fixtures for price monitor tests."""
+import shutil
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -39,11 +41,6 @@ def another_user() -> dict:
         "password": "anotherpassword456",
     }
 
-
-import shutil
-from pathlib import Path
-
-
 @pytest.fixture(scope="session", autouse=True)
 def _clean_test_profiles():
     """Clean up test-created profile directories after each test."""
@@ -53,9 +50,6 @@ def _clean_test_profiles():
         for d in profiles_root.iterdir():
             if d.is_dir() and ("test" in d.name or d.name.startswith("job-")):
                 shutil.rmtree(d, ignore_errors=True)
-
-import tempfile
-from pathlib import Path
 
 
 @pytest.fixture(scope="session", autouse=True)

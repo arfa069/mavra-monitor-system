@@ -15,6 +15,15 @@ class CrawlTaskRecord(Base):
         Index("ix_crawl_tasks_parent_status", "parent_task_id", "status"),
         Index("ix_crawl_tasks_user_created", "user_id", "created_at"),
         Index("ix_crawl_tasks_entity", "entity_type", "entity_id"),
+        Index(
+            "ix_crawl_tasks_claim_ready",
+            "status",
+            "task_type",
+            "platform",
+            "available_at",
+            "created_at",
+            "id",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -41,6 +50,7 @@ class CrawlTaskRecord(Base):
     locked_by = Column(String(120), nullable=True)
     lease_until = Column(DateTime(timezone=True), nullable=True)
     heartbeat_at = Column(DateTime(timezone=True), nullable=True)
+    available_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True), nullable=False)

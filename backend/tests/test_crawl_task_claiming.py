@@ -16,6 +16,12 @@ from app.models.crawl_task import CrawlTaskRecord
 pytestmark = pytest.mark.asyncio
 
 
+async def test_crawl_task_model_has_ready_claim_index():
+    index_names = {index.name for index in CrawlTaskRecord.__table__.indexes}
+
+    assert "ix_crawl_tasks_claim_ready" in index_names
+
+
 async def _clear_pending_tasks(task_type: str) -> None:
     async with AsyncSessionLocal() as db:
         result = await db.execute(

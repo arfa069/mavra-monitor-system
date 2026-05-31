@@ -151,6 +151,7 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
                 record.task_id,
                 worker_id=worker_id,
                 reason=f"profile_busy:{exc}",
+                retry_delay_seconds=settings.crawler_profile_busy_retry_delay_seconds,
             )
             # Check whether the task was requeued or failed due to max requeue
             refreshed = await db.get(CrawlTaskRecord, record.id)

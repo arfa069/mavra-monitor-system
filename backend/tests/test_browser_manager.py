@@ -1,8 +1,8 @@
+import shutil
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import pytest
-import shutil
-from pathlib import Path
 from sqlalchemy import delete, select
 
 from app.database import AsyncSessionLocal

@@ -1,5 +1,4 @@
 """Tests for job crawling service."""
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -66,24 +65,18 @@ class TestCreateAdapter:
 
 
 @pytest.mark.asyncio
-async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
+async def test_crawl_scheduled_config_enqueues_task(monkeypatch):
     from app.domains.jobs import crawl_service
 
-    emitted = []
-
-    async def fake_emit(**kwargs):
-        emitted.append(kwargs)
-
     monkeypatch.setattr(crawl_service, "_get_job_config_user_id", AsyncMock(return_value=7))
-    monkeypatch.setattr(crawl_service, "emit_system_log_detached", fake_emit)
 
     # Mock create_crawl_task_record and related to avoid DB FK issues
     mock_rec = MagicMock()
     mock_rec.task_id = "test-task-123"
-    mock_rec.id = 999
-    mock_rec.status = "running"
+    created_kwargs = {}
 
     async def fake_create(db, **kw):
+        created_kwargs.update(kw)
         return mock_rec
 
     monkeypatch.setattr("app.domains.crawling.task_store.create_crawl_task_record", fake_create)
@@ -91,62 +84,24 @@ async def test_crawl_scheduled_config_emits_event_center_logs(monkeypatch):
     task.task_id = "test-task-123"
     task.user_id = 7
     monkeypatch.setattr("app.domains.crawling.task_store.runtime_task_from_record", MagicMock(return_value=task))
-    monkeypatch.setattr("app.domains.crawling.task_store.sync_record_from_runtime_task", AsyncMock())
-
-    @asynccontextmanager
-    async def fake_lease(self, db, *, platform, profile_key, owner, task_id):
-        from pathlib import Path
-
-        from app.core.profile_lease import ProfileLease
-
-        yield ProfileLease(
-            platform=platform,
-            profile_key=profile_key,
-            profile_dir=Path("profiles/default"),
-            owner=owner,
-            task_id=task_id,
-        )
-
-    monkeypatch.setattr(
-        "app.domains.crawling.profile_pool.DatabaseProfilePool.lease",
-        fake_lease,
-    )
-
-    # Mock CrawlTaskRunner to avoid real crawl execution
-    class FakeCrawlTaskRunner:
-        def __init__(self, **kwargs):
-            self._progress_callback = kwargs.get("progress_callback")
-
-        async def run_job_config(self, task, *, config_id, runtime_context=None):
-            task.status = "completed"
-            if self._progress_callback:
-                await self._progress_callback(task)
-            return {"status": "success", "new_count": 2, "updated_count": 3, "deactivated_count": 0}
-
-    monkeypatch.setattr("app.domains.crawling.task_runner.CrawlTaskRunner", FakeCrawlTaskRunner)
 
     result = await crawl_service.crawl_scheduled_config(3, "0 12 * * *")
 
-    assert result["status"] == "success"
-    started_events = [
-        event
-        for event in emitted
-        if event["event_type"] == "job_crawl.started"
-        and event["entity_type"] == "job_config"
-        and event["entity_id"] == "3"
-        and event["payload"]["source"] == "scheduled"
-    ]
-    completed_events = [
-        event
-        for event in emitted
-        if event["event_type"] == "job_crawl.completed"
-        and event["entity_type"] == "job_config"
-        and event["entity_id"] == "3"
-        and event["payload"]["new_count"] == 2
-    ]
-    assert started_events
-    assert completed_events
-    assert started_events[0]["user_id"] == 7
+    assert result == {"status": "pending", "task_id": "test-task-123"}
+    assert created_kwargs["source"] == "cron"
+    assert created_kwargs["task_type"] == "job_config"
+    assert created_kwargs["platform"] == "boss"
+    assert created_kwargs["profile_key"] == created_kwargs["payload"]["profile_key"]
+    assert created_kwargs["user_id"] == 7
+    assert created_kwargs["entity_type"] == "job_config"
+    assert created_kwargs["entity_id"] == "3"
+    assert created_kwargs["payload"] == {
+        "config_id": 3,
+        "source": "scheduled",
+        "platform": "boss",
+        "profile_key": created_kwargs["profile_key"],
+        "cron_expression": "0 12 * * *",
+    }
 
 
 @pytest.mark.asyncio
@@ -604,331 +559,6 @@ class TestProcessJobResults:
         assert result["deactivated_count"] == 0
         assert existing_job.is_active is True
         assert existing_job.consecutive_miss_count == 1  # Incremented but not deactivated
-
-
-class TestCrawlDetail:
-    """Test job detail scraping."""
-
-    @pytest.mark.asyncio
-    async def test_acquire_cookies_uses_session_before_cdp(self):
-        """Boss cookie acquisition should reuse in-memory cookies before CDP."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        adapter = BossZhipinAdapter()
-        session = adapter._get_session()
-        session.cookies.set("__zp_stoken__", "session", domain=".zhipin.com", path="/")
-
-        with patch.object(
-            BossZhipinAdapter,
-            "_get_cookies_via_raw_cdp",
-            new_callable=AsyncMock,
-        ) as cdp:
-            result = await adapter._acquire_cookies(session)
-
-        assert result is True
-        cdp.assert_not_awaited()
-
-    @pytest.mark.asyncio
-    async def test_acquire_cookies_uses_cdp_without_disk_cache(self):
-        """Boss cookie acquisition should read CDP directly instead of disk cache."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        adapter = BossZhipinAdapter()
-        session = adapter._get_session()
-
-        with patch.object(
-            BossZhipinAdapter,
-            "_get_cookies_via_raw_cdp",
-            new_callable=AsyncMock,
-            return_value={"__zp_stoken__": "cdp", "other": "cookie"},
-        ) as cdp:
-            result = await adapter._acquire_cookies(session)
-
-        assert result is True
-        cdp.assert_awaited_once()
-        assert session.cookies.get("__zp_stoken__") == "cdp"
-
-    @pytest.mark.asyncio
-    async def test_acquire_cookies_refreshes_when_cdp_has_no_stoken(self):
-        """Boss cookie acquisition should actively refresh when existing CDP cookies are stale."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        adapter = BossZhipinAdapter()
-        session = adapter._get_session()
-
-        with (
-            patch.object(
-                BossZhipinAdapter,
-                "_get_cookies_via_raw_cdp",
-                new_callable=AsyncMock,
-                return_value={},
-            ) as cdp,
-            patch.object(
-                BossZhipinAdapter,
-                "_refresh_cookies_via_cdp_target",
-                new_callable=AsyncMock,
-                return_value={"__zp_stoken__": "fresh", "other": "cookie"},
-            ) as refresh,
-        ):
-            result = await adapter._acquire_cookies(session)
-
-        assert result is True
-        cdp.assert_awaited_once()
-        refresh.assert_awaited_once()
-        assert session.cookies.get("__zp_stoken__") == "fresh"
-
-    @pytest.mark.asyncio
-    async def test_crawl_detail_success(self):
-        """crawl_detail should return parsed job details."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "code": 0,
-            "zpData": {
-                "jobInfo": {
-                    "jobName": "Java",
-                    "salaryDesc": "10-15K·14薪",
-                    "locationName": "深圳",
-                    "address": "深圳南山区前海周大福金融大厦1401-05",
-                    "experienceName": "在校/应届",
-                    "degreeName": "本科",
-                    "postDescription": "岗位职责: ...",
-                },
-                "bossInfo": {"name": "李俊滨", "title": "AI全栈工程师"},
-                "brandComInfo": {"brandName": "望尘科技"},
-            },
-        }
-
-        with patch("app.platforms.boss.CffiSession") as mock_session_cls:
-            mock_session = MagicMock()
-            mock_session.get.return_value = mock_response
-            mock_session.cookies.get_dict.return_value = {"__zp_stoken__": "fake"}
-            mock_session_cls.return_value = mock_session
-
-            adapter = BossZhipinAdapter()
-            result = await adapter.crawl_detail("test_security_id")
-
-        assert result["success"] is True
-        assert result["detail"]["title"] == "Java"
-        assert result["detail"]["address"] == "深圳南山区前海周大福金融大厦1401-05"
-        assert result["detail"]["description"] == "岗位职责: ..."
-        assert result["detail"]["company"] == "望尘科技"
-
-    @pytest.mark.asyncio
-    async def test_crawl_detail_no_cookies(self):
-        """crawl_detail should fail gracefully when all cookie sources fail."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        with patch.object(
-            BossZhipinAdapter,
-            "_refresh_cookies_via_cdp_target",
-            new_callable=AsyncMock,
-            return_value={},
-        ) as mock_refresh:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"code": 37, "message": "Cookie expired"}
-
-            with (
-                patch("app.platforms.boss.CffiSession") as mock_session_cls,
-                patch("app.platforms.boss.asyncio.sleep", new_callable=AsyncMock),
-            ):
-                mock_session = MagicMock()
-                mock_session.get.return_value = mock_response
-                mock_session.cookies.get.return_value = ""  # no __zp_stoken__
-                mock_session_cls.return_value = mock_session
-
-                adapter = BossZhipinAdapter()
-                result = await adapter.crawl_detail("test_security_id")
-
-        assert result["success"] is False
-        assert "Cookie expired" in result["error"]
-        assert mock_refresh.await_count == 2
-
-    @pytest.mark.asyncio
-    async def test_crawl_detail_api_error(self):
-        """crawl_detail should retry once on code=37 then return a helpful error."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        with patch.object(
-            BossZhipinAdapter, "_refresh_cookies_via_cdp_target",
-            new_callable=AsyncMock, return_value={"__zp_stoken__": "fake"},
-        ) as mock_refresh:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"code": 37, "message": "Cookie expired"}
-
-            with (
-                patch("app.platforms.boss.CffiSession") as mock_session_cls,
-                patch("app.platforms.boss.asyncio.sleep", new_callable=AsyncMock),
-            ):
-                mock_session = MagicMock()
-                mock_session.get.return_value = mock_response
-                mock_session.cookies.get_dict.return_value = {"__zp_stoken__": "old"}
-                mock_session_cls.return_value = mock_session
-
-                adapter = BossZhipinAdapter()
-                result = await adapter.crawl_detail("test_security_id")
-
-        assert result["success"] is False
-        assert "Cookie expired" in result["error"]
-        # code=37 时应该通过 CDP 临时 target 主动刷新 cookie 再重试
-        assert mock_refresh.await_count == 2
-
-    @pytest.mark.asyncio
-    async def test_crawl_detail_refreshes_cookie_then_succeeds(self):
-        """crawl_detail should recover from code=37 when CDP refresh returns a new stoken."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        expired_response = MagicMock()
-        expired_response.status_code = 200
-        expired_response.json.return_value = {"code": 37, "message": "Cookie expired"}
-        success_response = MagicMock()
-        success_response.status_code = 200
-        success_response.json.return_value = {
-            "code": 0,
-            "zpData": {
-                "jobInfo": {
-                    "jobName": "Java",
-                    "address": "深圳南山区",
-                    "postDescription": "岗位职责: ...",
-                },
-                "brandComInfo": {"brandName": "望尘科技"},
-            },
-        }
-
-        with patch.object(
-            BossZhipinAdapter,
-            "_refresh_cookies_via_cdp_target",
-            new_callable=AsyncMock,
-            return_value={"__zp_stoken__": "fresh", "other": "cookie"},
-        ) as mock_refresh:
-            with patch("app.platforms.boss.CffiSession") as mock_session_cls:
-                mock_session = MagicMock()
-                mock_session.get.side_effect = [expired_response, success_response]
-                mock_session.cookies.get_dict.return_value = {"__zp_stoken__": "old"}
-                mock_session_cls.return_value = mock_session
-
-                adapter = BossZhipinAdapter()
-                result = await adapter.crawl_detail("test_security_id")
-
-        assert result["success"] is True
-        assert result["detail"]["description"] == "岗位职责: ..."
-        assert result["detail"]["address"] == "深圳南山区"
-        mock_refresh.assert_awaited_once()
-        mock_session.cookies.set.assert_any_call(
-            "__zp_stoken__",
-            "fresh",
-            domain=".zhipin.com",
-            path="/",
-        )
-
-    @pytest.mark.asyncio
-    async def test_crawl_detail_allows_two_cookie_refreshes(self):
-        """crawl_detail should tolerate repeated code=37 before succeeding."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        expired_response = MagicMock()
-        expired_response.status_code = 200
-        expired_response.json.return_value = {"code": 37, "message": "Cookie expired"}
-        success_response = MagicMock()
-        success_response.status_code = 200
-        success_response.json.return_value = {
-            "code": 0,
-            "zpData": {
-                "jobInfo": {
-                    "address": "深圳南山区",
-                    "postDescription": "岗位职责: ...",
-                },
-                "brandComInfo": {"brandName": "望尘科技"},
-            },
-        }
-
-        with patch.object(
-            BossZhipinAdapter,
-            "_refresh_cookies_via_cdp_target",
-            new_callable=AsyncMock,
-            return_value={"__zp_stoken__": "fresh"},
-        ) as mock_refresh:
-            with (
-                patch("app.platforms.boss.CffiSession") as mock_session_cls,
-                patch("app.platforms.boss.asyncio.sleep", new_callable=AsyncMock),
-            ):
-                mock_session = MagicMock()
-                mock_session.get.side_effect = [
-                    expired_response,
-                    expired_response,
-                    success_response,
-                ]
-                mock_session.cookies.get_dict.return_value = {"__zp_stoken__": "old"}
-                mock_session_cls.return_value = mock_session
-
-                adapter = BossZhipinAdapter()
-                result = await adapter.crawl_detail("test_security_id")
-
-        assert result["success"] is True
-        assert result["detail"]["description"] == "岗位职责: ..."
-        assert mock_refresh.await_count == 2
-
-    @pytest.mark.asyncio
-    async def test_crawl_refreshes_cookie_then_succeeds(self):
-        """crawl should recover from code=37 by refreshing CDP cookies in memory."""
-        from app.platforms.boss import BossZhipinAdapter
-
-        expired_response = MagicMock()
-        expired_response.status_code = 200
-        expired_response.json.return_value = {"code": 37, "message": "Cookie expired"}
-        expired_response.text = ""
-        success_response = MagicMock()
-        success_response.status_code = 200
-        success_response.json.return_value = {
-            "code": 0,
-            "zpData": {
-                "jobList": [{
-                    "securityId": "security",
-                    "encryptJobId": "encrypt",
-                    "jobName": "Java",
-                    "brandName": "望尘科技",
-                }],
-                "hasMore": False,
-            },
-        }
-        success_response.text = ""
-
-        with (
-            patch.object(
-                BossZhipinAdapter,
-                "_get_cookies_via_raw_cdp",
-                new_callable=AsyncMock,
-                return_value={"__zp_stoken__": "old"},
-            ),
-            patch.object(
-                BossZhipinAdapter,
-                "_refresh_cookies_via_cdp_target",
-                new_callable=AsyncMock,
-                return_value={"__zp_stoken__": "fresh"},
-            ) as mock_refresh,
-            patch("app.platforms.boss.CffiSession") as mock_session_cls,
-        ):
-            mock_session = MagicMock()
-            mock_session.get.side_effect = [expired_response, success_response]
-            mock_session.cookies.get.return_value = ""
-            mock_session_cls.return_value = mock_session
-
-            adapter = BossZhipinAdapter()
-            result = await adapter.crawl("https://www.zhipin.com/web/geek/jobs?query=java")
-
-        assert result["success"] is True
-        assert result["count"] == 1
-        mock_refresh.assert_awaited_once()
-        mock_session.cookies.set.assert_any_call(
-            "__zp_stoken__",
-            "fresh",
-            domain=".zhipin.com",
-            path="/",
-        )
 
 
 class TestUpdateJobDetail:

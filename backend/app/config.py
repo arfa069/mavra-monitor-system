@@ -82,9 +82,11 @@ class Settings(BaseSettings):
     # Crawler worker settings
     crawler_worker_poll_interval_seconds: float = 5.0
     crawler_worker_heartbeat_interval_seconds: float = 15.0
+    crawler_worker_maintenance_interval_seconds: float = 60.0
     crawler_worker_stale_after_seconds: int = 120
     crawler_task_lease_seconds: int = 3600
     crawler_task_max_requeue_attempts: int = 5
+    crawler_profile_busy_retry_delay_seconds: float = 30.0
 
     # JD OpenCLI integration
     jd_opencli_command: str = "opencli"
