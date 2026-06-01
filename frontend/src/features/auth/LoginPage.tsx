@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   const from =
     (location.state as { from?: { pathname: string } })?.from?.pathname ||
-    "/jobs";
+    "/dashboard";
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);

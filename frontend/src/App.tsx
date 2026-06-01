@@ -158,7 +158,7 @@ function PermissionRoute({
   }
 
   if (!user || !hasPermission(permission)) {
-    return <Navigate to="/jobs" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -185,7 +185,7 @@ function PublicRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/jobs" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -312,8 +312,8 @@ function AppRoutes() {
               </Route>
 
               {/* Default routes */}
-              <Route path="/" element={<Navigate to="/jobs" replace />} />
-              <Route path="*" element={<Navigate to="/jobs" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </BrowserRouter>
         </AntdApp>
