@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Segmented, Skeleton, Tag } from "antd";
 import axios from "axios";
+import { motion } from "framer-motion";
+import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import {
   ShoppingCartOutlined,
   FallOutlined,
@@ -33,6 +35,7 @@ export default function DashboardPage() {
     null,
   );
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const stagger = useStaggerAnimation(0.05, 0.05);
 
   // Fetch initial KPI data via HTTP
   useEffect(() => {
@@ -104,9 +107,15 @@ export default function DashboardPage() {
   };
 
   return (
-    <div style={{ padding: "24px" }}>
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="show"
+      style={{ padding: "24px" }}
+    >
       {/* Header */}
-      <div
+      <motion.div
+        variants={stagger.item}
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -123,10 +132,11 @@ export default function DashboardPage() {
           />
           {!connected && sseError && <Tag color="warning">{sseError}</Tag>}
         </div>
-      </div>
+      </motion.div>
 
       {/* Personal KPI Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <motion.div variants={stagger.item}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={12} md={8} lg={4}>
           <KPICard
             title="监控商品数"
@@ -164,9 +174,11 @@ export default function DashboardPage() {
           />
         </Col>
       </Row>
+      </motion.div>
 
       {/* Product Monitoring */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <motion.div variants={stagger.item}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={8}>
           <Card
             title="各平台商品分布"
@@ -198,9 +210,11 @@ export default function DashboardPage() {
           </Card>
         </Col>
       </Row>
+      </motion.div>
 
       {/* Job Monitoring */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <motion.div variants={stagger.item}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={8}>
           <Card
             title="各平台职位分布"
@@ -232,16 +246,20 @@ export default function DashboardPage() {
           </Card>
         </Col>
       </Row>
+      </motion.div>
 
       {/* System Operations — Admin Only */}
       {isAdmin && (
         <>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
-            系统运营
-          </h2>
+          <motion.div variants={stagger.item}>
+            <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
+              系统运营
+            </h2>
+          </motion.div>
 
           {/* System KPI Cards */}
-          {systemKPI ? (
+          <motion.div variants={stagger.item}>
+            {systemKPI ? (
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={12} sm={8} lg={4}>
                 <KPICard
@@ -304,48 +322,53 @@ export default function DashboardPage() {
               </Col>
             </Row>
           )}
+          </motion.div>
 
           {/* System Charts */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} lg={12}>
-              <Card
-                title="平台成功率对比"
-                extra={refreshTag(platformSuccess.refreshing)}
-                variant="borderless"
-                style={{ borderRadius: 16 }}
-              >
-                {renderTrendChart(platformSuccess, "bar")}
-              </Card>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Card
-                title="爬取失败趋势"
-                extra={refreshTag(crawlFailures.refreshing)}
-                variant="borderless"
-                style={{ borderRadius: 16 }}
-              >
-                {renderTrendChart(crawlFailures, "bar")}
-              </Card>
-            </Col>
-          </Row>
+          <motion.div variants={stagger.item}>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col xs={24} lg={12}>
+                <Card
+                  title="平台成功率对比"
+                  extra={refreshTag(platformSuccess.refreshing)}
+                  variant="borderless"
+                  style={{ borderRadius: 16 }}
+                >
+                  {renderTrendChart(platformSuccess, "bar")}
+                </Card>
+              </Col>
+              <Col xs={24} lg={12}>
+                <Card
+                  title="爬取失败趋势"
+                  extra={refreshTag(crawlFailures.refreshing)}
+                  variant="borderless"
+                  style={{ borderRadius: 16 }}
+                >
+                  {renderTrendChart(crawlFailures, "bar")}
+                </Card>
+              </Col>
+            </Row>
+          </motion.div>
 
           {/* Recent Alerts */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24}>
-              <Card
-                title="最近告警"
-                variant="borderless"
-                style={{ borderRadius: 16 }}
-              >
-                <RecentAlertsPanel
-                  alerts={recentAlerts}
-                  loading={alertsLoading}
-                />
-              </Card>
-            </Col>
-          </Row>
+          <motion.div variants={stagger.item}>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col xs={24}>
+                <Card
+                  title="最近告警"
+                  variant="borderless"
+                  style={{ borderRadius: 16 }}
+                >
+                  <RecentAlertsPanel
+                    alerts={recentAlerts}
+                    loading={alertsLoading}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </motion.div>
         </>
       )}
-    </div>
+    </motion.div>
   );
 }

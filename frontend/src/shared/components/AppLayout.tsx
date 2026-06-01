@@ -404,67 +404,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
         </Drawer>
       )}
-      {isMobile && (
-        <Drawer
-          placement="left"
-          onClose={() => setDrawerOpen(false)}
-          open={drawerOpen}
-          width={220}
-          styles={{
-            body: { padding: 0, background: "var(--color-surface-soft)" },
-            header: { display: "none" },
-          }}
-        >
-          <div
-            style={{
-              padding: "16px",
-              borderBottom: "1px solid var(--color-hairline)",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: "var(--color-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--color-on-primary)",
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              P
-            </div>
-            <span
-              style={{
-                fontWeight: 480,
-                fontSize: 15,
-                color: "var(--color-ink)",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              Price Monitor
-            </span>
-          </div>
-          <Menu
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            onClick={handleMenuClick}
-            style={{
-              border: "none",
-              background: "transparent",
-              marginTop: 8,
-              padding: "0 8px",
-            }}
-            items={menuItems}
-          />
-        </Drawer>
-      )}
+
 
       {/* Main Content */}
       <motion.div

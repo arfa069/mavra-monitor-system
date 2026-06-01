@@ -17,6 +17,8 @@ import {
   Table,
   Tag,
 } from "antd";
+import { motion } from "framer-motion";
+import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import type { ColumnsType } from "antd/es/table";
 import { configApi } from "@/features/settings";
 import { jobsApi } from "@/features/jobs";
@@ -51,6 +53,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 export default function ScheduleConfigPage() {
   const { hasPermission } = useAuth();
+  const stagger = useStaggerAnimation(0.05, 0.05);
   const isReadOnly = !hasPermission("schedule:configure");
   const message = App.useApp().message;
   const { data: config, isLoading, isError, refetch } = useScheduleConfig();
@@ -464,9 +467,13 @@ export default function ScheduleConfigPage() {
   ];
 
   return (
-    <div>
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="show"
+    >
       {/* Page header — mint color block (DESIGN.md: Mint — Config) */}
-      <div className="page-header bg-mint">
+      <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Automation</p>
@@ -477,38 +484,42 @@ export default function ScheduleConfigPage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {isReadOnly && (
-        <Alert
-          type="warning"
-          message="Read-only Mode"
-          description="Admin accounts cannot modify schedule configs. Please contact the system administrator."
-          style={{ marginBottom: 24 }}
-          showIcon
-        />
+        <motion.div variants={stagger.item}>
+          <Alert
+            type="warning"
+            message="Read-only Mode"
+            description="Admin accounts cannot modify schedule configs. Please contact the system administrator."
+            style={{ marginBottom: 24 }}
+            showIcon
+          />
+        </motion.div>
       )}
 
       {isError && !isLoading && (
-        <Alert
-          type="error"
-          message="Load Failed"
-          description="Unable to fetch configuration. Please try again later."
-          action={
-            <Button
-              size="small"
-              onClick={() => void refetch()}
-              className="fg-btn-secondary fg-btn-sm"
-            >
-              Retry
-            </Button>
-          }
-          style={{ marginBottom: 24 }}
-        />
+        <motion.div variants={stagger.item}>
+          <Alert
+            type="error"
+            message="Load Failed"
+            description="Unable to fetch configuration. Please try again later."
+            action={
+              <Button
+                size="small"
+                onClick={() => void refetch()}
+                className="fg-btn-secondary fg-btn-sm"
+              >
+                Retry
+              </Button>
+            }
+            style={{ marginBottom: 24 }}
+          />
+        </motion.div>
       )}
 
       {/* Cron config card */}
-      <div className="fg-card" style={{ marginTop: 24 }}>
+      <motion.div variants={stagger.item} className="fg-card" style={{ marginTop: 24 }}>
         <div className="fg-card-header">
           <span
             style={{
@@ -586,10 +597,10 @@ export default function ScheduleConfigPage() {
             locale={{ emptyText: "No job search configs" }}
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Data & notification card */}
-      <div className="fg-card" style={{ marginTop: 16 }}>
+      <motion.div variants={stagger.item} className="fg-card" style={{ marginTop: 16 }}>
         <div className="fg-card-header">
           <span
             style={{
@@ -671,7 +682,7 @@ export default function ScheduleConfigPage() {
             </Space>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <Modal
         title="Add Product Crawl Timer"
@@ -760,6 +771,6 @@ export default function ScheduleConfigPage() {
         }}
         onApply={handleApplyCron}
       />
-    </div>
+    </motion.div>
   );
 }

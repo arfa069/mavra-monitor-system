@@ -3,9 +3,12 @@ import { Form, Input, Button, App, Descriptions } from "antd";
 import type { AxiosError } from "axios";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { authApi } from "./api/auth";
+import { motion } from "framer-motion";
+import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const stagger = useStaggerAnimation(0.05, 0.05);
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -48,9 +51,13 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div>
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="show"
+    >
       {/* Page header — cream color block */}
-      <div className="page-header bg-cream">
+      <motion.div variants={stagger.item} className="page-header bg-cream">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Account</p>
@@ -60,9 +67,9 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div style={{ maxWidth: 560, marginTop: 24 }}>
+      <motion.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
         {/* Info card */}
         <div className="fg-card" style={{ marginBottom: 16 }}>
           <div className="fg-card-header">
@@ -210,7 +217,7 @@ export default function ProfilePage() {
             </Form>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

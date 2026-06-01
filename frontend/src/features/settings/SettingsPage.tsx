@@ -5,9 +5,12 @@ import { useAuth } from "@/shared/contexts/AuthContext";
 import { useThemeContext } from "@/shared/components/ThemeProvider";
 import { configApi } from "./api/config";
 import type { MotionSpeed } from "./types";
+import { motion } from "framer-motion";
+import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const stagger = useStaggerAnimation(0.05, 0.05);
   const { motionSpeed, setMotionSpeed } = useThemeContext();
   const message = App.useApp().message;
   const [form] = Form.useForm();
@@ -31,9 +34,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="show"
+    >
       {/* Page header */}
-      <div className="page-header bg-mint">
+      <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Preferences</p>
@@ -43,9 +50,9 @@ export default function SettingsPage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div style={{ maxWidth: 560, marginTop: 24 }}>
+      <motion.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
         <div className="fg-card">
           <div className="fg-card-header">
             <span
@@ -115,7 +122,7 @@ export default function SettingsPage() {
             </Form>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

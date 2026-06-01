@@ -12,6 +12,8 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { motion } from "framer-motion";
+import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 import { eventsApi } from "./api/events";
 import type { EventCenterItem, EventCenterQuery, EventKind } from "./types";
@@ -34,6 +36,7 @@ type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 
 export default function EventCenterPage() {
   const message = App.useApp().message;
+  const stagger = useStaggerAnimation(0.05, 0.05);
   const [items, setItems] = useState<EventCenterItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<EventCenterItem | null>(
     null,
@@ -239,8 +242,12 @@ export default function EventCenterPage() {
   ];
 
   return (
-    <div>
-      <div className="page-header bg-mint">
+    <motion.div
+      variants={stagger.container}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">System Events</p>
@@ -251,9 +258,9 @@ export default function EventCenterPage() {
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div style={{ marginBottom: 16 }}>
+      <motion.div variants={stagger.item} style={{ marginBottom: 16 }}>
         <Space size={[12, 12]} wrap>
           <Select
             value={kind}
@@ -332,9 +339,10 @@ export default function EventCenterPage() {
           />
           <Button onClick={resetFilters}>Reset</Button>
         </Space>
-      </div>
+      </motion.div>
 
-      <Table
+      <motion.div variants={stagger.item}>
+        <Table
         rowKey="id"
         columns={columns}
         dataSource={items}
@@ -351,6 +359,7 @@ export default function EventCenterPage() {
           },
         }}
       />
+      </motion.div>
 
       <Drawer
         title="Event Details"
@@ -417,6 +426,6 @@ export default function EventCenterPage() {
           </Space>
         ) : null}
       </Drawer>
-    </div>
+    </motion.div>
   );
 }

@@ -23,7 +23,12 @@ export function useRecentAlerts(limit = 10): AlertsState {
     let cancelled = false;
 
     if (!isAdmin) {
-      setState({ data: [], loading: false, error: null });
+      Promise.resolve().then(() => {
+        setState((prev) => {
+          if (prev.data.length === 0 && !prev.loading && !prev.error) return prev;
+          return { data: [], loading: false, error: null };
+        });
+      });
       return undefined;
     }
 
@@ -37,7 +42,7 @@ export function useRecentAlerts(limit = 10): AlertsState {
         if (!cancelled) {
           setState({ data: response.data, loading: false, error: null });
         }
-      } catch (err: any) {
+      } catch {
         if (cancelled) {
           return;
         }

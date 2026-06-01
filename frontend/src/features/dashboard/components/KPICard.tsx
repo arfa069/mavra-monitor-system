@@ -1,5 +1,6 @@
 import { Card, Statistic } from "antd";
 import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface KPICardProps {
   title: string;
@@ -18,16 +19,32 @@ export function KPICard({
   precision = 0,
   valueStyle,
 }: KPICardProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
-    <Card variant="borderless" style={{ borderRadius: 16 }}>
-      <Statistic
-        title={title}
-        value={value}
-        prefix={prefix}
-        suffix={suffix}
-        precision={precision}
-        styles={{ content: valueStyle }}
-      />
-    </Card>
+    <motion.div
+      whileHover={prefersReducedMotion ? {} : { y: -4, scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      style={{ cursor: "pointer" }}
+    >
+      <Card
+        variant="borderless"
+        className="card-transition"
+        style={{
+          borderRadius: 16,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+        }}
+      >
+        <Statistic
+          title={title}
+          value={value}
+          prefix={prefix}
+          suffix={suffix}
+          precision={precision}
+          styles={{ content: valueStyle }}
+        />
+      </Card>
+    </motion.div>
   );
 }
+

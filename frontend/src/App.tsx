@@ -17,14 +17,54 @@ import {
   ThemeProvider,
   useThemeContext,
 } from "@/shared/components/ThemeProvider";
-import JobsPage from "@/features/jobs";
-import ProductsPage from "@/features/products";
-import { AdminAuditLogsPage, AdminUsersPage } from "@/features/admin";
-import { LoginPage, ProfilePage, RegisterPage } from "@/features/auth";
-import { EventCenterPage } from "@/features/events";
-import { DashboardPage } from "@/features/dashboard";
-import { SettingsPage } from "@/features/settings";
-import { ScheduleConfigPage } from "@/features/schedule";
+const JobsPage = React.lazy(() => import("@/features/jobs"));
+const ProductsPage = React.lazy(() => import("@/features/products"));
+const AdminUsersPage = React.lazy(() =>
+  import("@/features/admin").then((m) => ({ default: m.AdminUsersPage })),
+);
+const AdminAuditLogsPage = React.lazy(() =>
+  import("@/features/admin").then((m) => ({ default: m.AdminAuditLogsPage })),
+);
+const LoginPage = React.lazy(() =>
+  import("@/features/auth").then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = React.lazy(() =>
+  import("@/features/auth").then((m) => ({ default: m.RegisterPage })),
+);
+const ProfilePage = React.lazy(() =>
+  import("@/features/auth").then((m) => ({ default: m.ProfilePage })),
+);
+const EventCenterPage = React.lazy(() =>
+  import("@/features/events").then((m) => ({ default: m.EventCenterPage })),
+);
+const DashboardPage = React.lazy(() =>
+  import("@/features/dashboard").then((m) => ({ default: m.DashboardPage })),
+);
+const SettingsPage = React.lazy(() =>
+  import("@/features/settings").then((m) => ({ default: m.SettingsPage })),
+);
+const ScheduleConfigPage = React.lazy(() =>
+  import("@/features/schedule").then((m) => ({ default: m.ScheduleConfigPage })),
+);
+
+function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: fullScreen ? "100vh" : "400px",
+        height: "100%",
+        width: "100%",
+        background: "var(--color-canvas)",
+      }}
+    >
+      <Spin size="large" />
+    </div>
+  );
+}
+
 
 // Error Fallback component (uses hooks, must be inside Router)
 function ErrorFallback() {
@@ -195,7 +235,9 @@ function ProtectedLayoutRoute() {
   return (
     <ProtectedRoute>
       <AppLayout>
-        <Outlet />
+        <React.Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </React.Suspense>
       </AppLayout>
     </ProtectedRoute>
   );
@@ -265,56 +307,58 @@ function AppRoutes() {
       >
         <AntdApp>
           <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
-                    <LoginPage />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <PublicRoute>
-                    <RegisterPage />
-                  </PublicRoute>
-                }
-              />
-
-              {/* Protected routes */}
-              <Route element={<ProtectedLayoutRoute />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/events" element={<EventCenterPage />} />
-                <Route path="/jobs" element={<JobsPage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/schedule" element={<ScheduleConfigPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+            <React.Suspense fallback={<PageLoader fullScreen />}>
+              <Routes>
+                {/* Public routes */}
                 <Route
-                  path="/admin/users"
+                  path="/login"
                   element={
-                    <PermissionRoute permission="user:read">
-                      <AdminUsersPage />
-                    </PermissionRoute>
+                    <PublicRoute>
+                      <LoginPage />
+                    </PublicRoute>
                   }
                 />
                 <Route
-                  path="/admin/audit-logs"
+                  path="/register"
                   element={
-                    <PermissionRoute permission="user:read">
-                      <AdminAuditLogsPage />
-                    </PermissionRoute>
+                    <PublicRoute>
+                      <RegisterPage />
+                    </PublicRoute>
                   }
                 />
-              </Route>
 
-              {/* Default routes */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+                {/* Protected routes */}
+                <Route element={<ProtectedLayoutRoute />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/events" element={<EventCenterPage />} />
+                  <Route path="/jobs" element={<JobsPage />} />
+                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/schedule" element={<ScheduleConfigPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route
+                    path="/admin/users"
+                    element={
+                      <PermissionRoute permission="user:read">
+                        <AdminUsersPage />
+                      </PermissionRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/audit-logs"
+                    element={
+                      <PermissionRoute permission="user:read">
+                        <AdminAuditLogsPage />
+                      </PermissionRoute>
+                    }
+                  />
+                </Route>
+
+                {/* Default routes */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </React.Suspense>
           </BrowserRouter>
         </AntdApp>
       </ConfigProvider>

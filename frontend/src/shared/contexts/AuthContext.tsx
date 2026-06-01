@@ -5,7 +5,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { authApi } from "@/features/auth";
+import { authApi } from "@/features/auth/api/auth";
 import type { Permission, User } from "@/shared/types";
 
 interface AuthContextType {
