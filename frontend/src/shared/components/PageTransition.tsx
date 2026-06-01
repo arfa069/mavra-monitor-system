@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 import type { MotionSpeed } from "@/shared/types/motion";
 
 const SPRING_CONFIG_BY_SPEED = {
-  fast: { stiffness: 400, damping: 25 },
-  normal: { stiffness: 300, damping: 20 },
-  slow: { stiffness: 200, damping: 15 },
+  fast: { stiffness: 220, damping: 24 },
+  normal: { stiffness: 140, damping: 18 },
+  slow: { stiffness: 70, damping: 13 },
 };
 
 const OPACITY_DURATION_BY_SPEED = {
@@ -30,7 +30,7 @@ export default function PageTransition({
   const variants = {
     initial: {
       opacity: 0,
-      y: prefersReducedMotion ? 0 : 30,
+      y: prefersReducedMotion ? 0 : 12,
     },
     animate: {
       opacity: 1,
@@ -38,7 +38,7 @@ export default function PageTransition({
     },
     exit: {
       opacity: 0,
-      y: prefersReducedMotion ? 0 : -30,
+      y: prefersReducedMotion ? 0 : -12,
     },
   };
 

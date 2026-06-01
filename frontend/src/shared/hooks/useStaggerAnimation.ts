@@ -29,8 +29,8 @@ export function getStaggerVariants(
         y: 0,
         transition: {
           type: "spring",
-          stiffness: 300,
-          damping: 20,
+          stiffness: 150,
+          damping: 18,
         },
       },
     },

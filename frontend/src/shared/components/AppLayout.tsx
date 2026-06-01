@@ -294,7 +294,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isMobile && (
         <motion.div
           animate={{ width: collapsed ? 60 : 200 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
           style={{
             position: "fixed",
             top: 56,
@@ -413,8 +413,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           marginLeft: isMobile ? 0 : collapsed ? 60 : 200,
         }}
         transition={{
-          duration: 0.5,
-          ease: [0.25, 0.46, 0.45, 0.94],
+          type: "spring",
+          stiffness: 200,
+          damping: 25,
         }}
         style={{
           flex: 1,
