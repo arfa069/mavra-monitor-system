@@ -88,7 +88,16 @@ async def _collect_finished_tasks(active_tasks: set[asyncio.Task]) -> list[dict]
     results: list[dict] = []
     for task in finished:
         active_tasks.discard(task)
-        results.append(await task)
+        if task.cancelled():
+            logger.debug("Task %s was cancelled", task)
+            continue
+        exc = task.exception()
+        if exc:
+            logger.error("Task %s failed: %s: %s", task, type(exc).__name__, exc)
+            continue
+        result = task.result()
+        if isinstance(result, dict):
+            results.append(result)
     return results
 
 
@@ -239,7 +248,10 @@ async def run_worker(args: argparse.Namespace) -> None:
                 )
                 active_tasks.difference_update(done)
                 for task in done:
-                    await task
+                    try:
+                        await task
+                    except Exception:
+                        pass
                 continue
 
             if not active_tasks:
@@ -258,7 +270,10 @@ async def run_worker(args: argparse.Namespace) -> None:
                 )
                 active_tasks.difference_update(done)
                 for task in done:
-                    await task
+                    try:
+                        await task
+                    except Exception:
+                        pass
     finally:
         for task in active_tasks:
             if not task.done():

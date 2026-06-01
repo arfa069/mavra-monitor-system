@@ -119,3 +119,54 @@ async def test_claim_until_capacity_respects_existing_active_tasks(monkeypatch):
     assert len(active_tasks) == 2
 
     await asyncio.gather(*active_tasks)
+
+
+@pytest.mark.asyncio
+async def test_collect_finished_tasks_handles_successful_task():
+    async def success():
+        return {"status": "completed"}
+
+    task = asyncio.create_task(success())
+    await asyncio.sleep(0)  # let task finish
+    active_tasks: set[asyncio.Task] = {task}
+
+    results = await crawler._collect_finished_tasks(active_tasks)
+
+    assert len(results) == 1
+    assert results[0]["status"] == "completed"
+    assert len(active_tasks) == 0  # task removed from set
+
+
+@pytest.mark.asyncio
+async def test_collect_finished_tasks_handles_failed_task_gracefully():
+    async def fail():
+        raise RuntimeError("task crashed")
+
+    task = asyncio.create_task(fail())
+    await asyncio.sleep(0)  # let task finish (with exception)
+    active_tasks: set[asyncio.Task] = {task}
+
+    # Should not raise — must handle task exceptions gracefully
+    results = await crawler._collect_finished_tasks(active_tasks)
+
+    assert len(results) == 0
+    assert len(active_tasks) == 0  # failed task still removed
+
+
+@pytest.mark.asyncio
+async def test_collect_finished_tasks_handles_cancelled_task_gracefully():
+    async def slow():
+        await asyncio.sleep(10)
+
+    task = asyncio.create_task(slow())
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    active_tasks: set[asyncio.Task] = {task}
+
+    results = await crawler._collect_finished_tasks(active_tasks)
+
+    assert len(results) == 0
+    assert len(active_tasks) == 0
