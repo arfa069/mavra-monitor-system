@@ -159,7 +159,9 @@ export default function JobConfigList({
                     </Space>
                   }
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
                     <Typography.Paragraph
                       ellipsis={{ rows: 1 }}
                       style={{ flex: 1, margin: 0 }}
@@ -171,7 +173,10 @@ export default function JobConfigList({
                         <Button
                           icon={<PlayCircleOutlined />}
                           loading={crawlingConfigIds?.has(config.id)}
-                          disabled={(crawlingConfigIds?.size ?? 0) > 0 || crawlAllPending}
+                          disabled={
+                            (crawlingConfigIds?.size ?? 0) > 0 ||
+                            crawlAllPending
+                          }
                           onClick={() => onCrawl(config.id)}
                         >
                           Crawl
@@ -193,9 +198,16 @@ export default function JobConfigList({
                       </Popconfirm>
                       <Button
                         size="small"
-                        icon={config.enable_match_analysis ? <CheckCircleFilled /> : undefined}
+                        icon={
+                          config.enable_match_analysis ? (
+                            <CheckCircleFilled />
+                          ) : undefined
+                        }
                         onClick={() =>
-                          void handleToggleMatch(config, !config.enable_match_analysis)
+                          void handleToggleMatch(
+                            config,
+                            !config.enable_match_analysis,
+                          )
                         }
                       >
                         Auto-match

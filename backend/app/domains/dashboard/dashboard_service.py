@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import psutil
 from sqlalchemy import case, func, select
@@ -31,6 +32,10 @@ if TYPE_CHECKING:
 class DashboardService:
     """Service for aggregating dashboard KPI data."""
 
+    USER_KPI_CACHE_TTL = 25
+    SYSTEM_KPI_CACHE_TTL = 25
+    TREND_CACHE_TTL = 300
+
     def __init__(
         self, db: AsyncSession, redis_client: redis.Redis | None = None
     ) -> None:
@@ -38,6 +43,46 @@ class DashboardService:
         self.redis = redis_client
 
     async def calculate_user_kpi(self, user_id: int) -> UserKPI:
+        """Calculate personal KPI metrics for a user."""
+        cache_key = f"dashboard:kpi:user:{user_id}"
+        cached = await self._get_cached(cache_key)
+        if cached is not None:
+            return UserKPI.model_validate(cached)
+
+        kpi = await self._calculate_user_kpi_uncached(user_id)
+        await self._set_cached(
+            cache_key, kpi.model_dump(), self.USER_KPI_CACHE_TTL
+        )
+        return kpi
+
+    async def _get_cached(self, key: str) -> Any | None:
+        """Read and deserialize a JSON value from Redis."""
+        if self.redis is None:
+            return None
+
+        try:
+            raw_value = await self.redis.get(key)
+            if raw_value is None:
+                return None
+            if isinstance(raw_value, bytes):
+                raw_value = raw_value.decode("utf-8")
+            return json.loads(raw_value)
+        except Exception:
+            return None
+
+    async def _set_cached(self, key: str, value: Any, ttl: int) -> None:
+        """Serialize a value as JSON and store it in Redis with a TTL."""
+        if self.redis is None:
+            return
+
+        try:
+            await self.redis.setex(
+                key, ttl, json.dumps(value, ensure_ascii=False)
+            )
+        except Exception:
+            return
+
+    async def _calculate_user_kpi_uncached(self, user_id: int) -> UserKPI:
         """Calculate personal KPI metrics for a user."""
         today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -48,15 +93,58 @@ class DashboardService:
             Product.user_id == user_id
         )
 
-        # Price drops today: products with price_history today
+        user_product_ids_q = select(Product.id).where(Product.user_id == user_id)
+
+        latest_today_prices = (
+            select(
+                PriceHistory.product_id.label("product_id"),
+                PriceHistory.price.label("today_price"),
+                func.row_number()
+                .over(
+                    partition_by=PriceHistory.product_id,
+                    order_by=PriceHistory.scraped_at.desc(),
+                )
+                .label("row_number"),
+            )
+            .where(
+                PriceHistory.product_id.in_(user_product_ids_q),
+                PriceHistory.scraped_at >= today_start,
+            )
+            .subquery()
+        )
+        latest_previous_prices = (
+            select(
+                PriceHistory.product_id.label("product_id"),
+                PriceHistory.price.label("previous_price"),
+                func.row_number()
+                .over(
+                    partition_by=PriceHistory.product_id,
+                    order_by=PriceHistory.scraped_at.desc(),
+                )
+                .label("row_number"),
+            )
+            .where(
+                PriceHistory.product_id.in_(user_product_ids_q),
+                PriceHistory.scraped_at < today_start,
+            )
+            .subquery()
+        )
+
+        # Price drops today: latest price today lower than latest price before today
         price_drops_q = (
             select(func.count())
-            .select_from(PriceHistory)
+            .select_from(
+                latest_today_prices.join(
+                    latest_previous_prices,
+                    latest_today_prices.c.product_id
+                    == latest_previous_prices.c.product_id,
+                )
+            )
             .where(
-                PriceHistory.product_id.in_(
-                    select(Product.id).where(Product.user_id == user_id)
-                ),
-                PriceHistory.scraped_at >= today_start,
+                latest_today_prices.c.row_number == 1,
+                latest_previous_prices.c.row_number == 1,
+                latest_today_prices.c.today_price
+                < latest_previous_prices.c.previous_price,
             )
         )
 
@@ -122,6 +210,19 @@ class DashboardService:
         )
 
     async def calculate_system_kpi(self) -> SystemKPI:
+        """Calculate system-level KPI metrics."""
+        cache_key = "dashboard:kpi:system"
+        cached = await self._get_cached(cache_key)
+        if cached is not None:
+            return SystemKPI.model_validate(cached)
+
+        kpi = await self._calculate_system_kpi_uncached()
+        await self._set_cached(
+            cache_key, kpi.model_dump(), self.SYSTEM_KPI_CACHE_TTL
+        )
+        return kpi
+
+    async def _calculate_system_kpi_uncached(self) -> SystemKPI:
         """Calculate system-level KPI metrics."""
         today_start = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -203,6 +304,15 @@ class DashboardService:
 
     async def get_price_trends(self, user_id: int, days: int) -> TrendResponse:
         """Get price trend data for the last N days."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:price:{days}",
+            lambda: self._get_price_trends_uncached(user_id, days),
+        )
+
+    async def _get_price_trends_uncached(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get price trend data for the last N days."""
         from sqlalchemy import Date, cast
 
         start_date = datetime.now(UTC) - timedelta(days=days)
@@ -241,7 +351,71 @@ class DashboardService:
             ],
         )
 
+    async def get_price_change_trends(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get average price change percentage trend data."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:price_change:{days}",
+            lambda: self._get_price_change_trends_uncached(user_id, days),
+        )
+
+    async def _get_price_change_trends_uncached(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get average price change percentage trend data."""
+        start_date = datetime.now(UTC) - timedelta(days=days)
+
+        result = await self.db.execute(
+            select(Product.id, PriceHistory.price, PriceHistory.scraped_at)
+            .join(Product, PriceHistory.product_id == Product.id)
+            .where(
+                Product.user_id == user_id,
+                PriceHistory.scraped_at >= start_date,
+            )
+            .order_by(Product.id, PriceHistory.scraped_at)
+        )
+
+        changes_by_date: dict[str, list[float]] = {}
+        previous_by_product: dict[int, float] = {}
+        for product_id, price, scraped_at in result.all():
+            current_price = float(price or 0)
+            previous_price = previous_by_product.get(product_id)
+            if previous_price and previous_price > 0:
+                label = str(scraped_at.date())
+                change = ((current_price - previous_price) / previous_price) * 100
+                changes_by_date.setdefault(label, []).append(change)
+            previous_by_product[product_id] = current_price
+
+        labels = sorted(changes_by_date)
+        values = [
+            round(sum(changes_by_date[label]) / len(changes_by_date[label]), 2)
+            for label in labels
+        ]
+
+        return TrendResponse(
+            labels=labels,
+            datasets=[
+                TrendDataset(
+                    label="平均价格变化率(%)",
+                    data=[
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, values)
+                    ],
+                )
+            ],
+        )
+
     async def get_job_trends(self, user_id: int, days: int) -> TrendResponse:
+        """Get job posting trend data for the last N days."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:jobs:{days}",
+            lambda: self._get_job_trends_uncached(user_id, days),
+        )
+
+    async def _get_job_trends_uncached(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
         """Get job posting trend data for the last N days."""
         from sqlalchemy import Date, cast
 
@@ -282,7 +456,74 @@ class DashboardService:
             ],
         )
 
+    async def get_job_match_trends(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get job match count and average score trend data."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:job_match:{days}",
+            lambda: self._get_job_match_trends_uncached(user_id, days),
+        )
+
+    async def _get_job_match_trends_uncached(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get job match count and average score trend data."""
+        start_date = datetime.now(UTC) - timedelta(days=days)
+        match_date = func.date(MatchResult.created_at)
+
+        result = await self.db.execute(
+            select(
+                match_date.label("date"),
+                func.count().label("count"),
+                func.avg(MatchResult.match_score).label("avg_score"),
+            )
+            .where(
+                MatchResult.user_id == user_id,
+                MatchResult.created_at >= start_date,
+            )
+            .group_by(match_date)
+            .order_by(match_date)
+        )
+
+        labels = []
+        counts = []
+        avg_scores = []
+        for row in result.all():
+            labels.append(str(row.date))
+            counts.append(row.count or 0)
+            avg_scores.append(round(float(row.avg_score or 0), 2))
+
+        return TrendResponse(
+            labels=labels,
+            datasets=[
+                TrendDataset(
+                    label="匹配次数",
+                    data=[
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, counts)
+                    ],
+                ),
+                TrendDataset(
+                    label="平均匹配分",
+                    data=[
+                        TrendDataPoint(label=label, value=value)
+                        for label, value in zip(labels, avg_scores)
+                    ],
+                ),
+            ],
+        )
+
     async def get_platform_distribution(
+        self, user_id: int, entity: str
+    ) -> TrendResponse:
+        """Get platform distribution for products or jobs."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:platform_{entity}:0",
+            lambda: self._get_platform_distribution_uncached(user_id, entity),
+        )
+
+    async def _get_platform_distribution_uncached(
         self, user_id: int, entity: str
     ) -> TrendResponse:
         """Get platform distribution for products or jobs."""
@@ -326,6 +567,15 @@ class DashboardService:
 
     async def get_salary_distribution(self, user_id: int) -> TrendResponse:
         """Get salary range distribution for jobs."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:salary:0",
+            lambda: self._get_salary_distribution_uncached(user_id),
+        )
+
+    async def _get_salary_distribution_uncached(
+        self, user_id: int
+    ) -> TrendResponse:
+        """Get salary range distribution for jobs."""
         from app.models.job import Job, JobSearchConfig
 
         ranges = [
@@ -367,7 +617,18 @@ class DashboardService:
             ],
         )
 
-    async def get_system_health_trends(self, days: int) -> TrendResponse:
+    async def get_system_health_trends(
+        self, user_id: int, days: int
+    ) -> TrendResponse:
+        """Get system health trend (success rate over time)."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:system_health:{days}",
+            lambda: self._get_system_health_trends_uncached(days),
+        )
+
+    async def _get_system_health_trends_uncached(
+        self, days: int
+    ) -> TrendResponse:
         """Get system health trend (success rate over time)."""
         from sqlalchemy import Date, case, cast
 
@@ -406,7 +667,91 @@ class DashboardService:
             ],
         )
 
-    async def get_platform_success_rates(self) -> TrendResponse:
+    async def get_crawl_failure_trends(self, days: int) -> TrendResponse:
+        """Get product and job crawl failure trend data."""
+        return await self._get_cached_trend(
+            f"dashboard:system:crawl_failure:{days}",
+            lambda: self._get_crawl_failure_trends_uncached(days),
+        )
+
+    async def _get_crawl_failure_trends_uncached(
+        self, days: int
+    ) -> TrendResponse:
+        """Get product and job crawl failure trend data."""
+        start_date = datetime.now(UTC) - timedelta(days=days)
+        product_date = func.date(CrawlLog.timestamp)
+        job_date = func.date(JobCrawlLog.scraped_at)
+
+        product_result = await self.db.execute(
+            select(
+                product_date.label("date"),
+                func.count().label("count"),
+            )
+            .where(
+                CrawlLog.timestamp >= start_date,
+                CrawlLog.status != "SUCCESS",
+            )
+            .group_by(product_date)
+            .order_by(product_date)
+        )
+        job_result = await self.db.execute(
+            select(
+                job_date.label("date"),
+                func.count().label("count"),
+            )
+            .where(
+                JobCrawlLog.scraped_at >= start_date,
+                JobCrawlLog.status != "SUCCESS",
+            )
+            .group_by(job_date)
+            .order_by(job_date)
+        )
+
+        product_counts = {
+            str(row.date): row.count or 0 for row in product_result.all()
+        }
+        job_counts = {str(row.date): row.count or 0 for row in job_result.all()}
+        labels = sorted(set(product_counts) | set(job_counts))
+
+        return TrendResponse(
+            labels=labels,
+            datasets=[
+                TrendDataset(
+                    label="商品爬取失败",
+                    data=[
+                        TrendDataPoint(
+                            label=label, value=product_counts.get(label, 0)
+                        )
+                        for label in labels
+                    ],
+                ),
+                TrendDataset(
+                    label="职位爬取失败",
+                    data=[
+                        TrendDataPoint(label=label, value=job_counts.get(label, 0))
+                        for label in labels
+                    ],
+                ),
+            ],
+        )
+
+    async def get_platform_success_rates(self, user_id: int) -> TrendResponse:
+        """Get success rate per platform."""
+        return await self._get_cached_trend(
+            f"dashboard:{user_id}:platform_success:0",
+            self._get_platform_success_rates_uncached,
+        )
+
+    async def _get_cached_trend(self, key: str, factory) -> TrendResponse:
+        cached = await self._get_cached(key)
+        if cached is not None:
+            return TrendResponse.model_validate(cached)
+
+        trend = await factory()
+        await self._set_cached(key, trend.model_dump(), self.TREND_CACHE_TTL)
+        return trend
+
+    async def _get_platform_success_rates_uncached(self) -> TrendResponse:
         """Get success rate per platform."""
         # Product platforms
         result = await self.db.execute(

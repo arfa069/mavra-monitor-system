@@ -42,6 +42,8 @@ export interface RecentAlert {
   message: string;
   active: boolean;
   created_at: string | null;
+  product_title: string | null;
+  platform: string | null;
 }
 
 export type TrendType =
@@ -51,6 +53,9 @@ export type TrendType =
   | "platform_jobs"
   | "salary"
   | "system_health"
-  | "platform_success";
+  | "platform_success"
+  | "price_change"
+  | "job_matches"
+  | "crawl_failures";
 
 export type TimeRange = 7 | 30 | 90;

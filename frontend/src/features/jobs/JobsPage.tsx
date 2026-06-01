@@ -285,19 +285,32 @@ export default function JobsPage() {
 
   const handleCrawlSingle = async (id: number) => {
     const msgKey = `crawl-single-${id}`;
-    message.loading({ content: `Starting crawl for config #${id}...`, key: msgKey, duration: 0 });
+    message.loading({
+      content: `Starting crawl for config #${id}...`,
+      key: msgKey,
+      duration: 0,
+    });
     updateCrawlingIds((prev) => new Set(prev).add(id));
     try {
       const result = await crawlSingle.mutateAsync(id);
       if (result.type === "error") {
-        message.error({ content: `Crawl #${id} failed: ${result.reason || "Unknown error"}`, key: msgKey });
+        message.error({
+          content: `Crawl #${id} failed: ${result.reason || "Unknown error"}`,
+          key: msgKey,
+        });
       } else {
-        message.success({ content: `Crawl #${id} completed: ${result.success} succeeded, ${result.errors} failed`, key: msgKey });
+        message.success({
+          content: `Crawl #${id} completed: ${result.success} succeeded, ${result.errors} failed`,
+          key: msgKey,
+        });
       }
       await refetchJobs();
       await refetchConfigs();
     } catch (error) {
-      message.error({ content: `Crawl #${id} request failed: ${error instanceof Error ? error.message : "Unknown error"}`, key: msgKey });
+      message.error({
+        content: `Crawl #${id} request failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        key: msgKey,
+      });
     } finally {
       updateCrawlingIds((prev) => {
         const next = new Set(prev);
@@ -308,18 +321,31 @@ export default function JobsPage() {
   };
 
   const handleCrawlAll = async () => {
-    message.loading({ content: "Starting crawl for all configs...", key: "crawl-all", duration: 0 });
+    message.loading({
+      content: "Starting crawl for all configs...",
+      key: "crawl-all",
+      duration: 0,
+    });
     try {
       const result = await crawlAll.mutateAsync();
       if (result.type === "error") {
-        message.error({ content: `Crawl all failed: ${result.reason || "Unknown error"}`, key: "crawl-all" });
+        message.error({
+          content: `Crawl all failed: ${result.reason || "Unknown error"}`,
+          key: "crawl-all",
+        });
       } else {
-        message.success({ content: `Crawl all completed: ${result.success} succeeded, ${result.errors} failed`, key: "crawl-all" });
+        message.success({
+          content: `Crawl all completed: ${result.success} succeeded, ${result.errors} failed`,
+          key: "crawl-all",
+        });
       }
       await refetchJobs();
       await refetchConfigs();
     } catch (error) {
-      message.error({ content: `Crawl all request failed: ${error instanceof Error ? error.message : "Unknown error"}`, key: "crawl-all" });
+      message.error({
+        content: `Crawl all request failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        key: "crawl-all",
+      });
     }
   };
 

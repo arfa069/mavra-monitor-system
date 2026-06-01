@@ -1,127 +1,132 @@
-# AGENTS.md
+# PROJECT KNOWLEDGE BASE
 
-此文件为提供代码库操作指南。
+**Generated:** 2026-05-31
+**Commit:** f255320b
+**Branch:** main
 
 <!-- gitnexus:start -->
 
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (7141 symbols, 13722 relationships, 274 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **price-monitor** (7141 symbols, 13722 relationships, 274 execution flows). Use GitNexus before edits.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> If GitNexus warns the index is stale, run `npx gitnexus analyze` first.
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+- **MUST run impact analysis before editing any symbol:** `gitnexus_impact({target: "symbolName", direction: "upstream"})`.
+- **MUST run `gitnexus_detect_changes()` before committing** to verify affected flows.
+- **MUST warn if impact is HIGH/CRITICAL** before proceeding.
+- Use `gitnexus_query({query: "concept"})` for unfamiliar architecture; use `gitnexus_context({name: "symbolName"})` for callers/callees.
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Resources
-
-| Resource                                       | Use for                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| `gitnexus://repo/price-monitor/context`        | Codebase overview, check index freshness |
-| `gitnexus://repo/price-monitor/clusters`       | All functional areas                     |
-| `gitnexus://repo/price-monitor/processes`      | All execution flows                      |
-| `gitnexus://repo/price-monitor/process/{name}` | Step-by-step execution trace             |
-
-## CLI
-
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+- NEVER edit a function/class/method without GitNexus impact first.
+- NEVER ignore HIGH/CRITICAL impact.
+- NEVER rename via find-and-replace; use `gitnexus_rename`.
+- NEVER commit without `gitnexus_detect_changes()`.
 
 <!-- gitnexus:end -->
 
-# 执行任何命令前必读⚠️
+## OVERVIEW
 
-在运行任何 shell / test / lint 命令之前，**必须**先查看本文件第 3 节的"常用命令"，
-确认正确的执行方式。默认不在 PATH 中的工具，必须通过 `powershell.exe` 调用。
+淘宝、京东、亚马逊价格监控 + Boss/51job/猎聘职位监控。后端 FastAPI + PostgreSQL/Redis + Playwright/curl_cffi/CloakBrowser；前端 React/Vite/TypeScript/Ant Design + Figma Design System。
 
-## 1.始终加载Karpathy编码准则⚠️
+## STRUCTURE
 
-Always load the `karpathy-guidelines` skill when coding.
+```
+price-monitor/
+├── backend/                    # FastAPI, SQLAlchemy, crawlers, workers, tests
+│   ├── app/main.py             # FastAPI app + lifespan + router mounting
+│   ├── app/domains/            # business domains: crawling/jobs/products/auth/admin/...
+│   ├── app/platforms/          # Taobao/JD/Amazon/Boss/51job/Liepin adapters
+│   └── tests/                  # pytest unit/integration/regression tests
+├── frontend/                   # Vite React app
+│   ├── src/App.tsx             # router/layout/theme composition
+│   ├── src/features/           # feature-first modules
+│   ├── src/shared/             # API client, auth context, layout, shared types
+│   └── tests/e2e/              # Playwright E2E specs
+├── doc/                        # living architecture/design docs
+├── docs/                       # implementation plans and historical plans
+├── scripts/start_server.ps1    # local backend/frontend/worker launcher
+└── profiles/                   # runtime browser profiles; do not hand-edit
+```
 
-## 2.项目概览
+## WHERE TO LOOK
 
-淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
+| Task                    | Location                                                                                            | Notes                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                            | Legacy, `/v1`, and `/api/v1` are mounted together   |
+| Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                             | Playwright/CDP/profile-sensitive                    |
+| Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                 | Boss uses CloakBrowser cookie refresh + `curl_cffi` |
+| Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md` | Cookie-first + Bearer fallback                      |
+| Frontend routes         | `frontend/src/App.tsx`                                                                              | Root redirects to `/jobs`                           |
+| Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                 | Axios injects CSRF and refreshes 401                |
+| Design decisions        | `doc/DESIGN.md`, `frontend/src/styles/`                                                             | Mandatory before UI changes                         |
+| Manual QA               | `backend/tests/manual_verification_checklist.md`                                                    | Browser evidence for UI/crawl-trigger changes       |
 
-**技术栈**：Python 3.11+ · FastAPI · PostgreSQL (async SQLAlchemy) · Redis · Playwright · 飞书 Webhook
-**前端**：React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）
+## CODE MAP
 
-## 3.常用命令
+| Area              | Key files                                                                                        | Role                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| App bootstrap     | `backend/app/main.py`, `frontend/src/main.tsx`                                                   | Backend lifespan/router setup; React Query provider   |
+| Crawl runtime     | `backend/app/domains/crawling/task_runner.py`, `task_store.py`, `backend/app/workers/crawler.py` | Durable task execution and worker loop                |
+| Profile pool      | `backend/app/domains/crawling/profile_pool.py`, `browser_manager.py`                             | DB lease + browser session lifecycle                  |
+| Platform adapters | `backend/app/platforms/*.py`                                                                     | Product/job platform extraction and anti-bot handling |
+| Job domain        | `backend/app/domains/jobs/*`, `llm/*`                                                            | Job configs, crawl, notification, resume matching     |
+| Frontend jobs     | `frontend/src/features/jobs/*`                                                                   | Largest UI feature: jobs, profiles, resumes, matching |
+| Shared frontend   | `frontend/src/shared/*`                                                                          | Auth, API, layout, motion/theme primitives            |
 
-### 安装依赖
+## COMMANDS
 
+Run shell/test/lint commands through PowerShell on Windows.
+
+```powershell
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pip install -e ."
-
-### 运行数据库迁移
-
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; alembic upgrade head"
-
-### 启动前端服务器和后端服务器 **前端端口3000，后端8000**
-
 powershell.exe -Command "cd C:/Users/arfac/price-monitor; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
-
-### 运行测试
-
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest"
-
-### 代码检查
-
 powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
+```
 
-## 4.后端架构
+Frontend:
 
-→ 详见 doc/backend-architecture.md
+```powershell
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run lint"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run build"
+powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/ --project=chromium"
+```
 
-## 5.前端架构
+## CONVENTIONS
 
-→ 详见 doc/frontend-architecture.md
-→ 权限架构详见 doc/permission-architecture.md
+- Coding changes should load the `karpathy-guidelines` skill before implementation.
+- Default test user: `default` / `123456`; some manual docs mention `default123` / `123456`, verify actual seeded user before browser QA.
+- Use UTC-aware timestamps: `datetime.now(timezone.utc)`.
+- Compare prices with `Decimal`, not floats.
+- `user_id=1` legacy assumptions remain in crawler/product/job code, but auth is multi-user.
+- Browser auth is Cookie-first (`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`); scripts may use Bearer fallback.
+- API modules use `/api/v1` from frontend; Vite proxy strips `/api` before backend.
 
-## 6.关键约定
+## ANTI-PATTERNS (THIS PROJECT)
 
-- user_id 硬编码为 1（单用户系统）已添加多用户认证，原有 user_id=1 硬编码仍适用于商品/职位爬取
-- 系统的测试用户: default 密码:123456
-- 所有时间戳字段使用 UTC 时区（`datetime.now(timezone.utc)`）
-- 价格比较使用 Decimal 避免浮点误差
-- LLM provider 通过 `LLMProviderFactory` 切换，支持 Anthropic/OpenAI/Ollama
+- Do not use `uvicorn --reload` on Windows; it breaks Playwright subprocess handling.
+- Do not manually rename/copy/delete `profiles/{key}`. Use Jobs → Profiles Management or `/v1/crawl-profiles`.
+- Do not run two crawl/login sessions on the same profile directory at once.
+- Do not treat `JD_COOKIE` as default; it is fallback only when `JD_COOKIE_FALLBACK_ENABLED=true`.
+- Do not make Boss crawl use Edge CDP; active path is `BossCloakExperimentalAdapter`.
+- Do not open browser tabs for normal Liepin crawl; it is HTTP-only via `api-c.liepin.com` + detail HTML parsing.
+- Do not expose cookie/token/webhook/security fields in logs or event payloads.
+- Do not claim validation passed unless the command/browser check actually ran.
 
-## 7.本地开发及验证流程
+## DESIGN SYSTEM
 
-- 默认闭环：改动 → 检查/构建 → 重启服务 → 真实验证 → 报告证据。
-- 命令执行前先看第 3 节，Windows 下优先使用 `powershell.exe -Command "..."`。
-- 后端改动：运行相关 `pytest`；影响共享逻辑/权限/调度/爬虫/模型时运行完整 `pytest` 和 `ruff check .`。
-- 前端改动：运行相关检查；提交前默认运行 `npm run lint` 和 `npm run build`。
-- 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
-- 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
-- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/{profile_key}/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
-- Profile 是并发资源：一个 profile 可保存多个平台登录态，但同一时刻只能被一个爬取任务或登录浏览器占用；需要并发时使用多个 profile key，而不是让多个任务同时打开同一目录。
-- Profile 文件夹不要手动改名/复制/删除；必须用 Jobs -> Profiles Management 或 `/v1/crawl-profiles`，这样会同步 `crawl_profiles`、职位配置、商品平台定时配置和 `profiles/{key}` 本地目录。
-- `JD_COOKIE` 只是京东应急 fallback，默认不会使用；只有显式设置 `JD_COOKIE_FALLBACK_ENABLED=true` 时才会注入。
-- Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
-- 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
-- 猎聘正常爬取路径应完全不开浏览器 tab：搜索 POST `api-c.liepin.com`，详情 HTTP 解析 `/job/` 和 `/a/` 两类页面；只有验证 CDP target 数量时需要读取 `http://127.0.0.1:9222/json`。
-- 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
+- Before any UI or visual decision, read `doc/DESIGN.md`.
+- Do not deviate from black/white core + semantic macaron accents + pill buttons without explicit approval.
+- UI QA must call out any mismatch with `doc/DESIGN.md`.
 
-## 8. Design System
+## NOTES
 
-- 未经用户明确批准，不得偏离设计系统。
-- 在做任何视觉或 UI 决策前，必须先阅读 `doc/DESIGN.md`。
-- 字体、颜色、间距、组件风格和整体美学方向均以 `doc/DESIGN.md` 为准。
-- 进行 UI 审查或 QA 时，必须指出任何不符合 `doc/DESIGN.md` 的实现。
+- Local launcher uses backend `8000`, frontend `3000`, worker `python -m app.workers.crawler --kind all`.
+- `frontend/playwright.config.ts` defaults to `http://localhost:5173`; set `E2E_BASE_URL=http://localhost:3000` for this repo's launcher.
+- Boss runtime JSONL logs live under `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` and are gitignored.
+- GitNexus full-text index warning may appear; run `npx gitnexus analyze --force` if keyword search is degraded.

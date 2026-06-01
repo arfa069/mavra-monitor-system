@@ -6,7 +6,9 @@ from app.domains.dashboard import repository
 
 
 async def list_recent_alerts(db: AsyncSession, *, limit: int) -> list[dict]:
-    alerts = await repository.list_recent_alerts(db, limit=limit)
+    alerts = await repository.list_recent_alerts(
+        db, limit=limit, include_product_context=True
+    )
     return [
         {
             "id": alert.id,
@@ -19,6 +21,10 @@ async def list_recent_alerts(db: AsyncSession, *, limit: int) -> list[dict]:
             ),
             "active": alert.active,
             "created_at": alert.created_at.isoformat() if alert.created_at else None,
+            "product_title": (
+                alert.product.title if alert.product is not None else None
+            ),
+            "platform": alert.product.platform if alert.product is not None else None,
         }
         for alert in alerts
     ]

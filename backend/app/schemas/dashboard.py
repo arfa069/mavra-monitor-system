@@ -51,3 +51,16 @@ class TrendResponse(BaseModel):
 
     labels: list[str]
     datasets: list[TrendDataset]
+
+
+class RecentAlert(BaseModel):
+    """Recent alert item for the dashboard."""
+
+    id: int
+    product_id: int | None
+    alert_type: str
+    message: str
+    active: bool
+    created_at: str | None
+    product_title: str | None = None
+    platform: str | None = None
