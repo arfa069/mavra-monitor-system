@@ -29,13 +29,18 @@ class CrawlTaskRunner:
         task: CrawlTask,
         *,
         config_id: int,
+        lock_already_held: bool = False,
         runtime_context=None,
     ) -> dict:
         from app.domains.jobs.crawl_service import crawl_single_config
 
         task.status = TaskStatus.RUNNING
         await self._notify_progress(task)
-        result = await crawl_single_config(config_id, runtime_context=runtime_context)
+        result = await crawl_single_config(
+            config_id,
+            _lock_already_held=lock_already_held,
+            runtime_context=runtime_context,
+        )
         ok = result.get("status") != "error"
         task.status = TaskStatus.COMPLETED if ok else TaskStatus.FAILED
         task.total = sum(

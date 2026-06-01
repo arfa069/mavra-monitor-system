@@ -457,6 +457,14 @@ async def process_job_results(
                     elif isinstance(result, dict) and not result.get("success"):
                         detail_errors += 1
                         err = str(result.get("error", ""))
+                        logger.warning(
+                            "Detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
+                            platform,
+                            job_obj.job_id,
+                            job_obj.id,
+                            result.get("failure_category") or "",
+                            err,
+                        )
                         if "Blocked by Aliyun WAF" in err:
                             consecutive_waf_blocks += 1
                             logger.warning(
@@ -500,6 +508,12 @@ async def process_job_results(
                     detail_errors += 1
                     retry_detail_jobs.append(job_obj)
                     consecutive_cookie_failures += 1
+                    logger.exception(
+                        "Detail fetch raised: platform=%s job_id=%s db_id=%s",
+                        platform,
+                        job_obj.job_id,
+                        job_obj.id,
+                    )
 
                 # 连续 cookie 失败时先冷却，再继续串行补详情；多次冷却仍失败才停止。
                 if consecutive_cookie_failures >= 3:
@@ -551,6 +565,15 @@ async def process_job_results(
                         )
                         if isinstance(result, dict) and result.get("success"):
                             detail_updates += 1
+                        elif isinstance(result, dict):
+                            logger.warning(
+                                "Retry detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
+                                platform,
+                                job_obj.job_id,
+                                job_obj.id,
+                                result.get("failure_category") or "",
+                                result.get("error") or "",
+                            )
                     except TimeoutError:
                         logger.warning(
                             "Retry detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
@@ -1179,6 +1202,7 @@ async def execute_job_platform_profile_task(
                     ).run_job_config(
                         child_task,
                         config_id=config_id,
+                        lock_already_held=True,
                         runtime_context=runtime_context,
                     )
                     detail = {"config_id": config_id, **result}

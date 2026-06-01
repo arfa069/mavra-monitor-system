@@ -250,6 +250,7 @@ class LiepinAdapter(BasePlatformAdapter):
         return match.group(1) if match else ""
 
     async def crawl_detail(self, job_id: str) -> dict[str, Any]:
+        failures: list[str] = []
         for detail_url in self._detail_urls(job_id):
             try:
                 response = self._get_session().get(
@@ -268,15 +269,29 @@ class LiepinAdapter(BasePlatformAdapter):
                     category = classify_liepin_failure(status_code=response.status_code, text=text)
                     if category == "challenge":
                         self.runtime_logger.log("detail_challenge", status="blocked", failure_category=category, job_id=job_id)
+                    failures.append(f"{detail_url} status=200 category={category} no_detail_content")
                 else:
                     category = classify_liepin_failure(status_code=response.status_code, text=text)
                     if category:
+                        failures.append(f"{detail_url} status={response.status_code} category={category}")
                         return {"success": False, "error": f"Liepin detail HTTP {response.status_code}: {category}", "failure_category": category}
+                    failures.append(f"{detail_url} status={response.status_code} category=unknown")
             except Exception as exc:
                 category = classify_liepin_failure(status_code=0, text=str(exc))
+                failures.append(f"{detail_url} exception={type(exc).__name__} category={category}")
                 logger.debug("Liepin detail HTTP failed for %s via %s: %s", job_id, detail_url, exc)
 
-        return {"success": False, "error": "Liepin detail HTTP response contained no detail content", "failure_category": "detail_error"}
+        error = "Liepin detail HTTP response contained no detail content"
+        if failures:
+            error = f"{error}; attempts: {'; '.join(failures)}"
+        self.runtime_logger.log(
+            "detail_failed",
+            status="failed",
+            message=error,
+            failure_category="detail_error",
+            job_id=job_id,
+        )
+        return {"success": False, "error": error, "failure_category": "detail_error"}
 
     @staticmethod
     def _detail_urls(job_id: str) -> list[str]:

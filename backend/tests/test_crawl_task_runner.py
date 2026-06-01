@@ -25,6 +25,38 @@ async def test_runner_executes_single_job_config(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_runner_can_bypass_job_crawl_lock_for_worker_tasks(monkeypatch):
+    from app.core.task_registry import create_task
+    from app.domains.crawling.task_runner import CrawlTaskRunner
+
+    task = create_task("manual", user_id=1, entity_type="job_config", entity_id="3")
+    crawl_single_config = AsyncMock(
+        return_value={
+            "status": "success",
+            "new_count": 1,
+            "updated_count": 0,
+            "deactivated_count": 0,
+        }
+    )
+    monkeypatch.setattr(
+        "app.domains.jobs.crawl_service.crawl_single_config",
+        crawl_single_config,
+    )
+
+    await CrawlTaskRunner().run_job_config(
+        task,
+        config_id=3,
+        lock_already_held=True,
+    )
+
+    crawl_single_config.assert_awaited_once_with(
+        3,
+        _lock_already_held=True,
+        runtime_context=None,
+    )
+
+
+@pytest.mark.asyncio
 async def test_runner_marks_failed_job_config(monkeypatch):
     from app.core.task_registry import TaskStatus, create_task
     from app.domains.crawling.task_runner import CrawlTaskRunner

@@ -1,6 +1,8 @@
 param(
     [switch]$BackendOnly,
-    [switch]$NoCrawlerWorker
+    [switch]$NoCrawlerWorker,
+    [string]$PythonExe = "C:\Users\arfac\AppData\Local\Programs\Python\Python314\python.exe",
+    [int]$CrawlerConcurrency = 3
 )
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -9,6 +11,8 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $projectRoot "backend"
 $frontendDir = Join-Path $projectRoot "frontend"
+$backendLogDir = Join-Path $backendDir "logs"
+$workerLog = Join-Path $backendLogDir "crawler-worker.log"
 
 function Get-PortUsage {
     param([int]$Port)
@@ -68,6 +72,18 @@ function Close-ServiceWindows {
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Price Monitor Launcher" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
+
+if (-not (Test-Path -LiteralPath $PythonExe)) {
+    throw "Python executable not found: $PythonExe"
+}
+
+if ($CrawlerConcurrency -lt 1) {
+    throw "CrawlerConcurrency must be >= 1"
+}
+
+if (-not (Test-Path -LiteralPath $backendLogDir)) {
+    New-Item -ItemType Directory -Path $backendLogDir | Out-Null
+}
 
 Write-Host ""
 Write-Host "[Check] Scanning port usage..." -ForegroundColor Cyan
@@ -130,16 +146,18 @@ Write-Host "  [OK] Crawler Worker:        Free" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "[Backend] Starting..." -ForegroundColor Cyan
-$backendCmd = "Set-Location `"$backendDir`"; python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+$backendCmd = "Set-Location `"$backendDir`"; & `"$PythonExe`" -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
 Write-Host "[Backend] http://localhost:8000" -ForegroundColor Cyan
+Write-Host "[Backend] Python: $PythonExe" -ForegroundColor DarkGray
 
 if (-not $NoCrawlerWorker) {
     Write-Host ""
     Write-Host "[Crawler Worker] Starting..." -ForegroundColor Cyan
-    $workerCmd = "Set-Location `"$backendDir`"; python -m app.workers.crawler --kind all"
+    $workerCmd = "Set-Location `"$backendDir`"; Start-Transcript -Path `"$workerLog`" -Append | Out-Null; & `"$PythonExe`" -m app.workers.crawler --kind all --concurrency $CrawlerConcurrency; Stop-Transcript | Out-Null"
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCmd
-    Write-Host "[Crawler Worker] python -m app.workers.crawler --kind all" -ForegroundColor Cyan
+    Write-Host "[Crawler Worker] $PythonExe -m app.workers.crawler --kind all --concurrency $CrawlerConcurrency" -ForegroundColor Cyan
+    Write-Host "[Crawler Worker] Log: $workerLog" -ForegroundColor DarkGray
 }
 
 if (-not $BackendOnly) {
@@ -150,7 +168,7 @@ if (-not $BackendOnly) {
     Write-Host "[Frontend] http://localhost:3000" -ForegroundColor Magenta
 
     Write-Host ""
-    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker" -ForegroundColor DarkGray
+    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
 }
 
 Write-Host ""

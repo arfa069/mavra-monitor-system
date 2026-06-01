@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Iterable
 
 from sqlalchemy import case, desc, select
@@ -18,6 +19,7 @@ from app.models.job_match import MatchResult, UserResume
 MATCH_ANALYSIS_BATCH_SIZE = 3
 NOTIFIABLE_RECOMMENDATIONS = {"强烈推荐", "可以考虑"}
 RECOMMENDATION_RANK = {"强烈推荐": 3, "可以考虑": 2, "不太匹配": 1}
+logger = logging.getLogger(__name__)
 
 
 async def _get_jobs_needing_analysis(
@@ -123,10 +125,22 @@ async def _execute_match_analysis(
         user_id=resume.user_id if user_id is None else user_id,
     )
     task.total = len(jobs_to_analyze)
+    logger.info(
+        "Job match analysis started: task_id=%s resume_id=%s requested_jobs=%d jobs_to_analyze=%d",
+        getattr(task, "task_id", ""),
+        resume_id,
+        len(job_ids),
+        len(jobs_to_analyze),
+    )
 
     if not jobs_to_analyze:
         task.status = TaskStatus.COMPLETED
         task.reason = "all_up_to_date"
+        logger.info(
+            "Job match analysis completed: task_id=%s resume_id=%s reason=all_up_to_date",
+            getattr(task, "task_id", ""),
+            resume_id,
+        )
         if progress_callback is not None:
             await progress_callback(task)
         return
@@ -142,12 +156,26 @@ async def _execute_match_analysis(
 
     for i in range(0, len(jobs_to_analyze), MATCH_ANALYSIS_BATCH_SIZE):
         batch = jobs_to_analyze[i : i + MATCH_ANALYSIS_BATCH_SIZE]
+        logger.info(
+            "Job match analysis batch started: task_id=%s resume_id=%s batch=%d size=%d",
+            getattr(task, "task_id", ""),
+            resume_id,
+            i // MATCH_ANALYSIS_BATCH_SIZE + 1,
+            len(batch),
+        )
 
         # 过滤无内容的 job
         valid_jobs = [j for j in batch if job_has_required_match_fields(j)]
 
         if not valid_jobs:
             task.errors += len(batch)
+            logger.info(
+                "Job match analysis batch skipped: task_id=%s resume_id=%s batch=%d reason=no_required_job_fields errors=%d",
+                getattr(task, "task_id", ""),
+                resume_id,
+                i // MATCH_ANALYSIS_BATCH_SIZE + 1,
+                task.errors,
+            )
             if progress_callback is not None:
                 await progress_callback(task)
             continue
@@ -172,6 +200,13 @@ async def _execute_match_analysis(
         for job, result in zip(valid_jobs, results):
             if isinstance(result, Exception):
                 task.errors += 1
+                logger.warning(
+                    "Job match analysis item failed: task_id=%s resume_id=%s job_id=%s error=%s",
+                    getattr(task, "task_id", ""),
+                    resume_id,
+                    getattr(job, "id", ""),
+                    result,
+                )
                 continue
 
             await upsert_match_result(
@@ -189,6 +224,14 @@ async def _execute_match_analysis(
 
         if progress_callback is not None:
             await progress_callback(task)
+        logger.info(
+            "Job match analysis batch completed: task_id=%s resume_id=%s batch=%d success=%d errors=%d",
+            getattr(task, "task_id", ""),
+            resume_id,
+            i // MATCH_ANALYSIS_BATCH_SIZE + 1,
+            task.success,
+            task.errors,
+        )
 
     # 汇总飞书通知（只发一条）
     webhook_url = user.get("feishu_webhook_url") if user else None
@@ -220,6 +263,15 @@ async def _execute_match_analysis(
         task.reason = "all_items_failed"
     else:
         task.status = TaskStatus.COMPLETED
+    logger.info(
+        "Job match analysis finished: task_id=%s resume_id=%s status=%s success=%d errors=%d reason=%s",
+        getattr(task, "task_id", ""),
+        resume_id,
+        task.status.value if hasattr(task.status, "value") else task.status,
+        task.success,
+        task.errors,
+        getattr(task, "reason", None),
+    )
     if progress_callback is not None:
         await progress_callback(task)
 

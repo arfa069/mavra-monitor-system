@@ -229,7 +229,7 @@ async def run_worker(args: argparse.Namespace) -> None:
                         return
                 if active_tasks:
                     done, _pending = await asyncio.wait(active_tasks)
-                    active_tasks.difference_update(done)
+                    await _collect_finished_tasks(active_tasks)
                 return
 
             await _claim_until_capacity(
@@ -246,12 +246,7 @@ async def run_worker(args: argparse.Namespace) -> None:
                     timeout=settings.crawler_worker_poll_interval_seconds,
                     return_when=asyncio.FIRST_COMPLETED,
                 )
-                active_tasks.difference_update(done)
-                for task in done:
-                    try:
-                        await task
-                    except Exception:
-                        pass
+                await _collect_finished_tasks(active_tasks)
                 continue
 
             if not active_tasks:
@@ -268,12 +263,7 @@ async def run_worker(args: argparse.Namespace) -> None:
                     timeout=settings.crawler_worker_poll_interval_seconds,
                     return_when=asyncio.FIRST_COMPLETED,
                 )
-                active_tasks.difference_update(done)
-                for task in done:
-                    try:
-                        await task
-                    except Exception:
-                        pass
+                await _collect_finished_tasks(active_tasks)
     finally:
         for task in active_tasks:
             if not task.done():

@@ -170,3 +170,18 @@ async def test_collect_finished_tasks_handles_cancelled_task_gracefully():
 
     assert len(results) == 0
     assert len(active_tasks) == 0
+
+
+@pytest.mark.asyncio
+async def test_collect_finished_tasks_removes_wait_completed_failed_task():
+    async def fail():
+        raise RuntimeError("task crashed")
+
+    task = asyncio.create_task(fail())
+    done, _pending = await asyncio.wait({task})
+    active_tasks: set[asyncio.Task] = set(done)
+
+    results = await crawler._collect_finished_tasks(active_tasks)
+
+    assert results == []
+    assert active_tasks == set()

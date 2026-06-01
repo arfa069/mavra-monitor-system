@@ -248,6 +248,7 @@ async def _execute_job_config(record: CrawlTaskRecord, task, progress_callback) 
             return await CrawlTaskRunner(progress_callback=progress_callback).run_job_config(
                 task,
                 config_id=config_id,
+                lock_already_held=True,
                 runtime_context=runtime_context,
             )
 

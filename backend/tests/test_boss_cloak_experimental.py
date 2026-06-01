@@ -16,6 +16,14 @@ def test_boss_cookie_refresh_failure_returns_category(monkeypatch):
     assert adapter._profile_failure_category() == "cookie_refresh_failed"
 
 
+def test_boss_default_crawl_limit_is_100_jobs():
+    from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
+
+    adapter = BossCloakExperimentalAdapter(profile_dir="profile", log_enabled=False)
+
+    assert adapter.max_jobs == 100
+
+
 def test_boss_cookie_refresh_reload_abort_falls_back_to_search_page():
     from app.platforms.boss_cloak_experimental import BossCloakExperimentalAdapter
 
