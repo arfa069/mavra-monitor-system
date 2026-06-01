@@ -53,6 +53,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--platform", action="append", default=[])
     parser.add_argument("--worker-id", default="")
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--concurrency", type=int, default=None)
     return parser.parse_args()
 
 
@@ -67,6 +68,55 @@ def _should_run_maintenance(
         or interval_seconds <= 0
         or now - last_run_at >= interval_seconds
     )
+
+
+def _resolve_worker_concurrency(args: argparse.Namespace) -> int:
+    configured = (
+        args.concurrency
+        if getattr(args, "concurrency", None) is not None
+        else settings.crawler_worker_concurrency
+    )
+    try:
+        return max(1, int(configured))
+    except (TypeError, ValueError):
+        logger.warning("Invalid crawler worker concurrency %r; using 1", configured)
+        return 1
+
+
+async def _collect_finished_tasks(active_tasks: set[asyncio.Task]) -> list[dict]:
+    finished = {task for task in active_tasks if task.done()}
+    results: list[dict] = []
+    for task in finished:
+        active_tasks.discard(task)
+        results.append(await task)
+    return results
+
+
+async def _claim_until_capacity(
+    *,
+    worker_id: str,
+    kinds: set[str],
+    platforms: set[str] | None,
+    active_tasks: set[asyncio.Task],
+    concurrency: int,
+) -> int:
+    claimed_count = 0
+    while len(active_tasks) < concurrency:
+        async with AsyncSessionLocal() as db:
+            record = await claim_next_pending_task(
+                db,
+                worker_id=worker_id,
+                kinds=kinds,
+                platforms=platforms,
+                lease_seconds=settings.crawler_task_lease_seconds,
+            )
+        if record is None:
+            break
+        active_tasks.add(asyncio.create_task(
+            execute_claimed_task(record, worker_id=worker_id)
+        ))
+        claimed_count += 1
+    return claimed_count
 
 
 async def _recover_runtime_state() -> None:
@@ -104,20 +154,29 @@ async def run_worker(args: argparse.Namespace) -> None:
             pid=os.getpid(),
         )
 
-    logger.info("Crawler worker %s started (kind=%s, platforms=%s)", worker_id, args.kind, args.platform)
+    worker_concurrency = _resolve_worker_concurrency(args)
+    logger.info(
+        "Crawler worker %s started (kind=%s, platforms=%s, concurrency=%d)",
+        worker_id, args.kind, args.platform, worker_concurrency,
+    )
     await emit_system_log_detached(
         category="runtime",
         event_type="crawler_worker.started",
         source="crawler_worker",
         severity="info",
         status="running",
-        message=f"Crawler worker {worker_id} started (kind={args.kind}, platforms={args.platform})",
+        message=f"Crawler worker {worker_id} started (kind={args.kind}, platforms={args.platform}, concurrency={worker_concurrency})",
         entity_type="crawler_worker",
         entity_id=worker_id,
-        payload={"worker_id": worker_id, "kind": args.kind, "platforms": args.platform},
+        payload={
+            "worker_id": worker_id,
+            "kind": args.kind,
+            "platforms": args.platform,
+            "concurrency": worker_concurrency,
+        },
     )
 
-    active_task: asyncio.Task | None = None
+    active_tasks: set[asyncio.Task] = set()
     last_maintenance_at: float | None = None
 
     try:
@@ -130,6 +189,7 @@ async def run_worker(args: argparse.Namespace) -> None:
             ):
                 await _recover_runtime_state()
                 last_maintenance_at = loop_time
+
             async with AsyncSessionLocal() as db:
                 hb = await heartbeat_worker(db, worker_id)
                 if hb is None:
@@ -144,46 +204,67 @@ async def run_worker(args: argparse.Namespace) -> None:
                         entity_id=worker_id,
                         payload={"worker_id": worker_id},
                     )
-                record = await claim_next_pending_task(
-                    db,
-                    worker_id=worker_id,
-                    kinds=kinds,
-                    platforms=platforms,
-                    lease_seconds=settings.crawler_task_lease_seconds,
-                )
-            if record is None:
-                if args.once:
-                    return
-                try:
-                    await asyncio.wait_for(
-                        _shutdown_event.wait(),
-                        timeout=settings.crawler_worker_poll_interval_seconds,
-                    )
-                except TimeoutError:
-                    pass
-                continue
-            active_task = asyncio.create_task(
-                execute_claimed_task(record, worker_id=worker_id)
-            )
-            result = await active_task
-            active_task = None
-            if result.get("status") == "deferred":
-                try:
-                    await asyncio.wait_for(
-                        _shutdown_event.wait(),
-                        timeout=settings.crawler_worker_poll_interval_seconds,
-                    )
-                except TimeoutError:
-                    pass
+
+            await _collect_finished_tasks(active_tasks)
+
             if args.once:
+                if not active_tasks:
+                    claimed_count = await _claim_until_capacity(
+                        worker_id=worker_id,
+                        kinds=kinds,
+                        platforms=platforms,
+                        active_tasks=active_tasks,
+                        concurrency=1,
+                    )
+                    if claimed_count == 0:
+                        return
+                if active_tasks:
+                    done, _pending = await asyncio.wait(active_tasks)
+                    active_tasks.difference_update(done)
                 return
+
+            await _claim_until_capacity(
+                worker_id=worker_id,
+                kinds=kinds,
+                platforms=platforms,
+                active_tasks=active_tasks,
+                concurrency=worker_concurrency,
+            )
+
+            if len(active_tasks) >= worker_concurrency:
+                done, _pending = await asyncio.wait(
+                    active_tasks,
+                    timeout=settings.crawler_worker_poll_interval_seconds,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                active_tasks.difference_update(done)
+                for task in done:
+                    await task
+                continue
+
+            if not active_tasks:
+                try:
+                    await asyncio.wait_for(
+                        _shutdown_event.wait(),
+                        timeout=settings.crawler_worker_poll_interval_seconds,
+                    )
+                except TimeoutError:
+                    pass
+            else:
+                done, _pending = await asyncio.wait(
+                    active_tasks,
+                    timeout=settings.crawler_worker_poll_interval_seconds,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                active_tasks.difference_update(done)
+                for task in done:
+                    await task
     finally:
-        if active_task is not None and not active_task.done():
-            active_task.cancel()
-            try:
-                await active_task
-            except asyncio.CancelledError:
-                pass
+        for task in active_tasks:
+            if not task.done():
+                task.cancel()
+        if active_tasks:
+            await asyncio.gather(*active_tasks, return_exceptions=True)
         async with AsyncSessionLocal() as db:
             await mark_worker_stopping(db, worker_id)
         await engine.dispose()

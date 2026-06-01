@@ -577,6 +577,29 @@ async def test_liepin_cdp_detail_closes_temporary_tab(monkeypatch):
     close_target_mock.assert_awaited_once_with("target-liepin")
 
 
+@pytest.mark.asyncio
+async def test_liepin_crawl_runs_search_http_in_worker_thread(monkeypatch):
+    from app.platforms import liepin as liepin_module
+    from app.platforms.liepin import LiepinAdapter
+
+    captured: dict[str, object] = {}
+
+    async def fake_to_thread(func, *args):
+        captured["func_name"] = func.__name__
+        captured["args"] = args
+        return {"success": True, "count": 0, "jobs": []}
+
+    monkeypatch.setattr(liepin_module.asyncio, "to_thread", fake_to_thread)
+
+    result = await LiepinAdapter().crawl("https://www.liepin.com/zhaopin/?key=python&dqs=020")
+
+    assert result["success"] is True
+    assert captured == {
+        "func_name": "_crawl_search_http",
+        "args": ("python", "020"),
+    }
+
+
 def test_liepin_parse_detail_html():
     from app.platforms.liepin import LiepinAdapter
 

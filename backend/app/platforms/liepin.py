@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -81,7 +82,7 @@ class LiepinAdapter(BasePlatformAdapter):
         city = query.get("dqs", query.get("city", [""]))[0]
 
         self.runtime_logger.log("crawl_start", status="running", message="Liepin HTTP crawl started")
-        http_result = self._crawl_search_http(keyword, city)
+        http_result = await asyncio.to_thread(self._crawl_search_http, keyword, city)
         if http_result.get("success"):
             self.runtime_logger.log("crawl_finish", status="success", count=http_result.get("count", 0), message="Liepin HTTP crawl finished")
             return http_result

@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     crawler_task_lease_seconds: int = 3600
     crawler_task_max_requeue_attempts: int = 5
     crawler_profile_busy_retry_delay_seconds: float = 30.0
+    crawler_worker_concurrency: int = 1
 
     # JD OpenCLI integration
     jd_opencli_command: str = "opencli"
