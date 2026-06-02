@@ -8,6 +8,7 @@ import shutil
 import tarfile
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -34,6 +35,7 @@ class LoginSession:
     start_url: str
     context: object
     page: object
+    executor: ThreadPoolExecutor
     started_at: float
 
 
@@ -59,6 +61,15 @@ def _profile_lock(profile_key: str) -> asyncio.Lock:
         lock = asyncio.Lock()
         _profile_locks[profile_key] = lock
     return lock
+
+
+def _new_profile_runtime_executor(profile_key: str) -> ThreadPoolExecutor:
+    return ThreadPoolExecutor(max_workers=1, thread_name_prefix=f"profile-runtime-{profile_key}")
+
+
+async def _run_on_profile_executor(executor: ThreadPoolExecutor, func):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(executor, func)
 
 
 def is_login_session_open(profile_key: str) -> bool:
@@ -193,9 +204,11 @@ async def open_login_session(
             page.goto(url, wait_until="domcontentloaded", timeout=60000)
             return context, page
 
+        executor = _new_profile_runtime_executor(profile_key)
         try:
-            context, page = await asyncio.to_thread(_open)
+            context, page = await _run_on_profile_executor(executor, _open)
         except Exception as exc:
+            executor.shutdown(wait=False, cancel_futures=True)
             await emit_system_log_detached(
                 category="runtime",
                 event_type="profile_login.session_failed",
@@ -215,6 +228,7 @@ async def open_login_session(
             start_url=url,
             context=context,
             page=page,
+            executor=executor,
             started_at=time.time(),
         )
         await emit_system_log_detached(
@@ -261,7 +275,10 @@ async def close_login_session(profile_key: str) -> dict:
                 "message": "No active login session",
             }
 
-        await asyncio.to_thread(session.context.close)
+        try:
+            await _run_on_profile_executor(session.executor, session.context.close)
+        finally:
+            session.executor.shutdown(wait=False, cancel_futures=True)
         await emit_system_log_detached(
             category="runtime",
             event_type="profile_login.session_closed",
@@ -396,7 +413,11 @@ async def test_profile(
             payload={"profile_key": profile_key, "platform": platform_name},
         )
         try:
-            status, message = await asyncio.to_thread(_run_test)
+            executor = _new_profile_runtime_executor(f"{profile_key}-test")
+            try:
+                status, message = await _run_on_profile_executor(executor, _run_test)
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
         except Exception as exc:
             status, message = "error", str(exc)
 

@@ -166,6 +166,7 @@ async def test_delete_profile_rejects_open_login_session(mock_auth, mock_db):
         start_url="https://www.zhipin.com/",
         context=MagicMock(),
         page=MagicMock(),
+        executor=MagicMock(),
         started_at=0,
     )
     try:
@@ -189,6 +190,7 @@ async def test_rename_profile_rejects_open_login_session(mock_auth, mock_db):
         start_url="https://www.zhipin.com/",
         context=MagicMock(),
         page=MagicMock(),
+        executor=MagicMock(),
         started_at=0,
     )
     try:
@@ -215,6 +217,7 @@ async def test_copy_profile_rejects_open_login_session(mock_auth, mock_db):
         start_url="https://www.zhipin.com/",
         context=MagicMock(),
         page=MagicMock(),
+        executor=MagicMock(),
         started_at=0,
     )
     try:
@@ -334,6 +337,103 @@ async def test_open_login_session_serializes_same_profile(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_open_login_sessions_use_isolated_threads_for_sync_cloakbrowser(monkeypatch):
+    import asyncio
+    import sys
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    from app.domains.crawling import profile_runtime_service, profile_service
+    from app.models.crawl_profile import CrawlProfile
+
+    current = datetime.now(UTC)
+    profiles = {
+        key: CrawlProfile(
+            profile_key=key,
+            profile_dir=f"profiles/{key}",
+            status="available",
+            created_at=current,
+            updated_at=current,
+        )
+        for key in ("job-a", "job-b")
+    }
+    active_threads: set[int] = set()
+
+    class FakePage:
+        def goto(self, *args, **kwargs):
+            return None
+
+    class FakeContext:
+        def __init__(self, owner_thread: int):
+            self.owner_thread = owner_thread
+
+        def new_page(self):
+            return FakePage()
+
+        def close(self):
+            current_thread = threading.get_ident()
+            if current_thread != self.owner_thread:
+                raise RuntimeError("context closed on a different thread")
+            active_threads.discard(current_thread)
+
+    def launch_persistent_context(*args, **kwargs):
+        current_thread = threading.get_ident()
+        if current_thread in active_threads:
+            raise RuntimeError("sync Playwright loop already running in this thread")
+        active_threads.add(current_thread)
+        return FakeContext(current_thread)
+
+    async def fake_get_profile(_db, profile_key):
+        return profiles[profile_key]
+
+    loop = asyncio.get_running_loop()
+    default_executor = ThreadPoolExecutor(max_workers=1)
+    loop.set_default_executor(default_executor)
+    monkeypatch.setitem(
+        sys.modules,
+        "cloakbrowser",
+        SimpleNamespace(launch_persistent_context=launch_persistent_context),
+    )
+    monkeypatch.setattr(
+        profile_runtime_service,
+        "runtime_capabilities",
+        lambda: {"supports_login_session": True},
+    )
+    monkeypatch.setattr(profile_service, "get_profile", fake_get_profile)
+    monkeypatch.setattr(profile_runtime_service, "emit_system_log_detached", AsyncMock())
+    for key in profiles:
+        profile_runtime_service._sessions.pop(key, None)
+        profile_runtime_service._profile_locks.pop(key, None)
+
+    try:
+        first = await profile_runtime_service.open_login_session(
+            AsyncMock(),
+            profile_key="job-a",
+            platform_name="boss",
+            start_url=None,
+        )
+        second = await profile_runtime_service.open_login_session(
+            AsyncMock(),
+            profile_key="job-b",
+            platform_name="51job",
+            start_url=None,
+        )
+
+        assert first["status"] == "active"
+        assert second["status"] == "active"
+
+        await profile_runtime_service.close_login_session("job-a")
+        await profile_runtime_service.close_login_session("job-b")
+        assert active_threads == set()
+    finally:
+        for key in profiles:
+            profile_runtime_service._sessions.pop(key, None)
+            profile_runtime_service._profile_locks.pop(key, None)
+        default_executor.shutdown(wait=True, cancel_futures=True)
+
+
+@pytest.mark.asyncio
 async def test_profile_directory_operations_reject_open_session(mock_db):
     from app.domains.crawling import profile_runtime_service
     from app.models.crawl_profile import CrawlProfile
@@ -353,6 +453,7 @@ async def test_profile_directory_operations_reject_open_session(mock_db):
         start_url="https://www.zhipin.com/",
         context=MagicMock(),
         page=MagicMock(),
+        executor=MagicMock(),
         started_at=0,
     )
     try:
