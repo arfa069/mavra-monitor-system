@@ -178,6 +178,32 @@ def test_liepin_transform_jobs_prefers_detail_id_from_link():
     assert jobs[0]["url"] == "https://www.liepin.com/job/1982380963.shtml"
 
 
+def test_liepin_transform_jobs_prefers_detail_id_from_anonymous_link():
+    from app.platforms.liepin import LiepinAdapter
+
+    payload = {
+        "data": {
+            "data": {
+                "jobCardList": [
+                    {
+                        "job": {
+                            "jobId": "75685657",
+                            "title": "Python Engineer",
+                            "link": "https://www.liepin.com/a/1982380963.shtml",
+                        },
+                        "comp": {"compName": "Example Co"},
+                    }
+                ]
+            }
+        }
+    }
+
+    jobs = LiepinAdapter._transform_jobs(payload)
+
+    assert jobs[0]["job_id"] == "1982380963"
+    assert jobs[0]["url"] == "https://www.liepin.com/a/1982380963.shtml"
+
+
 @pytest.mark.asyncio
 async def test_liepin_crawl_uses_http_json_success(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
@@ -491,6 +517,69 @@ async def test_liepin_crawl_detail_tries_anonymous_detail_url(monkeypatch):
         "https://www.liepin.com/job/75066461.shtml",
         "https://www.liepin.com/a/75066461.shtml",
     ]
+
+
+@pytest.mark.asyncio
+async def test_liepin_crawl_detail_tries_anonymous_detail_url_after_404(monkeypatch):
+    from app.platforms.liepin import LiepinAdapter
+
+    requested_urls = []
+
+    class FakeResponse:
+        def __init__(self, status_code, text):
+            self.status_code = status_code
+            self.headers = {"content-type": "text/html"}
+            self.text = text
+
+    class FakeSession:
+        def get(self, url, *_args, **_kwargs):
+            requested_urls.append(url)
+            if "/a/" in url:
+                return FakeResponse(200, "<html><div class='job-intro-container'>备用详情</div></html>")
+            return FakeResponse(404, "<html>not found</html>")
+
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
+
+    result = await adapter.crawl_detail("75685657")
+
+    assert result["success"] is True
+    assert result["detail"]["description"] == "备用详情"
+    assert requested_urls == [
+        "https://www.liepin.com/job/75685657.shtml",
+        "https://www.liepin.com/a/75685657.shtml",
+    ]
+
+
+def test_liepin_classifies_security_center_as_challenge():
+    from app.platforms.liepin import classify_liepin_failure
+
+    category = classify_liepin_failure(status_code=200, text="<title>猎聘安全中心</title>")
+
+    assert category == "challenge"
+
+
+@pytest.mark.asyncio
+async def test_liepin_crawl_detail_reports_all_challenge_pages_as_challenge(monkeypatch):
+    from app.platforms.liepin import LiepinAdapter
+
+    class FakeResponse:
+        status_code = 200
+        headers = {"content-type": "text/html"}
+        text = "<html><title>猎聘安全中心</title></html>"
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
+
+    result = await adapter.crawl_detail("75685657")
+
+    assert result["success"] is False
+    assert result["failure_category"] == "challenge"
+    assert "challenge" in result["error"]
 
 
 @pytest.mark.asyncio

@@ -462,6 +462,7 @@ class TestProcessJobResults:
             with (
                 patch("app.domains.jobs.crawl_service.update_job_detail", update_detail),
                 patch("app.domains.jobs.crawl_service.asyncio.sleep", new_callable=AsyncMock) as sleep,
+                patch("app.domains.jobs.crawl_service.random.uniform", return_value=0.0) as random_uniform,
             ):
                 result = await process_job_results(
                     1,
@@ -477,6 +478,12 @@ class TestProcessJobResults:
         assert update_detail.await_args_list[0].kwargs["db"] is mock_db
         assert update_detail.await_args_list[1].kwargs["db"] is mock_db
         sleep.assert_awaited()
+        detail_delay_calls = [
+            call.args
+            for call in random_uniform.call_args_list
+            if call.args == (5.0, 10.0)
+        ]
+        assert len(detail_delay_calls) == 2
 
     @pytest.mark.asyncio
     async def test_process_job_results_does_not_retry_unavailable_liepin_detail(self):

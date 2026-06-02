@@ -34,6 +34,7 @@ VALID_JOB_PLATFORMS = {"boss", "51job", "liepin"}
 _JOB_CRAWL_LOCK = asyncio.Lock()
 DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2
 DETAIL_RETRY_DELAY_SECONDS = (20.0, 40.0)
+DETAIL_FETCH_DELAY_SECONDS = (5.0, 10.0)
 DETAIL_FETCH_TIMEOUT_SECONDS = 15.0
 DETAIL_WAF_BLOCK_LIMIT = 1
 DETAIL_TIMEOUT_LIMIT = 3
@@ -554,8 +555,8 @@ async def process_job_results(
                     )
                     break
 
-                # 2-5秒间隔，避免触发反爬
-                await asyncio.sleep(random.uniform(2.0, 5.0))
+                # 5-10秒间隔，避免触发反爬
+                await asyncio.sleep(random.uniform(*DETAIL_FETCH_DELAY_SECONDS))
             if retry_detail_jobs:
                 retry_delay = random.uniform(*DETAIL_RETRY_DELAY_SECONDS)
                 logger.info(
@@ -599,7 +600,7 @@ async def process_job_results(
                     except Exception:
                         logger.exception("Retry detail fetch failed for job %s", job_obj.id)
 
-                    await asyncio.sleep(random.uniform(2.0, 5.0))
+                    await asyncio.sleep(random.uniform(*DETAIL_FETCH_DELAY_SECONDS))
             if detail_errors:
                 logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_jobs))
 

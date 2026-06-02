@@ -34,7 +34,7 @@ def classify_liepin_failure(*, status_code: int, text: str) -> str:
         return "xsrf"
     if status_code in {401, 403}:
         return "challenge"
-    if any(marker in lowered for marker in ("captcha", "verify", "安全验证", "登录", "passport", "antibot")):
+    if any(marker in lowered for marker in ("captcha", "verify", "安全验证", "安全中心", "登录", "passport", "antibot")):
         return "challenge"
     if status_code >= 500:
         return "http_error"
@@ -383,13 +383,14 @@ class LiepinAdapter(BasePlatformAdapter):
 
     @staticmethod
     def _job_id_from_link(link: str) -> str:
-        match = re.search(r"/job/(\d+)\.shtml", link)
+        match = re.search(r"/(?:job|a)/(\d+)\.shtml", link)
         return match.group(1) if match else ""
 
     async def crawl_detail(self, job_id: str) -> dict[str, Any]:
         failures: list[str] = []
         detail_urls = self._detail_urls(job_id)
         redirect_shell_count = 0
+        challenge_count = 0
         for detail_url in detail_urls:
             try:
                 response = self._get_session().get(
@@ -411,14 +412,15 @@ class LiepinAdapter(BasePlatformAdapter):
                         return {"success": True, "detail": detail}
                     category = classify_liepin_failure(status_code=response.status_code, text=text)
                     if category == "challenge":
+                        challenge_count += 1
                         self.runtime_logger.log("detail_challenge", status="blocked", failure_category=category, job_id=job_id)
                     failures.append(f"{detail_url} status=200 category={category} no_detail_content")
                 else:
                     category = classify_liepin_failure(status_code=response.status_code, text=text)
-                    if category:
-                        failures.append(f"{detail_url} status={response.status_code} category={category}")
-                        return {"success": False, "error": f"Liepin detail HTTP {response.status_code}: {category}", "failure_category": category}
-                    failures.append(f"{detail_url} status={response.status_code} category=unknown")
+                    failures.append(f"{detail_url} status={response.status_code} category={category}")
+                    if category == "challenge":
+                        challenge_count += 1
+                        self.runtime_logger.log("detail_challenge", status="blocked", failure_category=category, job_id=job_id)
             except Exception as exc:
                 category = classify_liepin_failure(status_code=0, text=str(exc))
                 failures.append(f"{detail_url} exception={type(exc).__name__} category={category}")
@@ -428,6 +430,9 @@ class LiepinAdapter(BasePlatformAdapter):
         if redirect_shell_count == len(detail_urls):
             error = "Liepin detail URLs returned redirect shell with no detail content"
             failure_category = "detail_unavailable"
+        elif challenge_count == len(detail_urls):
+            error = "Liepin detail URLs returned challenge pages with no detail content"
+            failure_category = "challenge"
         else:
             error = "Liepin detail HTTP response contained no detail content"
         if failures:
