@@ -455,14 +455,28 @@ async def process_job_results(
                         detail_errors += 1
                         retry_detail_jobs.append(job_obj)
                     elif isinstance(result, dict) and not result.get("success"):
-                        detail_errors += 1
+                        failure_category = result.get("failure_category") or ""
                         err = str(result.get("error", ""))
+                        if platform == "liepin" and failure_category == "detail_unavailable":
+                            logger.info(
+                                "Detail fetch unavailable: platform=%s job_id=%s db_id=%s category=%s error=%s",
+                                platform,
+                                job_obj.job_id,
+                                job_obj.id,
+                                failure_category,
+                                err,
+                            )
+                            consecutive_cookie_failures = 0
+                            consecutive_waf_blocks = 0
+                            consecutive_detail_timeouts = 0
+                            continue
+                        detail_errors += 1
                         logger.warning(
                             "Detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
                             platform,
                             job_obj.job_id,
                             job_obj.id,
-                            result.get("failure_category") or "",
+                            failure_category,
                             err,
                         )
                         if "Blocked by Aliyun WAF" in err:

@@ -479,6 +479,63 @@ class TestProcessJobResults:
         sleep.assert_awaited()
 
     @pytest.mark.asyncio
+    async def test_process_job_results_does_not_retry_unavailable_liepin_detail(self):
+        """Permanent Liepin detail shells should not enter the retry queue."""
+        from app.domains.jobs.crawl_service import process_job_results
+
+        mock_config = MagicMock()
+        mock_config.id = 1
+        mock_config.notify_on_new = False
+        mock_config.deactivation_threshold = 3
+        mock_config.enable_match_analysis = False
+        mock_config.profile_key = "liepin"
+
+        existing_job = MagicMock()
+        existing_job.id = 99
+        existing_job.job_id = "75755585"
+        existing_job.search_config_id = 1
+        existing_job.is_active = True
+        existing_job.consecutive_miss_count = 0
+        existing_job.description = ""
+        existing_job.address = ""
+
+        active_result = MagicMock()
+        active_result.scalars.return_value.all.return_value = [existing_job]
+        existing_result = MagicMock()
+        existing_result.scalars.return_value.all.return_value = [existing_job]
+
+        mock_db = MagicMock()
+        mock_db.get = AsyncMock(return_value=mock_config)
+        mock_db.execute = AsyncMock(side_effect=[active_result, existing_result])
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+
+        update_detail = AsyncMock(return_value={
+            "success": False,
+            "failure_category": "detail_unavailable",
+            "error": "Liepin detail URL returned redirect shell",
+        })
+
+        with patch("app.domains.jobs.crawl_service.AsyncSessionLocal") as mock_session:
+            mock_session.return_value.__aenter__.return_value = mock_db
+            mock_session.return_value.__aexit__.return_value = None
+
+            with (
+                patch("app.domains.jobs.crawl_service.update_job_detail", update_detail),
+                patch("app.domains.jobs.crawl_service.asyncio.sleep", new_callable=AsyncMock) as sleep,
+            ):
+                result = await process_job_results(
+                    1,
+                    [{"job_id": "75755585", "title": "Dev", "description": "", "address": ""}],
+                    1,
+                    platform="liepin",
+                )
+
+        assert result["updated_count"] == 1
+        update_detail.assert_awaited_once()
+        sleep.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_process_job_results_grace_period_deactivation(self):
         """Job should be deactivated when threshold reached (threshold=2, miss_count goes 1->2)."""
         from app.domains.jobs.crawl_service import process_job_results

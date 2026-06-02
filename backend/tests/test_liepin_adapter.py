@@ -494,6 +494,39 @@ async def test_liepin_crawl_detail_tries_anonymous_detail_url(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_liepin_crawl_detail_reports_redirect_shell_as_unavailable(monkeypatch):
+    from app.platforms.liepin import LiepinAdapter
+
+    class FakeResponse:
+        status_code = 200
+        headers = {"content-type": "text/html"}
+        text = """
+        <html>
+          <body>
+            <script>
+              window.$CONFIG = {
+                pcUrl: 'https://wow.liepin.com/t1012695/4410f519.html'
+              }
+            </script>
+          </body>
+        </html>
+        """
+
+    class FakeSession:
+        def get(self, *_args, **_kwargs):
+            return FakeResponse()
+
+    adapter = LiepinAdapter()
+    monkeypatch.setattr(adapter, "_get_session", lambda: FakeSession())
+
+    result = await adapter.crawl_detail("75755585")
+
+    assert result["success"] is False
+    assert result["failure_category"] == "detail_unavailable"
+    assert "redirect shell" in result["error"]
+
+
+@pytest.mark.asyncio
 async def test_liepin_crawl_detail_does_not_treat_login_header_as_challenge(monkeypatch):
     from app.platforms.liepin import LiepinAdapter
 
@@ -616,3 +649,147 @@ def test_liepin_parse_detail_html():
 
     assert detail["description"] == "负责 Python 服务开发"
     assert detail["address"] == "上海市浦东新区"
+
+
+def test_liepin_parse_detail_html_from_jobposting_json_ld():
+    from app.platforms.liepin import LiepinAdapter
+
+    html = """
+    <html>
+      <head>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          "title": "IT技术支持",
+          "description": "【工作内容】\\n- 协助处理硬件、软件及网络设备的日常维护与故障排查；\\n【任职要求】\\n- 本科及以上学历。",
+          "jobLocation": {
+            "@type": "Place",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "广州-荔湾区",
+              "addressLocality": "广州-荔湾区",
+              "addressRegion": "广州",
+              "addressCountry": "CN"
+            }
+          }
+        }
+        </script>
+      </head>
+    </html>
+    """
+
+    detail = LiepinAdapter._parse_detail_html(html)
+
+    assert "协助处理硬件" in detail["description"]
+    assert "本科及以上学历" in detail["description"]
+    assert detail["address"] == "广州-荔湾区"
+
+
+def test_liepin_parse_detail_html_from_jobposting_json_ld_with_literal_newlines():
+    from app.platforms.liepin import LiepinAdapter
+
+    html = """
+    <html>
+      <head>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          "title": "IT工程师",
+          "description": "工作职责
+1. 负责安防安保系统的部署、日常运维、定期巡检及故障快速定位与修复。
+任职要求
+1. 熟悉安防设备及基础网络原理。",
+          "jobLocation": {
+            "@type": "Place",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "深圳-光明区深圳迪道微电子科技有限公司",
+              "addressLocality": "深圳-光明区"
+            }
+          }
+        }
+        </script>
+      </head>
+    </html>
+    """
+
+    detail = LiepinAdapter._parse_detail_html(html)
+
+    assert "安防安保系统" in detail["description"]
+    assert "基础网络原理" in detail["description"]
+    assert detail["address"] == "深圳-光明区深圳迪道微电子科技有限公司"
+
+
+def test_liepin_get_session_seeds_profile_cookies_once(monkeypatch, tmp_path):
+    from app.platforms import liepin as liepin_module
+    from app.platforms.liepin import LiepinAdapter
+
+    class FakeSession:
+        pass
+
+    fake_session = FakeSession()
+    calls = []
+
+    adapter = LiepinAdapter(profile_dir=tmp_path)
+
+    monkeypatch.setattr(liepin_module, "CffiSession", lambda: fake_session)
+    monkeypatch.setattr(adapter, "_ensure_profile_cookies", lambda session: calls.append(session))
+
+    assert adapter._get_session() is fake_session
+    assert adapter._get_session() is fake_session
+    assert calls == [fake_session]
+
+
+def test_liepin_ensure_profile_cookies_decrypts_and_sets_liepin_cookie(monkeypatch, tmp_path):
+    from app.platforms.liepin import LiepinAdapter
+
+    class FakeCookies:
+        def __init__(self):
+            self.set_calls = []
+
+        def set(self, name, value, *, domain, path):
+            self.set_calls.append({
+                "name": name,
+                "value": value,
+                "domain": domain,
+                "path": path,
+            })
+
+    class FakeSession:
+        def __init__(self):
+            self.cookies = FakeCookies()
+
+    adapter = LiepinAdapter(profile_dir=tmp_path)
+    local_state_path = tmp_path / "Local State"
+    cookie_db_path = tmp_path / "Default" / "Network" / "Cookies"
+
+    monkeypatch.setattr(adapter, "_load_chromium_cookie_key", lambda path: b"profile-key" if path == local_state_path else None)
+    monkeypatch.setattr(
+        adapter,
+        "_read_chromium_cookie_rows",
+        lambda path: [
+            {
+                "host_key": ".liepin.com",
+                "path": "/",
+                "name": "lt_auth",
+                "encrypted_value": b"encrypted",
+            }
+        ] if path == cookie_db_path else [],
+    )
+    monkeypatch.setattr(adapter, "_decrypt_chromium_cookie_value", lambda encrypted_value, key: "decrypted-cookie")
+
+    session = FakeSession()
+    adapter._ensure_profile_cookies(session)
+
+    assert session.cookies.set_calls == [
+        {
+            "name": "lt_auth",
+            "value": "decrypted-cookie",
+            "domain": ".liepin.com",
+            "path": "/",
+        }
+    ]
+    adapter._ensure_profile_cookies(session)
+    assert len(session.cookies.set_calls) == 1

@@ -56,6 +56,7 @@ class LiepinAdapter(BasePlatformAdapter):
         self.runtime_context = runtime_context
         self.profile_dir = Path(profile_dir) if profile_dir is not None else None
         self._session: CffiSession | None = None
+        self._profile_cookies_loaded = False
         from app.platforms.job_runtime_logging import JobRuntimeJsonlLogger
         self.runtime_logger = JobRuntimeJsonlLogger(
             platform="liepin",
@@ -67,7 +68,143 @@ class LiepinAdapter(BasePlatformAdapter):
     def _get_session(self) -> CffiSession:
         if self._session is None:
             self._session = CffiSession()
+            self._ensure_profile_cookies(self._session)
         return self._session
+
+    def _ensure_profile_cookies(self, session: CffiSession) -> None:
+        if self._profile_cookies_loaded:
+            return
+        self._profile_cookies_loaded = True
+        if self.profile_dir is None:
+            return
+        try:
+            loaded_count = self._load_profile_cookies(session)
+        except Exception as exc:
+            logger.debug("Liepin profile cookie load skipped: %s", exc)
+            return
+        if loaded_count:
+            logger.info("Loaded Liepin profile cookies: count=%s", loaded_count)
+
+    def _load_profile_cookies(self, session: CffiSession) -> int:
+        if self.profile_dir is None:
+            return 0
+        local_state_path = self.profile_dir / "Local State"
+        cookie_db_path = self.profile_dir / "Default" / "Network" / "Cookies"
+        key = self._load_chromium_cookie_key(local_state_path)
+        if not key:
+            return 0
+        loaded_count = 0
+        for row in self._read_chromium_cookie_rows(cookie_db_path):
+            value = self._decrypt_chromium_cookie_value(row["encrypted_value"], key)
+            if not value:
+                continue
+            session.cookies.set(
+                row["name"],
+                value,
+                domain=row["host_key"],
+                path=row["path"] or "/",
+            )
+            loaded_count += 1
+        return loaded_count
+
+    @staticmethod
+    def _read_chromium_cookie_rows(cookie_db_path: Path) -> list[dict[str, Any]]:
+        if not cookie_db_path.exists():
+            return []
+        import sqlite3
+
+        db_uri = f"file:{cookie_db_path.resolve().as_posix()}?mode=ro"
+        with sqlite3.connect(db_uri, uri=True) as conn:
+            rows = conn.execute(
+                """
+                SELECT host_key, path, name, encrypted_value
+                FROM cookies
+                WHERE host_key LIKE '%liepin%' OR host_key LIKE '%lietou%'
+                """,
+            ).fetchall()
+        return [
+            {
+                "host_key": str(host_key),
+                "path": str(path or "/"),
+                "name": str(name),
+                "encrypted_value": bytes(encrypted_value or b""),
+            }
+            for host_key, path, name, encrypted_value in rows
+            if name and encrypted_value
+        ]
+
+    @staticmethod
+    def _load_chromium_cookie_key(local_state_path: Path) -> bytes | None:
+        if not local_state_path.exists():
+            return None
+        import base64
+
+        local_state = json.loads(local_state_path.read_text(encoding="utf-8"))
+        encrypted_key = local_state.get("os_crypt", {}).get("encrypted_key")
+        if not encrypted_key:
+            return None
+        encrypted_key_bytes = base64.b64decode(encrypted_key)
+        if encrypted_key_bytes.startswith(b"DPAPI"):
+            encrypted_key_bytes = encrypted_key_bytes[5:]
+        return LiepinAdapter._windows_dpapi_unprotect(encrypted_key_bytes)
+
+    @staticmethod
+    def _decrypt_chromium_cookie_value(encrypted_value: bytes, key: bytes) -> str:
+        if not encrypted_value:
+            return ""
+        if encrypted_value.startswith((b"v10", b"v11", b"v20")):
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+            nonce = encrypted_value[3:15]
+            ciphertext = encrypted_value[15:]
+            plaintext = AESGCM(key).decrypt(nonce, ciphertext, None)
+            return LiepinAdapter._decode_chromium_cookie_plaintext(plaintext)
+        plaintext = LiepinAdapter._windows_dpapi_unprotect(encrypted_value)
+        return LiepinAdapter._decode_chromium_cookie_plaintext(plaintext)
+
+    @staticmethod
+    def _decode_chromium_cookie_plaintext(plaintext: bytes) -> str:
+        candidates = [plaintext]
+        if len(plaintext) > 32:
+            candidates.append(plaintext[32:])
+        for candidate in candidates:
+            try:
+                return candidate.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+        return ""
+
+    @staticmethod
+    def _windows_dpapi_unprotect(data: bytes) -> bytes:
+        import ctypes
+        from ctypes import wintypes
+
+        if not hasattr(ctypes, "windll"):
+            raise RuntimeError("Windows DPAPI is unavailable")
+
+        class DataBlob(ctypes.Structure):
+            _fields_ = [
+                ("cbData", wintypes.DWORD),
+                ("pbData", ctypes.POINTER(ctypes.c_char)),
+            ]
+
+        input_buffer = ctypes.create_string_buffer(data)
+        input_blob = DataBlob(len(data), ctypes.cast(input_buffer, ctypes.POINTER(ctypes.c_char)))
+        output_blob = DataBlob()
+        if not ctypes.windll.crypt32.CryptUnprotectData(
+            ctypes.byref(input_blob),
+            None,
+            None,
+            None,
+            None,
+            0,
+            ctypes.byref(output_blob),
+        ):
+            raise ctypes.WinError()
+        try:
+            return ctypes.string_at(output_blob.pbData, output_blob.cbData)
+        finally:
+            ctypes.windll.kernel32.LocalFree(output_blob.pbData)
 
     async def extract_price(self, page) -> dict[str, Any]:
         raise NotImplementedError("Job adapter does not extract prices")
@@ -251,7 +388,9 @@ class LiepinAdapter(BasePlatformAdapter):
 
     async def crawl_detail(self, job_id: str) -> dict[str, Any]:
         failures: list[str] = []
-        for detail_url in self._detail_urls(job_id):
+        detail_urls = self._detail_urls(job_id)
+        redirect_shell_count = 0
+        for detail_url in detail_urls:
             try:
                 response = self._get_session().get(
                     detail_url,
@@ -261,6 +400,10 @@ class LiepinAdapter(BasePlatformAdapter):
                 )
                 text = response.text or ""
                 if response.status_code == 200:
+                    if self._is_redirect_shell(text):
+                        redirect_shell_count += 1
+                        failures.append(f"{detail_url} status=200 category=detail_unavailable redirect_shell")
+                        continue
                     detail = self._parse_detail_html(text)
                     if detail["description"] or detail["address"]:
                         if not detail["address"]:
@@ -281,17 +424,22 @@ class LiepinAdapter(BasePlatformAdapter):
                 failures.append(f"{detail_url} exception={type(exc).__name__} category={category}")
                 logger.debug("Liepin detail HTTP failed for %s via %s: %s", job_id, detail_url, exc)
 
-        error = "Liepin detail HTTP response contained no detail content"
+        failure_category = "detail_error"
+        if redirect_shell_count == len(detail_urls):
+            error = "Liepin detail URLs returned redirect shell with no detail content"
+            failure_category = "detail_unavailable"
+        else:
+            error = "Liepin detail HTTP response contained no detail content"
         if failures:
             error = f"{error}; attempts: {'; '.join(failures)}"
         self.runtime_logger.log(
             "detail_failed",
             status="failed",
             message=error,
-            failure_category="detail_error",
+            failure_category=failure_category,
             job_id=job_id,
         )
-        return {"success": False, "error": error, "failure_category": "detail_error"}
+        return {"success": False, "error": error, "failure_category": failure_category}
 
     @staticmethod
     def _detail_urls(job_id: str) -> list[str]:
@@ -301,8 +449,15 @@ class LiepinAdapter(BasePlatformAdapter):
         ]
 
     @staticmethod
+    def _is_redirect_shell(html: str) -> bool:
+        return all(marker in html for marker in ("window.$CONFIG", "pcUrl", "wow.liepin.com"))
+
+    @staticmethod
     def _parse_detail_html(html: str) -> dict[str, str]:
         soup = BeautifulSoup(html, "html.parser")
+        json_ld_detail = LiepinAdapter._parse_jobposting_json_ld(soup)
+        if json_ld_detail["description"] or json_ld_detail["address"]:
+            return json_ld_detail
         description_node = (
             soup.select_one(".job-intro-container")
             or soup.select_one(".job-description")
@@ -319,3 +474,56 @@ class LiepinAdapter(BasePlatformAdapter):
             "description": description_node.get_text("\n", strip=True) if description_node else "",
             "address": address,
         }
+
+    @staticmethod
+    def _parse_jobposting_json_ld(soup: BeautifulSoup) -> dict[str, str]:
+        for script in soup.select('script[type="application/ld+json"]'):
+            try:
+                payload = json.loads(script.string or script.get_text("", strip=True) or "{}", strict=False)
+            except json.JSONDecodeError:
+                continue
+            jobposting = LiepinAdapter._find_jobposting_payload(payload)
+            if not isinstance(jobposting, dict):
+                continue
+            description = str(jobposting.get("description") or "").strip()
+            address = LiepinAdapter._address_from_jobposting(jobposting)
+            if description or address:
+                return {"description": description, "address": address}
+        return {"description": "", "address": ""}
+
+    @staticmethod
+    def _find_jobposting_payload(payload: Any) -> dict[str, Any] | None:
+        if isinstance(payload, dict):
+            payload_type = payload.get("@type")
+            if payload_type == "JobPosting" or (isinstance(payload_type, list) and "JobPosting" in payload_type):
+                return payload
+            graph = payload.get("@graph")
+            if isinstance(graph, list):
+                for item in graph:
+                    found = LiepinAdapter._find_jobposting_payload(item)
+                    if found is not None:
+                        return found
+        elif isinstance(payload, list):
+            for item in payload:
+                found = LiepinAdapter._find_jobposting_payload(item)
+                if found is not None:
+                    return found
+        return None
+
+    @staticmethod
+    def _address_from_jobposting(jobposting: dict[str, Any]) -> str:
+        location = jobposting.get("jobLocation")
+        if isinstance(location, list):
+            location = next((item for item in location if isinstance(item, dict)), None)
+        if not isinstance(location, dict):
+            return ""
+        address = location.get("address")
+        if isinstance(address, str):
+            return address.strip()
+        if not isinstance(address, dict):
+            return ""
+        for key in ("streetAddress", "addressLocality", "addressRegion"):
+            value = address.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return ""
