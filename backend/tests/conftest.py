@@ -1,12 +1,15 @@
 """Pytest configuration and fixtures for price monitor tests."""
+import os
 import shutil
+import tempfile
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.main import app
+_TEST_PROFILE_ROOT = Path(tempfile.mkdtemp(prefix="price-monitor-test-profiles-"))
+os.environ["PRICE_MONITOR_PROFILE_ROOT"] = str(_TEST_PROFILE_ROOT)
 
 
 @pytest.fixture(scope="session")
@@ -17,6 +20,8 @@ def anyio_backend():
 @pytest.fixture
 async def async_client() -> AsyncGenerator[AsyncClient, None]:
     """HTTP client for integration tests."""
+    from app.main import app
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
@@ -43,19 +48,6 @@ def another_user() -> dict:
 
 @pytest.fixture(scope="session", autouse=True)
 def _clean_test_profiles():
-    """Clean up test-created profile directories after each test."""
+    """Clean up test-created profile directories after the test session."""
     yield
-    profiles_root = Path(__file__).resolve().parent.parent / "profiles"
-    if profiles_root.exists():
-        for d in profiles_root.iterdir():
-            if d.is_dir() and ("test" in d.name or d.name.startswith("job-")):
-                shutil.rmtree(d, ignore_errors=True)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _temp_profile_root(tmp_path_factory):
-    """Redirect test profile directories to a temp location."""
-    import app.core.crawler_paths as cp
-    temp_root = tmp_path_factory.mktemp("test_profiles")
-    cp._project_root = lambda: temp_root
-    yield
+    shutil.rmtree(_TEST_PROFILE_ROOT, ignore_errors=True)

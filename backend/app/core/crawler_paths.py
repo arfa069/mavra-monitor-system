@@ -6,7 +6,10 @@ directory, organized as ``profiles/{profile_key}``.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+PROFILE_ROOT_ENV = "PRICE_MONITOR_PROFILE_ROOT"
 
 
 def _project_root() -> Path:
@@ -26,5 +29,10 @@ def build_profile_dir(profile_key: str, root: str | Path | None = None) -> Path:
     Pass an explicit *root* (e.g. ``tmp_path`` in tests) to override.
     """
     _validate_segment("profile key", profile_key)
-    base = Path(root).expanduser().resolve() if root is not None else _project_root()
+    if root is not None:
+        base = Path(root).expanduser().resolve()
+    elif env_root := os.getenv(PROFILE_ROOT_ENV):
+        base = Path(env_root).expanduser().resolve()
+    else:
+        base = _project_root()
     return base / "profiles" / profile_key
