@@ -40,7 +40,7 @@ async def test_call_service_posts_entity_id():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/services/switch/turn_off"
         assert request.method == "POST"
-        assert request.read() == b'{"entity_id":"switch.kitchen"}'
+        assert request.read() == b'{"entity_id": "switch.kitchen"}'
         return httpx.Response(200, json=[])
 
     client = HomeAssistantClient(

@@ -63,8 +63,8 @@ def upgrade() -> None:
 
     for permission_name, description in PERMISSIONS.items():
         op.execute(
-            f"INSERT INTO users_permissions (name, description) "
-            f"VALUES ('{permission_name}', '{description}') "
+            f"INSERT INTO users_permissions (name, description, created_at, updated_at) "
+            f"VALUES ('{permission_name}', '{description}', NOW(), NOW()) "
             f"ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description"
         )
     for role_name, permission_names in ROLE_PERMISSIONS.items():
