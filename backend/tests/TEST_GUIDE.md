@@ -14,7 +14,7 @@
 ### 运行方式
 
 ```powershell
-cd C:\Users\arfac\price-monitor
+cd C:\Users\arfac\Documents\mavra-monitor-system
 
 # 安装测试依赖（如果缺失）
 pip install pytest pytest-asyncio httpx

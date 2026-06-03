@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 export type Theme = "light" | "dark";
 
-const STORAGE_KEY = "price-monitor-theme";
+const STORAGE_KEY = "mavra-monitor-system-theme";
 
 function getInitialTheme(): Theme {
   try {

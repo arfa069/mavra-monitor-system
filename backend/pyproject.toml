@@ -1,5 +1,5 @@
 [project]
-name = "price-monitor"
+name = "mavra-monitor-system"
 version = "0.1.0"
 description = "E-commerce price monitoring system with Feishu alerts"
 requires-python = ">=3.11"

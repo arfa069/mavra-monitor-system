@@ -21,7 +21,7 @@ test.describe("Motion Settings", () => {
           is_active: true,
         }),
       );
-      localStorage.removeItem("price-monitor-motion-speed");
+      localStorage.removeItem("mavra-monitor-system-motion-speed");
     }, process.env.E2E_TEST_LOGIN!);
   });
 
@@ -33,7 +33,7 @@ test.describe("Motion Settings", () => {
 
     await expect
       .poll(() =>
-        page.evaluate(() => localStorage.getItem("price-monitor-motion-speed")),
+        page.evaluate(() => localStorage.getItem("mavra-monitor-system-motion-speed")),
       )
       .toBe("slow");
 

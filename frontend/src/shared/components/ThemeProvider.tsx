@@ -9,7 +9,7 @@ import {
 import { useTheme, type Theme } from "@/shared/hooks/useTheme";
 import type { MotionSpeed } from "@/shared/types/motion";
 
-const MOTION_SPEED_STORAGE_KEY = "price-monitor-motion-speed";
+const MOTION_SPEED_STORAGE_KEY = "mavra-monitor-system-motion-speed";
 
 function getInitialMotionSpeed(): MotionSpeed {
   try {

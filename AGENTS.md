@@ -7,7 +7,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (8021 symbols, 15074 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 15092 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -30,10 +30,10 @@ This project is indexed by GitNexus as **price-monitor** (8021 symbols, 15074 re
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/price-monitor/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/price-monitor/clusters` | All functional areas |
-| `gitnexus://repo/price-monitor/processes` | All execution flows |
-| `gitnexus://repo/price-monitor/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/mavra-monitor-system/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/mavra-monitor-system/clusters` | All functional areas |
+| `gitnexus://repo/mavra-monitor-system/processes` | All execution flows |
+| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
@@ -55,7 +55,7 @@ This project is indexed by GitNexus as **price-monitor** (8021 symbols, 15074 re
 ## STRUCTURE
 
 ```
-price-monitor/
+mavra-monitor-system/
 ├── backend/                    # FastAPI, SQLAlchemy, crawlers, workers, tests
 │   ├── app/main.py             # FastAPI app + lifespan + router mounting
 │   ├── app/domains/            # business domains: crawling/jobs/products/auth/admin/...
@@ -102,19 +102,19 @@ price-monitor/
 Run shell/test/lint commands through PowerShell on Windows.
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pip install -e ."
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; alembic upgrade head"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pip install -e ."
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; alembic upgrade head"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check ."
 ```
 
 Frontend:
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run lint"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run build"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/ --project=chromium"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run lint"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run build"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/ --project=chromium"
 ```
 
 ## CONVENTIONS

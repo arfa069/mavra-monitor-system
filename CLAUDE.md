@@ -5,7 +5,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **price-monitor** (8021 symbols, 15074 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 15092 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -28,10 +28,10 @@ This project is indexed by GitNexus as **price-monitor** (8021 symbols, 15074 re
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/price-monitor/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/price-monitor/clusters` | All functional areas |
-| `gitnexus://repo/price-monitor/processes` | All execution flows |
-| `gitnexus://repo/price-monitor/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/mavra-monitor-system/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/mavra-monitor-system/clusters` | All functional areas |
+| `gitnexus://repo/mavra-monitor-system/processes` | All execution flows |
+| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
@@ -66,23 +66,23 @@ Always load the `karpathy-guidelines` skill when coding.
 
 ### 安装依赖
 
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pip install -e ."
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pip install -e ."
 
 ### 运行数据库迁移
 
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; alembic upgrade head"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; alembic upgrade head"
 
 ### 启动前端服务器和后端服务器 **前端端口3000，后端8000**
 
-powershell.exe -Command "cd C:/Users/arfac/price-monitor; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
 
 ### 运行测试
 
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; pytest"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest"
 
 ### 代码检查
 
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/backend; ruff check ."
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check ."
 
 ## 4.后端架构
 

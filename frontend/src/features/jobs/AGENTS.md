@@ -34,7 +34,7 @@
 ## VERIFY
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run lint"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; npm run build"
-powershell.exe -Command "cd C:/Users/arfac/price-monitor/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/test_profile_settings.spec.ts --project=chromium"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run lint"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run build"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/test_profile_settings.spec.ts --project=chromium"
 ```
