@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { smartHomeApi } from "../api/smartHome";
 import type { SmartHomeEntity } from "../types";
 
@@ -7,19 +7,43 @@ export function useSmartHomeSSE(
   onEntity: (entity: SmartHomeEntity) => void,
   onError: () => void,
 ) {
+  const retryCountRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!enabled) return;
-    const source = new EventSource(smartHomeApi.buildStreamUrl(), {
-      withCredentials: true,
-    });
-    source.onmessage = (event) => {
-      try {
-        onEntity(JSON.parse(event.data) as SmartHomeEntity);
-      } catch {
-        onError();
-      }
+    const maxRetry = 5;
+    const baseDelay = 2000;
+
+    function connect() {
+      const source = new EventSource(smartHomeApi.buildStreamUrl(), {
+        withCredentials: true,
+      });
+      source.onmessage = (event) => {
+        retryCountRef.current = 0;
+        try {
+          onEntity(JSON.parse(event.data) as SmartHomeEntity);
+        } catch {
+          onError();
+        }
+      };
+      source.onerror = () => {
+        source.close();
+        if (retryCountRef.current < maxRetry) {
+          retryCountRef.current += 1;
+          const delay = baseDelay * Math.pow(2, retryCountRef.current - 1);
+          timeoutRef.current = setTimeout(connect, delay);
+        } else {
+          onError();
+        }
+      };
+      return source;
+    }
+
+    const source = connect();
+    return () => {
+      source.close();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-    source.onerror = () => onError();
-    return () => source.close();
   }, [enabled, onEntity, onError]);
 }

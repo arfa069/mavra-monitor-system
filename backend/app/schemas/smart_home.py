@@ -22,13 +22,13 @@ class SmartHomeConfigResponse(BaseModel):
 
 class SmartHomeConfigUpdate(BaseModel):
     base_url: HttpUrl
-    token: str | None = Field(default=None, min_length=10, max_length=4096)
+    token: str | None = Field(default=None, min_length=1, max_length=4096)
     enabled: bool = True
 
 
 class SmartHomeConfigTestRequest(BaseModel):
     base_url: HttpUrl | None = None
-    token: str | None = Field(default=None, min_length=10, max_length=4096)
+    token: str | None = Field(default=None, min_length=1, max_length=4096)
 
 
 class SmartHomeConfigTestResponse(BaseModel):

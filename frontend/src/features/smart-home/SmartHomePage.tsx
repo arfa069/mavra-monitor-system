@@ -118,12 +118,16 @@ export default function SmartHomePage() {
       });
       if (!confirmed) return;
     }
-    await smartHomeApi.callService(entity.entity_id, {
-      service,
-      service_data: {},
-    });
-    message.success("Command sent");
-    void loadEntities();
+    try {
+      await smartHomeApi.callService(entity.entity_id, {
+        service,
+        service_data: {},
+      });
+      message.success("Command sent");
+      void loadEntities();
+    } catch {
+      message.error("Command failed");
+    }
   };
 
   const saveConfig = async () => {
@@ -234,6 +238,16 @@ export default function SmartHomePage() {
                           >
                             Close
                           </Button>
+                        </Space>
+                      )}
+                      {entity.domain === "climate" && (
+                        <Space>
+                          <Tag>{entity.state}</Tag>
+                          <Text type="secondary">
+                            {entity.attributes.temperature
+                              ? `${entity.attributes.temperature}°C`
+                              : ""}
+                          </Text>
                         </Space>
                       )}
                       {["scene", "script"].includes(entity.domain) && (

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 from typing import Any
 
-from app.domains.smart_home.ha_client import HomeAssistantClient
+from app.domains.smart_home.ha_client import HomeAssistantClient, HomeAssistantError
+
+logger = logging.getLogger(__name__)
 
 
 class SmartHomeStateBroker:
@@ -41,8 +44,19 @@ class SmartHomeStateBroker:
         self._client_key = None
 
     async def _run(self, client: HomeAssistantClient) -> None:
-        async for event in client.stream_state_changed():
-            await self._publish(event)
+        delay = 1.0
+        max_delay = 30.0
+        while True:
+            try:
+                async for event in client.stream_state_changed():
+                    await self._publish(event)
+                    delay = 1.0
+            except HomeAssistantError as exc:
+                logger.warning("Smart home state stream error: %s", exc)
+            except Exception:
+                logger.exception("Smart home state stream unexpected error")
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, max_delay)
 
     async def _publish(self, item: dict[str, Any]) -> None:
         async with self._lock:

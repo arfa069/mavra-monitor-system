@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_audit
 from app.core.permissions import require_permission
-from app.database import get_db
+from app.database import AsyncSessionLocal, get_db
 from app.domains.smart_home import service
 from app.domains.smart_home.state_stream import smart_home_state_broker
 from app.models.user import User
@@ -138,12 +138,12 @@ async def call_service(
 async def stream_entities(
     request: Request,
     current_user: User = Depends(require_permission("smart_home:read")),
-    db: AsyncSession = Depends(get_db),
 ):
     async def event_generator():
         queue = None
         try:
-            config = await service.get_config(db)
+            async with AsyncSessionLocal() as db:
+                config = await service.get_config(db)
             client = service._client(config)
             queue = await smart_home_state_broker.subscribe(client)
             yield ": connected\n\n"
@@ -171,4 +171,11 @@ async def stream_entities(
             if queue is not None:
                 await smart_home_state_broker.unsubscribe(queue)
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

@@ -1,7 +1,7 @@
 """Smart home business logic."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,7 +71,10 @@ def _parse_dt(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt
     except ValueError:
         return None
 
@@ -85,11 +88,11 @@ async def get_config(db: AsyncSession) -> SmartHomeConfig:
 
 async def save_config(db: AsyncSession, *, data: SmartHomeConfigUpdate) -> SmartHomeConfig:
     existing = await repository.get_config(db)
-    if data.token is None and existing is None:
+    if not data.token and existing is None:
         raise SmartHomeConfigMissingError("Home Assistant token is required")
     encrypted_token = (
         encrypt_token(data.token, settings.smart_home_secret_key)
-        if data.token is not None
+        if data.token
         else existing.encrypted_token
     )
     return await repository.save_config(
@@ -134,5 +137,5 @@ async def call_entity_service(db: AsyncSession, *, entity_id: str, service: str,
     if service not in ALLOWED_SERVICES[domain]:
         raise SmartHomeUnsupportedServiceError
     config = await get_config(db)
-    payload = {"entity_id": entity_id, **service_data}
+    payload = {**service_data, "entity_id": entity_id}
     await _client(config).call_service(domain, service, payload)

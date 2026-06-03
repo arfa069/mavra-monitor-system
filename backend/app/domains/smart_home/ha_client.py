@@ -67,7 +67,9 @@ class HomeAssistantClient:
     async def stream_state_changed(self) -> AsyncIterator[dict[str, Any]]:
         ws_base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
         url = f"{ws_base}/api/websocket"
-        async with websockets.connect(url, open_timeout=self.timeout) as ws:
+        async with websockets.connect(
+            url, open_timeout=self.timeout, ping_interval=20, ping_timeout=10
+        ) as ws:
             auth_required = json.loads(await ws.recv())
             if auth_required.get("type") != "auth_required":
                 raise HomeAssistantError("Home Assistant WebSocket did not request auth")
