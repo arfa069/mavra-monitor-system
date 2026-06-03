@@ -1,7 +1,7 @@
 """Application configuration using Pydantic Settings."""
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _env_file = next(
@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # App settings
     app_name: str = "Price Monitor"
     debug: bool = False
+    allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    crawler_headless: bool = True
+    product_crawl_concurrency: int = Field(default=1, ge=1)
 
     # Auth cookie settings
     auth_access_cookie_name: str = "pm_access_token"
@@ -107,6 +110,20 @@ class Settings(BaseSettings):
     anthropic_base_url: str = ""
     openai_api_key: str = ""
     ollama_base_url: str = "http://127.0.0.1:11434"
+
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
+    def parse_allowed_origins(cls, value):
+        if isinstance(value, str):
+            stripped = value.strip()
+            if stripped.startswith("[") and stripped.endswith("]"):
+                import json
+                try:
+                    return json.loads(stripped)
+                except Exception:
+                    pass
+            return [item.strip() for item in stripped.split(",") if item.strip()]
+        return value
 
     @field_validator("jwt_secret_key")
     @classmethod

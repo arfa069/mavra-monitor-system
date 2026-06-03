@@ -177,7 +177,7 @@ interface AuthContextType {
 }
 ```
 
-前端使用 AuthContext 暴露的 `hasPermission()` / `hasAnyPermission()` / `hasAllPermissions()` 进行 UX 级别权限控制。`user.role` 仅用于展示和少数角色边界提示；菜单、路由、按钮和只读态以 `user.permissions` 为准。
+前端使用 AuthContext 暴露的 `hasPermission()` / `hasAnyPermission()` / `hasAllPermissions()` 进行 UX 级别权限控制。`user.role` 仅用于展示和少数角色边界提示；菜单、路由、按钮和只读态以 `user.permissions` 为准。`AuthProvider` memoizes callbacks and the Provider value to keep context references stable across unrelated renders.
 
 **认证方式**：HttpOnly Cookie 传递 access/refresh token。前端不管理 token 字符串。初始化时通过 `GET /auth/me` 验证登录状态（Cookie 自动携带）。
 
@@ -218,7 +218,7 @@ const api = axios.create({
 
 **请求拦截器**：Axios 自动携带凭据（`withCredentials: true`），不安全方法（POST/PATCH/PUT/DELETE）自动注入 `X-CSRF-Token` 请求头（从 `pm_csrf_token` Cookie 读取）。
 
-**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。刷新成功后重试原始请求；失败后重定向到 /login。排除 `/v1/auth/login` 和 `/v1/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
+**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。并发 401 期间只有第一个请求触发 refresh，其余请求进入 `failedQueue` 并保存各自的 Axios config；刷新成功后按原请求逐个重试。排队请求入队前标记 `_retry`，避免刷新风暴。失败后重定向到 /login。排除 `/v1/auth/login` 和 `/v1/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
 
 **响应拦截器**：
 

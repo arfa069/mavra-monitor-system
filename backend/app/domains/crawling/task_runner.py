@@ -10,6 +10,8 @@ import logging
 from collections.abc import Awaitable, Callable
 
 from app.core.task_registry import CrawlTask, TaskStatus
+import asyncio
+from app.config import settings
 
 ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
 
@@ -91,20 +93,23 @@ class CrawlTaskRunner:
         await self._notify_progress(task)
         logger.info("Task %s: crawling %d products for platform %s", task.task_id, task.total, platform)
 
-        details: list[dict] = []
-        for product in products:
-            try:
-                result = await crawling_service.crawl_one_opencli(
-                    product_id=product.id, platform=product.platform
-                )
-                details.append(result)
-            except Exception as exc:
-                details.append({
-                    "product_id": product.id,
-                    "status": "error",
-                    "reason": str(exc),
-                    "platform": product.platform,
-                })
+        sem = asyncio.Semaphore(settings.product_crawl_concurrency)
+
+        async def crawl_task(product) -> dict:
+            async with sem:
+                try:
+                    return await crawling_service.crawl_one_opencli(
+                        product_id=product.id, platform=product.platform
+                    )
+                except Exception as exc:
+                    return {
+                        "product_id": product.id,
+                        "status": "error",
+                        "reason": str(exc),
+                        "platform": product.platform,
+                    }
+
+        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
 
         task.success = sum(1 for d in details if d.get("status") == "success")
         task.errors = sum(1 for d in details if d.get("status") == "error")
@@ -154,20 +159,23 @@ class CrawlTaskRunner:
         await self._notify_progress(task)
         logger.info("Task %s: crawling %d products (all platforms)", task.task_id, task.total)
 
-        details: list[dict] = []
-        for product in products:
-            try:
-                result = await crawling_service.crawl_one_opencli(
-                    product_id=product.id, platform=product.platform
-                )
-                details.append(result)
-            except Exception as exc:
-                details.append({
-                    "product_id": product.id,
-                    "status": "error",
-                    "reason": str(exc),
-                    "platform": product.platform,
-                })
+        sem = asyncio.Semaphore(settings.product_crawl_concurrency)
+
+        async def crawl_task(product) -> dict:
+            async with sem:
+                try:
+                    return await crawling_service.crawl_one_opencli(
+                        product_id=product.id, platform=product.platform
+                    )
+                except Exception as exc:
+                    return {
+                        "product_id": product.id,
+                        "status": "error",
+                        "reason": str(exc),
+                        "platform": product.platform,
+                    }
+
+        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
 
         task.success = sum(1 for d in details if d.get("status") == "success")
         task.errors = sum(1 for d in details if d.get("status") == "error")

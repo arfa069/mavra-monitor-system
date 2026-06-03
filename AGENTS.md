@@ -147,6 +147,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 ## NOTES
 
 - Local launcher uses backend `8000`, frontend `3000`, worker `python -m app.workers.crawler --kind all`.
+- Runtime config: `ALLOWED_ORIGINS` controls CORS origins (comma-separated or JSON list), `CRAWLER_HEADLESS=false` opens Playwright/profile browsers visibly for local debugging, and `PRODUCT_CRAWL_CONCURRENCY` bounds product fan-out inside one worker task (default/minimum `1`).
 - `frontend/playwright.config.ts` defaults to `http://localhost:5173`; set `E2E_BASE_URL=http://localhost:3000` for this repo's launcher.
 - Boss runtime JSONL logs live under `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` and are gitignored.
 - GitNexus full-text index warning may appear; run `npx gitnexus analyze --force` if keyword search is degraded.

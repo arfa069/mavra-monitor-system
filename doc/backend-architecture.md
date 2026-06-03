@@ -387,7 +387,7 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 
 ### 7.6 任务执行边界（Phase 1 — 2026-05-26）
 
-统一的爬取任务执行入口 `CrawlTaskRunner`，分离任务创建与执行：
+统一的爬取任务执行入口 `CrawlTaskRunner`，分离任务创建与执行。商品批量爬取在单个 claimed task 内通过 `PRODUCT_CRAWL_CONCURRENCY` 控制 fan-out（默认 `1`，最小 `1`），避免 worker 并发和 OpenCLI/浏览器资源无界叠加：
 
 **核心组件：**
 
@@ -505,7 +505,7 @@ backend/app/platforms/liepin.py  — LiepinAdapter (curl_cffi)
 
 **浏览器模式：**
 
-- **Launch 模式**（默认）：每次启动新的 headless Chromium
+- **Launch 模式**（默认）：每次启动新的 Chromium；默认 headless，可用 `CRAWLER_HEADLESS=false` 在本地调试时显示浏览器
 - **CDP 模式**：连接已运行浏览器的 DevTools（复用登录态）
 
 **共享浏览器缓存**（类级别）：

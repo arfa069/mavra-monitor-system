@@ -26,6 +26,22 @@ interface JobConfigFormProps {
   confirmLoading?: boolean;
 }
 
+const URL_CONFIG_MAP = {
+  boss: {
+    label: "Boss Search URL",
+    placeholder: "https://www.zhipin.com/web/geek/job?query=frontend",
+  },
+  "51job": {
+    label: "51job Search URL",
+    placeholder: "https://we.51job.com/pc/search?keyword=python&searchType=2",
+  },
+  liepin: {
+    label: "Liepin Search URL",
+    placeholder:
+      "https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0",
+  },
+} as const;
+
 export default function JobConfigForm({
   open,
   record,
@@ -78,22 +94,7 @@ export default function JobConfigForm({
   };
 
   const platform = Form.useWatch("platform", form) || "boss";
-  const urlConfigMap = {
-    boss: {
-      label: "Boss Search URL",
-      placeholder: "https://www.zhipin.com/web/geek/job?query=frontend",
-    },
-    "51job": {
-      label: "51job Search URL",
-      placeholder: "https://we.51job.com/pc/search?keyword=python&searchType=2",
-    },
-    liepin: {
-      label: "Liepin Search URL",
-      placeholder:
-        "https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0",
-    },
-  } as const;
-  const urlConfig = urlConfigMap[platform as keyof typeof urlConfigMap] || {
+  const urlConfig = URL_CONFIG_MAP[platform as keyof typeof URL_CONFIG_MAP] || {
     label: "Search URL",
     placeholder: "",
   };

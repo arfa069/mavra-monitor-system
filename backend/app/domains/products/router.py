@@ -33,12 +33,6 @@ router = APIRouter(prefix="/products", tags=["products"])
 logger = logging.getLogger("app.domains.products")
 
 
-def _require_user(current_user: User | None) -> User:
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
-    return current_user
-
-
 def _scheduler(request: Request) -> ProductCronScheduler | None:
     return getattr(request.app.state, "product_cron_scheduler", None)
 
@@ -62,7 +56,7 @@ async def create_product(
     current_user: User = Depends(get_current_user),
 ):
     """Add a new product to track."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.create_product(db, user_id=user.id, product_data=product_data)
 
 
@@ -77,7 +71,7 @@ async def list_products(
     current_user: User = Depends(get_current_user),
 ):
     """List tracked products with pagination."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.list_products(
         db,
         user_id=user.id,
@@ -95,7 +89,7 @@ async def list_product_cron_configs(
     current_user: User = Depends(get_current_user),
 ):
     """List all per-platform cron configs for product crawling."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.list_product_cron_configs(db, user_id=user.id)
 
 
@@ -244,7 +238,7 @@ async def get_product_cron_schedules(
     current_user: User = Depends(get_current_user),
 ):
     """Get next run times for the current user's per-platform product crawl schedules."""
-    user = _require_user(current_user)
+    user = current_user
     scheduler = _scheduler(request)
     if not scheduler:
         return {"platforms": {}}
@@ -260,7 +254,7 @@ async def list_product_profile_bindings(
     current_user: User = Depends(get_current_user),
 ):
     """List product platform profile bindings for the current user."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.list_product_profile_bindings(db, user_id=user.id)
 
 
@@ -275,7 +269,7 @@ async def upsert_product_profile_binding(
     db: AsyncSession = Depends(get_db),
 ):
     """Create or update a product platform profile binding."""
-    user = _require_user(current_user)
+    user = current_user
     try:
         return await service.upsert_product_profile_binding(
             db,
@@ -296,7 +290,7 @@ async def delete_product_profile_binding(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a product platform profile binding."""
-    user = _require_user(current_user)
+    user = current_user
     try:
         await service.delete_product_profile_binding(
             db,
@@ -315,7 +309,7 @@ async def get_product(
     current_user: User = Depends(get_current_user),
 ):
     """Get product details."""
-    user = _require_user(current_user)
+    user = current_user
     try:
         return await service.get_product(db, user_id=user.id, product_id=product_id)
     except service.ProductNotFoundError as exc:
@@ -385,7 +379,7 @@ async def batch_create_products(
     current_user: User = Depends(get_current_user),
 ):
     """Batch create products from URLs."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.batch_create_products(db, user_id=user.id, batch=batch)
 
 
@@ -396,7 +390,7 @@ async def batch_delete_products(
     current_user: User = Depends(get_current_user),
 ):
     """Batch delete products by IDs."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.batch_delete_products(db, user_id=user.id, payload=payload)
 
 
@@ -407,7 +401,7 @@ async def batch_update_products(
     current_user: User = Depends(get_current_user),
 ):
     """Batch update products (active status)."""
-    user = _require_user(current_user)
+    user = current_user
     return await service.batch_update_products(db, user_id=user.id, payload=payload)
 
 
@@ -420,7 +414,7 @@ async def get_product_history(
     current_user: User = Depends(get_current_user),
 ):
     """Get price history for a product."""
-    user = _require_user(current_user)
+    user = current_user
     try:
         return await service.get_product_history(
             db,

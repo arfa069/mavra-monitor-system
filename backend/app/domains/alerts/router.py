@@ -19,8 +19,6 @@ async def create_alert(
     current_user: User = Depends(get_current_user),
 ):
     """Create a new price alert."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     try:
         return await alert_service.create_alert(
             db, user_id=current_user.id, data=alert_data
@@ -37,8 +35,6 @@ async def list_alerts(
     current_user: User = Depends(get_current_user),
 ):
     """List all alerts."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     return await alert_service.list_alerts(
         db, user_id=current_user.id, product_id=product_id, active=active
     )
@@ -51,8 +47,6 @@ async def get_alert(
     current_user: User = Depends(get_current_user),
 ):
     """Get alert details."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     try:
         return await alert_service.get_alert(
             db, user_id=current_user.id, alert_id=alert_id
@@ -69,8 +63,6 @@ async def update_alert(
     current_user: User = Depends(get_current_user),
 ):
     """Update an alert."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     try:
         return await alert_service.update_alert(
             db, user_id=current_user.id, alert_id=alert_id, data=alert_data
@@ -86,8 +78,6 @@ async def delete_alert(
     current_user: User = Depends(get_current_user),
 ):
     """Delete an alert."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     try:
         await alert_service.delete_alert(
             db, user_id=current_user.id, alert_id=alert_id

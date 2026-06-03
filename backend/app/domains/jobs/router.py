@@ -95,8 +95,6 @@ async def list_configs(
 ):
 
     """List all job search configs."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     return await job_service.list_job_configs(db, user_id=current_user.id, active=active)
 
 @router.post("/configs", response_model=JobSearchConfigResponse, status_code=201)
@@ -178,10 +176,6 @@ async def list_resumes(
 
 ):
 
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
-
     return await job_service.list_user_resumes(db, user_id=current_user.id)
 
 @router.post("/resumes", response_model=UserResumeResponse, status_code=201)
@@ -195,10 +189,6 @@ async def create_resume(
     db: AsyncSession = Depends(get_db),
 
 ):
-
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
 
     return await job_service.create_user_resume(
         db, user_id=current_user.id, data=data
@@ -218,10 +208,6 @@ async def update_resume(
 
 ):
 
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
-
     try:
         return await job_service.update_user_resume(
             db, user_id=current_user.id, resume_id=resume_id, data=data
@@ -240,10 +226,6 @@ async def delete_resume(
     db: AsyncSession = Depends(get_db),
 
 ):
-
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
 
     try:
         await job_service.delete_user_resume(
@@ -275,10 +257,6 @@ async def list_match_results(
     db: AsyncSession = Depends(get_db),
 
 ):
-
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
 
     items, total = await job_service.list_match_results(
         db,
@@ -314,8 +292,6 @@ async def trigger_match_analysis(
     This endpoint no longer executes LLM analysis inline.
     It creates a crawl_tasks record and returns a task_id for polling.
     """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
 
     try:
         await job_service.validate_resume_owner(
@@ -378,8 +354,6 @@ async def trigger_match_analysis_async(
 
     Creates a durable crawl_tasks record. Poll GET /jobs/tasks/{task_id} for status.
     """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
 
     try:
         await job_service.validate_resume_owner(
@@ -444,9 +418,6 @@ async def get_match_analysis_task_status(
     """
     from app.domains.crawling.task_store import get_crawl_task_record
 
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
-
     record = await get_crawl_task_record(db, task_id, user_id=current_user.id)
     if not record or record.task_type != "job_match_analysis":
         return JSONResponse(
@@ -479,8 +450,6 @@ async def get_config(
 ):
 
     """Get a single config."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     try:
         return await job_service.get_job_config(
             db, user_id=current_user.id, config_id=config_id
@@ -668,10 +637,6 @@ async def list_jobs(
 
     """List jobs with filtering and pagination."""
 
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
-
     items, total, rec_map = await job_service.list_jobs(
         db,
         user_id=current_user.id,
@@ -748,10 +713,6 @@ async def get_job(
 
     """Get a single job by boss job_id."""
 
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
-
     try:
         return await job_service.get_job(
             db, user_id=current_user.id, job_id=job_id_str
@@ -796,9 +757,6 @@ async def crawl_single(
 ):
 
     """Trigger crawling a single config (async)."""
-
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
 
     # 验证 config 归属
     try:
@@ -994,10 +952,6 @@ async def get_job_config_schedules(
 ):
 
     """Get next run times for all per-config job crawl schedules."""
-
-    if not current_user:
-
-        raise HTTPException(status_code=401, detail="请先登录")
 
     # 获取当前用户的 config_ids
     user_config_ids = await job_service.list_job_config_ids(

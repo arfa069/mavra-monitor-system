@@ -23,6 +23,7 @@ from app.domains.crawling.profile_pool import (
     ProfileAlreadyLeasedError,
     ProfileUnavailableError,
 )
+from app.config import settings
 from app.domains.crawling.profile_service import get_profile
 
 BLOCKED_PROFILE_STATUSES = {LOGIN_REQUIRED, DISABLED, COOLING_DOWN}
@@ -174,7 +175,7 @@ class BrowserManager:
                 try:
                     context = await playwright.chromium.launch_persistent_context(
                         str(profile_dir),
-                        headless=True,
+                        headless=settings.crawler_headless,
                         args=["--disable-blink-features=AutomationControlled"],
                     )
                 except Exception as exc:

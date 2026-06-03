@@ -1,5 +1,6 @@
 import { notification } from "antd";
 import axios, { AxiosError } from "axios";
+import type { InternalAxiosRequestConfig } from "axios";
 
 type ErrorDetailItem = { msg?: string } | string;
 type ErrorResponse = { detail?: ErrorDetailItem[] | string };
@@ -61,15 +62,23 @@ const formatDetail = (detail: ErrorResponse["detail"], fallback: string) => {
 
 // Track retries to avoid infinite loops
 let isRefreshing = false;
-let failedQueue: Array<{
+
+interface FailedRequest {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
-}> = [];
+  config: InternalAxiosRequestConfig & { _retry?: boolean };
+}
+
+let failedQueue: FailedRequest[] = [];
 
 api.interceptors.response.use(
   (res) => res,
   async (err: AxiosError<ErrorResponse>) => {
-    const originalRequest = err.config as AxiosError["config"] & {
+    if (!err.config) {
+      return Promise.reject(err);
+    }
+
+    const originalRequest = err.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
@@ -81,8 +90,9 @@ api.interceptors.response.use(
     ) {
       if (isRefreshing) {
         // Queue request until refresh completes
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
+          failedQueue.push({ resolve, reject, config: originalRequest });
         });
       }
 
@@ -92,8 +102,8 @@ api.interceptors.response.use(
       try {
         await axios.post("/api/v1/auth/refresh", {}, { withCredentials: true });
         // Retry all queued original requests
-        failedQueue.forEach(({ resolve, reject }) => {
-          api(originalRequest).then(resolve).catch(reject);
+        failedQueue.forEach(({ resolve, reject, config }) => {
+          api(config).then(resolve).catch(reject);
         });
         failedQueue = [];
         return api(originalRequest);

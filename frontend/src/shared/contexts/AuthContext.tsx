@@ -3,6 +3,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import { authApi } from "@/features/auth/api/auth";
@@ -40,41 +42,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const login = (userData: User) => {
+  const login = useCallback((userData: User) => {
     setUser(userData);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch {
       // Best-effort: cookies cleared server-side
     }
     setUser(null);
-  };
+  }, []);
 
-  const hasPermission = (permission: Permission) =>
-    Boolean(user?.permissions?.includes(permission));
+  const hasPermission = useCallback(
+    (permission: Permission) => Boolean(user?.permissions?.includes(permission)),
+    [user],
+  );
 
-  const hasAnyPermission = (permissions: Permission[]) =>
-    permissions.some((permission) => hasPermission(permission));
+  const hasAnyPermission = useCallback(
+    (permissions: Permission[]) =>
+      permissions.some((permission) => hasPermission(permission)),
+    [hasPermission],
+  );
 
-  const hasAllPermissions = (permissions: Permission[]) =>
-    permissions.every((permission) => hasPermission(permission));
+  const hasAllPermissions = useCallback(
+    (permissions: Permission[]) =>
+      permissions.every((permission) => hasPermission(permission)),
+    [hasPermission],
+  );
+
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+    }),
+    [
+      user,
+      isLoading,
+      login,
+      logout,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+    ],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        hasPermission,
-        hasAnyPermission,
-        hasAllPermissions,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

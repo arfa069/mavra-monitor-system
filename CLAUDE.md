@@ -111,6 +111,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backen
 - 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
 - Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/default/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
 - Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
+- 运行配置：`ALLOWED_ORIGINS` 控制 CORS 来源（逗号分隔或 JSON list），`CRAWLER_HEADLESS=false` 可在本地显示 Playwright/profile 浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制单个商品爬取任务内的并发 fan-out（默认/最小值 `1`）。
 - Liepin 职位爬取在 Windows 环境下支持自动解密并加载 Chromium 配置文件目录中的 Cookie（防详情页 Challenge 验证拦截）；详情爬取已加入 5-10 秒的随机延迟防反爬。
 - 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。

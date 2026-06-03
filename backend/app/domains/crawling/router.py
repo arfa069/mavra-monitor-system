@@ -29,8 +29,6 @@ async def get_crawl_logs(
     db: AsyncSession = Depends(get_db),
 ):
     """Get recent crawl logs."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     return await crawling_service.list_crawl_logs(
         db,
         user_id=current_user.id,
@@ -49,8 +47,6 @@ async def crawl_now(
 
     Returns immediately with a task_id. Poll /products/crawl/status/{task_id} for progress.
     """
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     from app.domains.crawling.scheduler_service import crawl_all_products
 
     result = await crawl_all_products(
@@ -155,9 +151,6 @@ async def list_crawler_workers(
 
     from app.models.crawler_worker import CrawlerWorkerRecord
 
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
-
     result = await db.execute(
         select(CrawlerWorkerRecord).order_by(CrawlerWorkerRecord.last_heartbeat_at.desc())
     )
@@ -185,8 +178,6 @@ async def cleanup_old_data(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete price history and crawl logs older than retention period."""
-    if not current_user:
-        raise HTTPException(status_code=401, detail="请先登录")
     result = await crawling_service.cleanup_old_data(
         db, user_id=current_user.id, retention_days=retention_days
     )

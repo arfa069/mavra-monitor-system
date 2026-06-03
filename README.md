@@ -44,10 +44,19 @@ DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/pricemonitor
 REDIS_URL=redis://localhost:6379/0
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
 
+# Browser frontend origins allowed by CORS. Comma-separated or JSON list.
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
 # CDP mode — connect to an already-running browser (e.g. Edge/Chrome started with --remote-debugging-port=9222)
 # Used by product/JD flows that need a real browser session.
 CDP_ENABLED=true
 CDP_URL=http://127.0.0.1:9222
+
+# Browser/profile crawler runtime
+# Keep headless=true for normal crawls; set false locally to watch Playwright during profile debugging.
+CRAWLER_HEADLESS=true
+# Product crawl fan-out inside one worker task. Must be >=1; keep low for anti-bot safety.
+PRODUCT_CRAWL_CONCURRENCY=1
 
 # Boss Zhipin job crawl
 # Login once in the project-root CloakBrowser profile selected by the job config, e.g. profiles/default.
@@ -265,7 +274,7 @@ cd frontend && npm run dev
 - **Redis**: Cache layer
 - **Feishu Webhook**: Notification service
 
-Crawl tasks are durable records in PostgreSQL. In normal production mode, FastAPI and APScheduler only enqueue `crawl_tasks`; one or more `python -m app.workers.crawler` processes claim pending tasks, heartbeat, execute crawls, and persist results. Inline execution is only a local fallback when `CRAWLER_INLINE_EXECUTION_ENABLED=true`.
+Crawl tasks are durable records in PostgreSQL. In normal production mode, FastAPI and APScheduler only enqueue `crawl_tasks`; one or more `python -m app.workers.crawler` processes claim pending tasks, heartbeat, execute crawls, and persist results. Product crawl fan-out inside a claimed task is bounded by `PRODUCT_CRAWL_CONCURRENCY` (default `1`, minimum `1`) so anti-bot-sensitive product requests stay controlled. Inline execution is only a local fallback when `CRAWLER_INLINE_EXECUTION_ENABLED=true`.
 
 ### Cron Scheduling (APScheduler)
 

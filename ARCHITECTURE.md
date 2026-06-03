@@ -72,13 +72,13 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 
 **Registration**: Both managers are initialized in `main.py:_start_scheduler()`. On startup, `sync_all()` reads the DB and registers jobs for all entities with non-null `cron_expression`.
 
-**Concurrency protection**: A global `asyncio.Semaphore(1)` (shared between cron jobs and manual crawls) prevents overlapping executions.
+**Concurrency protection**: Durable `crawl_tasks` are claimed by workers; product crawl fan-out inside one claimed task is bounded by `PRODUCT_CRAWL_CONCURRENCY` (default `1`, minimum `1`). Job profile lanes remain serial per `(platform, profile_key)`.
 
 **Status endpoint**: `GET /scheduler/status` returns all registered jobs in `products_platforms` and `job_configs` objects.
 
 ### Browser Modes
 
-1. **Launch mode** (default): Launches a headless Chromium instance per crawl.
+1. **Launch mode** (default): Launches a Chromium instance per crawl. It is headless by default and can be made visible for local debugging with `CRAWLER_HEADLESS=false`.
 2. **CDP mode**: Connects to an existing browser via Chrome DevTools Protocol (`--remote-debugging-port=9222`). Reuses cookies/login sessions to bypass anti-bot detection.
 
 ### Page Load Strategy
