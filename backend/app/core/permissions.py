@@ -33,6 +33,9 @@ PERMISSIONS = {
     "job:delete": {"super_admin"},
     "rbac:read": {"super_admin"},
     "rbac:manage": {"super_admin"},
+    "smart_home:read": {"user", "admin", "super_admin"},
+    "smart_home:control": {"user", "admin", "super_admin"},
+    "smart_home:configure": {"admin", "super_admin"},
 }
 
 

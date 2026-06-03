@@ -30,6 +30,7 @@ from app.domains.events import router as events_router
 from app.domains.jobs import router as jobs_router
 from app.domains.products import router as products_router
 from app.domains.scheduling import router as scheduling_router
+from app.domains.smart_home import router as smart_home_router
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,7 @@ _APPLICATION_ROUTERS = (
     dashboard_router,
     scheduling_router,
     profile_router,
+    smart_home_router,
 )
 
 

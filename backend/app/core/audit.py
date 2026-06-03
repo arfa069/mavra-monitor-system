@@ -23,6 +23,8 @@ def _sanitize_details(details: dict[str, Any] | None) -> dict[str, Any] | None:
     sensitive_keys = {
         "password", "hashed_password", "access_token", "token",
         "wechat_access_token", "app_secret", "webhook_url",
+        "ha_token", "home_assistant_token", "smart_home_secret_key", "smart_home_token",
+        "encrypted_token",
     }
     sanitized = {}
     for key, value in details.items():

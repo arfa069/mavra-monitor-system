@@ -44,8 +44,11 @@ const SettingsPage = React.lazy(() =>
   import("@/features/settings").then((m) => ({ default: m.SettingsPage })),
 );
 const ScheduleConfigPage = React.lazy(() =>
-  import("@/features/schedule").then((m) => ({ default: m.ScheduleConfigPage })),
+  import("@/features/schedule").then((m) => ({
+    default: m.ScheduleConfigPage,
+  })),
 );
+const SmartHomePage = React.lazy(() => import("@/features/smart-home"));
 
 function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
   return (
@@ -64,7 +67,6 @@ function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
     </div>
   );
 }
-
 
 // Error Fallback component (uses hooks, must be inside Router)
 function ErrorFallback() {
@@ -334,6 +336,7 @@ function AppRoutes() {
                   <Route path="/jobs" element={<JobsPage />} />
                   <Route path="/products" element={<ProductsPage />} />
                   <Route path="/schedule" element={<ScheduleConfigPage />} />
+                  <Route path="/smart-home" element={<SmartHomePage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route
@@ -355,8 +358,14 @@ function AppRoutes() {
                 </Route>
 
                 {/* Default routes */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route
+                  path="/"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+                <Route
+                  path="*"
+                  element={<Navigate to="/dashboard" replace />}
+                />
               </Routes>
             </React.Suspense>
           </BrowserRouter>
