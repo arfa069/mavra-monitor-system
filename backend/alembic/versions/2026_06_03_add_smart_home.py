@@ -63,17 +63,23 @@ def upgrade() -> None:
 
     for permission_name, description in PERMISSIONS.items():
         op.execute(
-            f"INSERT INTO users_permissions (name, description, created_at, updated_at) "
-            f"VALUES ('{permission_name}', '{description}', NOW(), NOW()) "
-            f"ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description"
+            sa.text(
+                "INSERT INTO users_permissions (name, description, created_at, updated_at) "
+                "VALUES (:name, :description, NOW(), NOW()) "
+                "ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description"
+            ),
+            {"name": permission_name, "description": description},
         )
     for role_name, permission_names in ROLE_PERMISSIONS.items():
         for permission_name in sorted(permission_names):
             op.execute(
-                f"INSERT INTO users_roles_permissions (role_id, permission_id) "
-                f"SELECT r.id, p.id FROM users_roles r, users_permissions p "
-                f"WHERE r.name = '{role_name}' AND p.name = '{permission_name}' "
-                f"ON CONFLICT DO NOTHING"
+                sa.text(
+                    "INSERT INTO users_roles_permissions (role_id, permission_id) "
+                    "SELECT r.id, p.id FROM users_roles r, users_permissions p "
+                    "WHERE r.name = :role_name AND p.name = :permission_name "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"role_name": role_name, "permission_name": permission_name},
             )
 
 
@@ -81,12 +87,18 @@ def downgrade() -> None:
     for role_name, permission_names in ROLE_PERMISSIONS.items():
         for permission_name in sorted(permission_names):
             op.execute(
-                f"DELETE FROM users_roles_permissions "
-                f"WHERE role_id = (SELECT id FROM users_roles WHERE name = '{role_name}') "
-                f"AND permission_id = (SELECT id FROM users_permissions WHERE name = '{permission_name}')"
+                sa.text(
+                    "DELETE FROM users_roles_permissions "
+                    "WHERE role_id = (SELECT id FROM users_roles WHERE name = :role_name) "
+                    "AND permission_id = (SELECT id FROM users_permissions WHERE name = :permission_name)"
+                ),
+                {"role_name": role_name, "permission_name": permission_name},
             )
     for permission_name in PERMISSIONS:
-        op.execute(f"DELETE FROM users_permissions WHERE name = '{permission_name}'")
+        op.execute(
+            sa.text("DELETE FROM users_permissions WHERE name = :name"),
+            {"name": permission_name},
+        )
     op.drop_index("ix_smart_home_entity_preferences_entity_id", table_name="smart_home_entity_preferences")
     op.drop_index("ix_smart_home_entity_preferences_user_id", table_name="smart_home_entity_preferences")
     op.drop_table("smart_home_entity_preferences")

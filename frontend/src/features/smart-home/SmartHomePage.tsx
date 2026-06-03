@@ -93,10 +93,10 @@ export default function SmartHomePage() {
         return copy;
       });
     }, []),
-    useCallback(
-      () => setLastError("Realtime smart home updates disconnected"),
-      [],
-    ),
+    useCallback(() => {
+      setLastError("Realtime smart home updates disconnected");
+      setConnected(false);
+    }, []),
   );
 
   const grouped = useMemo(() => {
@@ -131,16 +131,20 @@ export default function SmartHomePage() {
   };
 
   const saveConfig = async () => {
-    const values = await form.validateFields();
-    const response = await smartHomeApi.updateConfig({
-      base_url: values.base_url,
-      token: values.token || null,
-      enabled: values.enabled,
-    });
-    setConfig(response.data);
-    setConfigOpen(false);
-    message.success("Smart home config saved");
-    void loadEntities();
+    try {
+      const values = await form.validateFields();
+      const response = await smartHomeApi.updateConfig({
+        base_url: values.base_url,
+        token: values.token || null,
+        enabled: values.enabled,
+      });
+      setConfig(response.data);
+      setConfigOpen(false);
+      message.success("Smart home config saved");
+      void loadEntities();
+    } catch {
+      message.error("Failed to save smart home config");
+    }
   };
 
   return (

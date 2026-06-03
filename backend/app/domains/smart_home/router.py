@@ -13,6 +13,7 @@ from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.database import AsyncSessionLocal, get_db
 from app.domains.smart_home import service
+from app.domains.smart_home.crypto import SmartHomeCryptoError
 from app.domains.smart_home.state_stream import smart_home_state_broker
 from app.models.user import User
 from app.schemas.smart_home import (
@@ -35,6 +36,8 @@ def _http_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=400, detail="Unsupported smart home entity")
     if isinstance(exc, service.SmartHomeUnsupportedServiceError):
         return HTTPException(status_code=400, detail="Unsupported smart home service")
+    if isinstance(exc, SmartHomeCryptoError):
+        return HTTPException(status_code=500, detail="Smart home encryption error")
     return HTTPException(status_code=502, detail=str(exc))
 
 
@@ -141,6 +144,7 @@ async def stream_entities(
 ):
     async def event_generator():
         queue = None
+        client = None
         try:
             async with AsyncSessionLocal() as db:
                 config = await service.get_config(db)
@@ -170,6 +174,8 @@ async def stream_entities(
         finally:
             if queue is not None:
                 await smart_home_state_broker.unsubscribe(queue)
+            if client is not None:
+                await client.aclose()
 
     return StreamingResponse(
         event_generator(),

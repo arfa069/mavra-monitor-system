@@ -44,6 +44,7 @@ export function useSmartHomeSSE(
     return () => {
       source.close();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      retryCountRef.current = 0;
     };
   }, [enabled, onEntity, onError]);
 }

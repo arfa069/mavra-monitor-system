@@ -113,6 +113,8 @@ async def test_config(db: AsyncSession, *, base_url: str | None, token: str | No
         version = await client.ping()
     except HomeAssistantError as exc:
         return SmartHomeConfigTestResponse(ok=False, message=str(exc))
+    finally:
+        await client.aclose()
     return SmartHomeConfigTestResponse(ok=True, message="Home Assistant connection succeeded", home_assistant_version=version)
 
 
@@ -120,14 +122,17 @@ async def list_entities(db: AsyncSession) -> SmartHomeEntityListResponse:
     config = await get_config(db)
     if not config.enabled:
         return SmartHomeEntityListResponse(items=[], total=0, connected=False, last_error="Smart home integration is disabled")
+    client = _client(config)
     try:
-        states = await _client(config).get_states()
+        states = await client.get_states()
+        items = [entity for raw in states if (entity := normalize_entity(raw)) is not None]
+        await repository.update_status(db, config=config, status="ok", error=None)
+        return SmartHomeEntityListResponse(items=items, total=len(items), connected=True)
     except HomeAssistantError as exc:
         await repository.update_status(db, config=config, status="error", error=str(exc))
         return SmartHomeEntityListResponse(items=[], total=0, connected=False, last_error=str(exc))
-    items = [entity for raw in states if (entity := normalize_entity(raw)) is not None]
-    await repository.update_status(db, config=config, status="ok", error=None)
-    return SmartHomeEntityListResponse(items=items, total=len(items), connected=True)
+    finally:
+        await client.aclose()
 
 
 async def call_entity_service(db: AsyncSession, *, entity_id: str, service: str, service_data: dict[str, Any]) -> None:
@@ -137,5 +142,9 @@ async def call_entity_service(db: AsyncSession, *, entity_id: str, service: str,
     if service not in ALLOWED_SERVICES[domain]:
         raise SmartHomeUnsupportedServiceError
     config = await get_config(db)
-    payload = {**service_data, "entity_id": entity_id}
-    await _client(config).call_service(domain, service, payload)
+    client = _client(config)
+    try:
+        payload = {**service_data, "entity_id": entity_id}
+        await client.call_service(domain, service, payload)
+    finally:
+        await client.aclose()
