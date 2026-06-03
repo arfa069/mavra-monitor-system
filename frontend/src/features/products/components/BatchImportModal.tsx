@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button, Input, Modal, Select, Steps, Table, App } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { BatchImportRow } from "../types";
@@ -91,13 +91,13 @@ export default function BatchImportModal({
     setStep(1);
   };
 
-  const handlePlatformChange = (index: number, platform: ParsedPlatform) => {
+  const handlePlatformChange = useCallback((index: number, platform: ParsedPlatform) => {
     setItems((prev) =>
       prev.map((item, itemIndex) =>
         itemIndex === index ? { ...item, platform } : item,
       ),
     );
-  };
+  }, []);
 
   const handleConfirm = () => {
     if (items.some((item) => !item.platform)) {
@@ -125,28 +125,31 @@ export default function BatchImportModal({
     onCancel();
   };
 
-  const columns: ColumnsType<ParsedItem> = [
-    { title: "URL", dataIndex: "url", ellipsis: true },
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      width: 140,
-      render: (platform: ParsedItem["platform"], _record, index) => {
-        if (platform) {
-          return PLATFORM_LABELS[platform];
-        }
-        return (
-          <Select<ParsedPlatform>
-            size="small"
-            style={{ width: "100%" }}
-            placeholder="Select Platform"
-            onChange={(value) => handlePlatformChange(index, value)}
-            options={PLATFORM_OPTIONS}
-          />
-        );
+  const columns: ColumnsType<ParsedItem> = useMemo(
+    () => [
+      { title: "URL", dataIndex: "url", ellipsis: true },
+      {
+        title: "Platform",
+        dataIndex: "platform",
+        width: 140,
+        render: (platform: ParsedItem["platform"], _record, index) => {
+          if (platform) {
+            return PLATFORM_LABELS[platform];
+          }
+          return (
+            <Select<ParsedPlatform>
+              size="small"
+              style={{ width: "100%" }}
+              placeholder="Select Platform"
+              onChange={(value) => handlePlatformChange(index, value)}
+              options={PLATFORM_OPTIONS}
+            />
+          );
+        },
       },
-    },
-  ];
+    ],
+    [handlePlatformChange],
+  );
 
   return (
     <Modal

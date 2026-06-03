@@ -78,7 +78,7 @@ mavra-monitor-system/
 | ----------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                            | Legacy, `/v1`, and `/api/v1` are mounted together   |
 | Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                             | Playwright/CDP/profile-sensitive                    |
-| Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                 | Boss uses CloakBrowser cookie refresh + `curl_cffi` |
+| Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                 | Boss uses CloakBrowser cookie refresh + `curl_cffi`; Liepin supports Chromium profile cookie loading |
 | Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md` | Cookie-first + Bearer fallback                      |
 | Frontend routes         | `frontend/src/App.tsx`                                                                              | Root redirects to `/jobs`                           |
 | Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                 | Axios injects CSRF and refreshes 401                |
@@ -134,7 +134,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 - Do not run two crawl/login sessions on the same profile directory at once.
 - Do not treat `JD_COOKIE` as default; it is fallback only when `JD_COOKIE_FALLBACK_ENABLED=true`.
 - Do not make Boss crawl use Edge CDP; active path is `BossCloakExperimentalAdapter`.
-- Do not open browser tabs for normal Liepin crawl; it is HTTP-only via `api-c.liepin.com` + detail HTML parsing.
+- Do not open browser tabs for normal Liepin crawl; it is HTTP-only via `api-c.liepin.com` + detail HTML parsing. Chromium profile cookies can be loaded under Windows via DPAPI, and detail requests are throttled with 5-10s random delays.
 - Do not expose cookie/token/webhook/security fields in logs or event payloads.
 - Do not claim validation passed unless the command/browser check actually ran.
 

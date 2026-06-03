@@ -381,9 +381,9 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 - Boss 数据完整性：`crawl()` 内部已抓详情，返回给入库层的 job 通常已包含 `description` 和 `address`；`crawl_detail(security_id)` 仅保留作 legacy/fallback
 - Boss 运行日志：每次运行写 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`，记录列表页、详情、cookie refresh、sleep 和汇总耗时
 - Boss 验证基线：2026-05-25 真实联调，广州 `IT服务台` 200 条耗时 589.57s，数据库 `description/address` 完整 200/200
-- Liepin 搜索直接 POST `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`；先 GET 搜索页只为获取 cookie/XSRF，不打开浏览器 tab
+- Liepin 搜索直接 POST `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`；可通过 Windows DPAPI 解密读取配置的 Chromium `profile_dir` 下的猎聘 Cookie 以进行鉴权并绕过 Challenge 验证拦截，不打开浏览器 tab
 - Liepin 详情直接 HTTP 解析，依次尝试 `/job/<id>.shtml` 和 `/a/<id>.shtml`，无地址时标记为 `无地址`
-- 详情页串行获取，间隔 2-5s，连续 3 次 cookie 失败则熔断
+- 详情页串行获取，引入了 5-10s 随机延迟（防反爬），连续 3 次 cookie 失败则熔断
 
 ### 7.6 任务执行边界（Phase 1 — 2026-05-26）
 
@@ -534,7 +534,7 @@ _shared_context: BrowserContext
 | BossCloakExperimentalAdapter | CloakBrowser 刷新 cookies + curl_cffi 串行调用搜索/详情 API        |
 | BossZhipinAdapter            | legacy CDP/curl_cffi 方案，当前不由 `_create_adapter("boss")` 选择 |
 | Job51Adapter                 | curl_cffi 搜索 + HTML 详情解析                                     |
-| LiepinAdapter                | curl_cffi 搜索 API + HTTP 详情解析，不开 tab                       |
+| LiepinAdapter                | curl_cffi 搜索 API + HTTP 详情解析，支持 Chromium profile cookies 注入，不开 tab |
 
 ### 8.3 商品抓取流程（`POST /products/crawl/crawl-now`）
 
@@ -549,10 +549,10 @@ _shared_context: BrowserContext
 - **Token 刷新**：搜索和详情遇 code=36/37/38 时 reload 当前搜索页，wait 1s，读取 cookies 后重试当前列表页或详情请求
 - **详情策略**：按页交替抓列表和详情；详情间隔 2-3s；不使用批量请求或并发
 - **日志**：`backend/logs/boss_cloak_adapter_<timestamp>.jsonl` 是排查真实运行耗时和风控行为的第一现场
-- `LiepinAdapter.crawl()` 先 GET 搜索页拿 cookie/XSRF，再 POST `api-c.liepin.com` 的 PC 搜索 API；不要为搜索列表打开 tab
-- `LiepinAdapter.crawl_detail()` 直接 HTTP 解析 `/job/` 和 `/a/` 两类详情页；不要为详情打开 tab
+- `LiepinAdapter.crawl()` 加载并解密 `profile_dir` 下的 Chromium 猎聘 Cookie 以进行鉴权（若存在），再 POST `api-c.liepin.com` 的 PC 搜索 API；不打开浏览器 tab
+- `LiepinAdapter.crawl_detail()` 使用相同的 Cookie 进行详情页 GET 请求以绕过 Challenge 验证拦截，解析 `/job/` 和 `/a/` 两类详情页；不打开浏览器 tab
 - **连续失败熔断**：`process_job_results` 中连续 3 次 cookie 失败自动跳过剩余详情获取
-- **Adapter 共享**：`crawl_all_job_searches()` 所有 config 共享一个 adapter 实例，详情串行 2-5s 间隔
+- **抓取节奏与 Adapter 共享**：`crawl_all_job_searches()` 所有 config 共享一个 adapter 实例；详情串行获取，引入 5-10s 随机延迟防反爬
 
 ## 9. 安全设计
 

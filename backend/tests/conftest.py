@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-_TEST_PROFILE_ROOT = Path(tempfile.mkdtemp(prefix="price-monitor-test-profiles-"))
+_TEST_PROFILE_ROOT = Path(tempfile.mkdtemp(prefix="mavra-monitor-test-profiles-"))
 os.environ["PRICE_MONITOR_PROFILE_ROOT"] = str(_TEST_PROFILE_ROOT)
 
 

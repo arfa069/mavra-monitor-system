@@ -1,4 +1,4 @@
-# Price Monitor - Architecture Document
+# Mavra Monitor System - Architecture Document
 
 ## Overview
 
@@ -350,7 +350,7 @@ Unlike product adapters, job adapters do not use Playwright for their normal cra
 - **Boss observability**: each run writes JSONL progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` with `crawl_start`, `list_page`, `cookie_refresh`, `detail`, `sleep`, and `crawl_finish` events. `backend/logs/` is ignored by git.
 - **Validated Boss baseline**: on 2026-05-25, config `id=3` (`IT服务台`, Guangzhou `101280100`) crawled 200 jobs in 589.57s; the database had 200/200 rows with `description` and `address`.
 - **Job51Adapter** uses `curl_cffi` search and HTML detail parsing.
-- **LiepinAdapter** uses `curl_cffi` for both search and detail. Search posts to `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`, seeded by a search-page GET for cookies/XSRF. Detail parsing tries standard `/job/<id>.shtml` and anonymous `/a/<id>.shtml` URLs, so the normal Liepin path should not open browser tabs.
+- **LiepinAdapter** uses `curl_cffi` for both search and detail. Search posts to `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`, seeded by a search-page GET for cookies/XSRF. Detail parsing tries standard `/job/<id>.shtml` and anonymous `/a/<id>.shtml` URLs. Under Windows, it loads and decrypts Chromium profile cookies (via Windows DPAPI decryption) from the assigned profile directory to authenticate requests and bypass challenge verification, without opening browser tabs. Detail page fetches are throttled with a 5-10s delay to prevent triggering anti-bot walls.
 - Job configs store `profile_key`. Full job crawls create child tasks by `(platform, profile_key)`: different profile lanes may run concurrently, while tasks in the same profile lane stay serial.
 
 This avoids the Playwright CDP `about:blank` redirect that Boss's anti-bot script triggers on detection, while keeping Boss requests serial enough for its anti-bot sensitivity.

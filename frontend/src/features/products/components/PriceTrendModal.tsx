@@ -108,34 +108,37 @@ function PriceTrendContent({
 
   const reversedData = useMemo(() => [...data].reverse(), [data]);
 
-  const tableColumns: ColumnsType<PriceHistoryRecord> = [
-    {
-      title: "Date",
-      dataIndex: "scraped_at",
-      width: 180,
-      render: (value: string) => new Date(value).toLocaleString("zh-CN"),
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      render: (value: number, _record: PriceHistoryRecord, index: number) => {
-        const numericValue = Number(value);
-        const previousValue =
-          index > 0 ? Number(reversedData[index - 1].price) : numericValue;
-        const color =
-          numericValue < previousValue
-            ? "#22c55e"
-            : numericValue > previousValue
-              ? "#ef4444"
-              : undefined;
-        return (
-          <span style={{ color, fontWeight: 500 }}>
-            ¥{numericValue.toFixed(2)}
-          </span>
-        );
+  const tableColumns: ColumnsType<PriceHistoryRecord> = useMemo(
+    () => [
+      {
+        title: "Date",
+        dataIndex: "scraped_at",
+        width: 180,
+        render: (value: string) => new Date(value).toLocaleString("zh-CN"),
       },
-    },
-  ];
+      {
+        title: "Price",
+        dataIndex: "price",
+        render: (value: number, _record: PriceHistoryRecord, index: number) => {
+          const numericValue = Number(value);
+          const previousValue =
+            index > 0 ? Number(reversedData[index - 1].price) : numericValue;
+          const color =
+            numericValue < previousValue
+              ? "#22c55e"
+              : numericValue > previousValue
+                ? "#ef4444"
+                : undefined;
+          return (
+            <span style={{ color, fontWeight: 500 }}>
+              ¥{numericValue.toFixed(2)}
+            </span>
+          );
+        },
+      },
+    ],
+    [reversedData],
+  );
 
   if (isLoading) {
     return <Skeleton active style={{ margin: "20px 0" }} />;

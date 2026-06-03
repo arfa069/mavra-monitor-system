@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -107,6 +107,69 @@ type ProductScheduleRow = {
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unknown error";
+
+const scrollToSection = (id: string) => {
+  document.getElementById(id)?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+};
+
+const crawlLogColumns: ColumnsType<CrawlLog> = [
+  {
+    title: "Time",
+    dataIndex: "timestamp",
+    width: 160,
+    render: (value: string) =>
+      new Intl.DateTimeFormat("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value)),
+  },
+  {
+    title: "Platform",
+    dataIndex: "platform",
+    width: 80,
+    render: (value: string | null) => <PlatformBadge value={value} />,
+  },
+  {
+    title: "Status",
+    dataIndex: "status",
+    width: 100,
+    render: (value: string | null) => {
+      const configMap: Record<string, { color: string; text: string }> = {
+        SUCCESS: { color: "success", text: "Success" },
+        ERROR: { color: "error", text: "Failed" },
+        SKIPPED: { color: "default", text: "Skipped" },
+      };
+      const config = value ? configMap[value] : undefined;
+      return (
+        <Tag color={config?.color || "default"}>
+          {config?.text || value || "-"}
+        </Tag>
+      );
+    },
+  },
+  {
+    title: "Price",
+    dataIndex: "price",
+    width: 100,
+    render: (value: number | null) => (value ? `¥${value}` : "-"),
+  },
+  {
+    title: "Error",
+    dataIndex: "error_message",
+    ellipsis: true,
+    render: (value: string | null) =>
+      value ? (
+        <Tooltip title={value}>
+          <span style={{ color: "var(--color-error)" }}>{value}</span>
+        </Tooltip>
+      ) : (
+        "-"
+      ),
+  },
+];
 
 export default function ProductsPage() {
   const { hasPermission } = useAuth();
@@ -221,7 +284,7 @@ export default function ProductsPage() {
     [productCronConfigs, productCronSchedules],
   );
 
-  const showBatchResult = (action: string, results: BatchOperationResult[]) => {
+  const showBatchResult = useCallback((action: string, results: BatchOperationResult[]) => {
     const successCount = results.filter((item) => item.success).length;
     const failedItems = results.filter((item) => !item.success);
 
@@ -235,9 +298,9 @@ export default function ProductsPage() {
         duration: 0,
       });
     }
-  };
+  }, [message]);
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     const shouldGoPrev = page > 1 && productItems.length === 1;
     deleteMutation.mutate(id, {
       onSuccess: () => {
@@ -248,9 +311,9 @@ export default function ProductsPage() {
       },
       onError: () => message.error("Delete failed"),
     });
-  };
+  }, [page, productItems.length, deleteMutation, message]);
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = useCallback(() => {
     if (selectedRowKeys.length === 0) return;
     const currentPageCount = productItems.length;
     const shouldGoPrev =
@@ -269,9 +332,9 @@ export default function ProductsPage() {
       onError: (error) =>
         message.error(`Batch operation failed: ${getErrorMessage(error)}`),
     });
-  };
+  }, [selectedRowKeys, productItems.length, page, batchDelete, showBatchResult, message]);
 
-  const handleFormSubmit = async (values: ProductFormSubmitValues) => {
+  const handleFormSubmit = useCallback(async (values: ProductFormSubmitValues) => {
     const { alert, ...productValues } = values;
 
     try {
@@ -324,9 +387,9 @@ export default function ProductsPage() {
         `${editModal.record ? "Update" : "Add"} failed: ${getErrorMessage(error)}`,
       );
     }
-  };
+  }, [editModal.record, updateMutation, createMutation, updateAlertMutation, createAlertMutation, message]);
 
-  const handleBatchImport = (items: BatchImportRow[]) => {
+  const handleBatchImport = useCallback((items: BatchImportRow[]) => {
     const payload: BatchCreateItem[] = items.map((item) => ({
       url: item.url,
       platform: item.platform as BatchCreateItem["platform"],
@@ -340,9 +403,9 @@ export default function ProductsPage() {
       onError: (error) =>
         message.error(`Import failed: ${getErrorMessage(error)}`),
     });
-  };
+  }, [batchCreate, showBatchResult, message]);
 
-  const handleCrawlNow = () => {
+  const handleCrawlNow = useCallback(() => {
     message.loading({
       content: "Starting crawl task...",
       key: "crawl",
@@ -376,210 +439,155 @@ export default function ProductsPage() {
         });
       },
     });
-  };
+  }, [crawlNow, message]);
 
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-
-  const handleDeleteSchedule = async (platformKey: string) => {
+  const handleDeleteSchedule = useCallback(async (platformKey: string) => {
     try {
       await deleteCronConfig.mutateAsync(platformKey);
       message.success("Schedule deleted");
     } catch (error) {
       message.error(`Delete failed: ${getErrorMessage(error)}`);
     }
-  };
+  }, [deleteCronConfig, message]);
 
-  const columns: ColumnsType<Product> = [
-    { title: "Product", dataIndex: "title", width: 160, ellipsis: true },
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      width: 90,
-      render: (value: string) => <PlatformBadge value={value} />,
-    },
-    {
-      title: "URL",
-      dataIndex: "url",
-      width: 140,
-      ellipsis: true,
-      render: (value: string) => (
-        <Tooltip title={value}>
-          <span>{value}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Active",
-      dataIndex: "active",
-      width: 80,
-      render: (value: boolean) =>
-        value ? (
-          <Tag color="success">Active</Tag>
-        ) : (
-          <Tag color="error">Inactive</Tag>
+  const columns: ColumnsType<Product> = useMemo(
+    () => [
+      { title: "Product", dataIndex: "title", width: 160, ellipsis: true },
+      {
+        title: "Platform",
+        dataIndex: "platform",
+        width: 90,
+        render: (value: string) => <PlatformBadge value={value} />,
+      },
+      {
+        title: "URL",
+        dataIndex: "url",
+        width: 140,
+        ellipsis: true,
+        render: (value: string) => (
+          <Tooltip title={value}>
+            <span>{value}</span>
+          </Tooltip>
         ),
-    },
-    {
-      title: "Actions",
-      key: "action",
-      width: 160,
-      align: "right",
-      render: (_value: unknown, record: Product) => (
-        <Space size={6} style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Tooltip title="Open product link">
-            <Button
-              size="small"
-              icon={<ExportOutlined />}
-              aria-label="Open product link in new window"
-              onClick={() => window.open(record.url, "_blank")}
-            />
-          </Tooltip>
-          <Tooltip title="View price trend">
-            <Button
-              size="small"
-              icon={<LineChartOutlined />}
-              onClick={() => setTrendModal({ open: true, product: record })}
-            />
-          </Tooltip>
-          <Tooltip title="Edit product">
+      },
+      {
+        title: "Active",
+        dataIndex: "active",
+        width: 80,
+        render: (value: boolean) =>
+          value ? (
+            <Tag color="success">Active</Tag>
+          ) : (
+            <Tag color="error">Inactive</Tag>
+          ),
+      },
+      {
+        title: "Actions",
+        key: "action",
+        width: 160,
+        align: "right",
+        render: (_value: unknown, record: Product) => (
+          <Space size={6} style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Tooltip title="Open product link">
+              <Button
+                size="small"
+                icon={<ExportOutlined />}
+                aria-label="Open product link in new window"
+                onClick={() => window.open(record.url, "_blank")}
+              />
+            </Tooltip>
+            <Tooltip title="View price trend">
+              <Button
+                size="small"
+                icon={<LineChartOutlined />}
+                onClick={() => setTrendModal({ open: true, product: record })}
+              />
+            </Tooltip>
+            <Tooltip title="Edit product">
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => setEditModal({ open: true, record })}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Delete this product?"
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Tooltip title="Delete product">
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    [handleDelete, setTrendModal, setEditModal]
+  );
+
+  const scheduleColumns: ColumnsType<ProductScheduleRow> = useMemo(
+    () => [
+      {
+        title: "Platform",
+        dataIndex: "platform",
+        width: 90,
+        render: (value: string) => PLATFORM_LABEL[value] ?? value,
+      },
+      {
+        title: "Cron Expression",
+        dataIndex: "cron_expression",
+        render: (value: string | null) =>
+          value ? (
+            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              {value}
+            </span>
+          ) : (
+            <Tag>Unset</Tag>
+          ),
+      },
+      {
+        title: "Timezone",
+        dataIndex: "cron_timezone",
+        width: 130,
+        render: (value: string | null) => value || "Asia/Shanghai",
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        width: 92,
+        render: (_value: unknown, record) => (
+          <Space size={6}>
             <Button
               size="small"
               icon={<EditOutlined />}
-              onClick={() => setEditModal({ open: true, record })}
+              aria-label="Edit schedule config"
+              onClick={() => navigate("/schedule")}
             />
-          </Tooltip>
-          <Popconfirm
-            title="Delete this product?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Tooltip title="Delete product">
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
-  const scheduleColumns: ColumnsType<ProductScheduleRow> = [
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      width: 90,
-      render: (value: string) => PLATFORM_LABEL[value] ?? value,
-    },
-    {
-      title: "Cron Expression",
-      dataIndex: "cron_expression",
-      render: (value: string | null) =>
-        value ? (
-          <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-            {value}
-          </span>
-        ) : (
-          <Tag>Unset</Tag>
-        ),
-    },
-    {
-      title: "Timezone",
-      dataIndex: "cron_timezone",
-      width: 130,
-      render: (value: string | null) => value || "Asia/Shanghai",
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 92,
-      render: (_value: unknown, record) => (
-        <Space size={6}>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            aria-label="Edit schedule config"
-            onClick={() => navigate("/schedule")}
-          />
-          <Popconfirm
-            title="Delete this schedule config?"
-            onConfirm={() => handleDeleteSchedule(record.platform)}
-            disabled={!record.configured}
-          >
-            <Button
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label="Delete schedule config"
+            <Popconfirm
+              title="Delete this schedule config?"
+              onConfirm={() => handleDeleteSchedule(record.platform)}
               disabled={!record.configured}
-              loading={
-                deleteCronConfig.isPending &&
-                deleteCronConfig.variables === record.platform
-              }
-            />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
-
-  const crawlLogColumns: ColumnsType<CrawlLog> = [
-    {
-      title: "Time",
-      dataIndex: "timestamp",
-      width: 160,
-      render: (value: string) =>
-        new Intl.DateTimeFormat("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(value)),
-    },
-    {
-      title: "Platform",
-      dataIndex: "platform",
-      width: 80,
-      render: (value: string | null) => <PlatformBadge value={value} />,
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      width: 100,
-      render: (value: string | null) => {
-        const configMap: Record<string, { color: string; text: string }> = {
-          SUCCESS: { color: "success", text: "Success" },
-          ERROR: { color: "error", text: "Failed" },
-          SKIPPED: { color: "default", text: "Skipped" },
-        };
-        const config = value ? configMap[value] : undefined;
-        return (
-          <Tag color={config?.color || "default"}>
-            {config?.text || value || "-"}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      width: 100,
-      render: (value: number | null) => (value ? `¥${value}` : "-"),
-    },
-    {
-      title: "Error",
-      dataIndex: "error_message",
-      ellipsis: true,
-      render: (value: string | null) =>
-        value ? (
-          <Tooltip title={value}>
-            <span style={{ color: "var(--color-error)" }}>{value}</span>
-          </Tooltip>
-        ) : (
-          "-"
+            >
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label="Delete schedule config"
+                disabled={!record.configured}
+                loading={
+                  deleteCronConfig.isPending &&
+                  deleteCronConfig.variables === record.platform
+                }
+              />
+            </Popconfirm>
+          </Space>
         ),
-    },
-  ];
+      },
+    ],
+    [navigate, handleDeleteSchedule, deleteCronConfig.isPending, deleteCronConfig.variables]
+  );
+
+
 
   return (
     <div className="page-root">

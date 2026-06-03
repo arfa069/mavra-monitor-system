@@ -1,6 +1,6 @@
-# Price Monitor
+# Mavra Monitor System
 
-E-commerce price monitoring system for Taobao, JD, and Amazon with Feishu webhook notifications.
+E-commerce price monitoring (Taobao, JD, Amazon) and job monitoring (Boss Zhipin, 51job, Liepin) system with Feishu webhook notifications.
 
 ## Features
 
@@ -301,7 +301,7 @@ Product crawls still use the app-level crawl semaphore. Job crawls use database-
 - Boss Zhipin uses `BossCloakExperimentalAdapter`: CloakBrowser opens the logged-in profile only to refresh cookies, while list/detail requests run serially through `curl_cffi`. The adapter logs progress to `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`; a 2026-05-25 real run for Guangzhou `IT服务台` crawled 200 jobs in 589.57s with 200/200 descriptions and addresses in the database.
 - Event Center/system log payloads are centrally redacted before storage and again before display, so cookie/token/webhook/security fields are not exposed in runtime or audit event details.
 - 51job uses `curl_cffi` search and HTML detail parsing.
-- Liepin uses `curl_cffi` for both search and detail. Search calls `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`; detail parsing tries `/job/<id>.shtml` and `/a/<id>.shtml`. The normal Liepin path should not open browser tabs.
+- Liepin uses `curl_cffi` for both search and detail. Search calls `https://api-c.liepin.com/api/com.liepin.searchfront4c.pc-search-job`; detail parsing tries `/job/<id>.shtml` and `/a/<id>.shtml`. The normal Liepin path loads and decrypts Chromium profile cookies (via Windows DPAPI decryption) if a profile directory is provided to bypass challenge verification without opening browser tabs. Detail page fetches are throttled with a 5-10s delay to prevent triggering anti-bot walls.
 
 ### Products Pagination
 

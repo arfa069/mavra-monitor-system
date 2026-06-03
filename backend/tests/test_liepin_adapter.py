@@ -660,7 +660,7 @@ async def test_liepin_crawl_detail_does_not_open_cdp_on_challenge(monkeypatch):
     result = await adapter.crawl_detail("123")
 
     assert result["success"] is False
-    assert "HTTP response contained no detail" in result["error"]
+    assert "no detail content" in result["error"]
 
 
 @pytest.mark.skip(reason="Liepin CDP detail fallback was removed in Phase 3")

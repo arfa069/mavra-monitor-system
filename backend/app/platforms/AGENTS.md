@@ -12,7 +12,7 @@
 | JD/Taobao OpenCLI    | `jd_opencli.py`, `taobao_opencli.py` | Product anti-bot helper paths                      |
 | Boss                 | `boss_cloak_experimental.py`         | Active Boss path; cookie refresh + serial HTTP     |
 | 51job                | `job51.py`                           | `curl_cffi` search + HTML detail parsing           |
-| Liepin               | `liepin.py`                          | HTTP search/detail; should not open browser tabs   |
+| Liepin               | `liepin.py`                          | HTTP search/detail; supports Chromium profile cookie decryption; should not open browser tabs |
 | Strategies           | `strategies/*.py`                    | Price extraction strategies                        |
 | Middleware           | `middleware/cookie_injection.py`     | Optional JD cookie fallback injection              |
 
@@ -20,14 +20,14 @@
 
 - Product adapters own extraction logic; browser/profile lifecycle should stay in crawling domain when profile-managed.
 - Boss list/detail requests stay serial and browser-like via `curl_cffi` impersonation.
-- Liepin search posts to `api-c.liepin.com`; detail parsing covers `/job/` and `/a/` URLs.
+- Liepin search posts to `api-c.liepin.com`; detail parsing covers `/job/` and `/a/` URLs. Supports loading Chromium profile cookies under Windows (via DPAPI) to bypass challenge verification.
 - `JD_COOKIE` is emergency fallback only when explicitly enabled.
 - Runtime logs under `backend/logs/` are for troubleshooting and must remain gitignored.
 
 ## ANTI-PATTERNS
 
 - Do not add generic concurrent detail fetching to Boss.
-- Do not make Liepin depend on browser tabs for the normal path.
+- Do not make Liepin depend on browser tabs for the normal path (detail requests are throttled with 5-10s random delays).
 - Do not inject cookies unless the matching fallback feature flag is enabled.
 - Do not leak cookies/security IDs/webhooks in adapter logs.
 - Do not use `networkidle` as a default page-load strategy for product pages.
