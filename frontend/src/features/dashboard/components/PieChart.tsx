@@ -28,7 +28,9 @@ export function DashboardPieChart({
     return (
       <Sector
         {...props}
-        outerRadius={props.index === activeIndex ? outerRadius + 8 : outerRadius}
+        outerRadius={
+          props.index === activeIndex ? outerRadius + 8 : outerRadius
+        }
       />
     );
   };

@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     # JWT settings
     jwt_secret_key: str = "your-secret-key-change-in-production"
 
+    # Smart home settings
+    smart_home_secret_key: str = ""
+
     # App settings
     app_name: str = "Price Monitor"
     debug: bool = False

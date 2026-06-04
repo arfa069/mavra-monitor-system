@@ -242,11 +242,7 @@ export default function EventCenterPage() {
   ];
 
   return (
-    <motion.div
-      variants={stagger.container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div variants={stagger.container} initial="hidden" animate="show">
       <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
@@ -343,22 +339,22 @@ export default function EventCenterPage() {
 
       <motion.div variants={stagger.item}>
         <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={items}
-        loading={loading}
-        pagination={{
-          current: page,
-          pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (value) => `Total ${value} events`,
-          onChange: (nextPage, nextPageSize) => {
-            setPage(nextPage);
-            setPageSize(nextPageSize);
-          },
-        }}
-      />
+          rowKey="id"
+          columns={columns}
+          dataSource={items}
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            showTotal: (value) => `Total ${value} events`,
+            onChange: (nextPage, nextPageSize) => {
+              setPage(nextPage);
+              setPageSize(nextPageSize);
+            },
+          }}
+        />
       </motion.div>
 
       <Drawer

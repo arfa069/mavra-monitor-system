@@ -22,6 +22,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
   DashboardOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useThemeContext } from "@/shared/components/ThemeProvider";
@@ -104,7 +105,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             ? "/dashboard"
             : location.pathname.startsWith("/admin")
               ? location.pathname
-              : "/products";
+              : location.pathname.startsWith("/smart-home")
+                ? "/smart-home"
+                : "/products";
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
@@ -136,6 +139,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       key: "/schedule",
       icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
       label: "Schedule Config",
+    },
+    {
+      key: "/smart-home",
+      icon: <HomeOutlined style={{ fontSize: 14 }} />,
+      label: "Smart Home",
     },
     ...(hasPermission("user:read")
       ? [
@@ -404,7 +412,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
         </Drawer>
       )}
-
 
       {/* Main Content */}
       <motion.div

@@ -467,11 +467,7 @@ export default function ScheduleConfigPage() {
   ];
 
   return (
-    <motion.div
-      variants={stagger.container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header — mint color block (DESIGN.md: Mint — Config) */}
       <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
@@ -519,7 +515,11 @@ export default function ScheduleConfigPage() {
       )}
 
       {/* Cron config card */}
-      <motion.div variants={stagger.item} className="fg-card" style={{ marginTop: 24 }}>
+      <motion.div
+        variants={stagger.item}
+        className="fg-card"
+        style={{ marginTop: 24 }}
+      >
         <div className="fg-card-header">
           <span
             style={{
@@ -600,7 +600,11 @@ export default function ScheduleConfigPage() {
       </motion.div>
 
       {/* Data & notification card */}
-      <motion.div variants={stagger.item} className="fg-card" style={{ marginTop: 16 }}>
+      <motion.div
+        variants={stagger.item}
+        className="fg-card"
+        style={{ marginTop: 16 }}
+      >
         <div className="fg-card-header">
           <span
             style={{

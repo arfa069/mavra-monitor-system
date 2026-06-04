@@ -48,7 +48,10 @@ export default function PageTransition({
         type: "spring" as const,
         stiffness: SPRING_CONFIG_BY_SPEED[speed].stiffness,
         damping: SPRING_CONFIG_BY_SPEED[speed].damping,
-        opacity: { duration: OPACITY_DURATION_BY_SPEED[speed], ease: "easeOut" },
+        opacity: {
+          duration: OPACITY_DURATION_BY_SPEED[speed],
+          ease: "easeOut",
+        },
       };
 
   return (
@@ -75,4 +78,3 @@ export default function PageTransition({
     </AnimatePresence>
   );
 }
-

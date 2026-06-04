@@ -6,12 +6,12 @@ business crawler execution.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 
-from app.core.task_registry import CrawlTask, TaskStatus
-import asyncio
 from app.config import settings
+from app.core.task_registry import CrawlTask, TaskStatus
 
 ProgressCallback = Callable[[CrawlTask], Awaitable[None]]
 

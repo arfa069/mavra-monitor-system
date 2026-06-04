@@ -284,34 +284,40 @@ export default function ProductsPage() {
     [productCronConfigs, productCronSchedules],
   );
 
-  const showBatchResult = useCallback((action: string, results: BatchOperationResult[]) => {
-    const successCount = results.filter((item) => item.success).length;
-    const failedItems = results.filter((item) => !item.success);
+  const showBatchResult = useCallback(
+    (action: string, results: BatchOperationResult[]) => {
+      const successCount = results.filter((item) => item.success).length;
+      const failedItems = results.filter((item) => !item.success);
 
-    message.success(`${action}: ${successCount} succeeded`);
-    if (failedItems.length > 0) {
-      notification.error({
-        message: `${action}: ${failedItems.length} failed`,
-        description: failedItems
-          .map((item) => `${item.url || `ID:${item.id}`} - ${item.error}`)
-          .join("\n"),
-        duration: 0,
+      message.success(`${action}: ${successCount} succeeded`);
+      if (failedItems.length > 0) {
+        notification.error({
+          message: `${action}: ${failedItems.length} failed`,
+          description: failedItems
+            .map((item) => `${item.url || `ID:${item.id}`} - ${item.error}`)
+            .join("\n"),
+          duration: 0,
+        });
+      }
+    },
+    [message],
+  );
+
+  const handleDelete = useCallback(
+    (id: number) => {
+      const shouldGoPrev = page > 1 && productItems.length === 1;
+      deleteMutation.mutate(id, {
+        onSuccess: () => {
+          if (shouldGoPrev) {
+            setPage((current) => Math.max(1, current - 1));
+          }
+          message.success("Deleted successfully");
+        },
+        onError: () => message.error("Delete failed"),
       });
-    }
-  }, [message]);
-
-  const handleDelete = useCallback((id: number) => {
-    const shouldGoPrev = page > 1 && productItems.length === 1;
-    deleteMutation.mutate(id, {
-      onSuccess: () => {
-        if (shouldGoPrev) {
-          setPage((current) => Math.max(1, current - 1));
-        }
-        message.success("Deleted successfully");
-      },
-      onError: () => message.error("Delete failed"),
-    });
-  }, [page, productItems.length, deleteMutation, message]);
+    },
+    [page, productItems.length, deleteMutation, message],
+  );
 
   const handleBatchDelete = useCallback(() => {
     if (selectedRowKeys.length === 0) return;
@@ -332,78 +338,98 @@ export default function ProductsPage() {
       onError: (error) =>
         message.error(`Batch operation failed: ${getErrorMessage(error)}`),
     });
-  }, [selectedRowKeys, productItems.length, page, batchDelete, showBatchResult, message]);
+  }, [
+    selectedRowKeys,
+    productItems.length,
+    page,
+    batchDelete,
+    showBatchResult,
+    message,
+  ]);
 
-  const handleFormSubmit = useCallback(async (values: ProductFormSubmitValues) => {
-    const { alert, ...productValues } = values;
+  const handleFormSubmit = useCallback(
+    async (values: ProductFormSubmitValues) => {
+      const { alert, ...productValues } = values;
 
-    try {
-      let productId: number;
+      try {
+        let productId: number;
 
-      if (editModal.record) {
-        await updateMutation.mutateAsync({
-          id: editModal.record.id,
-          data: productValues,
-        });
-        productId = editModal.record.id;
-      } else {
-        if (!productValues.platform) {
-          throw new Error("Please select a platform");
+        if (editModal.record) {
+          await updateMutation.mutateAsync({
+            id: editModal.record.id,
+            data: productValues,
+          });
+          productId = editModal.record.id;
+        } else {
+          if (!productValues.platform) {
+            throw new Error("Please select a platform");
+          }
+          const result = await createMutation.mutateAsync({
+            ...productValues,
+            platform: productValues.platform,
+          });
+          productId = result.data.id;
         }
-        const result = await createMutation.mutateAsync({
-          ...productValues,
-          platform: productValues.platform,
-        });
-        productId = result.data.id;
-      }
 
-      if (alert.enabled) {
-        if (alert.existingId) {
+        if (alert.enabled) {
+          if (alert.existingId) {
+            await updateAlertMutation.mutateAsync({
+              id: alert.existingId,
+              data: { threshold_percent: alert.threshold, active: true },
+            });
+          } else {
+            await createAlertMutation.mutateAsync({
+              product_id: productId,
+              threshold_percent: alert.threshold,
+              active: true,
+            });
+          }
+        } else if (alert.existingId) {
           await updateAlertMutation.mutateAsync({
             id: alert.existingId,
-            data: { threshold_percent: alert.threshold, active: true },
-          });
-        } else {
-          await createAlertMutation.mutateAsync({
-            product_id: productId,
-            threshold_percent: alert.threshold,
-            active: true,
+            data: { active: false },
           });
         }
-      } else if (alert.existingId) {
-        await updateAlertMutation.mutateAsync({
-          id: alert.existingId,
-          data: { active: false },
-        });
+
+        message.success(
+          editModal.record ? "Updated successfully" : "Added successfully",
+        );
+        setEditModal({ open: false });
+        setCreateFormOpen(false);
+      } catch (error) {
+        message.error(
+          `${editModal.record ? "Update" : "Add"} failed: ${getErrorMessage(error)}`,
+        );
       }
+    },
+    [
+      editModal.record,
+      updateMutation,
+      createMutation,
+      updateAlertMutation,
+      createAlertMutation,
+      message,
+    ],
+  );
 
-      message.success(
-        editModal.record ? "Updated successfully" : "Added successfully",
-      );
-      setEditModal({ open: false });
-      setCreateFormOpen(false);
-    } catch (error) {
-      message.error(
-        `${editModal.record ? "Update" : "Add"} failed: ${getErrorMessage(error)}`,
-      );
-    }
-  }, [editModal.record, updateMutation, createMutation, updateAlertMutation, createAlertMutation, message]);
-
-  const handleBatchImport = useCallback((items: BatchImportRow[]) => {
-    const payload: BatchCreateItem[] = items.map((item) => ({
-      url: item.url,
-      platform: item.platform as BatchCreateItem["platform"],
-      title: item.title,
-    }));
-    batchCreate.mutate(payload, {
-      onSuccess: (response) => {
-        showBatchResult("Batch Import", response.data);
-        setBatchImportOpen(false);
-      },
-      onError: (error) =>
-        message.error(`Import failed: ${getErrorMessage(error)}`),
-    });
-  }, [batchCreate, showBatchResult, message]);
+  const handleBatchImport = useCallback(
+    (items: BatchImportRow[]) => {
+      const payload: BatchCreateItem[] = items.map((item) => ({
+        url: item.url,
+        platform: item.platform as BatchCreateItem["platform"],
+        title: item.title,
+      }));
+      batchCreate.mutate(payload, {
+        onSuccess: (response) => {
+          showBatchResult("Batch Import", response.data);
+          setBatchImportOpen(false);
+        },
+        onError: (error) =>
+          message.error(`Import failed: ${getErrorMessage(error)}`),
+      });
+    },
+    [batchCreate, showBatchResult, message],
+  );
 
   const handleCrawlNow = useCallback(() => {
     message.loading({
@@ -441,14 +467,17 @@ export default function ProductsPage() {
     });
   }, [crawlNow, message]);
 
-  const handleDeleteSchedule = useCallback(async (platformKey: string) => {
-    try {
-      await deleteCronConfig.mutateAsync(platformKey);
-      message.success("Schedule deleted");
-    } catch (error) {
-      message.error(`Delete failed: ${getErrorMessage(error)}`);
-    }
-  }, [deleteCronConfig, message]);
+  const handleDeleteSchedule = useCallback(
+    async (platformKey: string) => {
+      try {
+        await deleteCronConfig.mutateAsync(platformKey);
+        message.success("Schedule deleted");
+      } catch (error) {
+        message.error(`Delete failed: ${getErrorMessage(error)}`);
+      }
+    },
+    [deleteCronConfig, message],
+  );
 
   const columns: ColumnsType<Product> = useMemo(
     () => [
@@ -487,7 +516,10 @@ export default function ProductsPage() {
         width: 160,
         align: "right",
         render: (_value: unknown, record: Product) => (
-          <Space size={6} style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Space
+            size={6}
+            style={{ display: "flex", justifyContent: "flex-end" }}
+          >
             <Tooltip title="Open product link">
               <Button
                 size="small"
@@ -522,7 +554,7 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [handleDelete, setTrendModal, setEditModal]
+    [handleDelete, setTrendModal, setEditModal],
   );
 
   const scheduleColumns: ColumnsType<ProductScheduleRow> = useMemo(
@@ -584,10 +616,13 @@ export default function ProductsPage() {
         ),
       },
     ],
-    [navigate, handleDeleteSchedule, deleteCronConfig.isPending, deleteCronConfig.variables]
+    [
+      navigate,
+      handleDeleteSchedule,
+      deleteCronConfig.isPending,
+      deleteCronConfig.variables,
+    ],
   );
-
-
 
   return (
     <div className="page-root">

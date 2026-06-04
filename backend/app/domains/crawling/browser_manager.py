@@ -11,6 +11,7 @@ from uuid import uuid4
 from playwright.async_api import BrowserContext, Page, async_playwright
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.config import settings
 from app.core.crawler_paths import build_profile_dir
 from app.core.profile_lease import ProfileLease
 from app.core.system_log import emit_system_log_detached
@@ -23,7 +24,6 @@ from app.domains.crawling.profile_pool import (
     ProfileAlreadyLeasedError,
     ProfileUnavailableError,
 )
-from app.config import settings
 from app.domains.crawling.profile_service import get_profile
 
 BLOCKED_PROFILE_STATUSES = {LOGIN_REQUIRED, DISABLED, COOLING_DOWN}

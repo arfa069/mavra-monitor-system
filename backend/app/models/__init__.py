@@ -17,6 +17,7 @@ from app.models.product import (
     ProductPlatformProfileBinding,
 )
 from app.models.role import Role, role_permissions
+from app.models.smart_home import SmartHomeConfig, SmartHomeEntityPreference
 from app.models.system_log import SystemLog
 from app.models.user import User
 
@@ -42,4 +43,6 @@ __all__ = [
     "CrawlTaskRecord",
     "CrawlProfile",
     "CrawlerWorkerRecord",
+    "SmartHomeConfig",
+    "SmartHomeEntityPreference",
 ]

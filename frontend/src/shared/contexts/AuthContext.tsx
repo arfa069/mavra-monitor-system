@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasPermission = useCallback(
-    (permission: Permission) => Boolean(user?.permissions?.includes(permission)),
+    (permission: Permission) =>
+      Boolean(user?.permissions?.includes(permission)),
     [user],
   );
 
@@ -94,11 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

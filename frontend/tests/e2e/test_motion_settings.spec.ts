@@ -33,7 +33,9 @@ test.describe("Motion Settings", () => {
 
     await expect
       .poll(() =>
-        page.evaluate(() => localStorage.getItem("mavra-monitor-system-motion-speed")),
+        page.evaluate(() =>
+          localStorage.getItem("mavra-monitor-system-motion-speed"),
+        ),
       )
       .toBe("slow");
 

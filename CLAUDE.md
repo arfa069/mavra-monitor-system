@@ -3,6 +3,7 @@
 此文件为 Claude Code (claude.ai/code) 提供代码库操作指南。
 
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 15092 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
@@ -26,23 +27,23 @@ This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 1
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/mavra-monitor-system/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/mavra-monitor-system/clusters` | All functional areas |
-| `gitnexus://repo/mavra-monitor-system/processes` | All execution flows |
-| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace |
+| Resource                                              | Use for                                  |
+| ----------------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/mavra-monitor-system/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/mavra-monitor-system/clusters`       | All functional areas                     |
+| `gitnexus://repo/mavra-monitor-system/processes`      | All execution flows                      |
+| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace             |
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->
 
@@ -57,7 +58,7 @@ Always load the `karpathy-guidelines` skill when coding.
 
 ## 2.项目概览
 
-淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
+淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控 + Home Assistant 智能家居控制。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
 
 **技术栈**：Python 3.11+ · FastAPI · PostgreSQL (async SQLAlchemy) · Redis · Playwright · 飞书 Webhook
 **前端**：React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）
@@ -100,6 +101,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backen
 - 所有时间戳字段使用 UTC 时区（`datetime.now(timezone.utc)`）
 - 价格比较使用 Decimal 避免浮点误差
 - LLM provider 通过 `LLMProviderFactory` 切换，支持 Anthropic/OpenAI/Ollama
+- smart-home 使用 `SMART_HOME_SECRET_KEY` 加密 Home Assistant token；空密钥不能用于真实环境保存配置。
 
 ## 7.本地开发及验证流程
 
@@ -111,7 +113,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backen
 - 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
 - Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/default/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
 - Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
-- 运行配置：`ALLOWED_ORIGINS` 控制 CORS 来源（逗号分隔或 JSON list），`CRAWLER_HEADLESS=false` 可在本地显示 Playwright/profile 浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制单个商品爬取任务内的并发 fan-out（默认/最小值 `1`）。
+- 运行配置：`ALLOWED_ORIGINS` 控制 CORS 来源（逗号分隔或 JSON list），`CRAWLER_HEADLESS=false` 可在本地显示 Playwright/profile 浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制单个商品爬取任务内的并发 fan-out（默认/最小值 `1`），`SMART_HOME_SECRET_KEY` 用于加密 Home Assistant token。
 - Liepin 职位爬取在 Windows 环境下支持自动解密并加载 Chromium 配置文件目录中的 Cookie（防详情页 Challenge 验证拦截）；详情爬取已加入 5-10 秒的随机延迟防反爬。
 - 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
 - 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。

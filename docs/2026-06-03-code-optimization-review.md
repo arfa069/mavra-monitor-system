@@ -12,15 +12,15 @@
 
 ## 优先级总览
 
-| 优先级 | 项目 | 性质 | 建议处理方式 |
-| --- | --- | --- | --- |
-| P0 | 前端 401 刷新队列重试 Bug | 正确性 Bug | 立即修复并补单元/集成测试 |
-| P1 | AuthContext value 引用不稳定 | 性能/渲染控制 | 小范围修复，补渲染或 hook 行为验证 |
-| P2 | CORS allowed origins 硬编码 | 配置解耦 | 配置化并补 settings 解析测试 |
-| P2 | Playwright headless 硬编码 | 调试便利性 | 配置化并补默认值测试 |
-| P2 | 冗余 `current_user` 判断 | 代码整洁 | 分批删除，跑后端路由测试 |
-| P2/P3 | 产品爬取串行执行 | 性能/架构 | 先设计并发策略，再实施 |
-| P3 | `urlConfigMap` 组件内静态对象 | 微优化 | 顺手处理即可 |
+| 优先级 | 项目                          | 性质          | 建议处理方式                       |
+| ------ | ----------------------------- | ------------- | ---------------------------------- |
+| P0     | 前端 401 刷新队列重试 Bug     | 正确性 Bug    | 立即修复并补单元/集成测试          |
+| P1     | AuthContext value 引用不稳定  | 性能/渲染控制 | 小范围修复，补渲染或 hook 行为验证 |
+| P2     | CORS allowed origins 硬编码   | 配置解耦      | 配置化并补 settings 解析测试       |
+| P2     | Playwright headless 硬编码    | 调试便利性    | 配置化并补默认值测试               |
+| P2     | 冗余 `current_user` 判断      | 代码整洁      | 分批删除，跑后端路由测试           |
+| P2/P3  | 产品爬取串行执行              | 性能/架构     | 先设计并发策略，再实施             |
+| P3     | `urlConfigMap` 组件内静态对象 | 微优化        | 顺手处理即可                       |
 
 ---
 
@@ -28,9 +28,9 @@
 
 ### A. 拦截器并发 401 刷新重试 Bug (正确性与反模式)
 
-* **目标文件：** [`../frontend/src/shared/api/client.ts`](../frontend/src/shared/api/client.ts)
-* **优先级：** P0
-* **风险等级：** 中。触碰全局 API 客户端，会影响所有鉴权请求。
+- **目标文件：** [`../frontend/src/shared/api/client.ts`](../frontend/src/shared/api/client.ts)
+- **优先级：** P0
+- **风险等级：** 中。触碰全局 API 客户端，会影响所有鉴权请求。
 
 #### 问题描述
 
@@ -90,17 +90,17 @@ failedQueue = [];
 
 #### 验证建议
 
-* 补一个 API client 单元测试：并发发出 `/a`、`/b`、`/c` 三个请求，均先返回 401，refresh 成功后确认分别重试原始 URL。
-* 覆盖 refresh 失败路径：所有 queued promise 都 reject，且跳转登录页逻辑只触发一次。
-* 运行前端 lint/build：`npm run lint`、`npm run build`。
+- 补一个 API client 单元测试：并发发出 `/a`、`/b`、`/c` 三个请求，均先返回 401，refresh 成功后确认分别重试原始 URL。
+- 覆盖 refresh 失败路径：所有 queued promise 都 reject，且跳转登录页逻辑只触发一次。
+- 运行前端 lint/build：`npm run lint`、`npm run build`。
 
 ---
 
 ### B. Auth 上下文方法和 value 引用不稳定 (性能优化)
 
-* **目标文件：** [`../frontend/src/shared/contexts/AuthContext.tsx`](../frontend/src/shared/contexts/AuthContext.tsx)
-* **优先级：** P1
-* **风险等级：** 低。主要影响上下文值引用，不应改变业务行为。
+- **目标文件：** [`../frontend/src/shared/contexts/AuthContext.tsx`](../frontend/src/shared/contexts/AuthContext.tsx)
+- **优先级：** P1
+- **风险等级：** 低。主要影响上下文值引用，不应改变业务行为。
 
 #### 问题描述
 
@@ -126,17 +126,19 @@ const logout = useCallback(async () => {
 
 const hasPermission = useCallback(
   (permission: Permission) => Boolean(user?.permissions?.includes(permission)),
-  [user?.permissions]
+  [user?.permissions],
 );
 
 const hasAnyPermission = useCallback(
-  (permissions: Permission[]) => permissions.some((permission) => hasPermission(permission)),
-  [hasPermission]
+  (permissions: Permission[]) =>
+    permissions.some((permission) => hasPermission(permission)),
+  [hasPermission],
 );
 
 const hasAllPermissions = useCallback(
-  (permissions: Permission[]) => permissions.every((permission) => hasPermission(permission)),
-  [hasPermission]
+  (permissions: Permission[]) =>
+    permissions.every((permission) => hasPermission(permission)),
+  [hasPermission],
 );
 
 const value = useMemo(
@@ -158,7 +160,7 @@ const value = useMemo(
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-  ]
+  ],
 );
 ```
 
@@ -166,16 +168,16 @@ Provider 使用 `value={value}`。
 
 #### 验证建议
 
-* 运行 `npm run lint` 和 `npm run build`。
-* 若已有 React 测试设施，可补一个轻量测试确认 login/logout 权限判断行为不变。
+- 运行 `npm run lint` 和 `npm run build`。
+- 若已有 React 测试设施，可补一个轻量测试确认 login/logout 权限判断行为不变。
 
 ---
 
 ### C. 组件内声明内联静态配置 (微优化)
 
-* **目标文件：** [`../frontend/src/features/jobs/components/JobConfigForm.tsx`](../frontend/src/features/jobs/components/JobConfigForm.tsx)
-* **优先级：** P3
-* **风险等级：** 极低。
+- **目标文件：** [`../frontend/src/features/jobs/components/JobConfigForm.tsx`](../frontend/src/features/jobs/components/JobConfigForm.tsx)
+- **优先级：** P3
+- **风险等级：** 极低。
 
 #### 问题描述
 
@@ -207,15 +209,16 @@ const URL_CONFIG_MAP = {
   },
   liepin: {
     label: "Liepin Search URL",
-    placeholder: "https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0",
+    placeholder:
+      "https://www.liepin.com/zhaopin/?key=python&dqs=020&currentPage=0",
   },
 } as const;
 ```
 
 #### 验证建议
 
-* 运行 `npm run lint` 和 `npm run build`。
-* 手动确认新增/编辑职位配置时，平台切换后的 URL placeholder 仍正确。
+- 运行 `npm run lint` 和 `npm run build`。
+- 手动确认新增/编辑职位配置时，平台切换后的 URL placeholder 仍正确。
 
 ---
 
@@ -223,13 +226,13 @@ const URL_CONFIG_MAP = {
 
 ### A. 冗余的身份验证判断 (代码整洁)
 
-* **目标文件：**
-  * [`../backend/app/domains/alerts/router.py`](../backend/app/domains/alerts/router.py)
-  * [`../backend/app/domains/crawling/router.py`](../backend/app/domains/crawling/router.py)
-  * [`../backend/app/domains/jobs/router.py`](../backend/app/domains/jobs/router.py)
-  * [`../backend/app/domains/products/router.py`](../backend/app/domains/products/router.py)
-* **优先级：** P2
-* **风险等级：** 低到中。逻辑本身是死代码清理，但涉及路由较多，建议分批改。
+- **目标文件：**
+  - [`../backend/app/domains/alerts/router.py`](../backend/app/domains/alerts/router.py)
+  - [`../backend/app/domains/crawling/router.py`](../backend/app/domains/crawling/router.py)
+  - [`../backend/app/domains/jobs/router.py`](../backend/app/domains/jobs/router.py)
+  - [`../backend/app/domains/products/router.py`](../backend/app/domains/products/router.py)
+- **优先级：** P2
+- **风险等级：** 低到中。逻辑本身是死代码清理，但涉及路由较多，建议分批改。
 
 #### 问题描述
 
@@ -250,16 +253,16 @@ if not current_user:
 
 #### 验证建议
 
-* 跑相关后端测试：`pytest backend/tests/test_alerts.py backend/tests/test_jobs_api.py backend/tests/test_api.py -q`。
-* 至少覆盖未登录请求仍返回 401。
+- 跑相关后端测试：`pytest backend/tests/test_alerts.py backend/tests/test_jobs_api.py backend/tests/test_api.py -q`。
+- 至少覆盖未登录请求仍返回 401。
 
 ---
 
 ### B. 允许跨域源的硬编码 (配置解耦)
 
-* **目标文件：** [`../backend/app/main.py`](../backend/app/main.py)、[`../backend/app/config.py`](../backend/app/config.py)
-* **优先级：** P2
-* **风险等级：** 低。注意环境变量解析格式。
+- **目标文件：** [`../backend/app/main.py`](../backend/app/main.py)、[`../backend/app/config.py`](../backend/app/config.py)
+- **优先级：** P2
+- **风险等级：** 低。注意环境变量解析格式。
 
 #### 问题描述
 
@@ -298,16 +301,16 @@ def parse_allowed_origins(cls, value):
 
 #### 验证建议
 
-* 补 Settings 解析测试：默认值、JSON list、逗号分隔字符串。
-* 跑后端基础测试和启动 smoke test。
+- 补 Settings 解析测试：默认值、JSON list、逗号分隔字符串。
+- 跑后端基础测试和启动 smoke test。
 
 ---
 
 ### C. 顺序爬取性能瓶颈 (并发与架构)
 
-* **目标文件：** [`../backend/app/domains/crawling/task_runner.py`](../backend/app/domains/crawling/task_runner.py)
-* **优先级：** P2/P3
-* **风险等级：** 中到高。涉及 worker、任务租约、OpenCLI/浏览器资源和反爬策略。
+- **目标文件：** [`../backend/app/domains/crawling/task_runner.py`](../backend/app/domains/crawling/task_runner.py)
+- **优先级：** P2/P3
+- **风险等级：** 中到高。涉及 worker、任务租约、OpenCLI/浏览器资源和反爬策略。
 
 #### 问题描述
 
@@ -326,10 +329,10 @@ for product in products:
 
 原始建议使用 `asyncio.Semaphore + asyncio.gather` 的方向可以作为候选方案，但不应直接落地为局部改动。当前产品爬取已经接入持久化 `crawl_tasks` 和 crawler worker。runner 内部再并发会与 worker 层并发叠加，可能导致：
 
-* 同一进程同时打开过多浏览器或 OpenCLI 子进程。
-* 任务 heartbeat/lease 续期时间被拉长或进度持久化不及时。
-* 单个平台并发访问过高，引发防反爬、封禁或 Cookie/Profile 争用。
-* `details` 顺序、异常聚合和部分成功语义变复杂。
+- 同一进程同时打开过多浏览器或 OpenCLI 子进程。
+- 任务 heartbeat/lease 续期时间被拉长或进度持久化不及时。
+- 单个平台并发访问过高，引发防反爬、封禁或 Cookie/Profile 争用。
+- `details` 顺序、异常聚合和部分成功语义变复杂。
 
 #### 建议方案
 
@@ -366,17 +369,17 @@ results = await asyncio.gather(*(crawl_with_limit(product) for product in produc
 
 #### 验证建议
 
-* 补 `task_runner` 单元测试：全部成功、部分失败、全部失败、并发上限生效。
-* 补 worker 租约/heartbeat 相关测试，确认长任务仍能续期。
-* 手动压测小批量商品，观察 OpenCLI 进程数、浏览器资源、失败率和耗时。
+- 补 `task_runner` 单元测试：全部成功、部分失败、全部失败、并发上限生效。
+- 补 worker 租约/heartbeat 相关测试，确认长任务仍能续期。
+- 手动压测小批量商品，观察 OpenCLI 进程数、浏览器资源、失败率和耗时。
 
 ---
 
 ### D. Playwright 无头模式参数硬编码 (配置解耦)
 
-* **目标文件：** [`../backend/app/domains/crawling/browser_manager.py`](../backend/app/domains/crawling/browser_manager.py)、[`../backend/app/config.py`](../backend/app/config.py)
-* **优先级：** P2
-* **风险等级：** 低。
+- **目标文件：** [`../backend/app/domains/crawling/browser_manager.py`](../backend/app/domains/crawling/browser_manager.py)、[`../backend/app/config.py`](../backend/app/config.py)
+- **优先级：** P2
+- **风险等级：** 低。
 
 #### 问题描述
 
@@ -408,8 +411,8 @@ headless=settings.crawler_headless
 
 #### 验证建议
 
-* 补默认配置测试，确认未设置环境变量时仍为 headless。
-* 手动设置 `CRAWLER_HEADLESS=false` 启动本地爬虫流程，确认浏览器可视化打开。
+- 补默认配置测试，确认未设置环境变量时仍为 headless。
+- 手动设置 `CRAWLER_HEADLESS=false` 启动本地爬虫流程，确认浏览器可视化打开。
 
 ---
 
@@ -424,7 +427,7 @@ headless=settings.crawler_headless
 
 每个实施 PR 至少应包含：
 
-* 对应代码改动。
-* 定向测试或构建/lint 结果。
-* 对无法自动化验证的浏览器/爬虫行为给出手动验证记录。
-* 不混入无关格式化或大面积重排，方便审查。
+- 对应代码改动。
+- 定向测试或构建/lint 结果。
+- 对无法自动化验证的浏览器/爬虫行为给出手动验证记录。
+- 不混入无关格式化或大面积重排，方便审查。

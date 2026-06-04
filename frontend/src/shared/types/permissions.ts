@@ -15,6 +15,9 @@ export type Permission =
   | "job:write"
   | "job:delete"
   | "rbac:read"
-  | "rbac:manage";
+  | "rbac:manage"
+  | "smart_home:read"
+  | "smart_home:control"
+  | "smart_home:configure";
 
 export type PermissionLevel = "manage" | "edit" | "read" | null;
