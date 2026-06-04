@@ -14,6 +14,7 @@ import {
   Tag,
   Typography,
 } from "antd";
+import type { AxiosError } from "axios";
 import {
   BulbOutlined,
   PoweroffOutlined,
@@ -26,8 +27,32 @@ import type { SmartHomeConfig, SmartHomeEntity } from "./types";
 
 const { Title, Text } = Typography;
 
+type SmartHomeErrorResponse = {
+  detail?: string | Array<{ msg?: string } | string>;
+};
+
 function nextToggleService(entity: SmartHomeEntity) {
   return entity.state === "on" ? "turn_off" : "turn_on";
+}
+
+function getSmartHomeErrorMessage(error: unknown, fallback: string): string {
+  const axiosError = error as AxiosError<SmartHomeErrorResponse>;
+  const detail = axiosError.response?.data?.detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const items = detail
+      .map((item) => (typeof item === "string" ? item : item.msg || ""))
+      .filter(Boolean);
+    if (items.length > 0) {
+      return items.join("; ");
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
 
 export default function SmartHomePage() {
@@ -53,9 +78,7 @@ export default function SmartHomePage() {
     } catch (error) {
       setConnected(false);
       setLastError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load smart home entities",
+        getSmartHomeErrorMessage(error, "Failed to load smart home entities"),
       );
     } finally {
       setLoading(false);
@@ -129,8 +152,8 @@ export default function SmartHomePage() {
       });
       message.success("Command sent");
       void loadEntities();
-    } catch {
-      message.error("Command failed");
+    } catch (error) {
+      message.error(getSmartHomeErrorMessage(error, "Command failed"));
     }
   };
 
@@ -146,8 +169,10 @@ export default function SmartHomePage() {
       setConfigOpen(false);
       message.success("Smart home config saved");
       void loadEntities();
-    } catch {
-      message.error("Failed to save smart home config");
+    } catch (error) {
+      message.error(
+        getSmartHomeErrorMessage(error, "Failed to save smart home config"),
+      );
     }
   };
 
@@ -169,8 +194,10 @@ export default function SmartHomePage() {
       } else {
         message.error(response.data.message);
       }
-    } catch {
-      message.error("Failed to test smart home config");
+    } catch (error) {
+      message.error(
+        getSmartHomeErrorMessage(error, "Failed to test smart home config"),
+      );
     } finally {
       setTestingConfig(false);
     }

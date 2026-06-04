@@ -14,7 +14,12 @@ from app.core.audit import log_audit
 from app.core.permissions import require_permission
 from app.database import AsyncSessionLocal, get_db
 from app.domains.smart_home import service
-from app.domains.smart_home.crypto import SmartHomeCryptoError
+from app.domains.smart_home.crypto import (
+    SmartHomeCryptoError,
+    SmartHomeSecretKeyInvalidError,
+    SmartHomeSecretKeyMissingError,
+    SmartHomeTokenDecryptError,
+)
 from app.domains.smart_home.state_stream import smart_home_state_broker
 from app.models.user import User
 from app.schemas.smart_home import (
@@ -37,6 +42,21 @@ def _http_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=400, detail="Unsupported smart home entity")
     if isinstance(exc, service.SmartHomeUnsupportedServiceError):
         return HTTPException(status_code=400, detail="Unsupported smart home service")
+    if isinstance(exc, SmartHomeSecretKeyMissingError):
+        return HTTPException(
+            status_code=500,
+            detail="SMART_HOME_SECRET_KEY is not configured on the server",
+        )
+    if isinstance(exc, SmartHomeSecretKeyInvalidError):
+        return HTTPException(
+            status_code=500,
+            detail="SMART_HOME_SECRET_KEY is not a valid Fernet key",
+        )
+    if isinstance(exc, SmartHomeTokenDecryptError):
+        return HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
     if isinstance(exc, SmartHomeCryptoError):
         return HTTPException(status_code=500, detail="Smart home encryption error")
     return HTTPException(status_code=502, detail=str(exc))

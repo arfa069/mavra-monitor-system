@@ -4,7 +4,9 @@ import os
 import pytest
 
 from app.domains.smart_home.crypto import (
-    SmartHomeCryptoError,
+    SmartHomeSecretKeyInvalidError,
+    SmartHomeSecretKeyMissingError,
+    SmartHomeTokenDecryptError,
     decrypt_token,
     encrypt_token,
 )
@@ -23,12 +25,17 @@ def test_encrypt_decrypt_token_round_trip():
 
 
 def test_encrypt_requires_secret():
-    with pytest.raises(SmartHomeCryptoError, match="SMART_HOME_SECRET_KEY"):
+    with pytest.raises(SmartHomeSecretKeyMissingError, match="SMART_HOME_SECRET_KEY"):
         encrypt_token("ha-token", "")
+
+
+def test_encrypt_rejects_invalid_secret_key():
+    with pytest.raises(SmartHomeSecretKeyInvalidError, match="valid Fernet key"):
+        encrypt_token("ha-token", "not-a-fernet-key")
 
 
 def test_decrypt_rejects_wrong_secret():
     encrypted = encrypt_token("ha-token", _secret())
 
-    with pytest.raises(SmartHomeCryptoError, match="decrypt"):
+    with pytest.raises(SmartHomeTokenDecryptError, match="cannot be decrypted"):
         decrypt_token(encrypted, _secret())

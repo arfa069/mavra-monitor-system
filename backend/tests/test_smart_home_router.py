@@ -157,6 +157,67 @@ async def test_entities_filters_to_supported_domains(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_entities_reports_missing_secret_key(monkeypatch):
+    app.dependency_overrides[get_db] = _db_override
+    _override_user("user")
+
+    async def allow_permission(db, role_name, permission):
+        return True
+
+    from app.domains.smart_home.crypto import SmartHomeSecretKeyMissingError
+
+    async def list_entities(db):
+        raise SmartHomeSecretKeyMissingError("SMART_HOME_SECRET_KEY is not configured")
+
+    monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
+    monkeypatch.setattr("app.domains.smart_home.service.list_entities", list_entities)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get("/v1/smart-home/entities")
+    finally:
+        _clear_overrides()
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "SMART_HOME_SECRET_KEY is not configured on the server"
+
+
+@pytest.mark.asyncio
+async def test_entities_reports_token_decrypt_failure(monkeypatch):
+    app.dependency_overrides[get_db] = _db_override
+    _override_user("user")
+
+    async def allow_permission(db, role_name, permission):
+        return True
+
+    from app.domains.smart_home.crypto import SmartHomeTokenDecryptError
+
+    async def list_entities(db):
+        raise SmartHomeTokenDecryptError(
+            "Stored Home Assistant token cannot be decrypted with the current SMART_HOME_SECRET_KEY"
+        )
+
+    monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
+    monkeypatch.setattr("app.domains.smart_home.service.list_entities", list_entities)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get("/v1/smart-home/entities")
+    finally:
+        _clear_overrides()
+
+    assert response.status_code == 500
+    assert (
+        response.json()["detail"]
+        == "Stored Home Assistant token cannot be decrypted with the current SMART_HOME_SECRET_KEY"
+    )
+
+
+@pytest.mark.asyncio
 async def test_service_call_rejects_unsupported_service(monkeypatch):
     app.dependency_overrides[get_db] = _db_override
     _override_user("user")
