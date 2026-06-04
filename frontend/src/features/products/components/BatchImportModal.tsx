@@ -91,13 +91,16 @@ export default function BatchImportModal({
     setStep(1);
   };
 
-  const handlePlatformChange = useCallback((index: number, platform: ParsedPlatform) => {
-    setItems((prev) =>
-      prev.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, platform } : item,
-      ),
-    );
-  }, []);
+  const handlePlatformChange = useCallback(
+    (index: number, platform: ParsedPlatform) => {
+      setItems((prev) =>
+        prev.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, platform } : item,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleConfirm = () => {
     if (items.some((item) => !item.platform)) {

@@ -51,11 +51,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <motion.div
-      variants={stagger.container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header — cream color block */}
       <motion.div variants={stagger.item} className="page-header bg-cream">
         <div className="page-header-inner">
@@ -69,7 +65,10 @@ export default function ProfilePage() {
         </div>
       </motion.div>
 
-      <motion.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
+      <motion.div
+        variants={stagger.item}
+        style={{ maxWidth: 560, marginTop: 24 }}
+      >
         {/* Info card */}
         <div className="fg-card" style={{ marginBottom: 16 }}>
           <div className="fg-card-header">

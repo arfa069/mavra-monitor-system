@@ -185,9 +185,10 @@ async def test_runner_reports_product_progress(monkeypatch):
 @pytest.mark.asyncio
 async def test_runner_product_concurrency_behaviors(monkeypatch):
     from types import SimpleNamespace
+
+    from app.config import settings
     from app.core.task_registry import create_task
     from app.domains.crawling.task_runner import CrawlTaskRunner
-    from app.config import settings
 
     # Mock settings.product_crawl_concurrency to 2
     monkeypatch.setattr(settings, "product_crawl_concurrency", 2)

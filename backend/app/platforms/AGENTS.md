@@ -6,15 +6,15 @@
 
 ## WHERE TO LOOK
 
-| Platform             | Location                             | Notes                                              |
-| -------------------- | ------------------------------------ | -------------------------------------------------- |
-| Base product adapter | `base.py`                            | Browser lifecycle, navigation, extraction contract |
-| JD/Taobao OpenCLI    | `jd_opencli.py`, `taobao_opencli.py` | Product anti-bot helper paths                      |
-| Boss                 | `boss_cloak_experimental.py`         | Active Boss path; cookie refresh + serial HTTP     |
-| 51job                | `job51.py`                           | `curl_cffi` search + HTML detail parsing           |
+| Platform             | Location                             | Notes                                                                                         |
+| -------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Base product adapter | `base.py`                            | Browser lifecycle, navigation, extraction contract                                            |
+| JD/Taobao OpenCLI    | `jd_opencli.py`, `taobao_opencli.py` | Product anti-bot helper paths                                                                 |
+| Boss                 | `boss_cloak_experimental.py`         | Active Boss path; cookie refresh + serial HTTP                                                |
+| 51job                | `job51.py`                           | `curl_cffi` search + HTML detail parsing                                                      |
 | Liepin               | `liepin.py`                          | HTTP search/detail; supports Chromium profile cookie decryption; should not open browser tabs |
-| Strategies           | `strategies/*.py`                    | Price extraction strategies                        |
-| Middleware           | `middleware/cookie_injection.py`     | Optional JD cookie fallback injection              |
+| Strategies           | `strategies/*.py`                    | Price extraction strategies                                                                   |
+| Middleware           | `middleware/cookie_injection.py`     | Optional JD cookie fallback injection                                                         |
 
 ## CONVENTIONS
 

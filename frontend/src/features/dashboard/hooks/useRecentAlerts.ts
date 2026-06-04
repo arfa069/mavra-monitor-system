@@ -25,7 +25,8 @@ export function useRecentAlerts(limit = 10): AlertsState {
     if (!isAdmin) {
       Promise.resolve().then(() => {
         setState((prev) => {
-          if (prev.data.length === 0 && !prev.loading && !prev.error) return prev;
+          if (prev.data.length === 0 && !prev.loading && !prev.error)
+            return prev;
           return { data: [], loading: false, error: null };
         });
       });

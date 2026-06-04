@@ -19,7 +19,10 @@ function formatTime(iso: string | null): string {
   });
 }
 
-export function RecentAlertsPanel({ alerts = [], loading }: RecentAlertsPanelProps) {
+export function RecentAlertsPanel({
+  alerts = [],
+  loading,
+}: RecentAlertsPanelProps) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
 
@@ -81,10 +84,14 @@ export function RecentAlertsPanel({ alerts = [], loading }: RecentAlertsPanelPro
                 }}
               >
                 <Tag
-                  color={alert.alert_type === "price_drop" ? "error" : "warning"}
+                  color={
+                    alert.alert_type === "price_drop" ? "error" : "warning"
+                  }
                   style={{ borderRadius: 50, fontSize: 12 }}
                 >
-                  {alert.alert_type === "price_drop" ? "降价" : alert.alert_type}
+                  {alert.alert_type === "price_drop"
+                    ? "降价"
+                    : alert.alert_type}
                 </Tag>
                 {alert.platform && (
                   <Tag style={{ borderRadius: 50, fontSize: 12 }}>
@@ -111,7 +118,9 @@ export function RecentAlertsPanel({ alerts = [], loading }: RecentAlertsPanelPro
                 {alert.product_title ? (
                   <span>
                     <strong>{alert.product_title}</strong>
-                    <span style={{ color: "var(--color-muted)", margin: "0 4px" }}>
+                    <span
+                      style={{ color: "var(--color-muted)", margin: "0 4px" }}
+                    >
                       ·
                     </span>
                     {alert.message}

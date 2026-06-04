@@ -34,11 +34,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <motion.div
-      variants={stagger.container}
-      initial="hidden"
-      animate="show"
-    >
+    <motion.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header */}
       <motion.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
@@ -52,7 +48,10 @@ export default function SettingsPage() {
         </div>
       </motion.div>
 
-      <motion.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
+      <motion.div
+        variants={stagger.item}
+        style={{ maxWidth: 560, marginTop: 24 }}
+      >
         <div className="fg-card">
           <div className="fg-card-header">
             <span
