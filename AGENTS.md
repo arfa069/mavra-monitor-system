@@ -5,6 +5,7 @@
 **Branch:** main
 
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 15092 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
@@ -28,29 +29,29 @@ This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 1
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/mavra-monitor-system/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/mavra-monitor-system/clusters` | All functional areas |
-| `gitnexus://repo/mavra-monitor-system/processes` | All execution flows |
-| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace |
+| Resource                                              | Use for                                  |
+| ----------------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/mavra-monitor-system/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/mavra-monitor-system/clusters`       | All functional areas                     |
+| `gitnexus://repo/mavra-monitor-system/processes`      | All execution flows                      |
+| `gitnexus://repo/mavra-monitor-system/process/{name}` | Step-by-step execution trace             |
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->
 
 ## OVERVIEW
 
-淘宝、京东、亚马逊价格监控 + Boss/51job/猎聘职位监控。后端 FastAPI + PostgreSQL/Redis + Playwright/curl_cffi/CloakBrowser；前端 React/Vite/TypeScript/Ant Design + Figma Design System。
+淘宝、京东、亚马逊价格监控 + Boss/51job/猎聘职位监控 + Home Assistant 智能家居控制。后端 FastAPI + PostgreSQL/Redis + Playwright/curl_cffi/CloakBrowser；前端 React/Vite/TypeScript/Ant Design + Figma Design System。
 
 ## STRUCTURE
 
@@ -58,7 +59,7 @@ This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 1
 mavra-monitor-system/
 ├── backend/                    # FastAPI, SQLAlchemy, crawlers, workers, tests
 │   ├── app/main.py             # FastAPI app + lifespan + router mounting
-│   ├── app/domains/            # business domains: crawling/jobs/products/auth/admin/...
+│   ├── app/domains/            # business domains: crawling/jobs/products/auth/admin/smart_home/...
 │   ├── app/platforms/          # Taobao/JD/Amazon/Boss/51job/Liepin adapters
 │   └── tests/                  # pytest unit/integration/regression tests
 ├── frontend/                   # Vite React app
@@ -74,16 +75,17 @@ mavra-monitor-system/
 
 ## WHERE TO LOOK
 
-| Task                    | Location                                                                                            | Notes                                               |
-| ----------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                            | Legacy, `/v1`, and `/api/v1` are mounted together   |
-| Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                             | Playwright/CDP/profile-sensitive                    |
+| Task                    | Location                                                                                            | Notes                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                            | Legacy, `/v1`, and `/api/v1` are mounted together                                                    |
+| Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                             | Playwright/CDP/profile-sensitive                                                                     |
 | Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                 | Boss uses CloakBrowser cookie refresh + `curl_cffi`; Liepin supports Chromium profile cookie loading |
-| Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md` | Cookie-first + Bearer fallback                      |
-| Frontend routes         | `frontend/src/App.tsx`                                                                              | Root redirects to `/jobs`                           |
-| Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                 | Axios injects CSRF and refreshes 401                |
-| Design decisions        | `doc/DESIGN.md`, `frontend/src/styles/`                                                             | Mandatory before UI changes                         |
-| Manual QA               | `backend/tests/manual_verification_checklist.md`                                                    | Browser evidence for UI/crawl-trigger changes       |
+| Smart home              | `backend/app/domains/smart_home`, `backend/app/models/smart_home.py`, `backend/app/schemas/smart_home.py` | Home Assistant config, entity control, SSE fanout, encrypted token storage |
+| Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md` | Cookie-first + Bearer fallback                                                                       |
+| Frontend routes         | `frontend/src/App.tsx`                                                                              | Root redirects to `/jobs`                                                                            |
+| Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                 | Axios injects CSRF and refreshes 401                                                                 |
+| Design decisions        | `doc/DESIGN.md`, `frontend/src/styles/`                                                             | Mandatory before UI changes                                                                          |
+| Manual QA               | `backend/tests/manual_verification_checklist.md`                                                    | Browser evidence for UI/crawl-trigger changes                                                        |
 
 ## CODE MAP
 
@@ -126,6 +128,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 - `user_id=1` legacy assumptions remain in crawler/product/job code, but auth is multi-user.
 - Browser auth is Cookie-first (`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`); scripts may use Bearer fallback.
 - API modules use `/api/v1` from frontend; Vite proxy strips `/api` before backend.
+- `SMART_HOME_SECRET_KEY` must be set before saving a Home Assistant token; the smart-home routes use `smart_home:read`, `smart_home:control`, and `smart_home:configure`.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -151,3 +154,4 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 - `frontend/playwright.config.ts` defaults to `http://localhost:5173`; set `E2E_BASE_URL=http://localhost:3000` for this repo's launcher.
 - Boss runtime JSONL logs live under `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` and are gitignored.
 - GitNexus full-text index warning may appear; run `npx gitnexus analyze --force` if keyword search is degraded.
+- Smart home config lives under `/v1/smart-home/*`; do not store Home Assistant tokens without a real `SMART_HOME_SECRET_KEY`.

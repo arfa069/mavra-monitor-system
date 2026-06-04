@@ -1,6 +1,6 @@
 # Mavra Monitor System
 
-E-commerce price monitoring (Taobao, JD, Amazon) and job monitoring (Boss Zhipin, 51job, Liepin) system with Feishu webhook notifications.
+E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 51job, Liepin), and Home Assistant smart-home control with Feishu webhook notifications.
 
 ## Features
 
@@ -9,6 +9,7 @@ E-commerce price monitoring (Taobao, JD, Amazon) and job monitoring (Boss Zhipin
 - Price drop alerts via Feishu Webhook
 - CDP mode: reuse an existing browser session for product crawlers and JD login walls
 - Boss Zhipin job crawling uses CloakBrowser profile cookies plus `curl_cffi` search/detail APIs
+- Home Assistant smart-home dashboard with live entity updates, service calls, and connection testing
 - Per-product crawl schedule (cron support per product)
 - Job search monitoring for Boss Zhipin, 51job, and Liepin
 - Dashboard with KPI cards, trend charts, salary/platform distributions, admin system health, and SSE KPI updates
@@ -43,6 +44,9 @@ Create a `.env` file at the project root:
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/pricemonitor
 REDIS_URL=redis://localhost:6379/0
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+
+# Required to encrypt Home Assistant tokens at rest
+SMART_HOME_SECRET_KEY=...
 
 # Browser frontend origins allowed by CORS. Comma-separated or JSON list.
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
@@ -94,6 +98,11 @@ JD_COOKIE=...
 | GET              | /products/crawl/workers                           | List crawler worker heartbeats/capabilities        | 是    |
 | GET              | /products/crawl/logs                              | Get recent crawl logs                              | 是    |
 | POST             | /products/crawl/cleanup                           | Delete old price history and crawl logs            | 是    |
+| GET/PUT          | /smart-home/config                                | Get or update Home Assistant connection config     | 是    |
+| POST             | /smart-home/config/test                           | Test Home Assistant connection                     | 是    |
+| GET              | /smart-home/entities                              | List Home Assistant entities                       | 是    |
+| POST             | /smart-home/entities/{entity_id}/service          | Call a Home Assistant entity service               | 是    |
+| GET              | /smart-home/entities/stream                       | SSE stream for live Home Assistant state           | 是    |
 | GET              | /scheduler/status                                 | Scheduler status (both product and job crawl)      | 是    |
 | GET              | /dashboard/kpi                                    | User KPI and admin system KPI                      | 是    |
 | GET              | /dashboard/events                                 | Dashboard KPI SSE stream                           | 是    |

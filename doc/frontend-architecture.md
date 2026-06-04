@@ -42,6 +42,11 @@ frontend/src/
 │       ├── EventCenterPage.tsx # 事件中心页面编排
 │       ├── api/events.ts    # 事件中心 API 与 SSE URL helper
 │       └── types.ts         # EventCenter 业务类型
+│   ├── smart-home/
+│       ├── SmartHomePage.tsx # Home Assistant 页面编排
+│       ├── api/smartHome.ts  # Home Assistant API client
+│       ├── hooks/useSmartHomeSSE.ts # 实时状态 SSE hook
+│       └── types.ts          # Home Assistant 业务类型
 │   ├── products/
 │       ├── ProductsPage.tsx # 商品管理页编排
 │       ├── api/             # 商品 CRUD 与商品爬取 API client
@@ -102,6 +107,7 @@ frontend/src/
               <JobsPage />
               <ProductsPage />
               <ScheduleConfigPage />
+              <SmartHomePage />
               <SettingsPage />
               <ProfilePage />
             </AppLayout>
@@ -195,6 +201,7 @@ interface AuthContextType {
 | --------------------------------------- | ----------------- | ---------------------- |
 | `features/products/useProducts()`       | 商品列表 + 分页   | `staleTime: 10s`       |
 | `features/jobs/useJobs()`               | 职位列表 + 分页   | `staleTime: 30s`       |
+| `features/smart-home/useSmartHomeSSE()` | 实时实体状态流    | SSE 连接保持           |
 | `features/jobs/useJobConfigs()`         | 职位搜索配置列表  | 无持久化               |
 | `features/jobs/useCrawlProfiles()`      | 爬虫 profile 列表 | 无持久化               |
 | `features/jobs/useMatchResults()`       | LLM 匹配结果      | 无持久化               |
@@ -302,6 +309,15 @@ server: {
 - 飞书 Webhook URL 配置
 - 数据保留天数配置
 
+### 智能家居页（SmartHomePage.tsx）
+
+**核心功能：**
+
+- Home Assistant 连接配置查看、保存和连通性测试
+- 实体列表展示、区域与状态过滤、服务调用
+- SSE 实时状态推送与断线提示
+- 配置编辑仅对 `smart_home:configure` 可见，实体控制依赖 `smart_home:control`
+
 ### 6.4 登录/注册页（Login.tsx / Register.tsx）
 
 **设计风格：Figma 营销风格左右分栏**
@@ -335,6 +351,7 @@ server: {
 - `/jobs` — 职位管理（TeamOutlined）
 - `/products` — 商品管理（ShoppingCartOutlined）
 - `/schedule` — 定时配置（ScheduleOutlined）
+- `/smart-home` — 智能家居（HomeOutlined）
 - `/profile` — 个人信息（UserOutlined）
 - `/settings` — 账号设置（SettingOutlined）
 - `/admin/users` — 用户管理（TeamOutlined，仅 admin/super_admin）

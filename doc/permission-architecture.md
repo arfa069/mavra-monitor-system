@@ -1,6 +1,6 @@
 # 权限架构
 
-> 最后更新：2026-05-25（Cookie auth / Dashboard / Boss Cloak 文档同步后）
+> 最后更新：2026-06-04（Smart Home 集成同步后）
 
 ## 概览
 
@@ -35,6 +35,9 @@
 | `job:read`           |  ❌  |  ❌   |     ✅      |
 | `job:write`          |  ❌  |  ❌   |     ✅      |
 | `job:delete`         |  ❌  |  ❌   |     ✅      |
+| `smart_home:read`    |  ✅  |  ✅   |     ✅      |
+| `smart_home:control` |  ✅  |  ✅   |     ✅      |
+| `smart_home:configure` |  ❌  |  ✅   |     ✅      |
 | `rbac:read`          |  ❌  |  ❌   |     ✅      |
 | `rbac:manage`        |  ❌  |  ❌   |     ✅      |
 
@@ -107,6 +110,17 @@
 | `POST /api/v1/config`  | `config:write` |
 | `PATCH /api/v1/config` | `config:write` |
 
+### 智能家居 (`app.domains.smart_home.router`)
+
+| 端点                                            | 权限                   |
+| ----------------------------------------------- | ---------------------- |
+| `GET /api/v1/smart-home/config`                 | `smart_home:configure` |
+| `PUT /api/v1/smart-home/config`                 | `smart_home:configure` |
+| `POST /api/v1/smart-home/config/test`           | `smart_home:configure` |
+| `GET /api/v1/smart-home/entities`               | `smart_home:read`      |
+| `POST /api/v1/smart-home/entities/{id}/service` | `smart_home:control`   |
+| `GET /api/v1/smart-home/entities/stream`        | `smart_home:read`      |
+
 ### 系统 (`main.py` / `app.domains.scheduling.router`)
 
 | 端点                           | 权限                                   |
@@ -157,6 +171,7 @@
 - `user.register`, `user.create`, `user.update`, `user.delete`
 - `auth.login`, `auth.logout`, `user.password_change`
 - `rbac.role_permissions_update`
+- `smart_home.config.update`, `smart_home.entity.control`
 
 仅 `user:read` 权限可查询审计日志。
 
@@ -164,7 +179,7 @@
 
 | 守卫              | 保护范围                                                                            | 行为               |
 | ----------------- | ----------------------------------------------------------------------------------- | ------------------ |
-| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings` | 未登录 → `/login`  |
+| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`  |
 | `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                 | 权限不足 → `/jobs` |
 
 角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
