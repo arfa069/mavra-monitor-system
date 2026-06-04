@@ -4,6 +4,7 @@ Revision ID: 2026_06_03_add_smart_home
 Revises: 20260531_task_available_at
 Create Date: 2026-06-03
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -30,6 +31,7 @@ ROLE_PERMISSIONS = {
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     op.create_table(
         "smart_home_configs",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -38,8 +40,18 @@ def upgrade() -> None:
         sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("last_status", sa.String(length=50), nullable=True),
         sa.Column("last_error", sa.Text(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -51,18 +63,43 @@ def upgrade() -> None:
         sa.Column("hidden", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("area", sa.String(length=255), nullable=True),
-        sa.Column("metadata_json", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column(
+            "metadata_json",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "entity_id", name="uq_smart_home_entity_pref_user_entity"),
+        sa.UniqueConstraint(
+            "user_id", "entity_id", name="uq_smart_home_entity_pref_user_entity"
+        ),
     )
-    op.create_index("ix_smart_home_entity_preferences_user_id", "smart_home_entity_preferences", ["user_id"])
-    op.create_index("ix_smart_home_entity_preferences_entity_id", "smart_home_entity_preferences", ["entity_id"])
+    op.create_index(
+        "ix_smart_home_entity_preferences_user_id",
+        "smart_home_entity_preferences",
+        ["user_id"],
+    )
+    op.create_index(
+        "ix_smart_home_entity_preferences_entity_id",
+        "smart_home_entity_preferences",
+        ["entity_id"],
+    )
 
     for permission_name, description in PERMISSIONS.items():
-        op.execute(
+        bind.execute(
             sa.text(
                 "INSERT INTO users_permissions (name, description, created_at, updated_at) "
                 "VALUES (:name, :description, NOW(), NOW()) "
@@ -72,7 +109,7 @@ def upgrade() -> None:
         )
     for role_name, permission_names in ROLE_PERMISSIONS.items():
         for permission_name in sorted(permission_names):
-            op.execute(
+            bind.execute(
                 sa.text(
                     "INSERT INTO users_roles_permissions (role_id, permission_id) "
                     "SELECT r.id, p.id FROM users_roles r, users_permissions p "
@@ -84,9 +121,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
     for role_name, permission_names in ROLE_PERMISSIONS.items():
         for permission_name in sorted(permission_names):
-            op.execute(
+            bind.execute(
                 sa.text(
                     "DELETE FROM users_roles_permissions "
                     "WHERE role_id = (SELECT id FROM users_roles WHERE name = :role_name) "
@@ -95,11 +133,17 @@ def downgrade() -> None:
                 {"role_name": role_name, "permission_name": permission_name},
             )
     for permission_name in PERMISSIONS:
-        op.execute(
+        bind.execute(
             sa.text("DELETE FROM users_permissions WHERE name = :name"),
             {"name": permission_name},
         )
-    op.drop_index("ix_smart_home_entity_preferences_entity_id", table_name="smart_home_entity_preferences")
-    op.drop_index("ix_smart_home_entity_preferences_user_id", table_name="smart_home_entity_preferences")
+    op.drop_index(
+        "ix_smart_home_entity_preferences_entity_id",
+        table_name="smart_home_entity_preferences",
+    )
+    op.drop_index(
+        "ix_smart_home_entity_preferences_user_id",
+        table_name="smart_home_entity_preferences",
+    )
     op.drop_table("smart_home_entity_preferences")
     op.drop_table("smart_home_configs")

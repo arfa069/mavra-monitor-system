@@ -40,6 +40,7 @@ export default function SmartHomePage() {
   const [config, setConfig] = useState<SmartHomeConfig | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [testingConfig, setTestingConfig] = useState(false);
   const [form] = Form.useForm();
 
   const loadEntities = useCallback(async () => {
@@ -76,8 +77,11 @@ export default function SmartHomePage() {
   }, [canConfigure, form]);
 
   useEffect(() => {
-    void loadEntities();
-    void loadConfig();
+    const timer = window.setTimeout(() => {
+      void loadEntities();
+      void loadConfig();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadEntities, loadConfig]);
 
   useSmartHomeSSE(
@@ -144,6 +148,31 @@ export default function SmartHomePage() {
       void loadEntities();
     } catch {
       message.error("Failed to save smart home config");
+    }
+  };
+
+  const testConfig = async () => {
+    try {
+      const values = await form.validateFields(["base_url", "token"]);
+      setTestingConfig(true);
+      const response = await smartHomeApi.testConfig({
+        base_url: values.base_url,
+        token: values.token || null,
+        enabled: values.enabled ?? true,
+      });
+      if (response.data.ok) {
+        message.success(
+          response.data.home_assistant_version
+            ? `Connected to Home Assistant ${response.data.home_assistant_version}`
+            : response.data.message,
+        );
+      } else {
+        message.error(response.data.message);
+      }
+    } catch {
+      message.error("Failed to test smart home config");
+    } finally {
+      setTestingConfig(false);
     }
   };
 
@@ -302,6 +331,9 @@ export default function SmartHomePage() {
           <Form.Item name="enabled" label="Enabled" valuePropName="checked">
             <Switch />
           </Form.Item>
+          <Button loading={testingConfig} onClick={testConfig}>
+            Test Connection
+          </Button>
         </Form>
       </Modal>
     </div>

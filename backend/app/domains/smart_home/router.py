@@ -1,4 +1,5 @@
 """Smart home API router."""
+
 from __future__ import annotations
 
 import asyncio
@@ -88,11 +89,14 @@ async def test_config(
     current_user: User = Depends(require_permission("smart_home:configure")),
     db: AsyncSession = Depends(get_db),
 ):
-    return await service.test_config(
-        db,
-        base_url=str(data.base_url).rstrip("/") if data.base_url else None,
-        token=data.token,
-    )
+    try:
+        return await service.test_config(
+            db,
+            base_url=str(data.base_url).rstrip("/") if data.base_url else None,
+            token=data.token,
+        )
+    except Exception as exc:
+        raise _http_error(exc) from exc
 
 
 @router.get("/entities", response_model=SmartHomeEntityListResponse)
@@ -134,7 +138,9 @@ async def call_service(
         user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
-    return SmartHomeServiceResponse(ok=True, entity_id=entity_id, service=data.service, message="Service call sent")
+    return SmartHomeServiceResponse(
+        ok=True, entity_id=entity_id, service=data.service, message="Service call sent"
+    )
 
 
 @router.get("/entities/stream")
@@ -159,7 +165,9 @@ async def stream_entities(
                 except TimeoutError:
                     yield ": keep-alive\n\n"
                     continue
-                raw_state: dict[str, Any] | None = event.get("data", {}).get("new_state")
+                raw_state: dict[str, Any] | None = event.get("data", {}).get(
+                    "new_state"
+                )
                 if not raw_state:
                     continue
                 entity = service.normalize_entity(raw_state)

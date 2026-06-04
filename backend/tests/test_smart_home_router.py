@@ -15,7 +15,9 @@ from app.schemas.smart_home import (
 
 
 def _user(role: str) -> User:
-    return User(id=1, username="tester", email="tester@example.com", role=role, is_active=True)
+    return User(
+        id=1, username="tester", email="tester@example.com", role=role, is_active=True
+    )
 
 
 def _config() -> SimpleNamespace:
@@ -63,7 +65,9 @@ async def test_get_config_requires_configure_permission(monkeypatch):
     monkeypatch.setattr("app.core.permissions.permission_exists", permission_exists)
 
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.get("/v1/smart-home/config")
     finally:
         _clear_overrides()
@@ -89,10 +93,12 @@ async def test_update_config_redacts_token_in_response(monkeypatch):
 
     monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
     monkeypatch.setattr("app.domains.smart_home.service.save_config", save_config)
-    monkeypatch.setattr("app.core.audit.log_audit", log_audit)
+    monkeypatch.setattr("app.domains.smart_home.router.log_audit", log_audit)
 
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.put(
                 "/v1/smart-home/config",
                 json={
@@ -139,7 +145,9 @@ async def test_entities_filters_to_supported_domains(monkeypatch):
     monkeypatch.setattr("app.domains.smart_home.service.list_entities", list_entities)
 
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.get("/v1/smart-home/entities")
     finally:
         _clear_overrides()
@@ -162,10 +170,14 @@ async def test_service_call_rejects_unsupported_service(monkeypatch):
     from app.domains.smart_home.service import SmartHomeUnsupportedServiceError
 
     monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
-    monkeypatch.setattr("app.domains.smart_home.service.call_entity_service", call_entity_service)
+    monkeypatch.setattr(
+        "app.domains.smart_home.service.call_entity_service", call_entity_service
+    )
 
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             response = await client.post(
                 "/v1/smart-home/entities/switch.kitchen/service",
                 json={"service": "delete_everything", "service_data": {}},

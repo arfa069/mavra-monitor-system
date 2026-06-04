@@ -7,6 +7,7 @@ export function useSmartHomeSSE(
   onEntity: (entity: SmartHomeEntity) => void,
   onError: () => void,
 ) {
+  const sourceRef = useRef<EventSource | null>(null);
   const retryCountRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -16,9 +17,11 @@ export function useSmartHomeSSE(
     const baseDelay = 2000;
 
     function connect() {
+      sourceRef.current?.close();
       const source = new EventSource(smartHomeApi.buildStreamUrl(), {
         withCredentials: true,
       });
+      sourceRef.current = source;
       source.onmessage = (event) => {
         retryCountRef.current = 0;
         try {
@@ -29,6 +32,9 @@ export function useSmartHomeSSE(
       };
       source.onerror = () => {
         source.close();
+        if (sourceRef.current === source) {
+          sourceRef.current = null;
+        }
         if (retryCountRef.current < maxRetry) {
           retryCountRef.current += 1;
           const delay = baseDelay * Math.pow(2, retryCountRef.current - 1);
@@ -43,6 +49,8 @@ export function useSmartHomeSSE(
     const source = connect();
     return () => {
       source.close();
+      sourceRef.current?.close();
+      sourceRef.current = null;
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       retryCountRef.current = 0;
     };
