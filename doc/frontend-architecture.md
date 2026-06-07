@@ -11,7 +11,7 @@
 | 状态管理    | React Context（AuthContext）+ TanStack React Query               |
 | HTTP 客户端 | Axios                                                            |
 | CSS         | CSS Design Tokens + Ant Design token + `components.css` 全局覆盖 |
-| 字体        | Inter（正文）+ JetBrains Mono（标签/版权）+ CSS 变量系统         |
+| 字体        | General Sans（标题）+ DM Sans（正文）+ Geist（表格数字）+ JetBrains Mono（标签/代码）+ CSS 变量系统 |
 | 图标        | Ant Design Icons（线性风格）                                     |
 | 设计系统    | Figma 营销风格（黑白核心 + 马卡龙色块 + 胶囊按钮）               |
 

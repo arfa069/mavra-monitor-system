@@ -7,8 +7,10 @@ import {
   Empty,
   Form,
   Input,
+  InputNumber,
   Modal,
   Row,
+  Select,
   Space,
   Switch,
   Tag,
@@ -33,6 +35,15 @@ type SmartHomeErrorResponse = {
 
 function nextToggleService(entity: SmartHomeEntity) {
   return entity.state === "on" ? "turn_off" : "turn_on";
+}
+
+function getDeviceName(entity: SmartHomeEntity): string {
+  if (entity.area) return entity.area;
+  if (entity.domain === "scene" || entity.domain === "script")
+    return entity.name;
+  const parts = entity.name.split(" ");
+  if (parts.length <= 1) return entity.name;
+  return parts.slice(0, -1).join(" ");
 }
 
 function getSmartHomeErrorMessage(error: unknown, fallback: string): string {
@@ -128,13 +139,17 @@ export default function SmartHomePage() {
 
   const grouped = useMemo(() => {
     return entities.reduce<Record<string, SmartHomeEntity[]>>((acc, entity) => {
-      const key = entity.area || entity.domain;
+      const key = getDeviceName(entity);
       acc[key] = [...(acc[key] || []), entity];
       return acc;
     }, {});
   }, [entities]);
 
-  const callService = async (entity: SmartHomeEntity, service: string) => {
+  const callService = async (
+    entity: SmartHomeEntity,
+    service: string,
+    serviceData: Record<string, unknown> = {},
+  ) => {
     if (entity.domain === "scene" || entity.domain === "script") {
       const confirmed = await new Promise<boolean>((resolve) => {
         Modal.confirm({
@@ -148,7 +163,7 @@ export default function SmartHomePage() {
     try {
       await smartHomeApi.callService(entity.entity_id, {
         service,
-        service_data: {},
+        service_data: serviceData,
       });
       message.success("Command sent");
       void loadEntities();
@@ -205,36 +220,31 @@ export default function SmartHomePage() {
 
   return (
     <div>
-      <Space
-        style={{
-          width: "100%",
-          justifyContent: "space-between",
-          marginBottom: 20,
-        }}
-      >
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            Smart Home
-          </Title>
-          <Text type="secondary">Home Assistant devices and scenes</Text>
-        </div>
-        <Space>
-          <Tag color={connected ? "green" : "red"}>
-            {connected ? "Connected" : "Offline"}
-          </Tag>
-          <Button onClick={loadEntities} loading={loading}>
-            Refresh
-          </Button>
-          {canConfigure && (
-            <Button
-              icon={<SettingOutlined />}
-              onClick={() => setConfigOpen(true)}
-            >
-              Configure
+      <div className="page-header bg-coral">
+        <div className="page-header-inner">
+          <div>
+            <p className="page-eyebrow">Smart Home</p>
+            <h1 className="page-title">Smart Home</h1>
+            <p className="page-subtitle">Home Assistant devices and scenes</p>
+          </div>
+          <Space>
+            <Tag color={connected ? "green" : "red"}>
+              {connected ? "Connected" : "Offline"}
+            </Tag>
+            <Button onClick={loadEntities} loading={loading}>
+              Refresh
             </Button>
-          )}
-        </Space>
-      </Space>
+            {canConfigure && (
+              <Button
+                icon={<SettingOutlined />}
+                onClick={() => setConfigOpen(true)}
+              >
+                Configure
+              </Button>
+            )}
+          </Space>
+        </div>
+      </div>
 
       {lastError && (
         <Card style={{ marginBottom: 16 }}>
@@ -301,13 +311,42 @@ export default function SmartHomePage() {
                         </Space>
                       )}
                       {entity.domain === "climate" && (
-                        <Space>
-                          <Tag>{entity.state}</Tag>
-                          <Text type="secondary">
-                            {entity.attributes.temperature
-                              ? `${entity.attributes.temperature}°C`
-                              : ""}
-                          </Text>
+                        <Space wrap>
+                          <Select
+                            value={entity.state}
+                            disabled={!entity.available}
+                            style={{ minWidth: 100 }}
+                            options={(
+                              (entity.attributes.hvac_modes as
+                                | string[]
+                                | undefined) || []
+                            ).map((m: string) => ({
+                              value: m,
+                              label: m,
+                            }))}
+                            onChange={(mode) =>
+                              void callService(entity, "set_hvac_mode", {
+                                hvac_mode: mode,
+                              })
+                            }
+                          />
+                          {typeof entity.attributes.temperature ===
+                            "number" && (
+                            <InputNumber
+                              min={entity.attributes.min_temp as number}
+                              max={entity.attributes.max_temp as number}
+                              value={entity.attributes.temperature as number}
+                              disabled={!entity.available}
+                              suffix="°C"
+                              onChange={(value) => {
+                                if (value !== null) {
+                                  void callService(entity, "set_temperature", {
+                                    temperature: value,
+                                  });
+                                }
+                              }}
+                            />
+                          )}
                         </Space>
                       )}
                       {["scene", "script"].includes(entity.domain) && (

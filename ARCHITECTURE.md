@@ -1,5 +1,7 @@
 # Mavra Monitor System - Architecture Document
 
+> **Note (2026-06-08)**: This document is a high-level summary. For the detailed backend architecture including complete data models, service boundaries, worker execution, and platform adapter internals, see [`doc/backend-architecture.md`](doc/backend-architecture.md). For frontend architecture, see [`doc/frontend-architecture.md`](doc/frontend-architecture.md). For permission architecture, see [`doc/permission-architecture.md`](doc/permission-architecture.md).
+
 ## Overview
 
 A multi-user e-commerce price monitoring system that tracks product prices across Taobao, JD, and Amazon, plus job searches across Boss Zhipin, 51job, and Liepin. When price drops are detected, notifications are sent via Feishu Webhook.
