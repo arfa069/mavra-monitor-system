@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   App,
@@ -40,50 +40,53 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, hasPermission } = useAuth();
   const { theme, toggleTheme, motionSpeed } = useThemeContext();
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     appMessage.success("Logged out");
     navigate("/login", { replace: true });
-  };
+  }, [logout, appMessage, navigate]);
 
-  const userMenuItems: MenuProps["items"] = [
-    {
-      key: "profile",
-      icon: <UserOutlined style={{ fontSize: 14 }} />,
-      label: "Profile",
-      onClick: () => navigate("/profile"),
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined style={{ fontSize: 14 }} />,
-      label: "Account Settings",
-      onClick: () => navigate("/settings"),
-    },
-    ...(hasPermission("user:read")
-      ? [
-          {
-            key: "admin/users",
-            icon: <TeamOutlined style={{ fontSize: 14 }} />,
-            label: "User Management",
-            onClick: () => navigate("/admin/users"),
-          },
-          {
-            key: "admin/audit-logs",
-            icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
-            label: "Audit Logs",
-            onClick: () => navigate("/admin/audit-logs"),
-          },
-        ]
-      : []),
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined style={{ fontSize: 14 }} />,
-      label: "Log Out",
-      danger: true,
-      onClick: handleLogout,
-    },
-  ];
+  const userMenuItems: MenuProps["items"] = useMemo(
+    () => [
+      {
+        key: "profile",
+        icon: <UserOutlined style={{ fontSize: 14 }} />,
+        label: "Profile",
+        onClick: () => navigate("/profile"),
+      },
+      {
+        key: "settings",
+        icon: <SettingOutlined style={{ fontSize: 14 }} />,
+        label: "Account Settings",
+        onClick: () => navigate("/settings"),
+      },
+      ...(hasPermission("user:read")
+        ? [
+            {
+              key: "admin/users",
+              icon: <TeamOutlined style={{ fontSize: 14 }} />,
+              label: "User Management",
+              onClick: () => navigate("/admin/users"),
+            },
+            {
+              key: "admin/audit-logs",
+              icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
+              label: "Audit Logs",
+              onClick: () => navigate("/admin/audit-logs"),
+            },
+          ]
+        : []),
+      { type: "divider" as const },
+      {
+        key: "logout",
+        icon: <LogoutOutlined style={{ fontSize: 14 }} />,
+        label: "Log Out",
+        danger: true,
+        onClick: handleLogout,
+      },
+    ],
+    [hasPermission, navigate, handleLogout],
+  );
 
   useEffect(() => {
     const checkMobile = () =>
@@ -93,73 +96,75 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const selectedKey = location.pathname.startsWith("/schedule")
-    ? "/schedule"
-    : location.pathname.startsWith("/events")
-      ? "/events"
-      : location.pathname.startsWith("/jobs")
-        ? "/jobs"
-        : location.pathname.startsWith("/products")
-          ? "/products"
-          : location.pathname.startsWith("/dashboard")
-            ? "/dashboard"
-            : location.pathname.startsWith("/admin")
-              ? location.pathname
-              : location.pathname.startsWith("/smart-home")
-                ? "/smart-home"
-                : "/products";
+  const selectedKey = useMemo(() => {
+    const path = location.pathname;
+    const prefix = [
+      "/schedule",
+      "/events",
+      "/jobs",
+      "/products",
+      "/dashboard",
+      "/smart-home",
+    ].find((p) => path.startsWith(p));
+    if (prefix) return prefix;
+    if (path.startsWith("/admin")) return path;
+    return "/products";
+  }, [location.pathname]);
 
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
     if (isMobile) setDrawerOpen(false);
   };
 
-  const menuItems = [
-    {
-      key: "/dashboard",
-      icon: <DashboardOutlined style={{ fontSize: 14 }} />,
-      label: "Dashboard",
-    },
-    {
-      key: "/events",
-      icon: <NotificationOutlined style={{ fontSize: 14 }} />,
-      label: "Event Center",
-    },
-    {
-      key: "/jobs",
-      icon: <TeamOutlined style={{ fontSize: 14 }} />,
-      label: "Job Management",
-    },
-    {
-      key: "/products",
-      icon: <ShoppingCartOutlined style={{ fontSize: 14 }} />,
-      label: "Product Management",
-    },
-    {
-      key: "/schedule",
-      icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
-      label: "Schedule Config",
-    },
-    {
-      key: "/smart-home",
-      icon: <HomeOutlined style={{ fontSize: 14 }} />,
-      label: "Smart Home",
-    },
-    ...(hasPermission("user:read")
-      ? [
-          {
-            key: "/admin/users",
-            icon: <TeamOutlined style={{ fontSize: 14 }} />,
-            label: "User Management",
-          },
-          {
-            key: "/admin/audit-logs",
-            icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
-            label: "Audit Logs",
-          },
-        ]
-      : []),
-  ];
+  const menuItems = useMemo(
+    () => [
+      {
+        key: "/dashboard",
+        icon: <DashboardOutlined style={{ fontSize: 14 }} />,
+        label: "Dashboard",
+      },
+      {
+        key: "/events",
+        icon: <NotificationOutlined style={{ fontSize: 14 }} />,
+        label: "Event Center",
+      },
+      {
+        key: "/jobs",
+        icon: <TeamOutlined style={{ fontSize: 14 }} />,
+        label: "Job Management",
+      },
+      {
+        key: "/products",
+        icon: <ShoppingCartOutlined style={{ fontSize: 14 }} />,
+        label: "Product Management",
+      },
+      {
+        key: "/schedule",
+        icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
+        label: "Schedule Config",
+      },
+      {
+        key: "/smart-home",
+        icon: <HomeOutlined style={{ fontSize: 14 }} />,
+        label: "Smart Home",
+      },
+      ...(hasPermission("user:read")
+        ? [
+            {
+              key: "/admin/users",
+              icon: <TeamOutlined style={{ fontSize: 14 }} />,
+              label: "User Management",
+            },
+            {
+              key: "/admin/audit-logs",
+              icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
+              label: "Audit Logs",
+            },
+          ]
+        : []),
+    ],
+    [hasPermission],
+  );
 
   return (
     <Layout style={{ minHeight: "100vh", background: "var(--color-canvas)" }}>

@@ -21,20 +21,17 @@ import { motion } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import type { ColumnsType } from "antd/es/table";
 import { configApi } from "@/features/settings";
-import { jobsApi } from "@/features/jobs";
-import { productsApi } from "@/features/products";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import CronGenerator from "./components/CronGenerator";
 import {
   useScheduleConfig,
   useUpdateScheduleConfig,
 } from "./hooks/useScheduleConfig";
-import type {
-  JobConfigScheduleInfo,
-  JobSearchConfig,
-  ProductPlatformCron,
-  ProductPlatformCronSchedule,
-} from "./types";
+import { usePlatformSchedule } from "./hooks/usePlatformSchedule";
+import { useJobConfigSchedule } from "./hooks/useJobConfigSchedule";
+import { useCronGenerator } from "./hooks/useCronGenerator";
+import { formatDateTime } from "@/shared/utils/date";
+import type { JobSearchConfig, ProductPlatformCron } from "./types";
 
 const CRON_SEGMENT_RE = /^(\*|[0-9]+(?:-[0-9]+)?(?:\/[0-9]+)?)$/;
 
@@ -53,49 +50,28 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 export default function ScheduleConfigPage() {
   const { hasPermission } = useAuth();
-  const stagger = useStaggerAnimation(0.05, 0.05);
+  const stagger = useStaggerAnimation();
   const isReadOnly = !hasPermission("schedule:configure");
   const message = App.useApp().message;
-  const { data: config, isLoading, isError, refetch } = useScheduleConfig();
+  const {
+    data: scheduleConfig,
+    isLoading,
+    isError,
+    refetch,
+  } = useScheduleConfig();
   const updateMutation = useUpdateScheduleConfig();
 
   const [retentionDays, setRetentionDays] = useState(365);
   const [feishuWebhookUrl, setFeishuWebhookUrl] = useState("");
 
-  const [platformConfigs, setPlatformConfigs] = useState<ProductPlatformCron[]>(
-    [],
-  );
-  const [platformSchedules, setPlatformSchedules] = useState<
-    Record<string, ProductPlatformCronSchedule>
-  >({});
-  const [platformLoading, setPlatformLoading] = useState(false);
-  const [platformCronInputs, setPlatformCronInputs] = useState<
-    Record<string, string>
-  >({});
-  const [platformSaving, setPlatformSaving] = useState<Record<string, boolean>>(
-    {},
-  );
+  const platform = usePlatformSchedule(message);
+  const jobConfig = useJobConfigSchedule(message);
+  const generator = useCronGenerator();
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addPlatform, setAddPlatform] = useState<string | undefined>(undefined);
   const [addCron, setAddCron] = useState("");
   const [addSaving, setAddSaving] = useState(false);
-
-  const [configList, setConfigList] = useState<JobSearchConfig[]>([]);
-  const [configSchedules, setConfigSchedules] = useState<
-    Record<number, JobConfigScheduleInfo>
-  >({});
-  const [configLoading, setConfigLoading] = useState(false);
-  const [cronInputs, setCronInputs] = useState<Record<number, string>>({});
-  const [savingCron, setSavingCron] = useState<Record<number, boolean>>({});
-
-  // Cron generator state
-  const [generatorOpen, setGeneratorOpen] = useState(false);
-  const [generatorTarget, setGeneratorTarget] = useState<{
-    type: "platform" | "config" | "add";
-    platform?: string;
-    configId?: number;
-  } | null>(null);
 
   const fetchSchedulerStatus = useCallback(async () => {
     try {
@@ -105,72 +81,21 @@ export default function ScheduleConfigPage() {
     }
   }, []);
 
-  const loadPlatformData = useCallback(async () => {
-    setPlatformLoading(true);
-    try {
-      const [configsRes, schedulesRes] = await Promise.all([
-        productsApi.getCronConfigs(),
-        productsApi.getCronSchedules(),
-      ]);
-      const configs = configsRes.data;
-      setPlatformConfigs(configs);
-      setPlatformSchedules(schedulesRes.data.platforms);
-      const cronInputs: Record<string, string> = {};
-      configs.forEach((configItem) => {
-        cronInputs[configItem.platform] = configItem.cron_expression || "";
-      });
-      setPlatformCronInputs(cronInputs);
-    } catch {
-      message.error("Failed to load product schedule config");
-    } finally {
-      setPlatformLoading(false);
-    }
-  }, [message]);
-
-  const loadConfigData = useCallback(async () => {
-    setConfigLoading(true);
-    try {
-      const [configsRes, schedulesRes] = await Promise.all([
-        jobsApi.getConfigs(),
-        jobsApi.getJobConfigSchedules(),
-      ]);
-      const configs = configsRes.data;
-      setConfigList(configs);
-      const scheduleMap: Record<number, JobConfigScheduleInfo> = {};
-      schedulesRes.data.configs.forEach((item) => {
-        scheduleMap[item.config_id] = item;
-      });
-      setConfigSchedules(scheduleMap);
-      const inputs: Record<number, string> = {};
-      configs.forEach((configItem) => {
-        inputs[configItem.id] = configItem.cron_expression || "";
-      });
-      setCronInputs(inputs);
-    } catch {
-      message.error("Failed to load job schedule config");
-    } finally {
-      setConfigLoading(false);
-    }
-  }, [message]);
-
   useEffect(() => {
-    if (config) {
+    if (scheduleConfig) {
       const timer = window.setTimeout(() => {
-        setRetentionDays(config.data_retention_days || 365);
-        setFeishuWebhookUrl(config.feishu_webhook_url || "");
+        setRetentionDays(scheduleConfig.data_retention_days || 365);
+        setFeishuWebhookUrl(scheduleConfig.feishu_webhook_url || "");
       }, 0);
       return () => window.clearTimeout(timer);
     }
-  }, [config]);
+  }, [scheduleConfig]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void fetchSchedulerStatus();
-      void loadPlatformData();
-      void loadConfigData();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [fetchSchedulerStatus, loadPlatformData, loadConfigData]);
+    void fetchSchedulerStatus();
+    void platform.load();
+    void jobConfig.load();
+  }, [fetchSchedulerStatus, platform, jobConfig]);
 
   const handleSaveRetention = async () => {
     try {
@@ -206,16 +131,10 @@ export default function ScheduleConfigPage() {
     }
     setAddSaving(true);
     try {
-      await productsApi.createCronConfig({
-        platform: addPlatform,
-        cron_expression: value,
-        cron_timezone: "Asia/Shanghai",
-      });
-      message.success("Added");
+      await platform.create(addPlatform, value);
       setAddModalOpen(false);
       setAddPlatform(undefined);
       setAddCron("");
-      void loadPlatformData();
     } catch {
       message.error("Add failed");
     } finally {
@@ -223,101 +142,33 @@ export default function ScheduleConfigPage() {
     }
   };
 
-  const handleDeletePlatformCron = async (platform: string) => {
+  const handleDeletePlatformCron = async (p: string) => {
     Modal.confirm({
       title: "Delete Schedule Config",
-      content: `Delete schedule config for ${PLATFORM_LABELS[platform] || platform}?`,
+      content: `Delete schedule config for ${PLATFORM_LABELS[p] || p}?`,
       onOk: async () => {
-        try {
-          await productsApi.deleteCronConfig(platform);
-          message.success("Deleted");
-          void loadPlatformData();
-        } catch {
-          message.error("Delete failed");
-        }
+        await platform.remove(p);
       },
     });
   };
 
-  const handleSavePlatformCron = async (platform: string) => {
-    const value = platformCronInputs[platform]?.trim() || null;
-    if (value && !isValidCronFormat(value)) {
-      message.error("Invalid cron expression");
-      return;
-    }
-    setPlatformSaving((prev) => ({ ...prev, [platform]: true }));
-    try {
-      await productsApi.updateCronConfig(platform, {
-        cron_expression: value,
-        cron_timezone: "Asia/Shanghai",
-      });
-      message.success("Saved");
-      void loadPlatformData();
-    } catch {
-      message.error("Save failed");
-    } finally {
-      setPlatformSaving((prev) => ({ ...prev, [platform]: false }));
-    }
-  };
-
-  const handleSaveConfigCron = async (configId: number) => {
-    const value = cronInputs[configId]?.trim() || null;
-    if (value && !isValidCronFormat(value)) {
-      message.error("Invalid cron expression");
-      return;
-    }
-    setSavingCron((prev) => ({ ...prev, [configId]: true }));
-    try {
-      await jobsApi.updateConfigCron(configId, {
-        cron_expression: value,
-        cron_timezone: "Asia/Shanghai",
-      });
-      message.success("Saved");
-      void loadConfigData();
-    } catch {
-      message.error("Save failed");
-    } finally {
-      setSavingCron((prev) => ({ ...prev, [configId]: false }));
-    }
-  };
-
-  const handleOpenGenerator = useCallback(
-    (
-      target:
-        | { type: "platform"; platform: string }
-        | { type: "config"; configId: number }
-        | { type: "add" },
-    ) => {
-      setGeneratorTarget(target);
-      setGeneratorOpen(true);
-    },
-    [],
-  );
-
   const handleApplyCron = useCallback(
     (cronExpression: string) => {
-      if (!generatorTarget) return;
-      switch (generatorTarget.type) {
+      if (!generator.target) return;
+      switch (generator.target.type) {
         case "platform":
-          setPlatformCronInputs((prev) => ({
-            ...prev,
-            [generatorTarget.platform!]: cronExpression,
-          }));
+          platform.updateInput(generator.target.platform, cronExpression);
           break;
         case "config":
-          setCronInputs((prev) => ({
-            ...prev,
-            [generatorTarget.configId!]: cronExpression,
-          }));
+          jobConfig.updateInput(generator.target.configId, cronExpression);
           break;
         case "add":
           setAddCron(cronExpression);
           break;
       }
-      setGeneratorOpen(false);
-      setGeneratorTarget(null);
+      generator.closeGenerator();
     },
-    [generatorTarget],
+    [generator, platform, jobConfig],
   );
 
   const platformColumns: ColumnsType<ProductPlatformCron> = [
@@ -335,12 +186,9 @@ export default function ScheduleConfigPage() {
       render: (_: unknown, record: ProductPlatformCron) => (
         <Space>
           <Input
-            value={platformCronInputs[record.platform] ?? ""}
+            value={platform.cronInputs[record.platform] ?? ""}
             onChange={(e) =>
-              setPlatformCronInputs((prev) => ({
-                ...prev,
-                [record.platform]: e.target.value,
-              }))
+              platform.updateInput(record.platform, e.target.value)
             }
             placeholder="0 9 * * *"
             style={{ width: 190 }}
@@ -350,7 +198,7 @@ export default function ScheduleConfigPage() {
             icon={<ThunderboltOutlined />}
             size="small"
             onClick={() =>
-              handleOpenGenerator({
+              generator.openGenerator({
                 type: "platform",
                 platform: record.platform,
               })
@@ -359,8 +207,13 @@ export default function ScheduleConfigPage() {
             className="fg-btn-secondary fg-btn-sm"
           />
           <Button
-            onClick={() => void handleSavePlatformCron(record.platform)}
-            loading={platformSaving[record.platform]}
+            onClick={() =>
+              void platform.save(
+                record.platform,
+                platform.cronInputs[record.platform]?.trim() || null,
+              )
+            }
+            loading={platform.saving[record.platform]}
             disabled={isReadOnly}
             className="fg-btn-secondary"
           >
@@ -373,12 +226,9 @@ export default function ScheduleConfigPage() {
       title: "Next Run",
       key: "next_run",
       render: (_, record) => {
-        const schedule = platformSchedules[record.platform];
+        const schedule = platform.schedules[record.platform];
         const nextRun = schedule?.next_run_at
-          ? new Intl.DateTimeFormat("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(new Date(schedule.next_run_at))
+          ? formatDateTime(schedule.next_run_at)
           : null;
         return nextRun ? nextRun : <Tag>Unscheduled</Tag>;
       },
@@ -419,13 +269,8 @@ export default function ScheduleConfigPage() {
       render: (_, record) => (
         <Space>
           <Input
-            value={cronInputs[record.id] ?? ""}
-            onChange={(e) =>
-              setCronInputs((prev) => ({
-                ...prev,
-                [record.id]: e.target.value,
-              }))
-            }
+            value={jobConfig.cronInputs[record.id] ?? ""}
+            onChange={(e) => jobConfig.updateInput(record.id, e.target.value)}
             placeholder="0 9 * * *"
             style={{ width: 190 }}
             disabled={isReadOnly}
@@ -434,14 +279,19 @@ export default function ScheduleConfigPage() {
             icon={<ThunderboltOutlined />}
             size="small"
             onClick={() =>
-              handleOpenGenerator({ type: "config", configId: record.id })
+              generator.openGenerator({ type: "config", configId: record.id })
             }
             disabled={isReadOnly}
             className="fg-btn-secondary fg-btn-sm"
           />
           <Button
-            onClick={() => void handleSaveConfigCron(record.id)}
-            loading={savingCron[record.id]}
+            onClick={() =>
+              void jobConfig.save(
+                record.id,
+                jobConfig.cronInputs[record.id]?.trim() || null,
+              )
+            }
+            loading={jobConfig.saving[record.id]}
             disabled={isReadOnly}
             className="fg-btn-secondary"
           >
@@ -454,12 +304,9 @@ export default function ScheduleConfigPage() {
       title: "Next Run",
       key: "next_run",
       render: (_, record) => {
-        const schedule = configSchedules[record.id];
+        const schedule = jobConfig.schedules[record.id];
         const nextRun = schedule?.next_run_at
-          ? new Intl.DateTimeFormat("en-US", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(new Date(schedule.next_run_at))
+          ? formatDateTime(schedule.next_run_at)
           : null;
         return nextRun ? nextRun : <Tag>Unscheduled</Tag>;
       },
@@ -521,14 +368,7 @@ export default function ScheduleConfigPage() {
         style={{ marginTop: 24 }}
       >
         <div className="fg-card-header">
-          <span
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 15,
-              fontWeight: 480,
-              color: "var(--color-ink)",
-            }}
-          >
+          <span className="fg-card-header-title">
             Cron Schedule Configuration
           </span>
         </div>
@@ -563,10 +403,10 @@ export default function ScheduleConfigPage() {
             )}
           </div>
           <Table
-            dataSource={platformConfigs}
+            dataSource={platform.configs}
             columns={platformColumns}
             rowKey="platform"
-            loading={platformLoading}
+            loading={platform.loading}
             pagination={false}
             size="small"
             scroll={{ x: 1000 }}
@@ -587,10 +427,10 @@ export default function ScheduleConfigPage() {
             Job Crawl Schedule Config
           </h4>
           <Table
-            dataSource={configList}
+            dataSource={jobConfig.list}
             columns={configColumns}
             rowKey="id"
-            loading={configLoading}
+            loading={jobConfig.loading}
             pagination={false}
             size="small"
             scroll={{ x: 1000 }}
@@ -606,14 +446,7 @@ export default function ScheduleConfigPage() {
         style={{ marginTop: 16 }}
       >
         <div className="fg-card-header">
-          <span
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 15,
-              fontWeight: 480,
-              color: "var(--color-ink)",
-            }}
-          >
+          <span className="fg-card-header-title">
             Data Retention & Notification Config
           </span>
         </div>
@@ -758,7 +591,7 @@ export default function ScheduleConfigPage() {
               <Button
                 icon={<ThunderboltOutlined />}
                 size="small"
-                onClick={() => handleOpenGenerator({ type: "add" })}
+                onClick={() => generator.openGenerator({ type: "add" })}
                 disabled={isReadOnly}
                 className="fg-btn-secondary fg-btn-sm"
               />
@@ -768,11 +601,8 @@ export default function ScheduleConfigPage() {
       </Modal>
 
       <CronGenerator
-        open={generatorOpen}
-        onClose={() => {
-          setGeneratorOpen(false);
-          setGeneratorTarget(null);
-        }}
+        open={generator.open}
+        onClose={() => generator.closeGenerator()}
         onApply={handleApplyCron}
       />
     </motion.div>

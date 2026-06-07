@@ -10,9 +10,12 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
+const API_BASE_URL = "/api";
+const API_TIMEOUT_MS = 300_000; // 5 minutes
+
 const api = axios.create({
-  baseURL: "/api",
-  timeout: 300000,
+  baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT_MS,
   withCredentials: true,
 });
 
@@ -51,6 +54,30 @@ const handleTimeout = () => {
   });
 };
 
+export function formatApiError(error: unknown, fallback: string): string {
+  const axiosError = error as AxiosError<ErrorResponse>;
+  const detail = axiosError.response?.data?.detail;
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const items = detail
+      .map((item) => (typeof item === "string" ? item : item.msg || ""))
+      .filter(Boolean);
+    if (items.length > 0) {
+      return items.join("; ");
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 const formatDetail = (detail: ErrorResponse["detail"], fallback: string) => {
   if (Array.isArray(detail)) {
     return detail
@@ -60,16 +87,17 @@ const formatDetail = (detail: ErrorResponse["detail"], fallback: string) => {
   return detail || fallback;
 };
 
-// Track retries to avoid infinite loops
-let isRefreshing = false;
-
+// Track retries to avoid infinite loops — encapsulated to prevent cross-instance pollution
 interface FailedRequest {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
   config: InternalAxiosRequestConfig & { _retry?: boolean };
 }
 
-let failedQueue: FailedRequest[] = [];
+const refreshState = {
+  isRefreshing: false,
+  failedQueue: [] as FailedRequest[],
+};
 
 api.interceptors.response.use(
   (res) => res,
@@ -88,32 +116,36 @@ api.interceptors.response.use(
       originalRequest.url !== "/v1/auth/login" &&
       originalRequest.url !== "/v1/auth/me"
     ) {
-      if (isRefreshing) {
+      if (refreshState.isRefreshing) {
         // Queue request until refresh completes
         originalRequest._retry = true;
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject, config: originalRequest });
+          refreshState.failedQueue.push({
+            resolve,
+            reject,
+            config: originalRequest,
+          });
         });
       }
 
       originalRequest._retry = true;
-      isRefreshing = true;
+      refreshState.isRefreshing = true;
 
       try {
         await axios.post("/api/v1/auth/refresh", {}, { withCredentials: true });
         // Retry all queued original requests
-        failedQueue.forEach(({ resolve, reject, config }) => {
+        refreshState.failedQueue.forEach(({ resolve, reject, config }) => {
           api(config).then(resolve).catch(reject);
         });
-        failedQueue = [];
+        refreshState.failedQueue = [];
         return api(originalRequest);
       } catch {
-        failedQueue.forEach(({ reject }) => reject(err));
-        failedQueue = [];
+        refreshState.failedQueue.forEach(({ reject }) => reject(err));
+        refreshState.failedQueue = [];
         window.location.href = "/login";
         return Promise.reject(err);
       } finally {
-        isRefreshing = false;
+        refreshState.isRefreshing = false;
       }
     }
 

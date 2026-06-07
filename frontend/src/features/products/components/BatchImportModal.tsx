@@ -47,7 +47,8 @@ export default function BatchImportModal({
   existingUrls,
 }: Props) {
   const message = App.useApp().message;
-  const [step, setStep] = useState(0);
+  type Step = "paste" | "confirm";
+  const [step, setStep] = useState<Step>("paste");
   const [rawText, setRawText] = useState("");
   const [items, setItems] = useState<ParsedItem[]>([]);
 
@@ -61,8 +62,9 @@ export default function BatchImportModal({
       message.warning("Please enter at least one URL");
       return;
     }
-    if (lines.length > 100) {
-      message.warning("Maximum 100 URLs per import");
+    const MAX_IMPORT_URLS = 100;
+    if (lines.length > MAX_IMPORT_URLS) {
+      message.warning(`Maximum ${MAX_IMPORT_URLS} URLs per import`);
       return;
     }
 
@@ -88,7 +90,7 @@ export default function BatchImportModal({
     }
 
     setItems(filtered);
-    setStep(1);
+    setStep("confirm");
   };
 
   const handlePlatformChange = useCallback(
@@ -118,13 +120,13 @@ export default function BatchImportModal({
     );
     setRawText("");
     setItems([]);
-    setStep(0);
+    setStep("paste");
   };
 
   const handleCancel = () => {
     setRawText("");
     setItems([]);
-    setStep(0);
+    setStep("paste");
     onCancel();
   };
 
@@ -160,7 +162,7 @@ export default function BatchImportModal({
       open={open}
       onCancel={handleCancel}
       footer={
-        step === 0 ? (
+        step === "paste" ? (
           <Button
             type="primary"
             onClick={handleParse}
@@ -183,12 +185,12 @@ export default function BatchImportModal({
       }
     >
       <Steps
-        current={step}
+        current={step === "paste" ? 0 : 1}
         style={{ marginBottom: 20 }}
         items={[{ title: "Paste URLs" }, { title: "Confirm Platform" }]}
       />
 
-      {step === 0 ? (
+      {step === "paste" ? (
         <div>
           <Input.TextArea
             aria-label="Paste multiple URLs, one per line"

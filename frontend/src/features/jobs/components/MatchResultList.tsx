@@ -11,6 +11,7 @@ import {
   App,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { formatDateTime } from "@/shared/utils/date";
 import { jobMatchApi } from "../api/job_match";
 import { useMatchResults, useResumes, useTriggerMatch } from "../hooks/useJobs";
 import type { MatchResultWithJob } from "../types";
@@ -134,11 +135,7 @@ export default function MatchResultList() {
         title: "Analysis Time",
         dataIndex: "updated_at",
         width: 180,
-        render: (value: string) =>
-          new Intl.DateTimeFormat("en-US", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(new Date(value)),
+        render: (value: string) => formatDateTime(value),
       },
       {
         title: "Link",

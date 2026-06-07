@@ -55,6 +55,8 @@ import {
 } from "@/features/alerts";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
+import { formatApiError } from "@/shared/api/client";
+import { formatDateTime } from "@/shared/utils/date";
 import type {
   BatchCreateItem,
   BatchImportRow,
@@ -105,9 +107,6 @@ type ProductScheduleRow = {
   configured: boolean;
 };
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Unknown error";
-
 const scrollToSection = (id: string) => {
   document.getElementById(id)?.scrollIntoView({
     behavior: "smooth",
@@ -120,11 +119,7 @@ const crawlLogColumns: ColumnsType<CrawlLog> = [
     title: "Time",
     dataIndex: "timestamp",
     width: 160,
-    render: (value: string) =>
-      new Intl.DateTimeFormat("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(new Date(value)),
+    render: (value: string) => formatDateTime(value),
   },
   {
     title: "Platform",
@@ -175,7 +170,7 @@ export default function ProductsPage() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const stagger = useStaggerAnimation(0.05, 0.05);
+  const stagger = useStaggerAnimation();
   const canCrawl = hasPermission("crawl:execute");
   const message = App.useApp().message;
   const [page, setPage] = useState(1);
@@ -201,7 +196,7 @@ export default function ProductsPage() {
   });
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedKeyword(keyword), 400);
+    const timer = setTimeout(() => setDebouncedKeyword(keyword), 600);
     return () => clearTimeout(timer);
   }, [keyword]);
 
@@ -336,7 +331,9 @@ export default function ProductsPage() {
         setSelectedRowKeys([]);
       },
       onError: (error) =>
-        message.error(`Batch operation failed: ${getErrorMessage(error)}`),
+        message.error(
+          `Batch operation failed: ${formatApiError(error, "Unknown error")}`,
+        ),
     });
   }, [
     selectedRowKeys,
@@ -398,7 +395,7 @@ export default function ProductsPage() {
         setCreateFormOpen(false);
       } catch (error) {
         message.error(
-          `${editModal.record ? "Update" : "Add"} failed: ${getErrorMessage(error)}`,
+          `${editModal.record ? "Update" : "Add"} failed: ${formatApiError(error, "Unknown error")}`,
         );
       }
     },
@@ -425,7 +422,9 @@ export default function ProductsPage() {
           setBatchImportOpen(false);
         },
         onError: (error) =>
-          message.error(`Import failed: ${getErrorMessage(error)}`),
+          message.error(
+            `Import failed: ${formatApiError(error, "Unknown error")}`,
+          ),
       });
     },
     [batchCreate, showBatchResult, message],
@@ -460,7 +459,7 @@ export default function ProductsPage() {
       },
       onError: (error) => {
         message.error({
-          content: `Crawl request failed: ${getErrorMessage(error)}`,
+          content: `Crawl request failed: ${formatApiError(error, "Unknown error")}`,
           key: "crawl",
         });
       },
@@ -473,7 +472,9 @@ export default function ProductsPage() {
         await deleteCronConfig.mutateAsync(platformKey);
         message.success("Schedule deleted");
       } catch (error) {
-        message.error(`Delete failed: ${getErrorMessage(error)}`);
+        message.error(
+          `Delete failed: ${formatApiError(error, "Unknown error")}`,
+        );
       }
     },
     [deleteCronConfig, message],
@@ -862,14 +863,7 @@ export default function ProductsPage() {
                 <div className="fg-card-header">
                   <Space>
                     <HistoryOutlined style={{ fontSize: 14 }} />
-                    <span
-                      style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: 15,
-                        fontWeight: 480,
-                        color: "var(--color-ink)",
-                      }}
-                    >
+                    <span className="fg-card-header-title">
                       Recent Crawl Logs
                     </span>
                     {crawlLogItems.length > 0 && (
@@ -942,16 +936,7 @@ export default function ProductsPage() {
               <div className="fg-card-header">
                 <Space>
                   <ScheduleOutlined style={{ fontSize: 14 }} />
-                  <span
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: 15,
-                      fontWeight: 480,
-                      color: "var(--color-ink)",
-                    }}
-                  >
-                    Schedule Config
-                  </span>
+                  <span className="fg-card-header-title">Schedule Config</span>
                 </Space>
                 <Button
                   size="small"

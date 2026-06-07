@@ -9,29 +9,21 @@ interface AlertsState {
   error: string | null;
 }
 
-export function useRecentAlerts(limit = 10): AlertsState {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+const DEFAULT_STATE: AlertsState = {
+  data: [],
+  loading: false,
+  error: null,
+};
 
-  const [state, setState] = useState<AlertsState>({
-    data: [],
-    loading: false,
-    error: null,
-  });
+export function useRecentAlerts(limit = 10): AlertsState {
+  const { isAdmin } = useAuth();
+
+  const [state, setState] = useState<AlertsState>(DEFAULT_STATE);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!isAdmin) return;
 
-    if (!isAdmin) {
-      Promise.resolve().then(() => {
-        setState((prev) => {
-          if (prev.data.length === 0 && !prev.loading && !prev.error)
-            return prev;
-          return { data: [], loading: false, error: null };
-        });
-      });
-      return undefined;
-    }
+    let cancelled = false;
 
     const fetchAlerts = async () => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
@@ -52,12 +44,16 @@ export function useRecentAlerts(limit = 10): AlertsState {
       }
     };
 
-    fetchAlerts();
+    void fetchAlerts();
 
     return () => {
       cancelled = true;
     };
   }, [limit, isAdmin]);
+
+  if (!isAdmin) {
+    return DEFAULT_STATE;
+  }
 
   return state;
 }

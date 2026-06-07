@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   App,
@@ -36,7 +36,7 @@ type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 
 export default function EventCenterPage() {
   const message = App.useApp().message;
-  const stagger = useStaggerAnimation(0.05, 0.05);
+  const stagger = useStaggerAnimation();
   const [items, setItems] = useState<EventCenterItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<EventCenterItem | null>(
     null,
@@ -53,14 +53,11 @@ export default function EventCenterPage() {
   const [keyword, setKeyword] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeValue>(null);
 
-  const rangeStart = dateRange?.[0]?.valueOf() ?? null;
-  const rangeEnd = dateRange?.[1]?.valueOf() ?? null;
   const startAt = dateRange?.[0]?.toISOString();
   const endAt = dateRange?.[1]?.toISOString();
 
-  useEffect(() => {
-    let cancelled = false;
-    const query: EventCenterQuery = {
+  const queryParams = useMemo<EventCenterQuery>(
+    () => ({
       kind,
       event_type: eventType || undefined,
       category: category || undefined,
@@ -71,12 +68,28 @@ export default function EventCenterPage() {
       end_at: endAt,
       page,
       page_size: pageSize,
-    };
+    }),
+    [
+      kind,
+      eventType,
+      category,
+      severity,
+      source,
+      keyword,
+      startAt,
+      endAt,
+      page,
+      pageSize,
+    ],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
 
     const load = async () => {
       setLoading(true);
       try {
-        const response = await eventsApi.listEvents(query);
+        const response = await eventsApi.listEvents(queryParams);
         if (cancelled) {
           return;
         }
@@ -101,52 +114,30 @@ export default function EventCenterPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    kind,
-    eventType,
-    category,
-    severity,
-    source,
-    keyword,
-    page,
-    pageSize,
-    rangeStart,
-    rangeEnd,
-    startAt,
-    endAt,
-    message,
-  ]);
+  }, [queryParams, message]);
 
   useEffect(() => {
     if (page !== 1) {
       return;
     }
 
-    const query: EventCenterQuery = {
-      kind,
-      event_type: eventType || undefined,
-      category: category || undefined,
-      severity: severity || undefined,
-      source: source || undefined,
-      keyword: keyword || undefined,
-      start_at: startAt,
-      end_at: endAt,
-      page,
-      page_size: pageSize,
-    };
-    const eventSource = new EventSource(eventsApi.buildStreamUrl(query), {
+    const eventSource = new EventSource(eventsApi.buildStreamUrl(queryParams), {
       withCredentials: true,
     });
     eventSource.onmessage = (event) => {
       try {
         const nextItem = JSON.parse(event.data) as EventCenterItem;
+        let isNew = false;
         setItems((current) => {
           if (current.some((item) => item.id === nextItem.id)) {
             return current;
           }
+          isNew = true;
           return [nextItem, ...current].slice(0, pageSize);
         });
-        setTotal((current) => current + 1);
+        if (isNew) {
+          setTotal((current) => current + 1);
+        }
       } catch {
         message.warning("Realtime event payload could not be parsed");
       }
@@ -156,21 +147,7 @@ export default function EventCenterPage() {
     };
 
     return () => eventSource.close();
-  }, [
-    kind,
-    eventType,
-    category,
-    severity,
-    source,
-    keyword,
-    page,
-    pageSize,
-    rangeStart,
-    rangeEnd,
-    startAt,
-    endAt,
-    message,
-  ]);
+  }, [queryParams, message, page, pageSize]);
 
   const resetFilters = () => {
     setKind("all");

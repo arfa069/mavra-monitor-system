@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Form, Input, InputNumber, Button, App, Segmented } from "antd";
-import type { AxiosError } from "axios";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { formatApiError } from "@/shared/api/client";
 import { useThemeContext } from "@/shared/components/ThemeProvider";
 import { configApi } from "./api/config";
 import type { MotionSpeed } from "./types";
@@ -10,7 +10,7 @@ import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const stagger = useStaggerAnimation(0.05, 0.05);
+  const stagger = useStaggerAnimation();
   const { motionSpeed, setMotionSpeed } = useThemeContext();
   const message = App.useApp().message;
   const [form] = Form.useForm();
@@ -24,10 +24,8 @@ export default function SettingsPage() {
     try {
       await configApi.update(values);
       message.success("Settings saved");
-      window.location.reload();
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ detail?: string }>;
-      message.error(axiosError.response?.data?.detail || "Save failed");
+      message.error(formatApiError(error, "Save failed"));
     } finally {
       setLoading(false);
     }
@@ -54,16 +52,7 @@ export default function SettingsPage() {
       >
         <div className="fg-card">
           <div className="fg-card-header">
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 15,
-                fontWeight: 480,
-                color: "var(--color-ink)",
-              }}
-            >
-              Personal Settings
-            </span>
+            <span className="fg-card-header-title">Personal Settings</span>
           </div>
           <div style={{ padding: "20px 24px" }}>
             <Form

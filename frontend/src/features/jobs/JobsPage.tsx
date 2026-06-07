@@ -36,6 +36,7 @@ import ProfileManagement from "./components/ProfileManagement";
 import ResumeManager from "./components/ResumeManager";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
+import { formatDateTime } from "@/shared/utils/date";
 import type { Job, JobCrawlLog, JobSearchConfigCreate } from "./types";
 
 export default function JobsPage() {
@@ -216,11 +217,7 @@ export default function JobsPage() {
       title: "Time",
       dataIndex: "scraped_at",
       width: 160,
-      render: (value: string) =>
-        new Intl.DateTimeFormat("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(value)),
+      render: (value: string) => formatDateTime(value),
     },
     {
       title: "Config",
@@ -392,16 +389,7 @@ export default function JobsPage() {
             style={{ marginTop: 16 }}
           >
             <div className="fg-card-header">
-              <span
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: 15,
-                  fontWeight: 480,
-                  color: "var(--color-ink)",
-                }}
-              >
-                Jobs List
-              </span>
+              <span className="fg-card-header-title">Jobs List</span>
             </div>
             <div style={{ padding: "20px 24px" }}>
               <JobList

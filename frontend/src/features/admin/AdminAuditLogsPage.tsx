@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { App, Table, Tag } from "antd";
+import { formatApiError } from "@/shared/api/client";
 import { adminApi, type AuditLog } from "./api/admin";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -40,17 +41,6 @@ const ACTION_COLORS: Record<string, string> = {
   "job_config.delete": "red",
 };
 
-const getErrorMessage = (error: unknown): string => {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { detail?: unknown } } })
-      .response;
-    if (typeof response?.data?.detail === "string") {
-      return response.data.detail;
-    }
-  }
-  return "Failed to fetch audit logs";
-};
-
 export default function AdminAuditLogsPage() {
   const message = App.useApp().message;
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -69,7 +59,7 @@ export default function AdminAuditLogsPage() {
       setLogs(response.items);
       setTotal(response.total);
     } catch (error: unknown) {
-      message.error(getErrorMessage(error));
+      message.error(formatApiError(error, "Failed to fetch audit logs"));
     } finally {
       setLoading(false);
     }

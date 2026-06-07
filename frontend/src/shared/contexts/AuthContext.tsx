@@ -14,6 +14,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   login: (user: User) => void;
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
@@ -73,11 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [hasPermission],
   );
 
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+
   const value = useMemo(
     () => ({
       user,
       isLoading,
       isAuthenticated: !!user,
+      isAdmin,
       login,
       logout,
       hasPermission,
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       user,
       isLoading,
+      isAdmin,
       login,
       logout,
       hasPermission,

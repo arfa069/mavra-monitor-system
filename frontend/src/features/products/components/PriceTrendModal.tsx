@@ -72,7 +72,8 @@ function PriceTrendContent({
   timeRange,
   onTimeRangeChange,
 }: PriceTrendContentProps) {
-  const days = timeRange === 0 ? 3650 : timeRange;
+  const ALL_TIME_RANGE_DAYS = 3650; // ~10 years, represents "all history"
+  const days = timeRange === 0 ? ALL_TIME_RANGE_DAYS : timeRange;
   const { data = [], isLoading, error } = useProductHistory(productId, days);
 
   const stats = useMemo(() => {
@@ -106,7 +107,7 @@ function PriceTrendContent({
     return { color: "default", text: "Flat" };
   }, [data]);
 
-  const reversedData = useMemo(() => [...data].reverse(), [data]);
+  const reversedData = [...data].reverse();
 
   const tableColumns: ColumnsType<PriceHistoryRecord> = useMemo(
     () => [

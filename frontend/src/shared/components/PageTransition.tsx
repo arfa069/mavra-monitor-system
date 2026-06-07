@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { MotionSpeed } from "@/shared/types/motion";
 
 const SPRING_CONFIG_BY_SPEED = {
@@ -27,32 +27,39 @@ export default function PageTransition({
 }: PageTransitionProps) {
   const prefersReducedMotion = useReducedMotion();
 
-  const variants = {
-    initial: {
-      opacity: 0,
-      y: prefersReducedMotion ? 0 : 12,
-    },
-    animate: {
-      opacity: 1,
-      y: 0,
-    },
-    exit: {
-      opacity: 0,
-      y: prefersReducedMotion ? 0 : -12,
-    },
-  };
+  const variants = useMemo(
+    () => ({
+      initial: {
+        opacity: 0,
+        y: prefersReducedMotion ? 0 : 12,
+      },
+      animate: {
+        opacity: 1,
+        y: 0,
+      },
+      exit: {
+        opacity: 0,
+        y: prefersReducedMotion ? 0 : -12,
+      },
+    }),
+    [prefersReducedMotion],
+  );
 
-  const transition = prefersReducedMotion
-    ? { duration: 0.01 }
-    : {
-        type: "spring" as const,
-        stiffness: SPRING_CONFIG_BY_SPEED[speed].stiffness,
-        damping: SPRING_CONFIG_BY_SPEED[speed].damping,
-        opacity: {
-          duration: OPACITY_DURATION_BY_SPEED[speed],
-          ease: "easeOut",
-        },
-      };
+  const transition = useMemo(
+    () =>
+      prefersReducedMotion
+        ? { duration: 0.01 }
+        : {
+            type: "spring" as const,
+            stiffness: SPRING_CONFIG_BY_SPEED[speed].stiffness,
+            damping: SPRING_CONFIG_BY_SPEED[speed].damping,
+            opacity: {
+              duration: OPACITY_DURATION_BY_SPEED[speed],
+              ease: "easeOut",
+            },
+          },
+    [prefersReducedMotion, speed],
+  );
 
   return (
     <AnimatePresence mode="wait">

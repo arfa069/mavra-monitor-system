@@ -41,7 +41,7 @@ export function KPICard({
           prefix={prefix}
           suffix={suffix}
           precision={precision}
-          styles={{ content: valueStyle }}
+          valueStyle={valueStyle}
         />
       </Card>
     </motion.div>

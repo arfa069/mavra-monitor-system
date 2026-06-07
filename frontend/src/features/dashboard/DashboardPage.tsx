@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Segmented, Skeleton, Tag } from "antd";
-import axios from "axios";
+import api from "@/shared/api/client";
 import { motion } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import {
@@ -18,14 +18,25 @@ import {
 import { useAuth } from "@/shared/contexts/AuthContext";
 import {
   KPICard,
-  TrendChart,
-  DashboardPieChart,
   RecentAlertsPanel,
+  TrendChartSection,
+  PieChartSection,
 } from "./components";
 import { useDashboardSSE } from "./hooks/useDashboardSSE";
 import { useDashboardTrends } from "./hooks/useDashboardTrends";
 import { useRecentAlerts } from "./hooks/useRecentAlerts";
 import type { DashboardKPIResponse, TimeRange } from "./types";
+
+// NOTE: Up to 7 concurrent trend requests may be fired simultaneously.
+// Browser connection limits (typically 6 per domain) can cause some requests
+// to queue behind others, creating a minor waterfall delay. A backend
+// aggregation endpoint would be the proper fix; we keep separate calls
+// to preserve endpoint granularity and cacheability.
+//
+// NOTE: The initial KPI HTTP fetch and the SSE connection may race.
+// This is acceptable — SSE data takes precedence (real-time) and will
+// overwrite initialData once connected. The shared `api` client ensures
+// consistent auth headers across both paths.
 
 const TIME_RANGE_OPTIONS = [
   { label: "7天", value: 7 },
@@ -34,23 +45,19 @@ const TIME_RANGE_OPTIONS = [
 ];
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { isAdmin } = useAuth();
   const [days, setDays] = useState<TimeRange>(30);
   const [initialData, setInitialData] = useState<DashboardKPIResponse | null>(
     null,
   );
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
   const stagger = useStaggerAnimation(0.05, 0.05);
 
   // Fetch initial KPI data via HTTP
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
-        const response = await axios.get<DashboardKPIResponse>(
-          `${apiUrl}/dashboard/kpi`,
-          { withCredentials: true },
-        );
+        const response =
+          await api.get<DashboardKPIResponse>("/v1/dashboard/kpi");
         setInitialData(response.data);
       } catch {
         // Silently fail — SSE will provide data eventually
@@ -81,35 +88,6 @@ export default function DashboardPage() {
 
   const refreshTag = (refreshing: boolean) =>
     refreshing ? <Tag color="processing">刷新中</Tag> : undefined;
-
-  const renderTrendChart = (
-    trends: ReturnType<typeof useDashboardTrends>,
-    chartType: "line" | "bar" = "line",
-  ) => {
-    if (trends.data) {
-      return (
-        <TrendChart
-          data={trends.data}
-          chartType={chartType}
-          isLoading={trends.refreshing}
-        />
-      );
-    }
-    if (trends.loading) {
-      return <Skeleton active paragraph={{ rows: 6 }} />;
-    }
-    return <div>暂无数据</div>;
-  };
-
-  const renderPieChart = (trends: ReturnType<typeof useDashboardTrends>) => {
-    if (trends.data) {
-      return <DashboardPieChart data={trends.data} />;
-    }
-    if (trends.loading) {
-      return <Skeleton active paragraph={{ rows: 6 }} />;
-    }
-    return <div>暂无数据</div>;
-  };
 
   return (
     <motion.div
@@ -191,7 +169,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderPieChart(productDist)}
+              <PieChartSection
+                data={productDist.data}
+                loading={productDist.loading}
+                refreshing={productDist.refreshing}
+              />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -201,7 +183,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderTrendChart(priceTrends)}
+              <TrendChartSection
+                data={priceTrends.data}
+                loading={priceTrends.loading}
+                refreshing={priceTrends.refreshing}
+              />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -211,7 +197,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderTrendChart(priceChangeTrends)}
+              <TrendChartSection
+                data={priceChangeTrends.data}
+                loading={priceChangeTrends.loading}
+                refreshing={priceChangeTrends.refreshing}
+              />
             </Card>
           </Col>
         </Row>
@@ -227,7 +217,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderPieChart(jobDist)}
+              <PieChartSection
+                data={jobDist.data}
+                loading={jobDist.loading}
+                refreshing={jobDist.refreshing}
+              />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -237,7 +231,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderTrendChart(jobTrends)}
+              <TrendChartSection
+                data={jobTrends.data}
+                loading={jobTrends.loading}
+                refreshing={jobTrends.refreshing}
+              />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
@@ -247,7 +245,11 @@ export default function DashboardPage() {
               variant="borderless"
               style={{ borderRadius: 16 }}
             >
-              {renderTrendChart(jobMatchTrends)}
+              <TrendChartSection
+                data={jobMatchTrends.data}
+                loading={jobMatchTrends.loading}
+                refreshing={jobMatchTrends.refreshing}
+              />
             </Card>
           </Col>
         </Row>
@@ -340,7 +342,12 @@ export default function DashboardPage() {
                   variant="borderless"
                   style={{ borderRadius: 16 }}
                 >
-                  {renderTrendChart(platformSuccess, "bar")}
+                  <TrendChartSection
+                    data={platformSuccess.data}
+                    loading={platformSuccess.loading}
+                    refreshing={platformSuccess.refreshing}
+                    chartType="bar"
+                  />
                 </Card>
               </Col>
               <Col xs={24} lg={12}>
@@ -350,7 +357,12 @@ export default function DashboardPage() {
                   variant="borderless"
                   style={{ borderRadius: 16 }}
                 >
-                  {renderTrendChart(crawlFailures, "bar")}
+                  <TrendChartSection
+                    data={crawlFailures.data}
+                    loading={crawlFailures.loading}
+                    refreshing={crawlFailures.refreshing}
+                    chartType="bar"
+                  />
                 </Card>
               </Col>
             </Row>

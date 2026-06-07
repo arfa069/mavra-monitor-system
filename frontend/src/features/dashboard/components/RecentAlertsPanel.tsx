@@ -23,8 +23,7 @@ export function RecentAlertsPanel({
   alerts = [],
   loading,
 }: RecentAlertsPanelProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const { isAdmin } = useAuth();
 
   if (!isAdmin) {
     return null;

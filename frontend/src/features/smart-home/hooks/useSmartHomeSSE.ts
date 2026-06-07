@@ -10,6 +10,14 @@ export function useSmartHomeSSE(
   const sourceRef = useRef<EventSource | null>(null);
   const retryCountRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onEntityRef = useRef(onEntity);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    // Keep refs in sync with latest callbacks to avoid re-subscription
+    onEntityRef.current = onEntity;
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     if (!enabled) return;
@@ -25,9 +33,9 @@ export function useSmartHomeSSE(
       source.onmessage = (event) => {
         retryCountRef.current = 0;
         try {
-          onEntity(JSON.parse(event.data) as SmartHomeEntity);
+          onEntityRef.current(JSON.parse(event.data) as SmartHomeEntity);
         } catch {
-          onError();
+          onErrorRef.current();
         }
       };
       source.onerror = () => {
@@ -40,7 +48,7 @@ export function useSmartHomeSSE(
           const delay = baseDelay * Math.pow(2, retryCountRef.current - 1);
           timeoutRef.current = setTimeout(connect, delay);
         } else {
-          onError();
+          onErrorRef.current();
         }
       };
       return source;
@@ -54,5 +62,5 @@ export function useSmartHomeSSE(
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       retryCountRef.current = 0;
     };
-  }, [enabled, onEntity, onError]);
+  }, [enabled]);
 }

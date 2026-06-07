@@ -16,25 +16,41 @@ import {
   Tag,
   Typography,
 } from "antd";
-import type { AxiosError } from "axios";
 import {
   BulbOutlined,
   PoweroffOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { formatApiError } from "@/shared/api/client";
 import { smartHomeApi } from "./api/smartHome";
 import { useSmartHomeSSE } from "./hooks/useSmartHomeSSE";
 import type { SmartHomeConfig, SmartHomeEntity } from "./types";
 
 const { Title, Text } = Typography;
 
-type SmartHomeErrorResponse = {
-  detail?: string | Array<{ msg?: string } | string>;
-};
+/** Home Assistant service names allowed for direct invocation */
+type HomeAssistantService =
+  | "turn_on"
+  | "turn_off"
+  | "open_cover"
+  | "stop_cover"
+  | "close_cover"
+  | "set_hvac_mode"
+  | "set_temperature";
 
-function nextToggleService(entity: SmartHomeEntity) {
-  return entity.state === "on" ? "turn_off" : "turn_on";
+const SERVICE = {
+  TURN_ON: "turn_on" as const,
+  TURN_OFF: "turn_off" as const,
+  OPEN_COVER: "open_cover" as const,
+  STOP_COVER: "stop_cover" as const,
+  CLOSE_COVER: "close_cover" as const,
+  SET_HVAC_MODE: "set_hvac_mode" as const,
+  SET_TEMPERATURE: "set_temperature" as const,
+} satisfies Record<string, HomeAssistantService>;
+
+function nextToggleService(entity: SmartHomeEntity): "turn_on" | "turn_off" {
+  return entity.state === "on" ? SERVICE.TURN_OFF : SERVICE.TURN_ON;
 }
 
 function getDeviceName(entity: SmartHomeEntity): string {
@@ -46,24 +62,8 @@ function getDeviceName(entity: SmartHomeEntity): string {
   return parts.slice(0, -1).join(" ");
 }
 
-function getSmartHomeErrorMessage(error: unknown, fallback: string): string {
-  const axiosError = error as AxiosError<SmartHomeErrorResponse>;
-  const detail = axiosError.response?.data?.detail;
-  if (typeof detail === "string" && detail.trim()) {
-    return detail;
-  }
-  if (Array.isArray(detail)) {
-    const items = detail
-      .map((item) => (typeof item === "string" ? item : item.msg || ""))
-      .filter(Boolean);
-    if (items.length > 0) {
-      return items.join("; ");
-    }
-  }
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-  return fallback;
+function isNumber(value: unknown): value is number {
+  return typeof value === "number";
 }
 
 export default function SmartHomePage() {
@@ -88,9 +88,7 @@ export default function SmartHomePage() {
       setLastError(response.data.last_error);
     } catch (error) {
       setConnected(false);
-      setLastError(
-        getSmartHomeErrorMessage(error, "Failed to load smart home entities"),
-      );
+      setLastError(formatApiError(error, "Failed to load smart home entities"));
     } finally {
       setLoading(false);
     }
@@ -140,14 +138,15 @@ export default function SmartHomePage() {
   const grouped = useMemo(() => {
     return entities.reduce<Record<string, SmartHomeEntity[]>>((acc, entity) => {
       const key = getDeviceName(entity);
-      acc[key] = [...(acc[key] || []), entity];
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(entity);
       return acc;
     }, {});
   }, [entities]);
 
   const callService = async (
     entity: SmartHomeEntity,
-    service: string,
+    service: HomeAssistantService,
     serviceData: Record<string, unknown> = {},
   ) => {
     if (entity.domain === "scene" || entity.domain === "script") {
@@ -168,7 +167,7 @@ export default function SmartHomePage() {
       message.success("Command sent");
       void loadEntities();
     } catch (error) {
-      message.error(getSmartHomeErrorMessage(error, "Command failed"));
+      message.error(formatApiError(error, "Command failed"));
     }
   };
 
@@ -185,9 +184,7 @@ export default function SmartHomePage() {
       message.success("Smart home config saved");
       void loadEntities();
     } catch (error) {
-      message.error(
-        getSmartHomeErrorMessage(error, "Failed to save smart home config"),
-      );
+      message.error(formatApiError(error, "Failed to save smart home config"));
     }
   };
 
@@ -210,9 +207,7 @@ export default function SmartHomePage() {
         message.error(response.data.message);
       }
     } catch (error) {
-      message.error(
-        getSmartHomeErrorMessage(error, "Failed to test smart home config"),
-      );
+      message.error(formatApiError(error, "Failed to test smart home config"));
     } finally {
       setTestingConfig(false);
     }
@@ -289,21 +284,21 @@ export default function SmartHomePage() {
                         <Space>
                           <Button
                             onClick={() =>
-                              void callService(entity, "open_cover")
+                              void callService(entity, SERVICE.OPEN_COVER)
                             }
                           >
                             Open
                           </Button>
                           <Button
                             onClick={() =>
-                              void callService(entity, "stop_cover")
+                              void callService(entity, SERVICE.STOP_COVER)
                             }
                           >
                             Stop
                           </Button>
                           <Button
                             onClick={() =>
-                              void callService(entity, "close_cover")
+                              void callService(entity, SERVICE.CLOSE_COVER)
                             }
                           >
                             Close
@@ -316,33 +311,47 @@ export default function SmartHomePage() {
                             value={entity.state}
                             disabled={!entity.available}
                             style={{ minWidth: 100 }}
-                            options={(
-                              (entity.attributes.hvac_modes as
-                                | string[]
-                                | undefined) || []
-                            ).map((m: string) => ({
+                            options={(Array.isArray(
+                              entity.attributes.hvac_modes,
+                            )
+                              ? entity.attributes.hvac_modes.filter(
+                                  (m): m is string => typeof m === "string",
+                                )
+                              : []
+                            ).map((m) => ({
                               value: m,
                               label: m,
                             }))}
                             onChange={(mode) =>
-                              void callService(entity, "set_hvac_mode", {
+                              void callService(entity, SERVICE.SET_HVAC_MODE, {
                                 hvac_mode: mode,
                               })
                             }
                           />
-                          {typeof entity.attributes.temperature ===
-                            "number" && (
+                          {isNumber(entity.attributes.temperature) && (
                             <InputNumber
-                              min={entity.attributes.min_temp as number}
-                              max={entity.attributes.max_temp as number}
-                              value={entity.attributes.temperature as number}
+                              min={
+                                isNumber(entity.attributes.min_temp)
+                                  ? entity.attributes.min_temp
+                                  : undefined
+                              }
+                              max={
+                                isNumber(entity.attributes.max_temp)
+                                  ? entity.attributes.max_temp
+                                  : undefined
+                              }
+                              value={entity.attributes.temperature}
                               disabled={!entity.available}
                               suffix="°C"
                               onChange={(value) => {
                                 if (value !== null) {
-                                  void callService(entity, "set_temperature", {
-                                    temperature: value,
-                                  });
+                                  void callService(
+                                    entity,
+                                    SERVICE.SET_TEMPERATURE,
+                                    {
+                                      temperature: value,
+                                    },
+                                  );
                                 }
                               }}
                             />
@@ -352,7 +361,9 @@ export default function SmartHomePage() {
                       {["scene", "script"].includes(entity.domain) && (
                         <Button
                           icon={<PoweroffOutlined />}
-                          onClick={() => void callService(entity, "turn_on")}
+                          onClick={() =>
+                            void callService(entity, SERVICE.TURN_ON)
+                          }
                         >
                           Run
                         </Button>

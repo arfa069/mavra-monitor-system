@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Form, Input, Button, App, Descriptions } from "antd";
-import type { AxiosError } from "axios";
+import { formatApiError } from "@/shared/api/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { formatDateTime } from "@/shared/utils/date";
 import { authApi } from "./api/auth";
 import { motion } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const stagger = useStaggerAnimation(0.05, 0.05);
+  const { user, login } = useAuth();
+  const stagger = useStaggerAnimation();
   const [form] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -21,11 +22,11 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       await authApi.updateProfile(values);
+      const me = await authApi.getMe();
+      login(me.data);
       message.success("Profile updated successfully");
-      window.location.reload();
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ detail?: string }>;
-      message.error(axiosError.response?.data?.detail || "Update failed");
+      message.error(formatApiError(error, "Update failed"));
     } finally {
       setLoading(false);
     }
@@ -41,8 +42,7 @@ export default function ProfilePage() {
       message.success("Password changed successfully");
       passwordForm.resetFields();
     } catch (error: unknown) {
-      const axiosError = error as AxiosError<{ detail?: string }>;
-      message.error(axiosError.response?.data?.detail || "Change failed");
+      message.error(formatApiError(error, "Change failed"));
     } finally {
       setLoading(false);
     }
@@ -72,16 +72,7 @@ export default function ProfilePage() {
         {/* Info card */}
         <div className="fg-card" style={{ marginBottom: 16 }}>
           <div className="fg-card-header">
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 15,
-                fontWeight: 480,
-                color: "var(--color-ink)",
-              }}
-            >
-              Account Info
-            </span>
+            <span className="fg-card-header-title">Account Info</span>
           </div>
           <div style={{ padding: "20px 24px" }}>
             <Descriptions column={1}>
@@ -97,12 +88,7 @@ export default function ProfilePage() {
                     : "System Admin"}
               </Descriptions.Item>
               <Descriptions.Item label="Registered">
-                {user.created_at
-                  ? new Intl.DateTimeFormat("en-US", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(user.created_at))
-                  : "-"}
+                {formatDateTime(user.created_at)}
               </Descriptions.Item>
             </Descriptions>
           </div>
@@ -111,16 +97,7 @@ export default function ProfilePage() {
         {/* Edit profile card */}
         <div className="fg-card" style={{ marginBottom: 16 }}>
           <div className="fg-card-header">
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 15,
-                fontWeight: 480,
-                color: "var(--color-ink)",
-              }}
-            >
-              Edit Personal Info
-            </span>
+            <span className="fg-card-header-title">Edit Personal Info</span>
           </div>
           <div style={{ padding: "20px 24px" }}>
             <Form
@@ -166,16 +143,7 @@ export default function ProfilePage() {
         {/* Password card */}
         <div className="fg-card">
           <div className="fg-card-header">
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 15,
-                fontWeight: 480,
-                color: "var(--color-ink)",
-              }}
-            >
-              Change Password
-            </span>
+            <span className="fg-card-header-title">Change Password</span>
           </div>
           <div style={{ padding: "20px 24px" }}>
             <Form

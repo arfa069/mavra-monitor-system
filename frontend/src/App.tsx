@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import React from "react";
 import {
   BrowserRouter,
@@ -150,19 +150,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f1f5f9",
-        }}
-      >
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoader fullScreen />;
   }
 
   if (!isAuthenticated) {
@@ -170,7 +158,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
 
 // Permission route - requires specific permission
@@ -184,26 +172,14 @@ function PermissionRoute({
   const { user, isLoading, hasPermission } = useAuth();
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f1f5f9",
-        }}
-      >
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoader fullScreen />;
   }
 
   if (!user || !hasPermission(permission)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
 
 // Public route - redirects authenticated users to home
@@ -211,26 +187,14 @@ function PublicRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f1f5f9",
-        }}
-      >
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoader fullScreen />;
   }
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return children;
 }
 
 function ProtectedLayoutRoute() {
@@ -248,130 +212,121 @@ function ProtectedLayoutRoute() {
 function AppRoutes() {
   const { theme: currentTheme } = useThemeContext();
 
+  const antdTheme = useMemo(
+    () => ({
+      algorithm:
+        currentTheme === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      token: {
+        colorPrimary: currentTheme === "dark" ? "#ffffff" : "#000000",
+        colorBgLayout: currentTheme === "dark" ? "#0a0a0a" : "#ffffff",
+        colorBgContainer: currentTheme === "dark" ? "#141414" : "#ffffff",
+        colorText: currentTheme === "dark" ? "#ffffff" : "#000000",
+        colorTextSecondary: currentTheme === "dark" ? "#888888" : "#666666",
+        colorBorder: currentTheme === "dark" ? "#2a2a2a" : "#e6e6e6",
+        colorBorderSecondary: currentTheme === "dark" ? "#333333" : "#d9d9d9",
+        colorSuccess: "#1ea64a",
+        colorWarning: "#f5a623",
+        colorError: "#e5484d",
+        colorInfo: "#3b82f6",
+        borderRadius: 50,
+        fontSize: 14,
+        fontFamily: "'General Sans', 'DM Sans', system-ui, sans-serif",
+        fontFamilyCode: "'JetBrains Mono', 'SF Mono', 'Menlo', monospace",
+      },
+      components: {
+        Button: {
+          borderRadius: 50,
+          paddingInline: 20,
+          controlHeight: 40,
+        },
+        Input: {
+          borderRadius: 8,
+          paddingInline: 14,
+          controlHeight: 40,
+        },
+        Select: {
+          borderRadius: 8,
+          controlHeight: 40,
+        },
+        Table: {
+          borderRadius: 24,
+          headerBg: currentTheme === "dark" ? "#141414" : "#f7f7f5",
+        },
+        Card: {
+          borderRadius: 24,
+        },
+        Tag: {
+          borderRadius: 50,
+        },
+        Menu: {
+          itemSelectedBg: currentTheme === "dark" ? "#ffffff" : "#000000",
+          itemSelectedColor: currentTheme === "dark" ? "#000000" : "#ffffff",
+        },
+      },
+    }),
+    [currentTheme],
+  );
+
   return (
-    <>
-      <ConfigProvider
-        theme={{
-          algorithm:
-            currentTheme === "dark"
-              ? theme.darkAlgorithm
-              : theme.defaultAlgorithm,
-          token: {
-            colorPrimary: currentTheme === "dark" ? "#ffffff" : "#000000",
-            colorBgLayout: currentTheme === "dark" ? "#0a0a0a" : "#ffffff",
-            colorBgContainer: currentTheme === "dark" ? "#141414" : "#ffffff",
-            colorText: currentTheme === "dark" ? "#ffffff" : "#000000",
-            colorTextSecondary: currentTheme === "dark" ? "#888888" : "#666666",
-            colorBorder: currentTheme === "dark" ? "#2a2a2a" : "#e6e6e6",
-            colorBorderSecondary:
-              currentTheme === "dark" ? "#333333" : "#d9d9d9",
-            colorSuccess: "#1ea64a",
-            colorWarning: "#f5a623",
-            colorError: "#e5484d",
-            colorInfo: "#3b82f6",
-            borderRadius: 50,
-            fontSize: 14,
-            fontFamily: "'General Sans', 'DM Sans', system-ui, sans-serif",
-            fontFamilyCode: "'JetBrains Mono', 'SF Mono', 'Menlo', monospace",
-          },
-          components: {
-            Button: {
-              borderRadius: 50,
-              paddingInline: 20,
-              controlHeight: 40,
-            },
-            Input: {
-              borderRadius: 8,
-              paddingInline: 14,
-              controlHeight: 40,
-            },
-            Select: {
-              borderRadius: 8,
-              controlHeight: 40,
-            },
-            Table: {
-              borderRadius: 24,
-              headerBg: currentTheme === "dark" ? "#141414" : "#f7f7f5",
-            },
-            Card: {
-              borderRadius: 24,
-            },
-            Tag: {
-              borderRadius: 50,
-            },
-            Menu: {
-              itemSelectedBg: currentTheme === "dark" ? "#ffffff" : "#000000",
-              itemSelectedColor:
-                currentTheme === "dark" ? "#000000" : "#ffffff",
-            },
-          },
-        }}
-      >
-        <AntdApp>
-          <BrowserRouter>
-            <React.Suspense fallback={<PageLoader fullScreen />}>
-              <Routes>
-                {/* Public routes */}
+    <ConfigProvider theme={antdTheme}>
+      <AntdApp>
+        <BrowserRouter>
+          <React.Suspense fallback={<PageLoader fullScreen />}>
+            <Routes>
+              {/* Public routes */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <RegisterPage />
+                  </PublicRoute>
+                }
+              />
+
+              {/* Protected routes */}
+              <Route element={<ProtectedLayoutRoute />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/events" element={<EventCenterPage />} />
+                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/schedule" element={<ScheduleConfigPage />} />
+                <Route path="/smart-home" element={<SmartHomePage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route
-                  path="/login"
+                  path="/admin/users"
                   element={
-                    <PublicRoute>
-                      <LoginPage />
-                    </PublicRoute>
+                    <PermissionRoute permission="user:read">
+                      <AdminUsersPage />
+                    </PermissionRoute>
                   }
                 />
                 <Route
-                  path="/register"
+                  path="/admin/audit-logs"
                   element={
-                    <PublicRoute>
-                      <RegisterPage />
-                    </PublicRoute>
+                    <PermissionRoute permission="user:read">
+                      <AdminAuditLogsPage />
+                    </PermissionRoute>
                   }
                 />
+              </Route>
 
-                {/* Protected routes */}
-                <Route element={<ProtectedLayoutRoute />}>
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/events" element={<EventCenterPage />} />
-                  <Route path="/jobs" element={<JobsPage />} />
-                  <Route path="/products" element={<ProductsPage />} />
-                  <Route path="/schedule" element={<ScheduleConfigPage />} />
-                  <Route path="/smart-home" element={<SmartHomePage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route
-                    path="/admin/users"
-                    element={
-                      <PermissionRoute permission="user:read">
-                        <AdminUsersPage />
-                      </PermissionRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/audit-logs"
-                    element={
-                      <PermissionRoute permission="user:read">
-                        <AdminAuditLogsPage />
-                      </PermissionRoute>
-                    }
-                  />
-                </Route>
-
-                {/* Default routes */}
-                <Route
-                  path="/"
-                  element={<Navigate to="/dashboard" replace />}
-                />
-                <Route
-                  path="*"
-                  element={<Navigate to="/dashboard" replace />}
-                />
-              </Routes>
-            </React.Suspense>
-          </BrowserRouter>
-        </AntdApp>
-      </ConfigProvider>
-    </>
+              {/* Default routes */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </React.Suspense>
+        </BrowserRouter>
+      </AntdApp>
+    </ConfigProvider>
   );
 }
 

@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "mavra-monitor-system-theme";
+const THEME_COLOR_DARK = "#0a0a0a";
+const THEME_COLOR_LIGHT = "#ffffff";
 
 function getInitialTheme(): Theme {
   try {
@@ -19,17 +21,24 @@ function getInitialTheme(): Theme {
   return "light";
 }
 
+function applyThemeToDOM(next: Theme) {
+  document.documentElement.setAttribute("data-theme", next);
+  document.documentElement.style.colorScheme = next;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute(
+      "content",
+      next === "dark" ? THEME_COLOR_DARK : THEME_COLOR_LIGHT,
+    );
+}
+
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
-  // Set data-theme on mount (runs once)
+  // Sync DOM whenever theme state changes (mount + updates)
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.style.colorScheme = theme;
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#ffffff");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    applyThemeToDOM(theme);
+  }, [theme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
@@ -38,11 +47,6 @@ export function useTheme() {
     } catch {
       // localStorage unavailable, silently fall back
     }
-    document.documentElement.setAttribute("data-theme", newTheme);
-    document.documentElement.style.colorScheme = newTheme;
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", newTheme === "dark" ? "#0a0a0a" : "#ffffff");
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -56,13 +60,7 @@ export function useTheme() {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (!stored) {
-          const next = e.matches ? "dark" : "light";
-          setThemeState(next);
-          document.documentElement.setAttribute("data-theme", next);
-          document.documentElement.style.colorScheme = next;
-          document
-            .querySelector('meta[name="theme-color"]')
-            ?.setAttribute("content", next === "dark" ? "#0a0a0a" : "#ffffff");
+          setThemeState(e.matches ? "dark" : "light");
         }
       } catch {
         // localStorage unavailable, follow system preference directly
