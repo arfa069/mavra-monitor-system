@@ -91,11 +91,20 @@ export default function ScheduleConfigPage() {
     }
   }, [scheduleConfig]);
 
+  // Extract stable load function references. The hook return objects are
+  // new references each render, but the load functions themselves are stable
+  // (useCallback with stable message ref).
+  const loadPlatforms = platform.load;
+  const loadJobConfigs = jobConfig.load;
+
   useEffect(() => {
-    void fetchSchedulerStatus();
-    void platform.load();
-    void jobConfig.load();
-  }, [fetchSchedulerStatus, platform, jobConfig]);
+    const timer = window.setTimeout(() => {
+      void fetchSchedulerStatus();
+      void loadPlatforms();
+      void loadJobConfigs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSchedulerStatus, loadPlatforms, loadJobConfigs]);
 
   const handleSaveRetention = async () => {
     try {
