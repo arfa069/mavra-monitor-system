@@ -208,24 +208,27 @@ class DatabaseProfilePool:
     @asynccontextmanager
     async def lease(
         self,
-        db: AsyncSession,
         *,
         platform: str,
         profile_key: str,
         owner: str,
         task_id: str,
     ) -> AsyncIterator[ProfileLease]:
-        acquired = await self.acquire(
-            db,
-            platform=platform,
-            profile_key=profile_key,
-            owner=owner,
-            task_id=task_id,
-        )
+        from app.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as db:
+            acquired = await self.acquire(
+                db,
+                platform=platform,
+                profile_key=profile_key,
+                owner=owner,
+                task_id=task_id,
+            )
         try:
             yield acquired
         finally:
-            await self.release(db, acquired)
+            async with AsyncSessionLocal() as db:
+                await self.release(db, acquired)
 
 
 async def recover_stale_profile_leases(

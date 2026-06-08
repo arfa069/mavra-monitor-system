@@ -4,8 +4,10 @@ from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from app.schemas.base import BaseResponseSchema
 
-class AuditLogResponse(BaseModel):
+
+class AuditLogResponse(BaseResponseSchema):
     """Schema for audit log entries."""
     id: int
     actor_user_id: int | None
@@ -16,8 +18,6 @@ class AuditLogResponse(BaseModel):
     ip_address: str | None
     user_agent: str | None
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class AuditLogListResponse(BaseModel):
@@ -44,7 +44,7 @@ class AdminUserUpdate(BaseModel):
     is_active: bool | None = None  # True=恢复, False=软删除
 
 
-class AdminUserResponse(BaseModel):
+class AdminUserResponse(BaseResponseSchema):
     """Schema for user response (admin).
 
     is_active is a compatibility projection of deleted_at (not the DB column).
@@ -55,8 +55,6 @@ class AdminUserResponse(BaseModel):
     role: str
     is_active: bool = True
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
     @model_validator(mode="before")
     @classmethod
@@ -88,7 +86,7 @@ class ResourcePermissionGrant(BaseModel):
     permission: str = Field(..., pattern="^(read|write|delete|\\*)$")
 
 
-class ResourcePermissionResponse(BaseModel):
+class ResourcePermissionResponse(BaseResponseSchema):
     """Schema for a resource permission grant."""
     id: int
     subject_id: int
@@ -98,8 +96,6 @@ class ResourcePermissionResponse(BaseModel):
     permission: str
     granted_by: int
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class ResourcePermissionUpdate(BaseModel):

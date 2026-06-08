@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.crawler_paths import build_profile_dir
+from app.schemas.base import BaseResponseSchema
 from app.schemas.validators import validate_cron_value, validate_timezone_value
 
 JobPlatform = Literal["boss", "51job", "liepin"]
@@ -17,48 +18,25 @@ def _validate_profile_key_value(value: str | None) -> str:
     return key
 
 
-class JobSearchConfigCreate(BaseModel):
-    """Schema for creating a job search config."""
+class _JobSearchConfigFields(BaseModel):
+    """Shared fields for job search config create/update schemas."""
 
-    name: str = Field(..., max_length=100)
-    profile_key: str = Field(default="default", max_length=80)
-    platform: JobPlatform = "boss"
-
-    @field_validator("profile_key")
-    @classmethod
-    def validate_profile_key(cls, v: str | None) -> str:
-        return _validate_profile_key_value(v)
-    keyword: str | None = Field(default=None, max_length=200)
-    city_code: str | None = Field(default=None, max_length=20)
-    salary_min: int | None = Field(default=None, ge=0)
-    salary_max: int | None = Field(default=None, ge=0)
-    experience: str | None = Field(default=None, max_length=50)
-    education: str | None = Field(default=None, max_length=50)
-    url: str
-    active: bool = True
-    notify_on_new: bool = True
-    deactivation_threshold: int = Field(default=3, ge=1)
-    cron_expression: str | None = Field(default=None, max_length=100)
-    cron_timezone: str | None = Field(default=None, max_length=50)
-    enable_match_analysis: bool = False
-
-    @field_validator("cron_expression")
-    @classmethod
-    def validate_cron(cls, v: str | None) -> str | None:
-        return validate_cron_value(v)
-
-    @field_validator("cron_timezone")
-    @classmethod
-    def validate_timezone(cls, v: str | None) -> str | None:
-        return validate_timezone_value(v)
-
-
-class JobSearchConfigUpdate(BaseModel):
-    """Schema for updating a job search config."""
-
-    name: str | None = Field(default=None, max_length=100)
-    profile_key: str | None = Field(default=None, max_length=80)
+    name: str | None = None
+    profile_key: str | None = None
     platform: JobPlatform | None = None
+    keyword: str | None = None
+    city_code: str | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    experience: str | None = None
+    education: str | None = None
+    url: str | None = None
+    active: bool | None = None
+    notify_on_new: bool | None = None
+    deactivation_threshold: int | None = None
+    cron_expression: str | None = None
+    cron_timezone: str | None = None
+    enable_match_analysis: bool | None = None
 
     @field_validator("profile_key")
     @classmethod
@@ -66,19 +44,6 @@ class JobSearchConfigUpdate(BaseModel):
         if v is None:
             return None
         return _validate_profile_key_value(v)
-    keyword: str | None = Field(default=None, max_length=200)
-    city_code: str | None = Field(default=None, max_length=20)
-    salary_min: int | None = Field(default=None, ge=0)
-    salary_max: int | None = Field(default=None, ge=0)
-    experience: str | None = Field(default=None, max_length=50)
-    education: str | None = Field(default=None, max_length=50)
-    url: str | None = None
-    active: bool | None = None
-    notify_on_new: bool | None = None
-    deactivation_threshold: int | None = Field(default=None, ge=1)
-    cron_expression: str | None = Field(default=None, max_length=100)
-    cron_timezone: str | None = Field(default=None, max_length=50)
-    enable_match_analysis: bool | None = None
 
     @field_validator("cron_expression")
     @classmethod
@@ -91,7 +56,24 @@ class JobSearchConfigUpdate(BaseModel):
         return validate_timezone_value(v)
 
 
-class JobSearchConfigResponse(BaseModel):
+class JobSearchConfigCreate(_JobSearchConfigFields):
+    """Schema for creating a job search config."""
+
+    name: str = Field(..., max_length=100)
+    profile_key: str = Field(default="default", max_length=80)
+    platform: JobPlatform = "boss"
+    url: str
+    active: bool = True
+    notify_on_new: bool = True
+    deactivation_threshold: int = Field(default=3, ge=1)
+    enable_match_analysis: bool = False
+
+
+class JobSearchConfigUpdate(_JobSearchConfigFields):
+    """Schema for updating a job search config."""
+
+
+class JobSearchConfigResponse(BaseResponseSchema):
     """Schema for job search config response."""
 
     id: int
@@ -115,8 +97,6 @@ class JobSearchConfigResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
-
 
 class JobConfigCronUpdate(BaseModel):
     """Schema for updating only the cron settings of a job search config."""
@@ -135,7 +115,7 @@ class JobConfigCronUpdate(BaseModel):
         return validate_timezone_value(v)
 
 
-class JobResponse(BaseModel):
+class JobResponse(BaseResponseSchema):
     """Schema for job response."""
 
     id: int
@@ -158,8 +138,6 @@ class JobResponse(BaseModel):
     last_updated_at: datetime
     is_active: bool
     apply_recommendation: str | None = None
-
-    model_config = {"from_attributes": True}
 
 
 class JobCrawlResult(BaseModel):

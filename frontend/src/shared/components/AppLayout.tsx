@@ -181,26 +181,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           padding: "0 24px",
           height: 56,
           background: "var(--color-canvas)",
-          borderBottom: "1px solid var(--color-hairline)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          borderBottom: "var(--border-width) solid var(--color-border)",
+          boxShadow: "none",
         }}
       >
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "var(--color-primary)",
+              width: 34,
+              height: 34,
+              borderRadius: "var(--radius-sm)",
+              border: "var(--border-width) solid var(--color-border)",
+              background: "var(--color-block-yellow)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "var(--color-on-primary)",
-              fontSize: 15,
-              fontWeight: 700,
-              fontFamily: "var(--font-body)",
-              letterSpacing: "-0.5px",
+              color: "#000000",
+              fontSize: 18,
+              fontWeight: 800,
+              fontFamily: "var(--font-display)",
+              boxShadow: "2px 2px 0px var(--color-border)",
+              transform: "rotate(-3deg)",
             }}
           >
             P
@@ -209,9 +211,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             style={{
               color: "var(--color-ink)",
               fontSize: 18,
-              fontWeight: 480,
-              letterSpacing: "-0.2px",
-              fontFamily: "var(--font-body)",
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: "-0.5px",
+              fontFamily: "var(--font-display)",
             }}
           >
             Price Monitor
@@ -224,22 +227,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Button
             type="text"
             icon={<BarsOutlined />}
-            style={{ color: "var(--color-ink)", fontSize: 16 }}
+            style={{
+              color: "var(--color-ink)",
+              fontSize: 16,
+              border: "var(--border-width) solid var(--color-border)",
+              background: "var(--color-block-cream)",
+              borderRadius: "var(--radius-pill)",
+              boxShadow: "2px 2px 0px var(--color-border)",
+            }}
             onClick={() => setDrawerOpen(true)}
             aria-label="Open Menu"
           />
         ) : (
           <>
             <Button
-              type="text"
               onClick={toggleTheme}
               style={{
                 color: "var(--color-ink)",
-                fontFamily: "var(--font-body)",
-                borderRadius: 50,
-                padding: "4px 10px",
+                background: "var(--color-block-orange)",
+                border: "var(--border-width) solid var(--color-border)",
+                borderRadius: "var(--radius-pill)",
+                boxShadow: "2px 2px 0px var(--color-border)",
+                padding: "4px 12px",
                 height: 36,
-                fontSize: 16,
+                fontSize: 15,
+                marginRight: 12,
               }}
               aria-label={
                 theme === "light"
@@ -247,7 +259,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   : "Switch to Light Mode"
               }
             >
-              {theme === "light" ? "🌙" : "☀️"}
+              {theme === "light" ? "🌙 DARK" : "☀️ LIGHT"}
             </Button>
 
             <Dropdown
@@ -256,30 +268,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               placement="bottomRight"
             >
               <Button
-                type="text"
                 style={{
-                  color: "var(--color-ink)",
-                  height: "auto",
-                  padding: "4px 8px",
-                  fontFamily: "var(--font-body)",
-                  fontSize: 14,
-                  fontWeight: 400,
-                  borderRadius: 50,
+                  color: "#000000",
+                  height: 36,
+                  padding: "4px 12px",
+                  background: "var(--color-block-cyan)",
+                  border: "var(--border-width) solid var(--color-border)",
+                  borderRadius: "var(--radius-pill)",
+                  boxShadow: "2px 2px 0px var(--color-border)",
+                  fontFamily: "var(--font-display)",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  marginRight: 12,
                 }}
                 aria-label="User Menu"
               >
                 <Space size={6}>
                   <Avatar
-                    size={28}
+                    size={22}
                     icon={<UserOutlined />}
                     style={{
-                      backgroundColor: "var(--color-surface-soft)",
-                      color: "var(--color-ink)",
-                      fontSize: 12,
-                      border: "1px solid var(--color-hairline)",
+                      backgroundColor: "#ffffff",
+                      color: "#000000",
+                      fontSize: 11,
+                      border: "1.5px solid #000000",
                     }}
                   />
-                  <span style={{ fontSize: 14, fontWeight: 400 }}>
+                  <span>
                     {user?.username || "User"}
                   </span>
                 </Space>
@@ -287,13 +303,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Dropdown>
 
             <Button
-              type="text"
               icon={<BarsOutlined style={{ fontSize: 14 }} />}
               style={{
                 color: "var(--color-ink)",
-                fontFamily: "var(--font-body)",
-                borderRadius: 50,
-                padding: "4px 10px",
+                background: "var(--color-block-lilac)",
+                border: "var(--border-width) solid var(--color-border)",
+                borderRadius: "var(--radius-pill)",
+                boxShadow: "2px 2px 0px var(--color-border)",
+                padding: "4px 12px",
                 height: 36,
               }}
               onClick={() => setCollapsed(!collapsed)}
@@ -316,10 +333,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             zIndex: 100,
             background: "var(--color-surface-soft)",
             overflow: "hidden",
-            borderRadius: "0 24px 24px 0",
-            borderRight: "1px solid var(--color-hairline)",
-            marginTop: 8,
-            marginBottom: 8,
+            borderRadius: "0 var(--radius-lg) var(--radius-lg) 0",
+            borderRight: "var(--border-width) solid var(--color-border)",
           }}
         >
           <motion.div
@@ -459,10 +474,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           background: "var(--color-canvas)",
           color: "var(--color-ink)",
           fontSize: 12,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "var(--font-mono)",
           letterSpacing: "0.6px",
           textTransform: "uppercase",
-          borderTop: "1px solid var(--color-hairline)",
+          borderTop: "var(--border-width) solid var(--color-border)",
         }}
       >
         Price Monitor © 2026

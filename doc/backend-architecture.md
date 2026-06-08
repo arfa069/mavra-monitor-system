@@ -30,7 +30,12 @@ backend/
 │   │   ├── tokens.py           # JWT create/decode + opaque refresh/CSRF helpers
 │   │   ├── permissions.py      # 细粒度权限矩阵 + require_permission
 │   │   ├── resource_permission.py # 资源级 ACL 权限判断
-│   │   ├── user_config_cache.py # Redis TTL 缓存用户配置（5min）
+│   │   ├── json_utils.py       # JSON 序列化辅助（safe_json_dumps, json_default）
+│   │   ├── redis_client.py     # 按事件循环复用的 Redis 客户端获取
+│   │   ├── sessions.py         # Session 创建/查询/删除/轮换（refresh-token-aware）
+│   │   ├── event_stream.py     # 进程内 SSE 事件广播（dead subscriber 自动清理）
+│   │   ├── system_log.py       # 系统日志写入与脱敏
+│   │   ├── user_config_cache.py # Redis TTL 缓存用户配置（5min，互斥锁防击穿）
 │   │   └── audit.py            # 审计日志写入工具
 │   ├── models/
 │   │   ├── base.py             # SQLAlchemy Base
@@ -103,6 +108,7 @@ backend/
 │   │   │   ├── notification_service.py # 职位新发现通知编排
 │   │   │   ├── llm/            # 职位匹配 LLM provider
 │   │   │   │   ├── provider.py
+│   │   │   │   ├── utils.py    # 共享 JSON 提取（extract_json）
 │   │   │   │   ├── anthropic.py
 │   │   │   │   ├── openai.py
 │   │   │   │   └── ollama.py
@@ -122,6 +128,8 @@ backend/
 │   │   │   └── repository.py   # smart_home_configs / smart_home_entity_preferences 持久化
 │   │   └── scheduling/router.py # Scheduler status API
 │   ├── schemas/
+│   │   ├── base.py             # BaseResponseSchema（共享 model_config）
+│   │   ├── validators.py       # 共享字段验证器（validate_cron, validate_timezone, validate_url）
 │   │   ├── admin.py
 │   │   ├── user.py
 │   │   ├── product.py
@@ -136,7 +144,12 @@ backend/
 │   │   ├── job_match.py
 │   │   └── smart_home.py
 │   ├── integrations/
-│   │   └── feishu.py           # 飞书 Webhook transport
+│   │   └── feishu.py           # 飞书 Webhook transport（复用全局 httpx.AsyncClient）
+│   ├── utils/
+│   │   ├── url.py              # URL 规范化（Taobao/Tmall id/skuId 提取重建）
+│   │   ├── parsers.py          # 薪资解析等共享解析工具
+│   │   ├── request.py          # 客户端 IP 获取等请求辅助
+│   │   └── time.py             # UTC 时间辅助
 │   ├── core/
 │   │   ├── scheduler.py        # APScheduler manager 共享基类
 │   │   └── task_registry.py    # 后台爬取/匹配任务状态注册表
@@ -196,6 +209,7 @@ Redis URL 支持在 `redis_password` 字段设置密码时会自动拼接为 `re
 ### 5.1 连接管理（database.py）
 
 - 异步引擎：`create_async_engine` + `async_sessionmaker`
+- 连接池：`pool_size=10`, `max_overflow=20`（默认 5/10 在生产并发下可能不足）
 - 会话获取：通过 `Depends(get_db)` 依赖注入
 - Windows 兼容：禁用了 `pool_pre_ping`（避免跨事件循环 Future 问题）
 
@@ -229,6 +243,7 @@ User (1) ──────< Product (多)
 | `users_permissions`             | RBAC 权限定义                  | 无（全局）                             |
 | `users_roles_permissions`       | RBAC 角色-权限多对多关联       | 无（全局）                             |
 | `users_resource_permissions`    | 资源级 ACL（跨用户资源授权）   | subject_id + resource_type/resource_id |
+| `users_sessions`                | 用户会话（refresh_token_hash） | user_id 隔离，最多 5 个 per user       |
 | `products`                      | 监控的商品                     | user_id 隔离                           |
 | `products_price_history`        | 价格历史记录                   | 通过 product_id 间接隔离               |
 | `products_alerts`               | 降价告警配置                   | 通过 product_id 间接隔离               |

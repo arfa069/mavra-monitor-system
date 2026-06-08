@@ -38,7 +38,6 @@ from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
     create_session_with_token,
     delete_other_sessions,
     delete_session,
-    get_session_by_id,
     get_session_by_refresh_token,
     get_session_by_token,
     get_user_sessions,
@@ -114,27 +113,21 @@ async def get_current_user(
     except (ValueError, TypeError):
         raise credentials_exception
 
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    from app.models.session import Session
+
+    # Single query validates both user existence and session validity
     result = await db.execute(
-        select(User).where(
+        select(User)
+        .join(Session, Session.user_id == User.id)
+        .where(
             User.id == user_id_int,
             User.deleted_at.is_(None),
+            Session.token_hash == token_hash,
         )
     )
     user = result.scalar_one_or_none()
     if user is None:
-        raise credentials_exception
-
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
-    from app.models.session import Session
-
-    session_result = await db.execute(
-        select(Session).where(
-            Session.user_id == user.id,
-            Session.token_hash == token_hash,
-        )
-    )
-    active_session = session_result.scalar_one_or_none()
-    if active_session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="认证失败：会话已失效或已在其他地方退出",
@@ -214,23 +207,20 @@ async def get_current_user_cookie(
             detail="认证失败：Token 无效或已过期",
         )
 
-    # ── Look up user (exclude soft-deleted) ─────────────────────────
+    from app.models.session import Session
+
+    # Single query validates both user existence and session validity
     result = await db.execute(
-        select(User).where(
+        select(User)
+        .join(Session, Session.user_id == User.id)
+        .where(
             User.id == user_id_int,
             User.deleted_at.is_(None),
+            Session.id == sid_int,
         )
     )
     user = result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="认证失败：用户不存在或已被删除",
-        )
-
-    # ── Look up session by sid ──────────────────────────────────────
-    session = await get_session_by_id(sid_int, user_id_int, db)
-    if session is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="认证失败：会话已失效或已在其他地方退出",

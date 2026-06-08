@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-import re
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import UTC, datetime
@@ -12,7 +11,9 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
+from app.core.crawler_paths import resolve_profile_key
 from app.core.task_registry import CrawlTask, TaskStatus
 from app.domains.crawling.task_store import CrawlTaskRecord, runtime_task_from_record
 
@@ -28,6 +29,7 @@ from app.domains.jobs.runtime import JobCrawlRuntimeContext
 from app.models.job import Job, JobSearchConfig
 from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import UserResume
+from app.utils.parsers import parse_salary
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +70,6 @@ async def _emit_job_crawl_enqueued(
     )
 
 
-_RE_SALARY_BONUS = re.compile(r'·\d+薪')
-_RE_SALARY_SPACES = re.compile(r'\s+')
-_RE_SALARY_RANGE = re.compile(r'(\d+)[kK]?-(\d+)[kK]?')
-_RE_SALARY_SINGLE = re.compile(r'^(\d+)[kK]?$')
 
 
 async def _emit_job_match_enqueued(
@@ -116,18 +114,13 @@ async def _emit_job_crawl_result(
     )
 
 
-def _config_profile_key(config: JobSearchConfig | None) -> str:
-    raw = getattr(config, "profile_key", None) if config is not None else None
-    return raw or "default"
-
-
 def _group_job_configs_for_profile_leases(
     configs: list[JobSearchConfig],
 ) -> dict[tuple[str, str], list[JobSearchConfig]]:
     grouped: dict[tuple[str, str], list[JobSearchConfig]] = {}
     for config in configs:
         platform = _normalize_platform(getattr(config, "platform", "boss"))
-        profile_key = _config_profile_key(config)
+        profile_key = resolve_profile_key(config)
         grouped.setdefault((platform, profile_key), []).append(config)
     return grouped
 
@@ -204,35 +197,6 @@ def _build_crawl_url(config: JobSearchConfig) -> str:
     return urlunparse(parsed._replace(query=urlencode(params)))
 
 
-def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
-    """Parse salary string like '20-40K·14薪' to (min, max) in K.
-
-    Returns:
-        (salary_min, salary_max) in units of K, or (None, None) if unparseable.
-    """
-    if not salary_str:
-        return None, None
-
-    # Remove bonus part like "·14薪"
-    salary_str = _RE_SALARY_BONUS.sub('', salary_str)
-
-    if salary_str in ('面议', '薪资面议', '薪资面议 '):
-        return None, None
-
-    salary_str = _RE_SALARY_SPACES.sub('', salary_str)
-
-    match = _RE_SALARY_RANGE.match(salary_str)
-    if match:
-        return int(match.group(1)), int(match.group(2))
-
-    match = _RE_SALARY_SINGLE.match(salary_str.strip())
-    if match:
-        val = int(match.group(1))
-        return val, val
-
-    return None, None
-
-
 async def process_job_results(
     config_id: int,
     jobs: list[dict],
@@ -279,6 +243,15 @@ async def process_job_results(
                 select(Job).where(
                     Job.search_config_id == config_id,
                     Job.is_active,
+                ).options(
+                    load_only(
+                        Job.id,
+                        Job.job_id,
+                        Job.consecutive_miss_count,
+                        Job.is_active,
+                        Job.last_active_at,
+                        Job.last_updated_at,
+                    )
                 )
             )
             all_active_jobs = list(result.scalars().all())
@@ -631,14 +604,14 @@ async def process_job_results(
 
         if new_job_ids and config.enable_match_analysis:
             resume_result = await db.execute(
-                select(UserResume).where(UserResume.user_id == config.user_id)
+                select(UserResume.id).where(UserResume.user_id == config.user_id)
             )
-            resumes = list(resume_result.scalars().all())
-            for resume in resumes:
+            resume_ids = list(resume_result.scalars().all())
+            for resume_id in resume_ids:
                 try:
                     enqueue_result = await enqueue_job_match_analysis(
                         db,
-                        resume_id=resume.id,
+                        resume_id=resume_id,
                         job_ids=new_job_ids,
                         user_id=config.user_id,
                         source="crawl_auto",
@@ -646,14 +619,14 @@ async def process_job_results(
                     if enqueue_result["status"] == "pending":
                         await _emit_job_match_enqueued(
                             config.user_id,
-                            resume.id,
+                            resume_id,
                             enqueue_result["task_id"],
                             enqueue_result["total"],
                         )
                 except (ConnectionError, TimeoutError, ValueError) as exc:
-                    logger.warning("Failed to enqueue match analysis for resume %s: %s", resume.id, exc)
+                    logger.warning("Failed to enqueue match analysis for resume %s: %s", resume_id, exc)
                 except Exception:
-                    logger.exception("Failed to enqueue match analysis for resume %s", resume.id)
+                    logger.exception("Failed to enqueue match analysis for resume %s", resume_id)
 
     return {
         "new_count": new_count,
@@ -769,7 +742,7 @@ async def _fetch_single_job_detail(
                 job_obj,
                 adapter=adapter,
                 platform=platform,
-                profile_key=_config_profile_key(config),
+                profile_key=resolve_profile_key(config),
                 db=db,
             ),
             timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
@@ -968,7 +941,6 @@ async def _profile_lease_heartbeat(
                 record = await db.get(CrawlTaskRecord, record_id)
                 if record is not None and record.status == "running":
                     await renew_task_lease(db, record)
-            async with AsyncSessionLocal() as db:
                 await pool.renew(db, lease)
         except (ConnectionError, TimeoutError) as exc:
             logger.warning(
@@ -1011,7 +983,7 @@ async def crawl_scheduled_config(
             if config
             else "boss"
         )
-        profile_key = _config_profile_key(config)
+        profile_key = resolve_profile_key(config)
 
     payload = {
         "config_id": config_id,
@@ -1091,57 +1063,74 @@ async def crawl_all_job_searches(
     # Group configs by (platform, profile_key), share one adapter per group
     groups = _group_job_configs_for_profile_leases(configs)
 
-    idx = 0
-    for (platform, profile_key), platform_configs in groups.items():
+    async def _crawl_one_group(
+        platform: str,
+        profile_key: str,
+        platform_configs: list[JobSearchConfig],
+    ) -> dict:
         from app.domains.crawling.profile_pool import DatabaseProfilePool
 
         pool = DatabaseProfilePool()
+        group_details: list[dict] = []
+        group_success = 0
+        group_errors = 0
         try:
-            async with AsyncSessionLocal() as lease_db:
-                async with pool.lease(
-                    lease_db,
+            async with pool.lease(
+                platform=platform,
+                profile_key=profile_key,
+                owner=f"sync-all-{platform}-{profile_key}",
+                task_id=f"sync-all-{platform}-{profile_key}",
+            ) as lease:
+                runtime_context = JobCrawlRuntimeContext(
                     platform=platform,
-                    profile_key=profile_key,
-                    owner=f"sync-all-{platform}-{profile_key}",
-                    task_id=f"sync-all-{platform}-{profile_key}",
-                ) as lease:
-                    runtime_context = JobCrawlRuntimeContext(
-                        platform=platform,
-                        profile_key=lease.profile_key,
-                        profile_dir=lease.profile_dir,
-                        task_id=None,
-                        config_id=None,
-                        run_id=f"sync-all-{platform}-{profile_key}",
-                        log_context={"source": "manual", "profile_key": lease.profile_key},
+                    profile_key=lease.profile_key,
+                    profile_dir=lease.profile_dir,
+                    task_id=None,
+                    config_id=None,
+                    run_id=f"sync-all-{platform}-{profile_key}",
+                    log_context={"source": "manual", "profile_key": lease.profile_key},
+                )
+                adapter = _create_adapter(platform, runtime_context=runtime_context)
+                for idx, config in enumerate(platform_configs):
+                    result = await crawl_single_config(
+                        config.id,
+                        adapter=adapter,
+                        lock_already_held=True,
+                        runtime_context=runtime_context,
                     )
-                    adapter = _create_adapter(platform, runtime_context=runtime_context)
-                    for config in platform_configs:
-                        result = await crawl_single_config(
-                            config.id,
-                            adapter=adapter,
-                            lock_already_held=True,
-                            runtime_context=runtime_context,
-                        )
-                        details.append({"config_id": config.id, **result})
-                        if result.get("status") == "success":
-                            success_count += 1
-                        else:
-                            error_count += 1
+                    group_details.append({"config_id": config.id, **result})
+                    if result.get("status") == "success":
+                        group_success += 1
+                    else:
+                        group_errors += 1
 
-                        idx += 1
-                        if idx < total:
-                            delay = random.uniform(*CONFIG_CRAWL_DELAY_SECONDS)
-                            logger.debug("Waiting %.1fs before next config", delay)
-                            await asyncio.sleep(delay)
+                    if idx < len(platform_configs) - 1:
+                        delay = random.uniform(*CONFIG_CRAWL_DELAY_SECONDS)
+                        logger.debug("Waiting %.1fs before next config", delay)
+                        await asyncio.sleep(delay)
         except (ConnectionError, TimeoutError, ValueError) as exc:
             for config in platform_configs:
-                details.append({"config_id": config.id, "status": "error", "error": str(exc)})
-                error_count += 1
+                group_details.append({"config_id": config.id, "status": "error", "error": str(exc)})
+                group_errors += 1
         except Exception:
             logger.exception("Platform group crawl failed unexpectedly")
             for config in platform_configs:
-                details.append({"config_id": config.id, "status": "error", "error": "内部错误"})
-                error_count += 1
+                group_details.append({"config_id": config.id, "status": "error", "error": "内部错误"})
+                group_errors += 1
+        return {
+            "details": group_details,
+            "success": group_success,
+            "errors": group_errors,
+        }
+
+    group_results = await asyncio.gather(
+        *(_crawl_one_group(p, pk, pcs) for (p, pk), pcs in groups.items())
+    )
+
+    for gr in group_results:
+        details.extend(gr["details"])
+        success_count += gr["success"]
+        error_count += gr["errors"]
 
     return {
         "status": "completed",
@@ -1166,7 +1155,7 @@ async def crawl_single_config_background(
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
         config_platform = _normalize_platform(getattr(config, "platform", "boss")) if config else "boss"
-        profile_key = _config_profile_key(config)
+        profile_key = resolve_profile_key(config)
 
     async with AsyncSessionLocal() as db:
         record = await create_crawl_task_record(
@@ -1323,45 +1312,58 @@ async def execute_job_platform_profile_task(
     await progress_callback(child_task)
 
     pool = DatabaseProfilePool()
-    child_details = []
+    child_details: list[dict] = []
     child_success = 0
     child_errors = 0
-    try:
-        async with AsyncSessionLocal() as lease_db:
-            async with pool.lease(
-                lease_db,
+
+    # Adapter instances are not thread-safe (they hold mutable session state),
+    # so configs under the same profile lease must run sequentially.
+    _job_config_concurrency_per_profile = 1
+    sem = asyncio.Semaphore(_job_config_concurrency_per_profile)
+
+    async def _crawl_one(config_id: int) -> dict:
+        async with sem:
+            runtime_context = JobCrawlRuntimeContext(
                 platform=platform,
-                profile_key=profile_key,
-                owner=child_task.task_id,
+                profile_key=lease.profile_key,
+                profile_dir=lease.profile_dir,
                 task_id=child_task.task_id,
-            ) as lease:
-                for idx, config_id in enumerate(config_ids):
-                    runtime_context = JobCrawlRuntimeContext(
-                        platform=platform,
-                        profile_key=lease.profile_key,
-                        profile_dir=lease.profile_dir,
-                        task_id=child_task.task_id,
-                        config_id=config_id,
-                        run_id=child_task.task_id,
-                        log_context={"parent_task_id": record.parent_task_id},
-                    )
-                    result = await CrawlTaskRunner(
-                        progress_callback=progress_callback
-                    ).run_job_config(
-                        child_task,
-                        config_id=config_id,
-                        lock_already_held=True,
-                        runtime_context=runtime_context,
-                    )
-                    detail = {"config_id": config_id, **result}
-                    child_details.append(detail)
-                    if result.get("status") == "success":
+                config_id=config_id,
+                run_id=child_task.task_id,
+                log_context={"parent_task_id": record.parent_task_id},
+            )
+            result = await CrawlTaskRunner(
+                progress_callback=progress_callback
+            ).run_job_config(
+                child_task,
+                config_id=config_id,
+                lock_already_held=True,
+                runtime_context=runtime_context,
+            )
+            await asyncio.sleep(random.uniform(*CONFIG_CRAWL_DELAY_SECONDS))
+            return {"config_id": config_id, **result}
+
+    try:
+        async with pool.lease(
+            platform=platform,
+            profile_key=profile_key,
+            owner=child_task.task_id,
+            task_id=child_task.task_id,
+        ) as lease:
+            raw_results = await asyncio.gather(
+                *(_crawl_one(cid) for cid in config_ids),
+                return_exceptions=True,
+            )
+            for item in raw_results:
+                if isinstance(item, Exception):
+                    child_errors += 1
+                    child_details.append({"status": "error", "error": str(item)})
+                else:
+                    child_details.append(item)
+                    if item.get("status") == "success":
                         child_success += 1
                     else:
                         child_errors += 1
-
-                    if idx < len(config_ids) - 1:
-                        await asyncio.sleep(random.uniform(*CONFIG_CRAWL_DELAY_SECONDS))
     except ProfileAlreadyLeasedError:
         raise
     except (ConnectionError, TimeoutError, ValueError) as exc:

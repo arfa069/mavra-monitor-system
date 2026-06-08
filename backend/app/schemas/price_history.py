@@ -2,10 +2,10 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from app.schemas.base import BaseResponseSchema
 
 
-class PriceHistoryResponse(BaseModel):
+class PriceHistoryResponse(BaseResponseSchema):
     """Schema for price history record."""
     id: int
     product_id: int
@@ -13,14 +13,10 @@ class PriceHistoryResponse(BaseModel):
     currency: str
     scraped_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-class PriceHistorySummary(BaseModel):
+class PriceHistorySummary(BaseResponseSchema):
     """Summary of price history for a product."""
     id: int
     price: Decimal
     currency: str
     scraped_at: datetime
-
-    model_config = {"from_attributes": True}

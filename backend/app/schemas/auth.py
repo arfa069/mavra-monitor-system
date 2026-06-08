@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from app.schemas.base import BaseResponseSchema
+
 
 class UserRegister(BaseModel):
     """Request schema for user registration."""
@@ -25,7 +27,7 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="密码")
 
 
-class UserResponse(BaseModel):
+class UserResponse(BaseResponseSchema):
     """Response schema for user information.
 
     is_active is a compatibility projection of deleted_at (not the DB column).
@@ -37,8 +39,6 @@ class UserResponse(BaseModel):
     permissions: list[str] = Field(default_factory=list)
     is_active: bool = True
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
     @model_validator(mode="before")
     @classmethod
@@ -75,10 +75,9 @@ class MessageResponse(BaseModel):
     message: str
 
 
-class LoginLogResponse(BaseModel):
+class LoginLogResponse(BaseResponseSchema):
     """Response schema for login history."""
     id: int
     ip_address: str | None
     user_agent: str | None
     created_at: datetime
-    model_config = {"from_attributes": True}

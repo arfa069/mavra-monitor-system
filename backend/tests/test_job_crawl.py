@@ -909,7 +909,7 @@ class TestAdapterSharing:
                 from app.domains.crawling.profile_pool import ProfileLease
 
                 @asynccontextmanager
-                async def fake_lease(self, db, *, platform, profile_key, owner, task_id):
+                async def fake_lease(self, *, platform, profile_key, owner, task_id):
                     yield ProfileLease(
                         platform=platform,
                         profile_key=profile_key,
@@ -977,22 +977,22 @@ class TestAdapterSharing:
 
 
 def test_config_profile_key_extracts_from_config():
-    from app.domains.jobs.crawl_service import _config_profile_key
+    from app.core.crawler_paths import resolve_profile_key
 
     config = MagicMock()
     config.profile_key = "job-a"
-    assert _config_profile_key(config) == "job-a"
+    assert resolve_profile_key(config) == "job-a"
 
 
 def test_config_profile_key_defaults_when_missing():
-    from app.domains.jobs.crawl_service import _config_profile_key
+    from app.core.crawler_paths import resolve_profile_key
 
     config = MagicMock()
     config.profile_key = None
-    assert _config_profile_key(config) == "default"
+    assert resolve_profile_key(config) == "default"
 
 
 def test_config_profile_key_defaults_when_none():
-    from app.domains.jobs.crawl_service import _config_profile_key
+    from app.core.crawler_paths import resolve_profile_key
 
-    assert _config_profile_key(None) == "default"
+    assert resolve_profile_key(None) == "default"

@@ -4,6 +4,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.base import BaseResponseSchema
+
 
 class AlertCreate(BaseModel):
     """Schema for creating an alert."""
@@ -18,7 +20,7 @@ class AlertUpdate(BaseModel):
     active: bool | None = None
 
 
-class AlertResponse(BaseModel):
+class AlertResponse(BaseResponseSchema):
     """Schema for alert response."""
     id: int
     product_id: int
@@ -29,5 +31,3 @@ class AlertResponse(BaseModel):
     active: bool
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}

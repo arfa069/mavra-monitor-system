@@ -5,6 +5,7 @@ Cache invalidation happens automatically on config updates via /config endpoints
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -20,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 CACHE_KEY = "user:config:1"
 CACHE_TTL_SECONDS = 300  # 5 minutes
+
+_fetch_lock = asyncio.Lock()
 
 
 async def get_cached_user_config(db=None) -> dict[str, Any] | None:
@@ -41,12 +44,22 @@ async def get_cached_user_config(db=None) -> dict[str, Any] | None:
     except (redis.RedisError, json.JSONDecodeError):
         logger.exception("Redis cache read failed, falling back to DB")
 
-    # 2. Cache miss — fetch from DB
-    if db is not None:
-        return await _fetch_and_cache(db, redis_client)
+    # 2. Cache miss — acquire lock to prevent stampede
+    async with _fetch_lock:
+        # Double-check: another coroutine may have cached while we waited
+        try:
+            cached = await redis_client.get(CACHE_KEY)
+            if cached:
+                return json.loads(cached)
+        except (redis.RedisError, json.JSONDecodeError):
+            pass  # proceed to DB fallback
 
-    async with AsyncSessionLocal() as db:
-        return await _fetch_and_cache(db, redis_client)
+        # 3. Still cache miss — fetch from DB
+        if db is not None:
+            return await _fetch_and_cache(db, redis_client)
+
+        async with AsyncSessionLocal() as db:
+            return await _fetch_and_cache(db, redis_client)
 
 
 async def _fetch_and_cache(db, redis_client: redis.Redis) -> dict[str, Any] | None:

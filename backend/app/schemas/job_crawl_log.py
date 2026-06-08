@@ -1,10 +1,10 @@
 """Job crawl log schemas."""
 from datetime import datetime
 
-from pydantic import BaseModel
+from app.schemas.base import BaseResponseSchema
 
 
-class JobCrawlLogResponse(BaseModel):
+class JobCrawlLogResponse(BaseResponseSchema):
     """Schema for job crawl log record."""
     id: int
     search_config_id: int
@@ -13,5 +13,3 @@ class JobCrawlLogResponse(BaseModel):
     total_jobs_count: int | None = None
     error_message: str | None = None
     scraped_at: datetime
-
-    model_config = {"from_attributes": True}

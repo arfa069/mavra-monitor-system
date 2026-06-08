@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 PROFILE_ROOT_ENV = "PRICE_MONITOR_PROFILE_ROOT"
 
@@ -36,3 +37,9 @@ def build_profile_dir(profile_key: str, root: str | Path | None = None) -> Path:
     else:
         base = _project_root()
     return base / "profiles" / profile_key
+
+
+def resolve_profile_key(obj: Any | None) -> str:
+    """Return ``obj.profile_key`` if available, otherwise ``'default'``."""
+    raw = getattr(obj, "profile_key", None) if obj is not None else None
+    return raw or "default"

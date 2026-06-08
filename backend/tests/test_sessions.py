@@ -340,16 +340,15 @@ async def test_delete_session(mock_db_session):
     """Test deleting a specific session."""
     from app.core.security import delete_session
 
-    # Mock: session exists
-    mock_session = MagicMock(id=1, user_id=1)
+    # Mock: delete returns rowcount 1
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = mock_session
+    mock_result.rowcount = 1
     mock_db_session.execute.return_value = mock_result
 
     deleted = await delete_session(1, 1, mock_db_session)
 
     assert deleted is True
-    mock_db_session.delete.assert_called_once_with(mock_session)
+    mock_db_session.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -357,9 +356,9 @@ async def test_delete_session_not_found(mock_db_session):
     """Test deleting a non-existent session."""
     from app.core.security import delete_session
 
-    # Mock: session not found
+    # Mock: delete returns rowcount 0
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None
+    mock_result.rowcount = 0
     mock_db_session.execute.return_value = mock_result
 
     deleted = await delete_session(9999, 1, mock_db_session)
@@ -372,16 +371,17 @@ async def test_delete_other_sessions(mock_db_session):
     """Test deleting all sessions except the current one."""
     from app.core.security import delete_other_sessions
 
-    # Mock: return 3 sessions to delete
-    other_sessions = [MagicMock(id=i + 2, user_id=1) for i in range(3)]
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = other_sessions
-    mock_db_session.execute.return_value = mock_result
+    # Mock: SELECT id returns 3 ids, then DELETE returns rowcount 3
+    select_result = MagicMock()
+    select_result.all.return_value = [(2,), (3,), (4,)]
+    delete_result = MagicMock()
+    delete_result.rowcount = 3
+    mock_db_session.execute = AsyncMock(side_effect=[select_result, delete_result])
 
     count = await delete_other_sessions(1, 1, mock_db_session)
 
     assert count == 3
-    assert mock_db_session.delete.call_count == 3
+    mock_db_session.commit.assert_called_once()
 
 
 @pytest.mark.asyncio

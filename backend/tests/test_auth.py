@@ -689,12 +689,11 @@ class TestLogout:
         mock_session_result = MagicMock()
         mock_session_result.scalar_one_or_none.return_value = mock_session_obj
 
-        # get_current_user_cookie: (1) user query, (2) session query
-        # logout: (3) get_session_by_refresh_token
+        # get_current_user_cookie: (1) JOIN query for user + session
+        # logout: (2) get_session_by_refresh_token
         mock_db.execute = AsyncMock(side_effect=[
-            mock_user_result,     # 1. get_current_user_cookie: user
-            mock_session_result,  # 2. get_current_user_cookie: session
-            mock_session_result,  # 3. get_session_by_refresh_token
+            mock_user_result,     # 1. get_current_user_cookie: JOIN query
+            mock_session_result,  # 2. get_session_by_refresh_token
         ])
 
         async def _override_get_db():
@@ -786,17 +785,11 @@ class TestLogout:
         # ── Step 2: After logout, /auth/me returns 401 ────────────────
         mock_db_me = AsyncMock()
 
-        # User found but session not found (simulate deleted session)
-        user_found = MagicMock()
-        user_found.scalar_one_or_none.return_value = mock_user
-
+        # JOIN query returns None (session not found) → 401
         session_gone = MagicMock()
         session_gone.scalar_one_or_none.return_value = None
 
-        mock_db_me.execute = AsyncMock(side_effect=[
-            user_found,    # user query
-            session_gone,  # session query → None → 401
-        ])
+        mock_db_me.execute = AsyncMock(return_value=session_gone)
 
         async def _override_me():
             yield mock_db_me

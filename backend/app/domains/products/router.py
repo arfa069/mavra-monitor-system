@@ -38,7 +38,8 @@ def _scheduler(request: Request) -> ProductCronScheduler | None:
 
 
 def _scheduler_error(exc: Exception) -> HTTPException:
-    return HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
+    logger.error("Scheduler error: %s", exc)
+    return HTTPException(status_code=400, detail="Scheduler error")
 
 
 def _not_found_response(exc: service.ProductNotFoundError) -> HTTPException:

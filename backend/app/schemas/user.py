@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.base import BaseResponseSchema
+
 
 class UserConfigCreate(BaseModel):
     """Schema for creating user configuration."""
@@ -16,7 +18,7 @@ class UserConfigUpdate(BaseModel):
     data_retention_days: int | None = Field(default=None, ge=1, le=3650)
 
 
-class UserConfigResponse(BaseModel):
+class UserConfigResponse(BaseResponseSchema):
     """Schema for user configuration response."""
     id: int
     username: str
@@ -24,8 +26,6 @@ class UserConfigResponse(BaseModel):
     data_retention_days: int = 365
     created_at: datetime | None = None
     updated_at: datetime | None = None
-
-    model_config = {"from_attributes": True}
 
 
 class UserConfigDefaults(BaseModel):

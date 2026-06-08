@@ -603,9 +603,9 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     mock_permissions = MagicMock()
     mock_permissions.scalars.return_value.all.return_value = []
 
+    # get_current_user_cookie now uses a single JOIN query
     mock_get_db.execute.side_effect = [
-        mock_user_result,     # get_current_user_cookie: user
-        mock_session_result,  # get_current_user_cookie: session
+        mock_user_result,     # get_current_user_cookie: JOIN query
         mock_none_result,     # username check — no conflict
         mock_none_result,     # email check — no conflict
         mock_permissions,     # get_role_permissions
@@ -1055,9 +1055,8 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
     mock_no_session.scalar_one_or_none.return_value = None
 
     mock_get_db.execute.side_effect = [
-        mock_user_result,     # 1. get_current_user_cookie: user
-        mock_session_result,  # 2. get_current_user_cookie: session
-        mock_no_session,      # 3. get_session_by_refresh_token → None
+        mock_user_result,     # 1. get_current_user_cookie: JOIN query
+        mock_no_session,      # 2. get_session_by_refresh_token → None
     ]
 
     transport = ASGITransport(app=app)

@@ -4,47 +4,45 @@ from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.alert import AlertResponse
+from app.schemas.base import BaseResponseSchema
 from app.schemas.crawl_profile import validate_profile_key_value
 from app.schemas.price_history import PriceHistorySummary
-from app.schemas.validators import validate_cron_value, validate_timezone_value
+from app.schemas.validators import (
+    validate_cron_value,
+    validate_timezone_value,
+    validate_url_value,
+)
 
 
-class ProductCreate(BaseModel):
+class _ProductFields(BaseModel):
+    """Shared fields for product create/update schemas."""
+    platform: str | None = Field(default=None, pattern="^(taobao|jd|amazon)$", description="Platform: taobao, jd, or amazon")
+    url: str | None = None
+    title: str | None = Field(default=None, description="Product title (auto-fetched if not provided)")
+    active: bool | None = None
+
+
+class ProductCreate(_ProductFields):
     """Schema for creating a product to track."""
     platform: str = Field(..., pattern="^(taobao|jd|amazon)$", description="Platform: taobao, jd, or amazon")
     url: str = Field(..., description="Product URL")
-    title: str | None = Field(default=None, description="Product title (auto-fetched if not provided)")
     active: bool = Field(default=True, description="Whether monitoring is active")
 
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str) -> str:
-        v = v.strip()
-        if not v.startswith("http://") and not v.startswith("https://"):
-            raise ValueError("URL must start with http:// or https://")
-        return v
+        return validate_url_value(v)
 
 
-class ProductUpdate(BaseModel):
+class ProductUpdate(_ProductFields):
     """Schema for updating a product."""
-    title: str | None = None
-    active: bool | None = None
-    url: str | None = Field(default=None, description="Product URL (cannot be cleared)")
-
     @field_validator("url")
     @classmethod
     def validate_url(cls, v: str | None) -> str | None:
-        if v is None:
-            return None
-        v = v.strip()
-        if not v:
-            raise ValueError("URL cannot be empty")
-        if not v.startswith("http://") and not v.startswith("https://"):
-            raise ValueError("URL must start with http:// or https://")
-        return v
+        return validate_url_value(v, allow_none=True)
 
 
-class ProductResponse(BaseModel):
+class ProductResponse(BaseResponseSchema):
     """Schema for product response."""
     id: int
     user_id: int
@@ -54,8 +52,6 @@ class ProductResponse(BaseModel):
     active: bool
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class ProductDetail(ProductResponse):
@@ -106,7 +102,7 @@ class ProductBatchDelete(BaseModel):
     ids: list[int] = Field(..., max_length=100)
 
 
-class ProductPlatformCronResponse(BaseModel):
+class ProductPlatformCronResponse(BaseResponseSchema):
     """Per-platform cron config for product crawling."""
     id: int
     user_id: int
@@ -117,13 +113,9 @@ class ProductPlatformCronResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {"from_attributes": True}
 
-
-
-class ProductPlatformCronCreate(BaseModel):
-    """Create per-platform cron config."""
-    platform: str = Field(..., pattern="^(taobao|jd|amazon)$", description="平台")
+class _ProductCronFields(BaseModel):
+    """Shared fields for product platform cron config schemas."""
     cron_expression: str | None = Field(
         default=None, max_length=100,
         description="5段 crontab 表达式，null 表示不定时",
@@ -131,6 +123,7 @@ class ProductPlatformCronCreate(BaseModel):
     cron_timezone: str | None = Field(
         default=None, max_length=50, description="时区",
     )
+
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
@@ -142,25 +135,14 @@ class ProductPlatformCronCreate(BaseModel):
         return validate_timezone_value(v)
 
 
-class ProductPlatformCronUpdate(BaseModel):
+class ProductPlatformCronCreate(_ProductCronFields):
+    """Create per-platform cron config."""
+    platform: str = Field(..., pattern="^(taobao|jd|amazon)$", description="平台")
+
+
+class ProductPlatformCronUpdate(_ProductCronFields):
     """Update per-platform cron expression."""
-    cron_expression: str | None = Field(
-        default=None, max_length=100,
-        description="5段 crontab 表达式，设为 null 取消定时",
-    )
-    cron_timezone: str | None = Field(
-        default=None, max_length=50,
-        description="时区，默认 Asia/Shanghai",
-    )
-    @field_validator("cron_expression")
-    @classmethod
-    def validate_cron(cls, v: str | None) -> str | None:
-        return validate_cron_value(v)
-
-    @field_validator("cron_timezone")
-    @classmethod
-    def validate_timezone(cls, v: str | None) -> str | None:
-        return validate_timezone_value(v)
+    pass
 
 
 class ProductPlatformProfileBindingResponse(BaseModel):

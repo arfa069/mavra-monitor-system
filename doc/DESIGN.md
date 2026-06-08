@@ -1,4 +1,4 @@
-# Design System — Price Monitor
+# Design System — Price Monitor & Job Tracker
 
 ## Product Context
 
@@ -10,200 +10,127 @@
 
 ## Aesthetic Direction
 
-- **Direction:** Brutally Minimal + Playful Accents
-- **Decoration level:** Intentional
-- **Mood:** 专业但不沉闷，精准但不冰冷。黑白骨架传递工具的可信度，马卡龙色块作为"呼吸间隙"增加亲和力。用户打开这个后台不会觉得压抑，但也不会觉得轻浮。
-- **Memorable thing:** 一个不像后台的后台 — 数据密度和视觉愉悦感并存。
+- **Direction:** Neo-Brutalist Zine (新粗野主义杂志风)
+- **Decoration level:** Expressive (高对比度、粗描边、硬投影、手写贴纸感)
+- **Mood:** 强烈、个性、专业。用黑白坚硬的骨架（3px solid black 边框）确立工具的安全感与力量感；用高对比度的波普淡色块（Macaron 2.0）打破传统管理系统的无聊与沉闷，创造一种仿佛在翻阅先锋独立杂志（Zine）的视觉冲击力。
+- **Memorable thing:** 绝不无聊、高度耐看、富有报刊印刷张力的极客仪表盘。
 
 ## Typography
 
-- **Display/Hero:** General Sans — 现代几何无衬线，比 Inter 更有性格但不夸张，适合工具类产品的标题和 Hero 区域。
-- **Body:** DM Sans — 温暖、清晰，小字号下可读性优秀，适合密集的正文和表单标签。
-- **UI/Labels:** same as body (DM Sans)
-- **Data/Tables:** Geist（tabular-nums）— 等宽数字对价格、时间、ID 的对齐至关重要。
-- **Code/Tags:** JetBrains Mono — 已有资产，保留用于代码块、小标签、版权文字。
-- **Loading strategy:**
-  - General Sans：通过 Fontshare CDN (`https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700`) 加载
-  - DM Sans：Google Fonts (`https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700`)
-  - Geist：Google Fonts (`https://fonts.googleapis.com/css2?family=Geist:wght@400..700`) 或 Vercel CDN
-  - JetBrains Mono：Google Fonts
-  - 使用 `font-display: swap` 避免 FOIT
+- **Display/Hero:** Syne — 极具艺术感与几何张力的无衬线字体，大字号下拥有独特的现代解构美感，用于品牌标识、Hero 区域与大标题。
+- **Body:** Outfit — 亲和且极易阅读的几何无衬线体，小字号下表现优异，用于正文段落和表单说明。
+- **UI/Labels:** Outfit (Same as body) — 部分表头或导航项采用 uppercase 并加重字重。
+- **Data/Tables:** Space Grotesk — 充满工业美学特质的几何等宽数字字体，最适合价格对齐和高精度数值呈现。
+- **Code:** JetBrains Mono — 用于开发日志、定时表达式及底层配置代码。
+- **Loading:**
+  - Syne：Google Fonts (`https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap`)
+  - Outfit：Google Fonts (`https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap`)
+  - Space Grotesk：Google Fonts (`https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap`)
+  - 使用 `font-display: swap` 防止 FOIT。
 - **Scale:**
   | Token | Size | Weight | Line Height | Letter Spacing | Usage |
   |-------|------|--------|-------------|----------------|-------|
-  | Hero / Display XL | clamp(32px, 5vw, 48px) | 600 | 1.0 | -1.72px | 登录页品牌标题 |
-  | Display | 28px | 600 | 1.1 | -0.96px | 页面大标题 |
-  | Headline | 20px | 600 | 1.35 | -0.26px | 区块标题、卡片标题 |
-  | Lead | 16px | 400 | 1.40 | -0.14px | 引导段落 |
-  | Body | 14px | 400 | 1.45 | -0.26px | 正文、表格内容 |
-  | Small | 13px | 400 | 1.45 | -0.14px | 辅助文字、元信息 |
-  | Micro | 11px | 500 | 1.30 | 0.02em | 极小标签 |
-  | Eyebrow / Mono | 12px | 400 | 1.30 | 0.54px | 大写标签、表头（uppercase）|
+  | Hero / Display XL | clamp(32px, 5vw, 48px) | 800 | 1.0 | -1.0px | 登录页品牌标题（Syne） |
+  | Display | 28px | 800 | 1.1 | -0.5px | 页面大标题（Syne） |
+  | Headline | 20px | 800 | 1.35 | -0.2px | 区块标题、卡片标题（Syne） |
+  | Lead | 16px | 400 | 1.45 | -0.1px | 引导段落（Outfit） |
+  | Body | 14px | 400 | 1.5 | -0.2px | 正文、表格内容（Outfit） |
+  | Small | 13px | 400 | 1.5 | -0.1px | 辅助文字、次要信息（Outfit） |
+  | Micro | 11px | 600 | 1.3 | 0.05em | 极小标签、元信息（Outfit） |
+  | Mono / Eyebrow | 12px | 700 | 1.3 | 0.5px | 代码标签、表头（Space Grotesk, uppercase）|
 
 ## Color
 
-- **Approach:** Restrained base + Expressive accents
-- **Primary:** `#000000` — CTA 按钮、选中态、核心文字
-- **Canvas:** `#ffffff` — 页面背景
-- **Surface Soft:** `#f7f7f5` — 侧边栏、表单面板、卡片底色
-- **Hairline:** `#e6e6e6` — 边框、分割线
-- **Muted:** `#666666` — 次要文字、禁用态
-- **Accent blocks（语义化马卡龙色块）：**
-  | Color | Hex | Semantic | Used For |
-  |-------|-----|----------|----------|
-  | Lime | `#dceeb1` | 商品/爬取 | 商品页标题色块、爬取相关操作 |
-  | Cream | `#f4ecd6` | 职位/简历 | 职位页标题色块、简历管理 |
-  | Mint | `#c8e6cd` | 配置/系统 | 设置页、定时配置、系统操作 |
-  | Lilac | `#c5b0f4` | 用户/账户 | 注册页装饰、个人信息、用户管理 |
-  | Pink | `#efd4d4` | 告警/通知 | 告警卡片、通知提示 |
-  | Coral | `#f3c9b6` | 操作/批量 | 批量操作提示、导入导出 |
-  | Navy | `#1f1d3d` | 深色强调 | 深色块、对比强调 |
-- **Semantic:**
-  | State | Hex | Usage |
-  |-------|-----|-------|
-  | Success | `#1ea64a` | 价格下降、爬取成功、操作成功 |
-  | Warning | `#f5a623` | Cookie 过期、待处理 |
-  | Error | `#e5484d` | 爬取失败、价格上升、操作错误 |
-  | Info | `#3b82f6` | 提示信息、下次执行时间 |
-- **Dark mode:**
-  - Canvas → `#0a0a0a`
-  - Surface Soft → `#141414`
-  - Hairline → `#2a2a2a`
-  - Muted → `#888888`
-  - Primary 反转为 `#ffffff`
-  - 马卡龙色块饱和度降低 15%（保持辨识度但减少眩光）：Lime `#3a4a1a`, Cream `#4a4020`, Mint `#1a3a1a`, Lilac `#3d305a`, Pink `#4a2020`, Coral `#4a2a18`
+- **Approach:** Pop Art Contrast (波普撞色 + 绝对描边)
+- **Primary:** `#000000` (墨黑) — 文字、核心边框、交互主要按钮
+- **Canvas:** `#f8f6f0` (纸张暖白) — 页面大背景
+- **Surface Soft:** `#fbf6e3` (复古象牙黄) — 卡片备用色、输入框背景、代码块背景
+- **Hairline / Border:** `#000000` (绝对黑线) — 所有卡片、按钮、容器边框，宽度固定为 3px
+- **Muted:** `#666666` — 极少数非关键辅助文字（其余多使用墨黑配合字重区分）
+
+- **Color Blocks (波普撞色色块 - 语义化映射)：**
+  | Name | Hex | Semantic | Used For |
+  |------|-----|----------|----------|
+  | Yellow | `#FBEE6B` | 强调/高亮 | 品牌主标志、核心强调块 |
+  | Lime | `#B8F2A1` | 成功/抓取 | 价格下降标识、商品标题色块、抓取完成状态 |
+  | Pink | `#FFB3D9` | 警报/急聘 | 告警卡片、职位搜索急聘卡片、报错及警报状态 |
+  | Lilac | `#D2C1FB` | 配置/用户 | 设置页标题、定时调度配置、用户账户相关卡片 |
+  | Cyan | `#99F0F9` | 系统/信息 | 页面头部条状横幅、常规监控正常状态、信息提示 |
+  | Orange | `#FFB88C` | 交互/警告 | 切换按钮、橙色徽章、中度警示 |
+
+- **Dark Mode (赛博高刷粗野模式)：**
+  当切换到赛博暗色模式时，画布变为极深曜石色，边框反转为纯白描边，色块升级为发光霓虹：
+  - Canvas → `#0e0e11`
+  - Primary → `#ffffff`
+  - Border → `#ffffff` (宽度维持 3px，投影阴影色同步反转为 `#ffffff`)
+  - Swatches (发光霓虹模式):
+    - Yellow: `#f8e400`
+    - Lime: `#00ff66`
+    - Pink: `#ff007f`
+    - Lilac: `#8b3dff`
+    - Cyan: `#00f0ff`
+    - Orange: `#ff7f00`
+    - Cream/Surface Soft: `#1b1b24`
 
 ## Spacing
 
 - **Base unit:** 4px
-- **Density:** 支持三种密度模式，通过 CSS 变量切换
-  - **Compact** — 数据表格、密集列表
-  - **Comfortable** — 表单、卡片（默认）
-  - **Spacious** — 营销页、空状态
+- **Density:** 紧凑 (Compact) / 舒适 (Comfortable)
 - **Scale:**
   | Token | Value | Usage |
   |-------|-------|-------|
-  | hair | 1px | 分割线 |
-  | xxs | 4px | 图标间距、紧凑内边距 |
-  | xs | 8px | 按钮内边距、标签间距 |
-  | sm | 12px | 表单元素间距 |
-  | md | 16px | 卡片内边距、段落间距 |
-  | lg | 24px | 区块间距、页面边距 |
-  | xl | 32px | 大区块间距 |
-  | xxl | 48px | Section 间距 |
-  | section | 96px | 页面级间距 |
+  | hair | 3px | 核心粗边框 / 分割线线宽 |
+  | xxs | 4px | 按钮图标间距、紧凑内边距 |
+  | xs | 8px | 标签内边距、按钮内侧间距 |
+  | sm | 12px | 表单行间距、常规组件间隙 |
+  | md | 16px | 表格行内边距、卡片行距 |
+  | lg | 24px | 卡片内部内边距、区块外边距 |
+  | xl | 32px | 页面大边距、大区块间隔 |
+  | xxl | 48px | 登录面板大留白 |
 
 ## Layout
 
-- **Approach:** Grid-disciplined（数据密集型后台需要严格对齐），头部色块区允许适度打破网格。
-- **Grid:** 12 列，断点 `sm:640px md:768px lg:1024px xl:1280px`
-- **Max content width:** 1200px（内容区），登录页无限制。
-- **Border radius hierarchy:**
-  | Token | Value | Usage |
-  |-------|-------|-------|
-  | xs | 2px | 分割线端点 |
-  | sm | 6px | 小标签、徽章 |
-  | md | 8px | 输入框、下拉框、导航项 |
-  | lg | 24px | 卡片、色块、表格容器 |
-  | xl | 32px | 大卡片、模态框 |
-  | pill | 50px | 所有按钮、状态标签、筛选 Chip |
-  | full | 9999px | 头像、圆形元素 |
-- **Elevation:**
-  | Token | Value | Usage |
-  |-------|-------|-------|
-  | card | `0 4px 16px rgba(0,0,0,0.06)` | 卡片、浮层面板 |
-  | modal | `0 20px 60px rgba(0,0,0,0.2)` | 模态框、抽屉 |
-  | nav | `0 1px 3px rgba(0,0,0,0.08)` | 顶部导航 |
+- **Approach:** Grid-disciplined + Layered Asymmetry (网格对齐 + 错位重叠)
+- **Grid:** 12列网格，大屏严格对齐数据表，小屏适配折叠。
+- **Max content width:** 1280px。
+- **Border radius hierarchy:** 粗野主义不提倡大圆角，采用低圆角设计维持硬朗感。
+  - sm: 4px — 徽章、提示框
+  - md: 8px — 输入框、小卡片
+  - lg: 16px — 大卡片、数据表容器、面板
+  - pill: 9999px — 状态胶囊标签、圆形头像
+- **Elevation (硬投影阴影):**
+  新粗野主义不使用任何软模糊阴影 (blur: 0)，取而代之的是纯色硬边错位阴影：
+  - Card / Panel Shadow: `box-shadow: 6px 6px 0px #000000`
+  - Interactive Button Shadow: `box-shadow: 3px 3px 0px #000000`
+  - Active / Expanded State: `box-shadow: 10px 10px 0px #000000`
+  - Dark Mode: 对应阴影色反转为 `#ffffff` 
 
 ## Motion
 
-- **Approach:** Intentional + Spring — 只有帮助理解的动效，没有炫技；页面级过渡使用轻量弹性，让后台页面切换更自然。
-- **Easing:**
-  - Enter: `ease-out`（元素入场快速减速，感觉"到达"）
-  - Exit: `ease-in`（元素退场加速离开）
-  - Move: `ease-in-out`（状态切换平滑）
-- **Spring:**
-  | Speed | stiffness | damping | Usage |
-  |-------|-----------|---------|-------|
-  | fast | 400 | 25 | 快速响应，轻微回弹 |
-  | normal | 300 | 20 | 页面过渡默认值，平衡自然 |
-  | slow | 200 | 15 | 柔和，明显回弹 |
-- **Duration scale:**
-  | Token | Duration | Usage |
-  |-------|----------|-------|
-  | micro | 50-100ms | 按钮 hover、颜色切换 |
-  | short | 150ms | 元素入场（fadeInUp）、状态切换 |
-  | medium | 200ms | 页面切换、内容区淡入 |
-  | long | 300ms | 表格行数据更新闪烁、模态框出现 |
-- **Specific patterns:**
-  - 入场：元素从下方淡入；普通元素使用 `opacity 0→1, translateY(8px)→0`，页面使用 spring `translateY(30px)→0`
-  - 状态切换：按钮/卡片 hover，`opacity/transform/border-color`，100ms ease-out
-  - 数据更新：表格行背景色闪烁至色块对应色 10%，300ms ease-in-out
-  - 页面切换：AppLayout 内通过 Framer Motion `AnimatePresence mode="wait"` 串行切换；新页从下方轻弹进入，旧页向上滑出并淡出
-  - 组件错落入场：列表和表格容器使用 `staggerChildren: 0.05`，避免逐行干扰 Ant Design Table 虚拟化和布局计算
-  - 减少动画偏好：必须同时尊重 `prefers-reduced-motion` 和 Framer Motion `useReducedMotion()`
-  - **绝不使用：** 滚动视差（parallax）、无限循环装饰动画、强烈弹跳或夸张过冲
-
-## Component Tokens
-
-- **Button:**
-  - Primary: `background: #000`, `color: #fff`, `border-radius: 50px`, `padding: 10px 24px`
-  - Secondary: `background: transparent`, `color: #000`, `border: 1.5px solid #e6e6e6`, `border-radius: 50px`
-  - Ghost: `background: transparent`, `color: #666`
-- **Input:** `background: #f7f7f5`, `border: 1px solid #e6e6e6`, `border-radius: 8px`, `padding: 10px 14px`
-  - Focus: `border-color: #000`, `box-shadow: 0 0 0 3px rgba(0,0,0,0.08)`
-- **Card:** `background: #fff`, `border-radius: 24px`, `border: 1px solid #e6e6e6`, `box-shadow: 0 4px 16px rgba(0,0,0,0.06)`
-- **Table:** `border-radius: 24px`, `border: 1px solid #e6e6e6`, `overflow: hidden`
-  - Header row: `background: #f7f7f5`
-  - Row hover: `background: rgba(0,0,0,0.02)`
-- **Tag/Pill:** `border-radius: 50px`, `padding: 4px 12px`, `font-size: 12px`, `font-weight: 500`
-
-## Ant Design Integration
-
-- **ConfigProvider token overrides:**
-  ```ts
-  {
-    colorPrimary: '#000000',
-    colorBgLayout: '#ffffff',
-    colorBgContainer: '#ffffff',
-    colorText: '#000000',
-    colorTextSecondary: '#666666',
-    colorBorder: '#e6e6e6',
-    borderRadius: 50,
-    fontSize: 14,
-    fontFamily: "'General Sans', 'DM Sans', system-ui, sans-serif",
-  }
-  ```
-- **Component token overrides:**
-  ```ts
-  {
-    Button: { borderRadius: 50, controlHeight: 40 },
-    Input: { borderRadius: 8, controlHeight: 40 },
-    Table: { borderRadius: 24, headerBg: '#f7f7f5' },
-    Card: { borderRadius: 24 },
-    Tag: { borderRadius: 50 },
-    Menu: { itemSelectedBg: '#000000', itemSelectedColor: '#ffffff' },
-  }
-  ```
-
-## Responsive
-
-- **Mobile breakpoint:** 768px
-- **Desktop → Mobile adaptations:**
-  - Sider 隐藏，汉堡菜单触发 Drawer
-  - 左右分栏（登录页）→ 上下布局
-  - 装饰色块在移动端隐藏
-  - 表格横向滚动
-  - 按钮组垂直堆叠
+- **Approach:** Snappy + Bounce (清脆硬朗与轻微弹跳)
+- **Easing:** `cubic-bezier(0.175, 0.885, 0.32, 1.275)` (轻微回弹/过冲)
+- **Interactive Rules:**
+  - Hover 效果：当鼠标悬浮在卡片/按钮上时，产生向左上角平移且硬阴影向右下角伸展的动效：
+    ```css
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0px #000000;
+    ```
+  - Active 效果：当点击按钮时，产生向右下角压实且阴影消失的动效，创造极强的交互反响：
+    ```css
+    transform: translate(3px, 3px);
+    box-shadow: 0px 0px 0px #000000;
+    ```
+  - Duration scale:
+    - Micro: 80ms (Hover 状态的平移缩回)
+    - Short: 150ms (弹窗弹出、卡片翻转)
+    - Medium: 250ms (路由过渡动画)
 
 ## Decisions Log
 
-| Date       | Decision                                  | Rationale                                                                                                         |
-| ---------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 2026-05-11 | Initial design system documented          | Created by /design-consultation based on existing Figma Marketing Style implementation                            |
-| 2026-05-11 | Replace Inter with General Sans + DM Sans | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism |
-| 2026-05-11 | Add Geist for data tables                 | Tabular numbers are critical for price alignment; Geist is purpose-built for this                                 |
-| 2026-05-11 | Semantic color blocks                     | Each macaron block maps to a functional domain (lime=products, cream=jobs, mint=config, etc.)                     |
-| 2026-05-11 | Add motion spec                           | Previously zero motion; intentional micro-interactions improve perceived quality and state comprehension          |
-| 2026-05-11 | Add dark mode strategy                    | Night usage scenario for a tool that runs 24/7; macaron blocks desaturate 15% in dark mode                        |
-| 2026-05-13 | Adopt light spring transitions            | User selected Spring style; AppLayout owns route transitions and Settings exposes speed preference                |
+| Date       | Decision                                            | Rationale                                                                                                               |
+|------------|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| 2026-05-11 | Initial design system documented                    | Created by /design-consultation based on existing Figma Marketing Style implementation                                  |
+| 2026-05-11 | Replace Inter with General Sans + DM Sans           | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism       |
+| 2026-06-08 | Migrate to Neo-Brutalist Zine design system        | Selected via user choices to implement a highly visually distinct, high-contrast, premium pop art layout for monitors.    |
+| 2026-06-08 | Introduce Syne + Outfit + Space Grotesk typography   | Syne adds raw header personality; Outfit handles micro-readability; Space Grotesk formats price alignment with precision.|
+| 2026-06-08 | Revamp color palette to Pop Art Macaron 2.0         | Added bold 3px black strokes with offset flat shadows to represent a retro zine look; dark mode flips to white borders.  |

@@ -227,9 +227,10 @@ async def run_task_heartbeat(
 
 
 async def _execute_job_config(record: CrawlTaskRecord, task, progress_callback) -> dict:
+    from app.core.crawler_paths import resolve_profile_key
     from app.domains.crawling.profile_pool import DatabaseProfilePool
     from app.domains.crawling.task_runner import CrawlTaskRunner
-    from app.domains.jobs.crawl_service import _config_profile_key, _normalize_platform
+    from app.domains.jobs.crawl_service import _normalize_platform
     from app.domains.jobs.runtime import JobCrawlRuntimeContext
     from app.models.job import JobSearchConfig
 
@@ -239,30 +240,28 @@ async def _execute_job_config(record: CrawlTaskRecord, task, progress_callback) 
     async with AsyncSessionLocal() as db:
         config = await db.get(JobSearchConfig, config_id)
         platform = _normalize_platform(getattr(config, "platform", record.platform or "boss")) if config else record.platform or "boss"
-        profile_key = _config_profile_key(config)
-    async with AsyncSessionLocal() as lease_db:
-        async with pool.lease(
-            lease_db,
+        profile_key = resolve_profile_key(config)
+    async with pool.lease(
+        platform=platform,
+        profile_key=profile_key,
+        owner=task.task_id,
+        task_id=task.task_id,
+    ) as lease:
+        runtime_context = JobCrawlRuntimeContext(
             platform=platform,
-            profile_key=profile_key,
-            owner=task.task_id,
+            profile_key=lease.profile_key,
+            profile_dir=lease.profile_dir,
             task_id=task.task_id,
-        ) as lease:
-            runtime_context = JobCrawlRuntimeContext(
-                platform=platform,
-                profile_key=lease.profile_key,
-                profile_dir=lease.profile_dir,
-                task_id=task.task_id,
-                config_id=config_id,
-                run_id=task.task_id,
-                log_context={"source": task.source, "profile_key": lease.profile_key},
-            )
-            return await CrawlTaskRunner(progress_callback=progress_callback).run_job_config(
-                task,
-                config_id=config_id,
-                lock_already_held=True,
-                runtime_context=runtime_context,
-            )
+            config_id=config_id,
+            run_id=task.task_id,
+            log_context={"source": task.source, "profile_key": lease.profile_key},
+        )
+        return await CrawlTaskRunner(progress_callback=progress_callback).run_job_config(
+            task,
+            config_id=config_id,
+            lock_already_held=True,
+            runtime_context=runtime_context,
+        )
 
 
 async def _execute_job_all(record: CrawlTaskRecord, task, progress_callback) -> dict:

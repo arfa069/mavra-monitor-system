@@ -594,8 +594,7 @@ class DashboardService:
             (20000, float("inf")),
         ]
         range_labels = ["0-5k", "5-10k", "10-15k", "15-20k", "20k+"]
-        counts = []
-
+        queries = []
         for min_val, max_val in ranges:
             if max_val == float("inf"):
                 query = select(func.count()).where(Job.salary_min >= min_val)
@@ -604,13 +603,13 @@ class DashboardService:
                     Job.salary_min >= min_val,
                     Job.salary_min < max_val,
                 )
-
             query = query.select_from(Job).join(
                 JobSearchConfig, Job.search_config_id == JobSearchConfig.id
             ).where(JobSearchConfig.user_id == user_id)
+            queries.append(query)
 
-            result = await self.db.execute(query)
-            counts.append(result.scalar_one() or 0)
+        results = await asyncio.gather(*(self.db.execute(q) for q in queries))
+        counts = [r.scalar_one() or 0 for r in results]
 
         return TrendResponse(
             labels=range_labels,
@@ -690,7 +689,7 @@ class DashboardService:
         product_date = func.date(CrawlLog.timestamp)
         job_date = func.date(JobCrawlLog.scraped_at)
 
-        product_result = await self.db.execute(
+        product_stmt = (
             select(
                 product_date.label("date"),
                 func.count().label("count"),
@@ -702,7 +701,7 @@ class DashboardService:
             .group_by(product_date)
             .order_by(product_date)
         )
-        job_result = await self.db.execute(
+        job_stmt = (
             select(
                 job_date.label("date"),
                 func.count().label("count"),
@@ -713,6 +712,10 @@ class DashboardService:
             )
             .group_by(job_date)
             .order_by(job_date)
+        )
+        product_result, job_result = await asyncio.gather(
+            self.db.execute(product_stmt),
+            self.db.execute(job_stmt),
         )
 
         product_counts = {

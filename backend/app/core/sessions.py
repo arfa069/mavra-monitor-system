@@ -8,12 +8,28 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 
 # ── Legacy session helper (auto-commit, token-hash based) ───────────────────
+
+
+async def _enforce_session_limit(
+    db: AsyncSession, user_id: int, *, token_based: bool = False
+) -> None:
+    """Remove oldest session if user has reached the limit of 5."""
+    from app.models.session import Session
+
+    stmt = select(Session).where(Session.user_id == user_id)
+    if token_based:
+        stmt = stmt.where(Session.token_hash.isnot(None))
+    stmt = stmt.order_by(Session.created_at)
+    result = await db.execute(stmt)
+    existing = result.scalars().all()
+    if len(existing) >= 5:
+        await db.delete(existing[0])
 
 
 async def create_session_with_token(
@@ -32,17 +48,7 @@ async def create_session_with_token(
     from app.models.session import Session
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-
-    # Check max sessions (5)
-    result = await db.execute(
-        select(Session).where(
-            Session.user_id == user_id,
-            Session.token_hash.isnot(None)
-        ).order_by(Session.created_at)
-    )
-    existing = result.scalars().all()
-    if len(existing) >= 5:
-        await db.delete(existing[0])
+    await _enforce_session_limit(db, user_id, token_based=True)
 
     session = Session(
         user_id=user_id,
@@ -77,16 +83,7 @@ async def create_session(
     from app.models.session import Session
 
     refresh_hash = hash_token(refresh_token)
-
-    # Enforce max 5 sessions per user
-    result = await db.execute(
-        select(Session)
-        .where(Session.user_id == user_id)
-        .order_by(Session.created_at)
-    )
-    existing = result.scalars().all()
-    if len(existing) >= 5:
-        await db.delete(existing[0])
+    await _enforce_session_limit(db, user_id)
 
     session = Session(
         user_id=user_id,
@@ -184,34 +181,43 @@ async def delete_session(session_id: int, user_id: int, db: AsyncSession) -> boo
     from app.models.session import Session
 
     result = await db.execute(
-        select(Session).where(
+        delete(Session).where(
             Session.id == session_id,
-            Session.user_id == user_id
+            Session.user_id == user_id,
         )
     )
-    session = result.scalar_one_or_none()
-    if not session:
-        return False
-    await db.delete(session)
     await db.commit()
-    return True
+    return result.rowcount > 0
+
+
+async def _delete_sessions_by_query(
+    db: AsyncSession, *, stmt, commit: bool = False
+) -> int:
+    """Execute query, delete all returned sessions, optionally commit."""
+    from app.models.session import Session
+
+    result = await db.execute(stmt.with_only_columns(Session.id))
+    ids = [r[0] for r in result.all()]
+    if not ids:
+        return 0
+    del_result = await db.execute(delete(Session).where(Session.id.in_(ids)))
+    if commit:
+        await db.commit()
+    return del_result.rowcount
 
 
 async def delete_other_sessions(current_session_id: int, user_id: int, db: AsyncSession) -> int:
     """Delete all sessions except the current one (auto-commit)."""
     from app.models.session import Session
 
-    result = await db.execute(
-        select(Session).where(
+    return await _delete_sessions_by_query(
+        db,
+        stmt=select(Session).where(
             Session.user_id == user_id,
-            Session.id != current_session_id
-        )
+            Session.id != current_session_id,
+        ),
+        commit=True,
     )
-    sessions = result.scalars().all()
-    for s in sessions:
-        await db.delete(s)
-    await db.commit()
-    return len(sessions)
 
 
 async def get_session_by_token(token: str, user_id: int, db: AsyncSession) -> type | None:
@@ -232,26 +238,20 @@ async def stage_delete_user_sessions(user_id: int, db: AsyncSession) -> int:
     """Stage deletion of all sessions for user in the current transaction. Caller commits."""
     from app.models.session import Session
 
-    result = await db.execute(
-        select(Session).where(Session.user_id == user_id)
+    return await _delete_sessions_by_query(
+        db,
+        stmt=select(Session).where(Session.user_id == user_id),
     )
-    sessions = result.scalars().all()
-    for s in sessions:
-        await db.delete(s)
-    return len(sessions)
 
 
 async def stage_delete_other_sessions(current_session_id: int, user_id: int, db: AsyncSession) -> int:
     """Stage deletion of all sessions except current_session_id. Caller commits."""
     from app.models.session import Session
 
-    result = await db.execute(
-        select(Session).where(
+    return await _delete_sessions_by_query(
+        db,
+        stmt=select(Session).where(
             Session.user_id == user_id,
-            Session.id != current_session_id
-        )
+            Session.id != current_session_id,
+        ),
     )
-    sessions = result.scalars().all()
-    for s in sessions:
-        await db.delete(s)
-    return len(sessions)

@@ -1,7 +1,6 @@
 """Product domain business services."""
 
 from inspect import isawaitable
-from urllib.parse import parse_qs, urlparse
 
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +22,7 @@ from app.schemas.product import (
     ProductPlatformProfileBindingUpdate,
     ProductUpdate,
 )
+from app.utils.url import normalize_product_url
 
 VALID_PRODUCT_PLATFORMS = ("taobao", "jd", "amazon")
 
@@ -47,28 +47,12 @@ class ProductProfileConfigError(ValueError):
     """Raised when a product platform profile binding is invalid."""
 
 
-def normalize_tmall_url(url: str) -> str:
-    """Extract id and skuId from Taobao/Tmall URL and rebuild full URL."""
-    parsed = urlparse(url)
-    params = parse_qs(parsed.query)
-
-    item_id = params.get("id", [None])[0]
-    sku_id = params.get("skuId", [None])[0]
-
-    if not item_id:
-        return url
-
-    query_parts = [f"id={item_id}"]
-    if sku_id:
-        query_parts.append(f"skuId={sku_id}")
-
-    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{'&'.join(query_parts)}"
-
-
-def normalize_product_url(url: str, platform: str) -> str:
-    if platform == "taobao":
-        return normalize_tmall_url(url)
-    return url
+def _mark_batch_failed(results: list[BatchOperationResult], error: str) -> None:
+    """Mark all successful batch results as failed with the given error."""
+    for result in results:
+        if result.success:
+            result.success = False
+            result.error = error
 
 
 def detect_platform(url: str) -> str | None:
@@ -169,20 +153,18 @@ async def create_product_cron_config(
     if data.platform not in VALID_PRODUCT_PLATFORMS:
         raise InvalidPlatformError
 
-    existing = await repository.get_product_cron_config(
-        db, user_id=user_id, platform=data.platform
-    )
-    if existing:
+    try:
+        return await repository.create_product_cron_config(
+            db,
+            user_id=user_id,
+            platform=data.platform,
+            cron_expression=data.cron_expression,
+            cron_timezone=data.cron_timezone,
+            profile_key=None,
+        )
+    except IntegrityError:
+        await db.rollback()
         raise ProductCronConfigConflictError
-
-    return await repository.create_product_cron_config(
-        db,
-        user_id=user_id,
-        platform=data.platform,
-        cron_expression=data.cron_expression,
-        cron_timezone=data.cron_timezone,
-        profile_key=None,
-    )
 
 
 async def update_product_cron_config(
@@ -358,11 +340,15 @@ async def batch_create_products(
         except (IntegrityError, OperationalError, ValueError) as exc:
             results.append(BatchOperationResult(url=url, success=False, error=str(exc)))
 
-    await db.commit()
+    try:
+        await db.commit()
+    except (IntegrityError, OperationalError) as exc:
+        _mark_batch_failed(results, f"批量创建失败: {exc}")
+        raise
     return results
 
 
-async def batch_delete_products(
+async def batch_delete_products (
     db: AsyncSession, *, user_id: int, payload: ProductBatchDelete
 ) -> list[BatchOperationResult]:
     results: list[BatchOperationResult] = []
@@ -386,10 +372,7 @@ async def batch_delete_products(
     try:
         await db.commit()
     except (IntegrityError, OperationalError) as exc:
-        for result_item in results:
-            if result_item.success and result_item.id not in found_ids:
-                result_item.success = False
-                result_item.error = f"批量操作失败: {exc}"
+        _mark_batch_failed(results, f"批量删除失败: {exc}")
         raise
 
     return results
@@ -419,12 +402,9 @@ async def batch_update_products(
 
     try:
         await db.commit()
-    except (IntegrityError, OperationalError):
-        for result_item in results:
-            if result_item.success:
-                result_item.success = False
-                result_item.error = "批量更新失败"
-        return results
+    except (IntegrityError, OperationalError) as exc:
+        _mark_batch_failed(results, f"批量更新失败: {exc}")
+        raise
 
     return results
 

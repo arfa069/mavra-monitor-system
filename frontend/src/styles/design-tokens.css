@@ -1,51 +1,49 @@
 /* ============================================================
-   Figma Design System — CSS Design Tokens
-   Source: DESIGN.md (Brutally Minimal + Playful Accents)
+   Neo-Brutalist Zine — CSS Design Tokens
+   Source: DESIGN.md (Pop Art Contrast & Absolute Stroke)
    ============================================================ */
 
-/* ---- Figma Design Tokens ---- */
 :root {
   /* --- Colors: Brand & Accent --- */
   --color-primary: #000000;
   --color-on-primary: #ffffff;
   --color-ink: #000000;
-  --color-canvas: #ffffff;
-  --color-inverse-canvas: #000000;
+  --color-canvas: #f8f6f0; /* Warm paper off-white */
+  --color-inverse-canvas: #0e0e11;
   --color-inverse-ink: #ffffff;
-  --color-on-inverse-soft: rgba(255, 255, 255, 0.16);
-
-  /* --- Colors: Surface --- */
-  --color-hairline: #e6e6e6;
-  --color-hairline-soft: #d9d9d9;
-  --color-surface-soft: #f7f7f5;
+  --color-border: #000000;
+  
+  /* --- Colors: Swatches / Block Pastels --- */
+  --color-block-yellow: #fbee6b;
+  --color-block-lime: #b8f2a1;
+  --color-block-lilac: #d2c1fb;
+  --color-block-cyan: #99f0f9;
+  --color-block-pink: #ffb3d9;
+  --color-block-orange: #ffb88c;
+  --color-block-cream: #fbf6e3; /* Surface Soft */
+  --color-surface-soft: #fbf6e3;
   --color-surface-raised: #ffffff;
-  --color-block-lime: #dceeb1;
-  --color-block-lilac: #c5b0f4;
-  --color-block-cream: #f4ecd6;
-  --color-block-mint: #c8e6cd;
-  --color-block-pink: #efd4d4;
-  --color-block-coral: #f3c9b6;
-  --color-block-navy: #1f1d3d;
-  --color-accent-magenta: #ff3d8b;
-  --color-overlay-scrim: rgba(0, 0, 0, 0.6);
 
   /* --- Colors: Semantic --- */
   --color-muted: #666666;
-  --color-success: #1ea64a;
-  --color-warning: #f5a623;
-  --color-error: #e5484d;
-  --color-info: #3b82f6;
+  --color-success: #b8f2a1; /* Lime */
+  --color-warning: #ffb88c; /* Orange */
+  --color-error: #ffb3d9;   /* Pink */
+  --color-info: #99f0f9;    /* Cyan */
+  --color-hairline: #000000;
+  --color-hairline-soft: #000000;
 
   /* --- Typography --- */
-  --font-display: "General Sans", "DM Sans", system-ui, sans-serif;
-  --font-body: "DM Sans", "SF Pro Text", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
-  --font-data: "Geist", "JetBrains Mono", monospace;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+  --font-data: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
   --font-variant-numeric: tabular-nums;
   --font-feature-numeric: "tnum";
 
   --font-size-display-xl: clamp(32px, 5vw, 48px);
-  --font-size-display-lg: clamp(22px, 3vw, 36px);
+  --font-size-display-lg: 28px;
   --font-size-headline: 20px;
   --font-size-subhead: 20px;
   --font-size-card-title: 16px;
@@ -59,51 +57,52 @@
   --font-size-lead: 16px;
   --font-size-micro: 11px;
 
-  --font-weight-display: 600;
-  --font-weight-headline: 600;
-  --font-weight-subhead: 600;
-  --font-weight-card-title: 700;
+  --font-weight-display: 800;
+  --font-weight-headline: 800;
+  --font-weight-subhead: 800;
+  --font-weight-card-title: 800;
   --font-weight-body-lg: 400;
   --font-weight-body: 400;
   --font-weight-body-sm: 400;
   --font-weight-link: 400;
-  --font-weight-button: 500;
-  --font-weight-eyebrow: 400;
-  --font-weight-caption: 500;
+  --font-weight-button: 800;
+  --font-weight-eyebrow: 700;
+  --font-weight-caption: 600;
   --font-weight-lead: 400;
-  --font-weight-micro: 500;
+  --font-weight-micro: 600;
 
-  --line-height-display-xl: 1;
+  --line-height-display-xl: 1.0;
   --line-height-display-lg: 1.1;
   --line-height-headline: 1.35;
   --line-height-subhead: 1.35;
   --line-height-card-title: 1.45;
   --line-height-body-lg: 1.4;
-  --line-height-body: 1.45;
-  --line-height-body-sm: 1.45;
+  --line-height-body: 1.5;
+  --line-height-body-sm: 1.5;
   --line-height-link: 1.4;
   --line-height-button: 1.4;
   --line-height-eyebrow: 1.3;
-  --line-height-caption: 1;
-  --line-height-lead: 1.4;
+  --line-height-caption: 1.3;
+  --line-height-lead: 1.45;
   --line-height-micro: 1.3;
 
-  --letter-spacing-display-xl: -1.72px;
-  --letter-spacing-display-lg: -0.96px;
-  --letter-spacing-headline: -0.26px;
-  --letter-spacing-subhead: -0.26px;
-  --letter-spacing-body-lg: -0.14px;
-  --letter-spacing-body: -0.26px;
-  --letter-spacing-body-sm: -0.14px;
+  --letter-spacing-display-xl: -1.0px;
+  --letter-spacing-display-lg: -0.5px;
+  --letter-spacing-headline: -0.2px;
+  --letter-spacing-subhead: -0.2px;
+  --letter-spacing-body-lg: -0.1px;
+  --letter-spacing-body: -0.2px;
+  --letter-spacing-body-sm: -0.1px;
   --letter-spacing-link: -0.1px;
   --letter-spacing-button: -0.1px;
-  --letter-spacing-eyebrow: 0.54px;
-  --letter-spacing-caption: 0.6px;
-  --letter-spacing-lead: -0.14px;
-  --letter-spacing-micro: 0.02em;
+  --letter-spacing-eyebrow: 0.5px;
+  --letter-spacing-caption: 0.5px;
+  --letter-spacing-lead: -0.1px;
+  --letter-spacing-micro: 0.05em;
 
   /* --- Spacing --- */
-  --spacing-hair: 1px;
+  --spacing-hair: 3px; /* 3px core border */
+  --border-width: 3px;
   --spacing-xxs: 4px;
   --spacing-xs: 8px;
   --spacing-sm: 12px;
@@ -115,24 +114,28 @@
 
   /* --- Rounded Corners --- */
   --radius-xs: 2px;
-  --radius-sm: 6px;
+  --radius-sm: 4px;
   --radius-md: 8px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-pill: 50px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
   --radius-full: 9999px;
 
-  /* --- Interaction --- */
-  --color-primary-hover: #222222;
-  --color-border-hover: #999999;
-  --color-focus-ring: rgba(0, 0, 0, 0.08);
-  --color-danger-bg-hover: #fef2f2;
-  --color-scrollbar-hover: #cccccc;
+  /* --- Elevation (Neo-Brutalist Flat Shadows) --- */
+  --shadow-offset-sm: 3px 3px 0px #000000;
+  --shadow-offset-md: 6px 6px 0px #000000;
+  --shadow-offset-lg: 10px 10px 0px #000000;
+  
+  --shadow-card: var(--shadow-offset-md);
+  --shadow-modal: var(--shadow-offset-lg);
+  --shadow-nav: var(--shadow-offset-sm);
 
-  /* --- Elevation --- */
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.06);
-  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.2);
-  --shadow-nav: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* --- Interaction --- */
+  --color-primary-hover: #111111;
+  --color-border-hover: #000000;
+  --color-focus-ring: rgba(0, 0, 0, 0.08);
+  --color-danger-bg-hover: #ffb3d9;
+  --color-scrollbar-hover: #000000;
 
   /* --- Z-Index Scale --- */
   --z-base: 0;
@@ -146,7 +149,6 @@
 
 /* ---- Density Mode ---- */
 :root {
-  /* Default: Comfortable */
   --density-padding-xs: 8px;
   --density-padding-sm: 12px;
   --density-padding-md: 16px;
@@ -179,47 +181,57 @@
   --density-section-gap: 32px;
 }
 
-/* ---- Dark Mode ---- */
+/* ---- Dark/Cyber Mode (Cyber-Brutalist) ---- */
 [data-theme="dark"] {
   --color-primary: #ffffff;
   --color-on-primary: #000000;
   --color-ink: #ffffff;
-  --color-canvas: #0a0a0a;
-  --color-inverse-canvas: #ffffff;
+  --color-canvas: #0e0e11; /* Deep space */
+  --color-inverse-canvas: #f8f6f0;
   --color-inverse-ink: #000000;
-  --color-hairline: #2a2a2a;
-  --color-hairline-soft: #333333;
-  --color-surface-soft: #141414;
-  --color-surface-raised: #1a1a1a;
-  --color-block-lime: #3a4a1a;
-  --color-block-lilac: #3d305a;
-  --color-block-cream: #4a4020;
-  --color-block-mint: #1a3a1a;
-  --color-block-pink: #4a2020;
-  --color-block-coral: #4a2a18;
-  --color-block-navy: #e8e6f5;
+  --color-border: #ffffff;
+  
+  /* Neon swatches for cyber-zine */
+  --color-block-yellow: #f8e400;
+  --color-block-lime: #00ff66;
+  --color-block-lilac: #8b3dff;
+  --color-block-cyan: #00f0ff;
+  --color-block-pink: #ff007f;
+  --color-block-orange: #ff7f00;
+  --color-block-cream: #1b1b24; /* Surface Soft */
+  --color-surface-soft: #1b1b24;
+  --color-surface-raised: #1b1b24;
+
   --color-muted: #888888;
+  --color-success: #00ff66;
+  --color-warning: #ff7f00;
+  --color-error: #ff007f;
+  --color-info: #00f0ff;
+  --color-hairline: #ffffff;
+  --color-hairline-soft: #ffffff;
+
+  --shadow-offset-sm: 3px 3px 0px #ffffff;
+  --shadow-offset-md: 6px 6px 0px #ffffff;
+  --shadow-offset-lg: 10px 10px 0px #ffffff;
+
   --color-primary-hover: #eeeeee;
-  --color-border-hover: #666666;
+  --color-border-hover: #ffffff;
   --color-focus-ring: rgba(255, 255, 255, 0.08);
-  --color-danger-bg-hover: #4a2020;
-  --color-scrollbar-hover: #555555;
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.6);
-  --shadow-nav: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --color-danger-bg-hover: #ff007f;
+  --color-scrollbar-hover: #ffffff;
 }
 
-/* ---- Ant Design v5 Token Overrides ---- */
+/* ---- Ant Design Token Overrides ---- */
 :root {
   --ant-color-primary: var(--color-primary);
   --ant-color-bg-layout: var(--color-canvas);
-  --ant-color-bg-container: var(--color-canvas);
+  --ant-color-bg-container: var(--color-block-cream);
   --ant-color-text: var(--color-ink);
   --ant-color-text-secondary: var(--color-muted);
-  --ant-color-border: var(--color-hairline);
-  --ant-border-radius: var(--radius-pill);
+  --ant-color-border: var(--color-border);
+  --ant-color-border-secondary: var(--color-border);
+  --ant-border-radius: var(--radius-md);
   --ant-font-size: var(--font-size-body);
   --ant-line-height: var(--line-height-body);
-  --ant-font-family:
-    var(--font-display), var(--font-body), system-ui, sans-serif;
+  --ant-font-family: var(--font-body);
 }

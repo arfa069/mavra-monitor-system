@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-06-08
-**Commit:** db606d03
+**Generated:** 2026-06-09
+**Commit:** 8ef8370a
 **Branch:** main
 
 <!-- gitnexus:start -->
@@ -98,6 +98,8 @@ mavra-monitor-system/
 | Job domain        | `backend/app/domains/jobs/*`, `llm/*`                                                            | Job configs, crawl, notification, resume matching     |
 | Frontend jobs     | `frontend/src/features/jobs/*`                                                                   | Largest UI feature: jobs, profiles, resumes, matching |
 | Shared frontend   | `frontend/src/shared/*`                                                                          | Auth, API, layout, motion/theme primitives            |
+| Shared utils      | `backend/app/utils/*.py`                                                                         | URL normalization, salary parsing, request helpers    |
+| Shared core       | `backend/app/core/*.py`                                                                          | JSON utils, Redis client, sessions, event streaming   |
 
 ## COMMANDS
 
@@ -144,7 +146,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 ## DESIGN SYSTEM
 
 - Before any UI or visual decision, read `doc/DESIGN.md`.
-- Do not deviate from black/white core + semantic macaron accents + pill buttons without explicit approval.
+- Do not deviate from the Neo-Brutalist Zine design system (3px solid black borders, flat drop shadows, pop art color blocks, and Syne/Outfit/Space Grotesk typography) without explicit approval.
 - UI QA must call out any mismatch with `doc/DESIGN.md`.
 
 ## NOTES

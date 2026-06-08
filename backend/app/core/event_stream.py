@@ -28,6 +28,7 @@ class EventStreamBroker:
         async with self._lock:
             subscribers = list(self._subscribers)
 
+        dead: list[asyncio.Queue] = []
         for queue in subscribers:
             if queue.full():
                 try:
@@ -37,7 +38,12 @@ class EventStreamBroker:
             try:
                 queue.put_nowait(item)
             except asyncio.QueueFull:
-                continue
+                # Consumer is not keeping up — remove to prevent memory leak
+                dead.append(queue)
+        if dead:
+            async with self._lock:
+                for q in dead:
+                    self._subscribers.discard(q)
 
 
 event_stream_broker = EventStreamBroker()

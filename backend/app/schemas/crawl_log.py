@@ -2,10 +2,10 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel
+from app.schemas.base import BaseResponseSchema
 
 
-class CrawlLogResponse(BaseModel):
+class CrawlLogResponse(BaseResponseSchema):
     """Schema for crawl log response."""
     id: int
     product_id: int | None
@@ -15,5 +15,3 @@ class CrawlLogResponse(BaseModel):
     currency: str | None
     timestamp: datetime
     error_message: str | None
-
-    model_config = {"from_attributes": True}

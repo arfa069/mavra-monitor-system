@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.base import BaseResponseSchema
+
 
 class UserResumeCreate(BaseModel):
     name: str = Field(..., max_length=100)
@@ -15,15 +17,13 @@ class UserResumeUpdate(BaseModel):
     resume_text: str | None = None
 
 
-class UserResumeResponse(BaseModel):
+class UserResumeResponse(BaseResponseSchema):
     id: int
     user_id: int
     name: str
     resume_text: str
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class MatchAnalyzeRequest(BaseModel):
@@ -48,8 +48,6 @@ class MatchResultResponse(BaseModel):
     job_location: str | None = None
     job_url: str | None = None
     job_description: str | None = None
-
-    model_config = {"from_attributes": True}
 
 
 class MatchResultListResponse(BaseModel):

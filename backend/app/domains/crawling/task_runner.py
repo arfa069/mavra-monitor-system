@@ -106,7 +106,7 @@ class CrawlTaskRunner:
                         "platform": product.platform,
                     }
 
-        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
+        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=True))
 
         task.success = sum(1 for d in details if d.get("status") == "success")
         task.errors = sum(1 for d in details if d.get("status") == "error")

@@ -116,7 +116,7 @@ async def create_config(
             db, user_id=current_user.id, data=data
         )
     except job_service.JobProfileNotFoundError as exc:
-        raise HTTPException(status_code=400, detail=f"Profile not found: {exc}") from exc
+        raise HTTPException(status_code=400, detail="Profile not found") from exc
 
     # Sync scheduler if cron is set
 
@@ -136,7 +136,7 @@ async def create_config(
 
                 logging.getLogger("app.domains.jobs").error("Failed to add job to scheduler: %s", exc)
 
-                raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
+                raise HTTPException(status_code=400, detail="Scheduler error") from exc
 
     await log_audit_from_request(
         request,
@@ -465,7 +465,7 @@ async def update_config(
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="Config not found")
     except job_service.JobProfileNotFoundError as exc:
-        raise HTTPException(status_code=400, detail=f"Profile not found: {exc}") from exc
+        raise HTTPException(status_code=400, detail="Profile not found") from exc
     except job_service.JobConfigCronPermissionError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -496,7 +496,7 @@ async def update_config(
 
                 logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
-                raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
+                raise HTTPException(status_code=400, detail="Scheduler error") from exc
 
     await log_audit_from_request(
         request,
@@ -864,7 +864,7 @@ async def update_config_cron(
 
             logging.getLogger("app.domains.jobs").error("Failed to sync scheduler: %s", exc)
 
-            raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
+            raise HTTPException(status_code=400, detail="Scheduler error") from exc
 
     await log_audit_from_request(
         request,

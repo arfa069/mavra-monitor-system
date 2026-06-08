@@ -161,47 +161,42 @@ async def _execute_match_analysis(
     provider = get_llm_provider()
     notify_jobs = []  # 高分职位，汇总后发一条飞书
 
-    for i in range(0, len(jobs_to_analyze), MATCH_ANALYSIS_BATCH_SIZE):
-        batch = jobs_to_analyze[i : i + MATCH_ANALYSIS_BATCH_SIZE]
+    # 过滤无内容的 job
+    valid_jobs = [j for j in jobs_to_analyze if job_has_required_match_fields(j)]
+    invalid_count = len(jobs_to_analyze) - len(valid_jobs)
+    if invalid_count:
+        task.errors += invalid_count
         logger.info(
-            "Job match analysis batch started: task_id=%s resume_id=%s batch=%d size=%d",
+            "Job match analysis skipped %d jobs without required fields: task_id=%s resume_id=%s errors=%d",
+            invalid_count,
             getattr(task, "task_id", ""),
             resume_id,
-            i // MATCH_ANALYSIS_BATCH_SIZE + 1,
-            len(batch),
+            task.errors,
         )
 
-        # 过滤无内容的 job
-        valid_jobs = [j for j in batch if job_has_required_match_fields(j)]
+    if not valid_jobs:
+        if progress_callback is not None:
+            await progress_callback(task)
+    else:
+        sem = asyncio.Semaphore(MATCH_ANALYSIS_BATCH_SIZE)
 
-        if not valid_jobs:
-            task.errors += len(batch)
-            logger.info(
-                "Job match analysis batch skipped: task_id=%s resume_id=%s batch=%d reason=no_required_job_fields errors=%d",
-                getattr(task, "task_id", ""),
-                resume_id,
-                i // MATCH_ANALYSIS_BATCH_SIZE + 1,
-                task.errors,
-            )
-            if progress_callback is not None:
-                await progress_callback(task)
-            continue
+        async def _analyze_one(job: Job) -> MatchAnalysis:
+            async with sem:
+                return await provider.analyze_match(
+                    resume_text=resume.resume_text,
+                    job_title=job.title or "",
+                    job_company=job.company or "",
+                    job_salary=job.salary or "",
+                    job_location=job.location or "",
+                    job_experience=job.experience or "",
+                    job_education=job.education or "",
+                    job_description=job.description or "",
+                )
 
-        # 并发分析
-        tasks = [
-            provider.analyze_match(
-                resume_text=resume.resume_text,
-                job_title=job.title or "",
-                job_company=job.company or "",
-                job_salary=job.salary or "",
-                job_location=job.location or "",
-                job_experience=job.experience or "",
-                job_education=job.education or "",
-                job_description=job.description or "",
-            )
-            for job in valid_jobs
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(
+            *(_analyze_one(j) for j in valid_jobs),
+            return_exceptions=True,
+        )
 
         # 逐个 upsert + commit
         for job, result in zip(valid_jobs, results):
@@ -232,10 +227,10 @@ async def _execute_match_analysis(
         if progress_callback is not None:
             await progress_callback(task)
         logger.info(
-            "Job match analysis batch completed: task_id=%s resume_id=%s batch=%d success=%d errors=%d",
+            "Job match analysis completed: task_id=%s resume_id=%s total=%d success=%d errors=%d",
             getattr(task, "task_id", ""),
             resume_id,
-            i // MATCH_ANALYSIS_BATCH_SIZE + 1,
+            len(valid_jobs),
             task.success,
             task.errors,
         )
@@ -403,12 +398,11 @@ async def analyze_resume_vs_jobs(
         valid_jobs = [j for j in jobs if job_has_required_match_fields(j)]
         skipped = len(jobs) - len(valid_jobs)
 
-        for i in range(0, len(valid_jobs), MATCH_ANALYSIS_BATCH_SIZE):
-            batch = valid_jobs[i : i + MATCH_ANALYSIS_BATCH_SIZE]
+        sem = asyncio.Semaphore(MATCH_ANALYSIS_BATCH_SIZE)
 
-            # Concurrent LLM analysis for the batch
-            tasks = [
-                provider.analyze_match(
+        async def _analyze_one(job: Job) -> MatchAnalysis:
+            async with sem:
+                return await provider.analyze_match(
                     resume_text=resume.resume_text,
                     job_title=job.title or "",
                     job_company=job.company or "",
@@ -418,30 +412,32 @@ async def analyze_resume_vs_jobs(
                     job_education=job.education or "",
                     job_description=job.description or "",
                 )
-                for job in batch
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for job, result in zip(batch, results):
-                if isinstance(result, Exception):
-                    skipped += 1
-                    continue
+        results = await asyncio.gather(
+            *(_analyze_one(j) for j in valid_jobs),
+            return_exceptions=True,
+        )
 
-                _, was_created = await upsert_match_result(
-                    db=db,
-                    user_id=resume.user_id,
-                    resume_id=resume.id,
-                    job_id=job.id,
-                    analysis=result,
-                )
-                if was_created:
-                    created += 1
-                else:
-                    updated += 1
-                await db.commit()
+        for job, result in zip(valid_jobs, results):
+            if isinstance(result, Exception):
+                skipped += 1
+                continue
 
-                if should_notify_match(result.apply_recommendation):
-                    notify_jobs.append((job, result))
+            _, was_created = await upsert_match_result(
+                db=db,
+                user_id=resume.user_id,
+                resume_id=resume.id,
+                job_id=job.id,
+                analysis=result,
+            )
+            if was_created:
+                created += 1
+            else:
+                updated += 1
+            await db.commit()
+
+            if should_notify_match(result.apply_recommendation):
+                notify_jobs.append((job, result))
 
         # Batch notification (one message with all high-score jobs)
         if notify_jobs and webhook_url:
@@ -503,23 +499,12 @@ async def upsert_match_result(
 ) -> tuple[MatchResult, bool]:
     """Insert or update a single match result using PostgreSQL atomic upsert.
 
-    Uses a lightweight SELECT for ``was_created`` tracking, then a single
-    ``INSERT … ON CONFLICT DO UPDATE … RETURNING`` to atomically write and
-    return the result, avoiding the extra ``db.get()`` of the old approach.
+    Uses ``INSERT … ON CONFLICT DO UPDATE … RETURNING xmax`` to atomically
+    write and determine whether the row was created or updated.
     """
-    from sqlalchemy import func
+    from sqlalchemy import func, literal_column
     from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-    # Lightweight existence check for was_created semantics
-    existing_result = await db.execute(
-        select(MatchResult.id).where(
-            MatchResult.resume_id == resume_id,
-            MatchResult.job_id == job_id,
-        )
-    )
-    existing_id = existing_result.scalar_one_or_none()
-
-    # Atomic upsert with RETURNING — no separate db.get() needed
     stmt = pg_insert(MatchResult).values(
         user_id=user_id,
         resume_id=resume_id,
@@ -538,9 +523,11 @@ async def upsert_match_result(
             "llm_model_used": stmt.excluded.llm_model_used,
             "updated_at": func.now(),
         },
-    ).returning(MatchResult)
+    ).returning(MatchResult, literal_column("xmax"))
 
     result = await db.execute(stmt)
-    match_result = result.scalar_one()
+    row = result.mappings().one()
+    match_result = row[MatchResult]
+    was_created = row["xmax"] == 0
 
-    return match_result, existing_id is None
+    return match_result, was_created

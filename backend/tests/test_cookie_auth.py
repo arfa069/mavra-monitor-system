@@ -231,7 +231,8 @@ async def test_me_with_nonexistent_user_returns_401(test_user, mock_db_session, 
         )
 
     assert response.status_code == 401
-    assert "用户" in response.json().get("detail", "")
+    # JOIN query returns None for both "user not found" and "session not found"
+    assert "会话" in response.json().get("detail", "")
 
 
 @pytest.mark.asyncio
@@ -262,25 +263,14 @@ async def test_me_with_deleted_user_returns_401(test_user, mock_db_session, test
 @pytest.mark.asyncio
 async def test_me_with_missing_session_returns_401(test_user, mock_db_session, test_app):
     """GET /test/me with valid token but missing session returns 401."""
-    from datetime import UTC, datetime
 
     token = create_access_token_sid(1, test_user["username"], 42)
 
-    # User found
-    mock_user = MagicMock()
-    mock_user.id = 1
-    mock_user.username = test_user["username"]
-    mock_user.deleted_at = None
-    mock_user.created_at = datetime.now(UTC)
-
-    mock_result_user = MagicMock()
-    mock_result_user.scalar_one_or_none.return_value = mock_user
-
-    # Session not found (sid=42 doesn't exist in db)
+    # JOIN query returns None (session not found for sid=42)
     mock_result_session = MagicMock()
     mock_result_session.scalar_one_or_none.return_value = None
 
-    mock_db_session.execute.side_effect = [mock_result_user, mock_result_session]
+    mock_db_session.execute.return_value = mock_result_session
 
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

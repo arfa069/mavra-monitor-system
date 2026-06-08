@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.crawler_paths import build_profile_dir
+from app.schemas.base import BaseResponseSchema
 
 ProfileStatus = Literal["available", "leased", "login_required", "cooling_down", "disabled"]
 
@@ -39,7 +40,7 @@ class CrawlProfileRenameRequest(BaseModel):
         return validate_profile_key_value(value)
 
 
-class CrawlProfileResponse(BaseModel):
+class CrawlProfileResponse(BaseResponseSchema):
     profile_key: str
     profile_dir: str
     status: ProfileStatus
@@ -51,8 +52,6 @@ class CrawlProfileResponse(BaseModel):
     last_error: str | None
     created_at: datetime
     updated_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class CrawlProfileRuntimeCapabilities(BaseModel):

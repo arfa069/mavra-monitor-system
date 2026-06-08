@@ -61,12 +61,19 @@ class SmartHomeStateBroker:
     async def _publish(self, item: dict[str, Any]) -> None:
         async with self._lock:
             subscribers = list(self._subscribers)
+        dead: list[asyncio.Queue] = []
         for queue in subscribers:
             if queue.full():
                 with contextlib.suppress(asyncio.QueueEmpty):
                     queue.get_nowait()
-            with contextlib.suppress(asyncio.QueueFull):
+            try:
                 queue.put_nowait(item)
+            except asyncio.QueueFull:
+                dead.append(queue)
+        if dead:
+            async with self._lock:
+                for q in dead:
+                    self._subscribers.discard(q)
 
 
 smart_home_state_broker = SmartHomeStateBroker()

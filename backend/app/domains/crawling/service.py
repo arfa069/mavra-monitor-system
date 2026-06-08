@@ -249,7 +249,7 @@ async def check_price_alerts(
         return
 
     latest_result = await db.execute(
-        select(PriceHistory)
+        select(PriceHistory.price)
         .where(PriceHistory.product_id == product_id)
         .order_by(PriceHistory.scraped_at.desc())
         .limit(2)
@@ -259,7 +259,7 @@ async def check_price_alerts(
     if len(price_records) < 2:
         return
 
-    previous_price = price_records[1].price
+    previous_price = price_records[1]
     new_price = current_price
 
     for alert in alerts:

@@ -1,5 +1,5 @@
 /* ============================================================
-   Global Styles — Figma Design System
+   Global Styles — Neo-Brutalist Zine Design System
    ============================================================ */
 
 /* Load fonts first */
@@ -35,77 +35,128 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  position: relative;
 }
 
-/* ---- Utility Classes ---- */
-.figma-display-xl {
+/* Subtle dot-grid paper background pattern */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(var(--color-border) 1.5px, transparent 1.5px), 
+    radial-gradient(var(--color-border) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  opacity: 0.04;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Custom Brutalist Scrollbars */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+  border-left: var(--border-width) solid var(--color-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-block-yellow);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-block-orange);
+}
+
+/* ---- Utility Classes (Mapped to Zine Fonts) ---- */
+.figma-display-xl,
+.zine-display-xl {
   font-family: var(--font-display);
   font-size: var(--font-size-display-xl);
-  font-weight: var(--font-weight-display);
+  font-weight: 800;
   line-height: var(--line-height-display-xl);
   letter-spacing: var(--letter-spacing-display-xl);
   color: var(--color-ink);
+  text-transform: uppercase;
 }
 
-.figma-headline {
+.figma-headline,
+.zine-headline {
   font-family: var(--font-display);
   font-size: var(--font-size-headline);
-  font-weight: var(--font-weight-headline);
+  font-weight: 800;
   line-height: var(--line-height-headline);
   letter-spacing: var(--letter-spacing-headline);
   color: var(--color-ink);
+  text-transform: uppercase;
 }
 
-.figma-subhead {
+.figma-subhead,
+.zine-subhead {
   font-family: var(--font-display);
   font-size: var(--font-size-subhead);
-  font-weight: var(--font-weight-subhead);
+  font-weight: 800;
   line-height: var(--line-height-subhead);
   letter-spacing: var(--letter-spacing-subhead);
   color: var(--color-ink);
+  text-transform: uppercase;
 }
 
-.figma-body-lg {
+.figma-body-lg,
+.zine-body-lg {
   font-family: var(--font-body);
   font-size: var(--font-size-body-lg);
-  font-weight: var(--font-weight-body-lg);
+  font-weight: 400;
   line-height: var(--line-height-body-lg);
   letter-spacing: var(--letter-spacing-body-lg);
   color: var(--color-ink);
 }
 
-.figma-body {
+.figma-body,
+.zine-body {
   font-family: var(--font-body);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-body);
+  font-weight: 400;
   line-height: var(--line-height-body);
   letter-spacing: var(--letter-spacing-body);
   color: var(--color-ink);
 }
 
-.figma-body-sm {
+.figma-body-sm,
+.zine-body-sm {
   font-family: var(--font-body);
   font-size: var(--font-size-body-sm);
-  font-weight: var(--font-weight-body-sm);
+  font-weight: 400;
   line-height: var(--line-height-body-sm);
   letter-spacing: var(--letter-spacing-body-sm);
   color: var(--color-ink);
 }
 
-.figma-eyebrow {
-  font-family: var(--font-mono);
+.figma-eyebrow,
+.zine-eyebrow {
+  font-family: var(--font-data);
   font-size: var(--font-size-eyebrow);
-  font-weight: var(--font-weight-eyebrow);
+  font-weight: 700;
   line-height: var(--line-height-eyebrow);
   letter-spacing: var(--letter-spacing-eyebrow);
   color: var(--color-ink);
   text-transform: uppercase;
 }
 
-.figma-caption {
+.figma-caption,
+.zine-caption {
   font-family: var(--font-mono);
   font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-caption);
+  font-weight: 500;
   line-height: var(--line-height-caption);
   letter-spacing: var(--letter-spacing-caption);
   color: var(--color-ink);
@@ -113,6 +164,10 @@ body {
 }
 
 /* Color block backgrounds */
+.bg-yellow {
+  background: var(--color-block-yellow);
+}
+
 .bg-lime {
   background: var(--color-block-lime);
 }
@@ -126,7 +181,7 @@ body {
 }
 
 .bg-mint {
-  background: var(--color-block-mint);
+  background: var(--color-block-lime);
 }
 
 .bg-pink {
@@ -134,12 +189,19 @@ body {
 }
 
 .bg-coral {
-  background: var(--color-block-coral);
+  background: var(--color-block-orange);
+}
+
+.bg-orange {
+  background: var(--color-block-orange);
+}
+
+.bg-cyan {
+  background: var(--color-block-cyan);
 }
 
 .bg-navy {
-  background: var(--color-block-navy);
-  color: var(--color-inverse-ink);
+  background: var(--color-block-lilac);
 }
 
 .bg-surface-soft {
@@ -147,6 +209,10 @@ body {
 }
 
 /* Rounded corners */
+.rounded-sm {
+  border-radius: var(--radius-sm);
+}
+
 .rounded-md {
   border-radius: var(--radius-md);
 }
@@ -169,7 +235,12 @@ body {
 
 /* ---- Ant Design Table override ---- */
 .ant-table-wrapper {
-  border: 1px solid var(--color-hairline) !important;
-  border-radius: var(--radius-lg) !important;
+  border: var(--border-width) solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
   overflow: hidden !important;
+  box-shadow: var(--shadow-offset-md) !important;
+}
+
+.ant-table-container {
+  border-radius: var(--radius-md) !important;
 }

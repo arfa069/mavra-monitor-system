@@ -52,8 +52,7 @@ class JobConfigScheduler(BaseScheduler):
         """Remove the cron job for a config (if it exists)."""
         self._remove_job_by_id(self._job_id(config_id))
 
-    async def sync_all(self) -> None:
-        """Sync scheduler state with the database on startup."""
+    async def _fetch_cron_configs(self):
         from sqlalchemy import select
 
         from app.database import AsyncSessionLocal
@@ -65,24 +64,17 @@ class JobConfigScheduler(BaseScheduler):
                     JobSearchConfig.cron_expression.isnot(None),
                 )
             )
-            configs = result.scalars().all()
+            return list(result.scalars().all())
 
-        synced_count = 0
-        for config in configs:
-            try:
-                self.add_job(
-                    config_id=config.id,
-                    cron_expression=config.cron_expression,
-                    timezone=config.cron_timezone or "Asia/Shanghai",
-                )
-                synced_count += 1
-            except Exception as e:
-                logger.error(
-                    "Skipping registration of job config #%d due to startup sync error: %s",
-                    config.id, e, exc_info=True
-                )
+    def _add_job_from_config(self, config) -> None:
+        self.add_job(
+            config_id=config.id,
+            cron_expression=config.cron_expression,
+            timezone=config.cron_timezone or "Asia/Shanghai",
+        )
 
-        logger.info("JobConfigScheduler synced: %d/%d config jobs registered", synced_count, len(configs))
+    def _config_label(self, config) -> str:
+        return f"job config #{config.id}"
 
     def get_next_run_times(self) -> dict[int, dict]:
         """Return next run time info for all registered config jobs."""

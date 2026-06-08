@@ -54,8 +54,7 @@ class ProductCronScheduler(BaseScheduler):
         """Remove the cron job for a user+platform (if it exists)."""
         self._remove_job_by_id(self._job_id(user_id, platform))
 
-    async def sync_all(self) -> None:
-        """Register cron jobs for all existing product platform cron configs."""
+    async def _fetch_cron_configs(self):
         from sqlalchemy import select
 
         from app.database import AsyncSessionLocal
@@ -67,25 +66,18 @@ class ProductCronScheduler(BaseScheduler):
                     ProductPlatformCron.cron_expression.isnot(None),
                 )
             )
-            configs = result.scalars().all()
+            return list(result.scalars().all())
 
-        synced_count = 0
-        for config in configs:
-            try:
-                self.add_job(
-                    user_id=config.user_id,
-                    platform=config.platform,
-                    cron_expression=config.cron_expression,
-                    timezone=config.cron_timezone or "Asia/Shanghai",
-                )
-                synced_count += 1
-            except Exception as e:
-                logger.error(
-                    "Skipping registration of product platform cron config %d:%s due to startup sync error: %s",
-                    config.user_id, config.platform, e, exc_info=True
-                )
+    def _add_job_from_config(self, config) -> None:
+        self.add_job(
+            user_id=config.user_id,
+            platform=config.platform,
+            cron_expression=config.cron_expression,
+            timezone=config.cron_timezone or "Asia/Shanghai",
+        )
 
-        logger.info("ProductCronScheduler synced: %d/%d platform jobs registered", synced_count, len(configs))
+    def _config_label(self, config) -> str:
+        return f"product platform cron config {config.user_id}:{config.platform}"
 
     def get_next_run_times(self, user_id: int | None = None) -> dict[str, dict]:
         """Return next run time info for registered platform jobs."""
