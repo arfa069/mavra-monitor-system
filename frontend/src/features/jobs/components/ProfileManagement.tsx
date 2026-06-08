@@ -237,20 +237,28 @@ export default function ProfileManagement({
   ];
 
   const handleCreate = async () => {
-    const values = await form.validateFields();
-    await onCreate(values.profile_key, values.platform_hint || null);
-    form.resetFields();
-    setOpen(false);
-    message.success("Profile created");
+    try {
+      const values = await form.validateFields();
+      await onCreate(values.profile_key, values.platform_hint || null);
+      form.resetFields();
+      setOpen(false);
+      message.success("Profile created");
+    } catch {
+      // Ignore validation errors (handled by Form UI)
+    }
   };
 
   const handleRename = async () => {
     if (!renameProfile) return;
-    const values = await renameForm.validateFields();
-    await onRename(renameProfile.profile_key, values.profile_key);
-    renameForm.resetFields();
-    setRenameProfile(null);
-    message.success("Profile renamed");
+    try {
+      const values = await renameForm.validateFields();
+      await onRename(renameProfile.profile_key, values.profile_key);
+      renameForm.resetFields();
+      setRenameProfile(null);
+      message.success("Profile renamed");
+    } catch {
+      // Ignore validation errors (handled by Form UI)
+    }
   };
 
   const normFile = (event: { fileList?: UploadFile[] } | UploadFile[]) =>
@@ -258,27 +266,31 @@ export default function ProfileManagement({
 
   const handleBackup = async () => {
     if (!backupProfile) return;
-    const values = await backupForm.validateFields();
-    if (backupMode === "export") {
-      await onExportBackup(backupProfile.profile_key, values.password);
-      message.success("Profile backup exported");
-    } else {
-      const file = values.file?.[0]?.originFileObj;
-      if (!file) {
-        message.error("Select a profile backup file");
-        return;
+    try {
+      const values = await backupForm.validateFields();
+      if (backupMode === "export") {
+        await onExportBackup(backupProfile.profile_key, values.password);
+        message.success("Profile backup exported");
+      } else {
+        const file = values.file?.[0]?.originFileObj;
+        if (!file) {
+          message.error("Select a profile backup file");
+          return;
+        }
+        await onImportBackup(
+          backupProfile.profile_key,
+          file,
+          values.password,
+          values.force ?? false,
+        );
+        message.success("Profile backup imported");
       }
-      await onImportBackup(
-        backupProfile.profile_key,
-        file,
-        values.password,
-        Boolean(values.force),
-      );
-      message.success("Profile backup imported");
+      backupForm.resetFields();
+      setBackupProfile(null);
+      setBackupOpen(false);
+    } catch {
+      // Ignore validation errors (handled by Form UI)
     }
-    backupForm.resetFields();
-    setBackupOpen(false);
-    setBackupProfile(null);
   };
 
   return (
@@ -310,7 +322,7 @@ export default function ProfileManagement({
           <Form.Item
             name="profile_key"
             label="Profile Key"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Please enter profile key" }]}
           >
             <Input placeholder="job-a" autoComplete="off" />
           </Form.Item>

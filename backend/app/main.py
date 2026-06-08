@@ -89,6 +89,48 @@ async def lifespan(app: FastAPI):
     await app.state.redis_client.aclose()
 
 
+async def _emit_scheduler_event(event_type: str, message: str) -> None:
+    await emit_system_log_detached(
+        category="platform",
+        event_type=event_type,
+        source="app.startup" if "started" in event_type else "app.shutdown",
+        severity="info",
+        status="success",
+        message=message,
+        entity_type="scheduler",
+        entity_id="apscheduler",
+    )
+
+
+async def _emit_http_event(
+    event_type: str,
+    path: str,
+    method: str,
+    severity: str,
+    status: str,
+    message: str,
+    user_id: int | None,
+    status_code: int | None = None,
+    **extra_payload: object,
+) -> None:
+    payload: dict[str, object] = {"method": method, "path": path}
+    if status_code is not None:
+        payload["status_code"] = status_code
+    payload.update(extra_payload)
+    await emit_system_log_detached(
+        category="platform",
+        event_type=event_type,
+        source=path,
+        severity=severity,
+        status=status,
+        message=message,
+        user_id=user_id,
+        entity_type="request",
+        entity_id=path,
+        payload=payload,
+    )
+
+
 async def _start_scheduler(app: FastAPI) -> None:
     """Initialize APScheduler with AsyncIOScheduler and register cron job from DB config."""
 
@@ -111,16 +153,7 @@ async def _start_scheduler(app: FastAPI) -> None:
 
     scheduler.start()
     logger.info("APScheduler started")
-    await emit_system_log_detached(
-        category="platform",
-        event_type="scheduler.started",
-        source="app.startup",
-        severity="info",
-        status="success",
-        message="APScheduler started",
-        entity_type="scheduler",
-        entity_id="apscheduler",
-    )
+    await _emit_scheduler_event("scheduler.started", "APScheduler started")
 
 
 async def _stop_scheduler(app: FastAPI) -> None:
@@ -129,16 +162,7 @@ async def _stop_scheduler(app: FastAPI) -> None:
     if scheduler and scheduler.running:
         scheduler.shutdown(wait=True)
         logger.info("APScheduler shutdown complete")
-        await emit_system_log_detached(
-            category="platform",
-            event_type="scheduler.stopped",
-            source="app.shutdown",
-            severity="info",
-            status="success",
-            message="APScheduler shutdown complete",
-            entity_type="scheduler",
-            entity_id="apscheduler",
-        )
+        await _emit_scheduler_event("scheduler.stopped", "APScheduler shutdown complete")
 
 
 app = FastAPI(
@@ -230,45 +254,39 @@ async def platform_event_logging_middleware(request: Request, call_next):
         response = await call_next(request)
     except Exception as exc:
         if not _is_event_center_path(path):
-            await emit_system_log_detached(
-                category="platform",
-                event_type="http.500",
-                source=path,
-                severity="error",
-                status="error",
-                message=f"{method} {path} raised an unhandled exception",
-                user_id=user_id,
-                entity_type="request",
-                entity_id=path,
-                payload={"method": method, "path": path, "error": str(exc)},
+            await _emit_http_event(
+                "http.500",
+                path,
+                method,
+                "error",
+                "error",
+                f"{method} {path} raised an unhandled exception",
+                user_id,
+                error=str(exc),
             )
         raise
 
     if not _is_event_center_path(path) and response.status_code in (401, 403):
-        await emit_system_log_detached(
-            category="platform",
-            event_type=f"http.{response.status_code}",
-            source=path,
-            severity="warning",
-            status="denied",
-            message=f"{method} {path} was denied",
-            user_id=user_id,
-            entity_type="request",
-            entity_id=path,
-            payload={"method": method, "path": path, "status_code": response.status_code},
+        await _emit_http_event(
+            f"http.{response.status_code}",
+            path,
+            method,
+            "warning",
+            "denied",
+            f"{method} {path} was denied",
+            user_id,
+            status_code=response.status_code,
         )
     elif not _is_event_center_path(path) and response.status_code >= 500:
-        await emit_system_log_detached(
-            category="platform",
-            event_type=f"http.{response.status_code}",
-            source=path,
-            severity="error",
-            status="error",
-            message=f"{method} {path} returned server error",
-            user_id=user_id,
-            entity_type="request",
-            entity_id=path,
-            payload={"method": method, "path": path, "status_code": response.status_code},
+        await _emit_http_event(
+            f"http.{response.status_code}",
+            path,
+            method,
+            "error",
+            "error",
+            f"{method} {path} returned server error",
+            user_id,
+            status_code=response.status_code,
         )
 
     return response

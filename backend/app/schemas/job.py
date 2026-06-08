@@ -1,13 +1,12 @@
 """Pydantic schemas for job-related API endpoints."""
 
-import zoneinfo
 from datetime import datetime
 from typing import Literal
 
-from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.crawler_paths import build_profile_dir
+from app.schemas.validators import validate_cron_value, validate_timezone_value
 
 JobPlatform = Literal["boss", "51job", "liepin"]
 
@@ -46,30 +45,12 @@ class JobSearchConfigCreate(BaseModel):
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            CronTrigger.from_crontab(val)
-        except Exception as exc:
-            raise ValueError(f"Invalid cron expression: {exc}")
-        return val
+        return validate_cron_value(v)
 
     @field_validator("cron_timezone")
     @classmethod
     def validate_timezone(cls, v: str | None) -> str | None:
-        if not v:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            zoneinfo.ZoneInfo(val)
-        except Exception:
-            raise ValueError(f"Invalid timezone: {v}")
-        return val
+        return validate_timezone_value(v)
 
 
 class JobSearchConfigUpdate(BaseModel):
@@ -102,30 +83,12 @@ class JobSearchConfigUpdate(BaseModel):
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            CronTrigger.from_crontab(val)
-        except Exception as exc:
-            raise ValueError(f"Invalid cron expression: {exc}")
-        return val
+        return validate_cron_value(v)
 
     @field_validator("cron_timezone")
     @classmethod
     def validate_timezone(cls, v: str | None) -> str | None:
-        if not v:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            zoneinfo.ZoneInfo(val)
-        except Exception:
-            raise ValueError(f"Invalid timezone: {v}")
-        return val
+        return validate_timezone_value(v)
 
 
 class JobSearchConfigResponse(BaseModel):
@@ -160,6 +123,16 @@ class JobConfigCronUpdate(BaseModel):
 
     cron_expression: str | None = Field(default=None, max_length=100)
     cron_timezone: str | None = Field(default=None, max_length=50)
+
+    @field_validator("cron_expression")
+    @classmethod
+    def validate_cron(cls, v: str | None) -> str | None:
+        return validate_cron_value(v)
+
+    @field_validator("cron_timezone")
+    @classmethod
+    def validate_timezone(cls, v: str | None) -> str | None:
+        return validate_timezone_value(v)
 
 
 class JobResponse(BaseModel):

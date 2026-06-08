@@ -3,6 +3,7 @@
 from inspect import isawaitable
 from urllib.parse import parse_qs, urlparse
 
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.crawling.profile_service import CrawlProfileNotFoundError, get_profile
@@ -354,7 +355,7 @@ async def batch_create_products(
             results.append(
                 BatchOperationResult(id=product.id, url=normalized_url, success=True)
             )
-        except Exception as exc:
+        except (IntegrityError, OperationalError, ValueError) as exc:
             results.append(BatchOperationResult(url=url, success=False, error=str(exc)))
 
     await db.commit()
@@ -379,16 +380,16 @@ async def batch_delete_products(
         try:
             await db.delete(product_map[product_id])
             results.append(BatchOperationResult(id=product_id, success=True))
-        except Exception as exc:
+        except (IntegrityError, OperationalError) as exc:
             results.append(BatchOperationResult(id=product_id, success=False, error=str(exc)))
 
     try:
         await db.commit()
-    except Exception:
+    except (IntegrityError, OperationalError) as exc:
         for result_item in results:
             if result_item.success and result_item.id not in found_ids:
                 result_item.success = False
-                result_item.error = "批量操作失败"
+                result_item.error = f"批量操作失败: {exc}"
         raise
 
     return results
@@ -413,16 +414,16 @@ async def batch_update_products(
             if payload.active is not None:
                 product_map[product_id].active = payload.active
             results.append(BatchOperationResult(id=product_id, success=True))
-        except Exception as exc:
+        except (IntegrityError, OperationalError, ValueError) as exc:
             results.append(BatchOperationResult(id=product_id, success=False, error=str(exc)))
 
     try:
         await db.commit()
-    except Exception as exc:
+    except (IntegrityError, OperationalError):
         for result_item in results:
             if result_item.success:
                 result_item.success = False
-                result_item.error = str(exc)
+                result_item.error = "批量更新失败"
         return results
 
     return results

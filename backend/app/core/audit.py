@@ -7,11 +7,13 @@ responsible for committing alongside their business logic.
 import logging
 from typing import Any
 
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_stream import event_stream_broker
 from app.core.system_log import normalize_audit_log
 from app.models.audit_log import UserAuditLog
+from app.utils.request import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,31 @@ def _sanitize_details(details: dict[str, Any] | None) -> dict[str, Any] | None:
         else:
             sanitized[key] = value
     return sanitized
+
+
+async def log_audit_from_request(
+    request: Request,
+    db: AsyncSession,
+    *,
+    action: str,
+    actor_user_id: int | None = None,
+    target_type: str | None = None,
+    target_id: int | None = None,
+    details: dict[str, Any] | None = None,
+    commit: bool = False,
+) -> UserAuditLog | None:
+    """Write an audit log entry with IP and User-Agent extracted from request."""
+    return await log_audit(
+        db=db,
+        action=action,
+        actor_user_id=actor_user_id,
+        target_type=target_type,
+        target_id=target_id,
+        details=details,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent", "")[:512],
+        commit=commit,
+    )
 
 
 async def log_audit(

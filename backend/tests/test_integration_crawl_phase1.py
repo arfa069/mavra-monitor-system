@@ -342,7 +342,7 @@ class TestCrawlTaskRunnerIntegration:
 
         assert result["status"] == "success"
         assert task.total == 4
-        mock_crawl.assert_awaited_once_with(5, _lock_already_held=False, runtime_context=None)
+        mock_crawl.assert_awaited_once_with(5, lock_already_held=False, runtime_context=None)
 
     @pytest.mark.asyncio
     async def test_runner_all_jobs_routes_to_service(self, monkeypatch):

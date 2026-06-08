@@ -21,6 +21,27 @@ from app.domains.crawling.task_store import (
 logger = logging.getLogger(__name__)
 
 
+async def _emit_task_event(
+    event_type: str,
+    severity: str,
+    status: str,
+    message: str,
+    record: CrawlTaskRecord,
+    payload: dict | None = None,
+) -> None:
+    await emit_system_log_detached(
+        category="runtime",
+        event_type=event_type,
+        source="crawler_worker",
+        severity=severity,
+        status=status,
+        message=message,
+        entity_type="crawl_task",
+        entity_id=record.task_id,
+        payload=payload,
+    )
+
+
 async def _persist(record_id: int, task) -> None:
     async with AsyncSessionLocal() as db:
         record = await db.get(CrawlTaskRecord, record_id)
@@ -51,15 +72,12 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
     async def progress_callback(progress_task) -> None:
         await _persist(record.id, progress_task)
 
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawler_worker.task_claimed",
-        source="crawler_worker",
-        severity="info",
-        status="running",
-        message=f"Worker {worker_id} claimed task {record.task_id}",
-        entity_type="crawl_task",
-        entity_id=record.task_id,
+    await _emit_task_event(
+        "crawler_worker.task_claimed",
+        "info",
+        "running",
+        f"Worker {worker_id} claimed task {record.task_id}",
+        record,
         payload={
             "worker_id": worker_id,
             "task_id": record.task_id,
@@ -124,15 +142,12 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
             )
             event_status = "completed" if task.status == TaskStatus.COMPLETED else "failed"
             event_severity = "info" if task.status == TaskStatus.COMPLETED else "error"
-        await emit_system_log_detached(
-            category="runtime",
-            event_type=event_type,
-            source="crawler_worker",
-            severity=event_severity,
-            status=event_status,
-            message=f"Worker {worker_id} processed task {record.task_id} ({event_status})",
-            entity_type="crawl_task",
-            entity_id=record.task_id,
+        await _emit_task_event(
+            event_type,
+            event_severity,
+            event_status,
+            f"Worker {worker_id} processed task {record.task_id} ({event_status})",
+            record,
             payload={
                 "worker_id": worker_id,
                 "task_id": record.task_id,
@@ -166,15 +181,12 @@ async def execute_claimed_task(record: CrawlTaskRecord, *, worker_id: str) -> di
         task.status = TaskStatus.FAILED
         task.reason = str(exc)
         await progress_callback(task)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="crawler_worker.task_failed",
-            source="crawler_worker",
-            severity="error",
-            status="failed",
-            message=f"Worker {worker_id} failed task {record.task_id}",
-            entity_type="crawl_task",
-            entity_id=record.task_id,
+        await _emit_task_event(
+            "crawler_worker.task_failed",
+            "error",
+            "failed",
+            f"Worker {worker_id} failed task {record.task_id}",
+            record,
             payload={
                 "worker_id": worker_id,
                 "task_id": record.task_id,

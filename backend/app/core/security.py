@@ -75,8 +75,8 @@ async def get_current_user(
 ) -> User:
     """Unified auth dependency: cookie first, then Bearer header fallback.
 
-    1. If ``pm_access_token`` cookie is present → cookie-based auth with
-       ``decode_access_token_strict`` and ``sid``-based session lookup.
+    1. If ``pm_access_token`` cookie is present → delegates to
+       :func:`get_current_user_cookie` for ``sid``-based session lookup.
     2. Otherwise → legacy ``Authorization: Bearer`` with ``token_hash``
        session lookup (for API clients / scripts).
 
@@ -91,39 +91,9 @@ async def get_current_user(
     )
 
     access_token = request.cookies.get(settings.auth_access_cookie_name)
-
     if access_token:
         # ── Cookie-based auth (browser clients) ──
-        payload = decode_access_token_strict(access_token)
-        if payload is None:
-            raise credentials_exception
-
-        try:
-            user_id_int = int(payload["sub"])
-            sid_int = int(payload["sid"])
-        except (ValueError, TypeError, KeyError):
-            raise credentials_exception
-
-        result = await db.execute(
-            select(User).where(
-                User.id == user_id_int,
-                User.deleted_at.is_(None),
-            )
-        )
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise credentials_exception
-
-        from app.core.sessions import get_session_by_id
-
-        session = await get_session_by_id(sid_int, user.id, db)
-        if session is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="认证失败：会话已失效或已在其他地方退出",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return user
+        return await get_current_user_cookie(request, db)
 
     # ── Bearer header fallback (API clients / scripts) ──
     auth_header = request.headers.get("Authorization")

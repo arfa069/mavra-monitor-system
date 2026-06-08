@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.audit import log_audit
+from app.core.audit import log_audit_from_request
 from app.core.auth_cookies import set_auth_cookies
 from app.core.permissions import get_role_permissions
 from app.core.security import (
@@ -197,15 +197,14 @@ async def wechat_callback(
 
         user_resp = await _create_wechat_auth_session(user, request, response, db)
 
-        await log_audit(
-            db=db,
+        await log_audit_from_request(
+            request,
+            db,
             action="auth.login",
             actor_user_id=user.id,
             target_type="user",
             target_id=user.id,
             details={"username": user.username, "method": "wechat"},
-            ip_address=request.client.host if request.client else "",
-            user_agent=request.headers.get("user-agent", "")[:512],
             commit=True,
         )
 
@@ -283,15 +282,14 @@ async def bind_wechat_account(
     # Create cookie-based auth session
     user_resp = await _create_wechat_auth_session(user, request, response, db)
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.wechat_bind",
         actor_user_id=user.id,
         target_type="user",
         target_id=user.id,
         details={"username": user.username, "method": "bind_existing"},
-        ip_address=request.client.host if request.client else "",
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -362,15 +360,14 @@ async def register_with_wechat(
     # Create cookie-based auth session
     user_resp = await _create_wechat_auth_session(new_user, request, response, db)
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.register",
         actor_user_id=new_user.id,
         target_type="user",
         target_id=new_user.id,
         details={"username": new_user.username, "email": new_user.email, "method": "wechat"},
-        ip_address=request.client.host if request.client else "",
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 

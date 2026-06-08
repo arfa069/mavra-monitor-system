@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 import asyncio
-import json
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.json_utils import json_default, safe_json_dumps
 from app.core.security import get_current_user_cookie, require_role
 from app.database import get_db
 from app.domains.dashboard import service as dashboard_domain_service
@@ -22,12 +21,6 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 # In-memory store for last pushed KPI values per user
 _last_kpi_values: dict[int, dict[str, Any]] = {}
-
-
-def _json_default(value: Any) -> str:
-    if isinstance(value, datetime):
-        return value.isoformat()
-    return str(value)
 
 
 def _get_redis_client(request: Request) -> Any | None:
@@ -80,9 +73,7 @@ async def stream_dashboard_events(
                 initial_payload["system"] = system_kpi.model_dump()
 
             _last_kpi_values[user_id] = initial_payload
-            payload_json = json.dumps(
-                initial_payload, ensure_ascii=False, default=_json_default
-            )
+            payload_json = safe_json_dumps(initial_payload, default=json_default)
             yield f"data: {payload_json}\n\n"
 
             while True:
@@ -106,9 +97,7 @@ async def stream_dashboard_events(
 
                 if last_values != current_values:
                     _last_kpi_values[user_id] = current_values
-                    payload_json = json.dumps(
-                        event_payload, ensure_ascii=False, default=_json_default
-                    )
+                    payload_json = safe_json_dumps(event_payload, default=json_default)
                     yield f"data: {payload_json}\n\n"
 
                 # Wait before next check (30 seconds)

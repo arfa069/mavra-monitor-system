@@ -51,7 +51,7 @@ async def test_runner_can_bypass_job_crawl_lock_for_worker_tasks(monkeypatch):
 
     crawl_single_config.assert_awaited_once_with(
         3,
-        _lock_already_held=True,
+        lock_already_held=True,
         runtime_context=None,
     )
 

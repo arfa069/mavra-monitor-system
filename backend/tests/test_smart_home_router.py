@@ -93,7 +93,7 @@ async def test_update_config_redacts_token_in_response(monkeypatch):
 
     monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
     monkeypatch.setattr("app.domains.smart_home.service.save_config", save_config)
-    monkeypatch.setattr("app.domains.smart_home.router.log_audit", log_audit)
+    monkeypatch.setattr("app.core.audit.log_audit", log_audit)
 
     try:
         async with AsyncClient(

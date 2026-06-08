@@ -94,9 +94,11 @@ export default function ProductFormModal({
         alert: {
           existingId: existingAlert?.id ?? null,
           enabled: alert_enabled ?? false,
-          threshold: alert_threshold ?? 5,
+          threshold: alert_threshold ? Number(alert_threshold) : 5,
         },
       });
+    }).catch(() => {
+      // Ignore validation error rejections
     });
 
   return (
@@ -165,12 +167,17 @@ export default function ProductFormModal({
           {({ getFieldValue }) =>
             getFieldValue("alert_enabled") ? (
               <Form.Item
-                name="alert_threshold"
                 label="Drop Threshold"
-                rules={[{ required: true, message: "Please enter threshold" }]}
+                required
               >
                 <Space.Compact>
-                  <InputNumber min={1} max={100} style={{ width: 80 }} />
+                  <Form.Item
+                    name="alert_threshold"
+                    noStyle
+                    rules={[{ required: true, message: "Please enter threshold" }]}
+                  >
+                    <InputNumber min={1} max={100} style={{ width: 80 }} />
+                  </Form.Item>
                   <Input value="%" disabled style={{ width: 40 }} />
                 </Space.Compact>
               </Form.Item>

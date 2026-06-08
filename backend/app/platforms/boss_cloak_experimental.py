@@ -8,7 +8,6 @@ single-threaded API requests through ``curl_cffi``.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import random
 import time
@@ -20,6 +19,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from curl_cffi.requests import Session as CffiSession
 
 from app.core.crawler_paths import build_profile_dir
+from app.core.json_utils import safe_json_dumps
 from app.platforms.base import BasePlatformAdapter
 
 logger = logging.getLogger(__name__)
@@ -520,7 +520,7 @@ class BossCloakExperimentalAdapter(BasePlatformAdapter):
         try:
             self._log_path.parent.mkdir(parents=True, exist_ok=True)
             with self._log_path.open("a", encoding="utf-8") as file:
-                file.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
+                file.write(safe_json_dumps(row, default=str) + "\n")
         except Exception:
             logger.exception("Failed to write Boss Cloak adapter log")
 

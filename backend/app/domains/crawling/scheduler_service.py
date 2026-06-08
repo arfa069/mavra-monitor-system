@@ -69,6 +69,20 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
         )
         task = runtime_task_from_record(record)
 
+    await _emit_product_crawl_enqueued(
+        user_id,
+        platform,
+        task.task_id,
+        profile_key,
+    )
+
+
+async def _emit_product_crawl_enqueued(
+    user_id: int,
+    platform: str,
+    task_id: str,
+    profile_key: str | None,
+) -> None:
     await emit_system_log_detached(
         category="runtime",
         event_type="product_crawl.enqueued",
@@ -79,5 +93,5 @@ async def crawl_products_by_platform(user_id: int, platform: str, **kwargs) -> N
         user_id=user_id,
         entity_type="product_platform",
         entity_id=platform,
-        payload={"task_id": task.task_id, "platform": platform, "profile_key": profile_key},
+        payload={"task_id": task_id, "platform": platform, "profile_key": profile_key},
     )

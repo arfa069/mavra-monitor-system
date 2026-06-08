@@ -40,7 +40,7 @@ class CrawlTaskRunner:
         await self._notify_progress(task)
         result = await crawl_single_config(
             config_id,
-            _lock_already_held=lock_already_held,
+            lock_already_held=lock_already_held,
             runtime_context=runtime_context,
         )
         ok = result.get("status") != "error"
@@ -53,7 +53,7 @@ class CrawlTaskRunner:
         task.errors = 0 if ok else 1
         task.details = [result]
         if not ok:
-            task.reason = result.get("error") or result.get("reason") or "crawl_failed"
+            task.reason = result.get("error") or "crawl_failed"
         await self._notify_progress(task)
         return result
 
@@ -69,137 +69,85 @@ class CrawlTaskRunner:
         task.success = result.get("success", 0)
         task.errors = result.get("errors", 0)
         if not ok:
-            task.reason = result.get("error") or result.get("reason") or "crawl_failed"
+            task.reason = result.get("error") or "crawl_failed"
         await self._notify_progress(task)
         return result
+
+    async def _run_product_crawl(self, task: CrawlTask, products: list, label: str) -> dict:
+        """Shared product crawl execution for both platform-specific and all-platform runs."""
+        from app.domains.crawling import service as crawling_service
+
+        task.status = TaskStatus.RUNNING
+        await self._notify_progress(task)
+
+        if not products:
+            task.status = TaskStatus.COMPLETED
+            task.reason = "no_active_products"
+            await self._notify_progress(task)
+            return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
+
+        task.total = len(products)
+        await self._notify_progress(task)
+        logger.info("Task %s: crawling %d products (%s)", task.task_id, task.total, label)
+
+        sem = asyncio.Semaphore(settings.product_crawl_concurrency)
+
+        async def crawl_task(product) -> dict:
+            async with sem:
+                try:
+                    return await crawling_service.crawl_one_opencli(
+                        product_id=product.id, platform=product.platform
+                    )
+                except Exception as exc:
+                    return {
+                        "product_id": product.id,
+                        "status": "error",
+                        "reason": str(exc),
+                        "platform": product.platform,
+                    }
+
+        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
+
+        task.success = sum(1 for d in details if d.get("status") == "success")
+        task.errors = sum(1 for d in details if d.get("status") == "error")
+        logger.info(
+            "Task %s: %s crawl done (%d/%d success, %d errors)",
+            task.task_id, label, task.success, task.total, task.errors,
+        )
+        task.details = details
+        task.status = (
+            TaskStatus.FAILED
+            if task.total > 0 and task.success == 0 and task.errors > 0
+            else TaskStatus.COMPLETED
+        )
+        if task.status == TaskStatus.FAILED:
+            task.reason = next(
+                (d.get("reason", "crawl_failed") for d in details if d.get("status") == "error"),
+                "crawl_failed",
+            )
+        await self._notify_progress(task)
+        return {
+            "status": "error" if task.status == TaskStatus.FAILED else "completed",
+            "reason": task.reason,
+            "total": task.total,
+            "success": task.success,
+            "errors": task.errors,
+            "details": details,
+        }
 
     async def run_products_by_platform(self, task: CrawlTask, *, platform: str) -> dict:
         """Run product crawl for a single platform via OpenCLI (no profile needed)."""
         from app.domains.crawling import service as crawling_service
 
-        task.status = TaskStatus.RUNNING
-        await self._notify_progress(task)
-
         products = await crawling_service.get_active_products(
             user_id=task.user_id or 1, platform=platform
         )
-        if not products:
-            task.status = TaskStatus.COMPLETED
-            task.reason = "no_active_products"
-            await self._notify_progress(task)
-            return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
-
-        task.total = len(products)
-        await self._notify_progress(task)
-        logger.info("Task %s: crawling %d products for platform %s", task.task_id, task.total, platform)
-
-        sem = asyncio.Semaphore(settings.product_crawl_concurrency)
-
-        async def crawl_task(product) -> dict:
-            async with sem:
-                try:
-                    return await crawling_service.crawl_one_opencli(
-                        product_id=product.id, platform=product.platform
-                    )
-                except Exception as exc:
-                    return {
-                        "product_id": product.id,
-                        "status": "error",
-                        "reason": str(exc),
-                        "platform": product.platform,
-                    }
-
-        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
-
-        task.success = sum(1 for d in details if d.get("status") == "success")
-        task.errors = sum(1 for d in details if d.get("status") == "error")
-        logger.info(
-            "Task %s: platform products crawl done (%d/%d success, %d errors)",
-            task.task_id, task.success, task.total, task.errors,
-        )
-        task.details = details
-        task.status = (
-            TaskStatus.FAILED
-            if task.total > 0 and task.success == 0 and task.errors > 0
-            else TaskStatus.COMPLETED
-        )
-        if task.status == TaskStatus.FAILED:
-            task.reason = next(
-                (d.get("reason", "crawl_failed") for d in details if d.get("status") == "error"),
-                "crawl_failed",
-            )
-        await self._notify_progress(task)
-        return {
-            "status": "error" if task.status == TaskStatus.FAILED else "completed",
-            "reason": task.reason,
-            "total": task.total,
-            "success": task.success,
-            "errors": task.errors,
-            "details": details,
-        }
+        return await self._run_product_crawl(task, products, f"platform {platform}")
 
     async def run_all_products(self, task: CrawlTask) -> dict:
         """Run product crawl for all platforms via OpenCLI (no profile needed)."""
         from app.domains.crawling import service as crawling_service
 
-        task.status = TaskStatus.RUNNING
-        await self._notify_progress(task)
-
         user_id = task.user_id or 1
         products = await crawling_service.get_active_products(user_id=user_id)
-
-        if not products:
-            task.status = TaskStatus.COMPLETED
-            task.reason = "no_active_products"
-            logger.info("Task %s: no active products, skipping", task.task_id)
-            await self._notify_progress(task)
-            return {"status": "completed", "total": 0, "success": 0, "errors": 0, "details": []}
-
-        task.total = len(products)
-        await self._notify_progress(task)
-        logger.info("Task %s: crawling %d products (all platforms)", task.task_id, task.total)
-
-        sem = asyncio.Semaphore(settings.product_crawl_concurrency)
-
-        async def crawl_task(product) -> dict:
-            async with sem:
-                try:
-                    return await crawling_service.crawl_one_opencli(
-                        product_id=product.id, platform=product.platform
-                    )
-                except Exception as exc:
-                    return {
-                        "product_id": product.id,
-                        "status": "error",
-                        "reason": str(exc),
-                        "platform": product.platform,
-                    }
-
-        details = list(await asyncio.gather(*(crawl_task(p) for p in products), return_exceptions=False))
-
-        task.success = sum(1 for d in details if d.get("status") == "success")
-        task.errors = sum(1 for d in details if d.get("status") == "error")
-        logger.info(
-            "Task %s: all products crawl done (%d/%d success, %d errors)",
-            task.task_id, task.success, task.total, task.errors,
-        )
-        task.details = details
-        task.status = (
-            TaskStatus.FAILED
-            if task.total > 0 and task.success == 0 and task.errors > 0
-            else TaskStatus.COMPLETED
-        )
-        if task.status == TaskStatus.FAILED:
-            task.reason = next(
-                (d.get("reason", "crawl_failed") for d in details if d.get("status") == "error"),
-                "crawl_failed",
-            )
-        await self._notify_progress(task)
-        return {
-            "status": "error" if task.status == TaskStatus.FAILED else "completed",
-            "reason": task.reason,
-            "total": task.total,
-            "success": task.success,
-            "errors": task.errors,
-            "details": details,
-        }
+        return await self._run_product_crawl(task, products, "all platforms")

@@ -35,7 +35,7 @@ export default function LoginPage() {
       navigate(from, { replace: true });
     } catch {
       message.error("Invalid username or password");
-      form.resetFields(["password"]);
+      form.setFieldsValue({ password: "" });
     } finally {
       setLoading(false);
     }

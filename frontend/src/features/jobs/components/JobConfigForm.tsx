@@ -52,7 +52,7 @@ export default function JobConfigForm({
   confirmLoading,
 }: JobConfigFormProps) {
   const [form] = Form.useForm();
-  const [profileForm] = Form.useForm<{ profile_key: string }>();
+  const [profileForm] = Form.useForm<{ new_profile_key: string }>();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
@@ -100,18 +100,26 @@ export default function JobConfigForm({
   };
 
   const handleOk = async () => {
-    const values = await form.validateFields();
-    await onSubmit(values);
-    form.resetFields();
+    try {
+      const values = await form.validateFields();
+      await onSubmit(values);
+      form.resetFields();
+    } catch {
+      // Ignore validation errors (handled by Form UI)
+    }
   };
 
   const handleCreateProfile = async () => {
     if (!onCreateProfile) return;
-    const values = await profileForm.validateFields();
-    await onCreateProfile(values.profile_key, platform);
-    form.setFieldsValue({ profile_key: values.profile_key });
-    profileForm.resetFields();
-    setProfileModalOpen(false);
+    try {
+      const values = await profileForm.validateFields();
+      await onCreateProfile(values.new_profile_key, platform);
+      form.setFieldsValue({ profile_key: values.new_profile_key });
+      profileForm.resetFields();
+      setProfileModalOpen(false);
+    } catch {
+      // Ignore validation errors (handled by Form UI)
+    }
   };
 
   return (
@@ -223,7 +231,7 @@ export default function JobConfigForm({
       >
         <Form form={profileForm} layout="vertical">
           <Form.Item
-            name="profile_key"
+            name="new_profile_key"
             label="Profile Key"
             rules={[{ required: true }]}
           >

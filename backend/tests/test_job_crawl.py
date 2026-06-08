@@ -230,7 +230,7 @@ class TestProcessJobResults:
             mock_session.return_value.__aexit__.return_value = None
 
             with patch("app.domains.jobs.crawl_service.update_job_detail", new_callable=AsyncMock):
-                result = await process_job_results(1, [{"job_id": "abc123", "title": "Dev"}], 1)
+                result = await process_job_results(1, [{"job_id": "abc123", "title": "Dev"}])
 
         assert result["new_count"] == 1
         assert result["deactivated_count"] == 0
@@ -274,7 +274,6 @@ class TestProcessJobResults:
                 result = await process_job_results(
                     1,
                     [{"job_id": "abc123", "title": "Dev", "description": "Already in search JSON"}],
-                    1,
                     platform="boss",
                 )
 
@@ -325,7 +324,6 @@ class TestProcessJobResults:
                 result = await process_job_results(
                     1,
                     [{"job_id": "abc123", "title": "Dev", "description": "Already in search JSON"}],
-                    1,
                     platform="51job",
                 )
 
@@ -370,7 +368,6 @@ class TestProcessJobResults:
                     {"job_id": "abc123", "title": "First", "description": "D"},
                     {"job_id": "abc123", "title": "Duplicate", "description": "D"},
                 ],
-                2,
                 platform="51job",
             )
 
@@ -412,7 +409,7 @@ class TestProcessJobResults:
             mock_session.return_value.__aenter__.return_value = mock_db
             mock_session.return_value.__aexit__.return_value = None
 
-            result = await process_job_results(1, [{"job_id": "abc123", "title": "New Title"}], 1)
+            result = await process_job_results(1, [{"job_id": "abc123", "title": "New Title"}])
 
         assert result["new_count"] == 0
         assert result["updated_count"] == 1
@@ -467,7 +464,6 @@ class TestProcessJobResults:
                 result = await process_job_results(
                     1,
                     [{"job_id": "abc123", "title": "Dev", "description": "", "address": ""}],
-                    1,
                 )
 
         assert result["updated_count"] == 1
@@ -534,7 +530,6 @@ class TestProcessJobResults:
                 result = await process_job_results(
                     1,
                     [{"job_id": "75755585", "title": "Dev", "description": "", "address": ""}],
-                    1,
                     platform="liepin",
                 )
 
@@ -577,7 +572,7 @@ class TestProcessJobResults:
             mock_session.return_value.__aexit__.return_value = None
 
             # Crawl has "xyz" (so seen_job_ids is non-empty), but "abc" is absent
-            result = await process_job_results(999, [{"job_id": "xyz", "title": "Other"}], 1)
+            result = await process_job_results(999, [{"job_id": "xyz", "title": "Other"}])
 
         assert result["deactivated_count"] == 1
         assert existing_job.is_active is False
@@ -618,7 +613,7 @@ class TestProcessJobResults:
             mock_session.return_value.__aexit__.return_value = None
 
             # Crawl has "xyz" (so seen_job_ids is non-empty), but "abc" is absent
-            result = await process_job_results(999, [{"job_id": "xyz", "title": "Other"}], 1)
+            result = await process_job_results(999, [{"job_id": "xyz", "title": "Other"}])
 
         assert result["deactivated_count"] == 0
         assert existing_job.is_active is True
@@ -978,7 +973,7 @@ class TestAdapterSharing:
             job_crawl._JOB_CRAWL_LOCK.release()
 
         assert result["status"] == "skipped"
-        assert result["reason"] == "another_job_crawl_in_progress"
+        assert result["error"] == "another_job_crawl_in_progress"
 
 
 def test_config_profile_key_extracts_from_config():

@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 import { eventsApi } from "./api/events";
+import { mergeRealtimeEvent } from "./realtimeState";
 import type { EventCenterItem, EventCenterQuery, EventKind } from "./types";
 
 const { RangePicker } = DatePicker;
@@ -37,12 +38,14 @@ type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 export default function EventCenterPage() {
   const message = App.useApp().message;
   const stagger = useStaggerAnimation();
-  const [items, setItems] = useState<EventCenterItem[]>([]);
+  const [{ items, total }, setEventState] = useState({
+    items: [] as EventCenterItem[],
+    total: 0,
+  });
   const [selectedItem, setSelectedItem] = useState<EventCenterItem | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [kind, setKind] = useState<EventKind>("all");
@@ -93,8 +96,10 @@ export default function EventCenterPage() {
         if (cancelled) {
           return;
         }
-        setItems(response.items);
-        setTotal(response.total);
+        setEventState({
+          items: response.items,
+          total: response.total,
+        });
       } catch (error: unknown) {
         if (cancelled) {
           return;
@@ -127,17 +132,9 @@ export default function EventCenterPage() {
     eventSource.onmessage = (event) => {
       try {
         const nextItem = JSON.parse(event.data) as EventCenterItem;
-        let isNew = false;
-        setItems((current) => {
-          if (current.some((item) => item.id === nextItem.id)) {
-            return current;
-          }
-          isNew = true;
-          return [nextItem, ...current].slice(0, pageSize);
-        });
-        if (isNew) {
-          setTotal((current) => current + 1);
-        }
+        setEventState((current) =>
+          mergeRealtimeEvent(current, nextItem, pageSize),
+        );
       } catch {
         message.warning("Realtime event payload could not be parsed");
       }

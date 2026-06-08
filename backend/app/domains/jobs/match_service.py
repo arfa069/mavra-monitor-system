@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 
 from sqlalchemy import case, desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.task_registry import CrawlTask
 from app.core.user_config_cache import get_cached_user_config
 from app.database import AsyncSessionLocal
 from app.domains.jobs.llm.provider import MatchAnalysis, get_llm_provider
@@ -64,10 +66,10 @@ async def _get_jobs_needing_analysis(
 
 
 async def run_match_analysis_task(
-    task,
+    task: CrawlTask,
     resume_id: int,
     job_ids: list[int],
-    db=None,
+    db: AsyncSession | None = None,
 ) -> None:
     """Run match analysis in background, updating task progress.
 
@@ -87,18 +89,23 @@ async def run_match_analysis_task(
         else:
             async with AsyncSessionLocal() as db:
                 await _execute_match_analysis(task, resume_id, job_ids, db)
-    except Exception as e:
+    except (ValueError, ConnectionError, TimeoutError) as exc:
+        logger.warning("Match analysis failed for resume %s: %s", resume_id, exc)
         task.status = TaskStatus.FAILED
-        task.reason = str(e)
+        task.reason = str(exc)
+    except Exception:
+        logger.exception("Unexpected error in match analysis for resume %s", resume_id)
+        task.status = TaskStatus.FAILED
+        task.reason = "match_analysis_failed"
 
 
 async def _execute_match_analysis(
-    task,
+    task: CrawlTask,
     resume_id: int,
     job_ids: list[int],
-    db,
+    db: AsyncSession,
     *,
-    progress_callback=None,
+    progress_callback: Callable[[CrawlTask], Awaitable[None]] | None = None,
     user_id: int | None = None,
 ) -> None:
     """Internal: execute match analysis with an open db session.
@@ -253,8 +260,10 @@ async def _execute_match_analysis(
             top_analysis = sorted_notify_jobs[0][1]
             lines.append(f"结论：{top_analysis.apply_recommendation}")
             await send_feishu_notification(webhook_url, "\n".join(lines))
+        except (ValueError, ConnectionError, TimeoutError) as exc:
+            logger.warning("Failed to send Feishu notification: %s", exc)
         except Exception:
-            pass
+            logger.exception("Failed to send Feishu notification (unexpected error)")
 
     # Determine final status
     attempted = task.success + task.errors
@@ -453,8 +462,10 @@ async def analyze_resume_vs_jobs(
                 top_analysis = sorted_notify_jobs[0][1]
                 lines.append(f"结论：{top_analysis.apply_recommendation}")
                 await send_feishu_notification(webhook_url, "\n".join(lines))
+            except (ValueError, ConnectionError, TimeoutError) as exc:
+                logger.warning("Failed to send Feishu notification: %s", exc)
             except Exception:
-                pass
+                logger.exception("Failed to send Feishu notification (unexpected error)")
 
         items_result = await db.execute(
             select(MatchResult)

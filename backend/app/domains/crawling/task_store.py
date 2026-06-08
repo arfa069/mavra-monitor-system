@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import socket
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.task_registry import CrawlTask, TaskStatus
 from app.models.crawl_task import CrawlTaskRecord
+from app.utils.time import now_utc
 
 DEFAULT_TASK_LEASE_SECONDS = 60 * 60
 
@@ -35,10 +36,6 @@ def task_types_for_kinds(kinds: set[str]) -> set[str]:
     return task_types
 
 
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
 def _owner() -> str:
     return f"api:{socket.gethostname()}"
 
@@ -56,7 +53,7 @@ async def create_crawl_task_record(
     parent_task_id: str | None = None,
     payload: dict | None = None,
 ) -> CrawlTaskRecord:
-    now = _now()
+    now = now_utc()
     record = CrawlTaskRecord(
         task_id=uuid.uuid4().hex,
         parent_task_id=parent_task_id,
@@ -88,7 +85,7 @@ async def renew_task_lease(
     lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
     now: datetime | None = None,
 ) -> CrawlTaskRecord:
-    current = now or _now()
+    current = now or now_utc()
     record.heartbeat_at = current
     record.lease_until = current + timedelta(seconds=lease_seconds)
     record.updated_at = current
@@ -133,7 +130,7 @@ async def sync_record_from_runtime_task(
     record: CrawlTaskRecord,
     task: CrawlTask,
 ) -> CrawlTaskRecord:
-    now = _now()
+    now = now_utc()
     status = task.status.value if isinstance(task.status, TaskStatus) else str(task.status)
     record.status = status
     record.total = task.total
@@ -164,7 +161,7 @@ async def mark_task_running(
     lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
     now: datetime | None = None,
 ) -> CrawlTaskRecord:
-    current = now or _now()
+    current = now or now_utc()
     record.status = TaskStatus.RUNNING.value
     record.locked_by = owner or _owner()
     record.lease_until = current + timedelta(seconds=lease_seconds)
@@ -186,7 +183,7 @@ async def claim_next_pending_task(
     lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
     now: datetime | None = None,
 ) -> CrawlTaskRecord | None:
-    current = now or _now()
+    current = now or now_utc()
     task_types = task_types_for_kinds(kinds)
     if not task_types:
         return None
@@ -236,7 +233,7 @@ async def renew_task_lease_by_id(
     lease_seconds: int = DEFAULT_TASK_LEASE_SECONDS,
     now: datetime | None = None,
 ) -> bool:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlTaskRecord).where(
             CrawlTaskRecord.task_id == task_id,
@@ -263,7 +260,7 @@ async def requeue_claimed_task(
     retry_delay_seconds: float | None = None,
     now: datetime | None = None,
 ) -> bool:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlTaskRecord).where(
             CrawlTaskRecord.task_id == task_id,
@@ -305,7 +302,7 @@ async def recover_stale_running_tasks(
     owner_reason: str = "worker_restarted",
     now: datetime | None = None,
 ) -> int:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlTaskRecord).where(
             CrawlTaskRecord.status == TaskStatus.RUNNING.value,

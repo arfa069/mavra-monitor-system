@@ -55,6 +55,7 @@ export default function JobsPage() {
   const CRAWLING_IDS_KEY = ["crawling", "config-ids"] as const;
   const { data: crawlingConfigIds = new Set<number>() } = useQuery({
     queryKey: CRAWLING_IDS_KEY,
+    queryFn: () => new Set<number>(),
     initialData: new Set<number>(),
     staleTime: Infinity,
     gcTime: Infinity,

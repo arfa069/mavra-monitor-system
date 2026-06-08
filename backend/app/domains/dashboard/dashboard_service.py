@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import psutil
 from sqlalchemy import case, func, select
 
+from app.core.json_utils import safe_json_dumps
 from app.models.alert import Alert
 from app.models.crawl_log import CrawlLog
 from app.models.job_crawl_log import JobCrawlLog
@@ -23,6 +24,7 @@ from app.schemas.dashboard import (
     TrendResponse,
     UserKPI,
 )
+from app.utils.time import today_start_utc
 
 if TYPE_CHECKING:
     import redis.asyncio as redis
@@ -77,16 +79,14 @@ class DashboardService:
 
         try:
             await self.redis.setex(
-                key, ttl, json.dumps(value, ensure_ascii=False)
+                key, ttl, safe_json_dumps(value)
             )
         except Exception:
             return
 
     async def _calculate_user_kpi_uncached(self, user_id: int) -> UserKPI:
         """Calculate personal KPI metrics for a user."""
-        today_start = datetime.now(UTC).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        today_start = today_start_utc()
 
         # Total products — N+1 optimized: parallel COUNT queries
         product_count_q = select(func.count()).select_from(Product).where(
@@ -224,9 +224,7 @@ class DashboardService:
 
     async def _calculate_system_kpi_uncached(self) -> SystemKPI:
         """Calculate system-level KPI metrics."""
-        today_start = datetime.now(UTC).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        today_start = today_start_utc()
 
         # Total users
         users_result = await self.db.execute(
@@ -363,35 +361,45 @@ class DashboardService:
     async def _get_price_change_trends_uncached(
         self, user_id: int, days: int
     ) -> TrendResponse:
-        """Get average price change percentage trend data."""
+        """Get average price change percentage trend data using SQL window functions."""
         start_date = datetime.now(UTC) - timedelta(days=days)
 
-        result = await self.db.execute(
-            select(Product.id, PriceHistory.price, PriceHistory.scraped_at)
+        sub = (
+            select(
+                PriceHistory.price,
+                PriceHistory.scraped_at,
+                func.lag(PriceHistory.price).over(
+                    partition_by=PriceHistory.product_id,
+                    order_by=PriceHistory.scraped_at,
+                ).label("prev_price"),
+            )
             .join(Product, PriceHistory.product_id == Product.id)
             .where(
                 Product.user_id == user_id,
                 PriceHistory.scraped_at >= start_date,
             )
-            .order_by(Product.id, PriceHistory.scraped_at)
+            .subquery()
         )
 
-        changes_by_date: dict[str, list[float]] = {}
-        previous_by_product: dict[int, float] = {}
-        for product_id, price, scraped_at in result.all():
-            current_price = float(price or 0)
-            previous_price = previous_by_product.get(product_id)
-            if previous_price and previous_price > 0:
-                label = str(scraped_at.date())
-                change = ((current_price - previous_price) / previous_price) * 100
-                changes_by_date.setdefault(label, []).append(change)
-            previous_by_product[product_id] = current_price
+        change_expr = ((sub.c.price - sub.c.prev_price) / sub.c.prev_price) * 100
 
-        labels = sorted(changes_by_date)
-        values = [
-            round(sum(changes_by_date[label]) / len(changes_by_date[label]), 2)
-            for label in labels
-        ]
+        stmt = (
+            select(
+                func.date(sub.c.scraped_at).label("label"),
+                func.avg(change_expr).label("avg_change"),
+            )
+            .where(
+                sub.c.prev_price.isnot(None),
+                sub.c.prev_price > 0,
+            )
+            .group_by(func.date(sub.c.scraped_at))
+            .order_by(func.date(sub.c.scraped_at))
+        )
+
+        result = await self.db.execute(stmt)
+        rows = result.all()
+        labels = [str(row.label) for row in rows]
+        values = [round(float(row.avg_change or 0), 2) for row in rows]
 
         return TrendResponse(
             labels=labels,

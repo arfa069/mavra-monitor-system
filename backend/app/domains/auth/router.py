@@ -39,7 +39,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.audit import log_audit
+from app.core.audit import log_audit, log_audit_from_request
 from app.core.auth_cookies import clear_auth_cookies, set_auth_cookies
 from app.core.permissions import get_role_permissions
 from app.core.security import (
@@ -225,15 +225,14 @@ async def login(
     )
 
     # ── Audit & commit ────────────────────────────────────────────────────
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="auth.login",
         actor_user_id=user.id,
         target_type="user",
         target_id=user.id,
         details={"username": user.username, "ip_address": ip_address},
-        ip_address=ip_address,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -360,15 +359,14 @@ async def logout(
     # Clear auth cookies regardless of session deletion success
     clear_auth_cookies(response)
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="auth.logout",
         actor_user_id=current_user.id,
         target_type="user",
         target_id=current_user.id,
         details={"username": current_user.username},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
     logger.info(f"User logged out: {current_user.username}")
@@ -545,16 +543,14 @@ async def change_password(
     logger.info(f"Password changed for user: {current_user.username}")
 
     # Best-effort audit after business commit
-    ip_address = request.client.host if request.client else ""
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.password_change",
         actor_user_id=current_user.id,
         target_type="user",
         target_id=current_user.id,
         details={"username": current_user.username},
-        ip_address=ip_address,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 

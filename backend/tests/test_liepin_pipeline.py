@@ -127,7 +127,6 @@ async def test_existing_job_missing_detail_is_enriched(monkeypatch):
     result = await process_job_results(
         1,
         [{"job_id": "liepin-1", "title": "Python", "description": "", "address": ""}],
-        1,
         platform="liepin",
     )
 

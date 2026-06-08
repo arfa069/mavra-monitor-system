@@ -35,6 +35,9 @@ class BasePlatformAdapter(ABC):
     _shared_context: BrowserContext | None = None
     _cdp_mode: bool = False
 
+    # Overall CDP crawl timeout — JS-heavy pages (Taobao/JD) need generous time
+    PRODUCT_CRAWL_TIMEOUT_SECONDS = 90
+
     def __init__(self):
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
@@ -164,7 +167,7 @@ class BasePlatformAdapter(ABC):
     async def crawl_with_page(self, url: str, page: Page) -> dict[str, Any]:
         """Crawl using an existing page (e.g., from BrowserManager session)."""
         try:
-            async with asyncio.timeout(90):
+            async with asyncio.timeout(self.PRODUCT_CRAWL_TIMEOUT_SECONDS):
                 await page.goto(url, wait_until="domcontentloaded", timeout=60000)
                 await page.wait_for_selector(
                     "[class*='price'], [class*='Price'], .p-price, .product-price",
@@ -194,7 +197,7 @@ class BasePlatformAdapter(ABC):
         except TimeoutError:
             return {
                 "success": False,
-                "error": "Crawl timeout: page took longer than 90s to respond",
+                "error": f"Crawl timeout: page took longer than {self.PRODUCT_CRAWL_TIMEOUT_SECONDS}s to respond",
             }
         except PlaywrightTimeoutError as e:
             return {
@@ -226,7 +229,7 @@ class BasePlatformAdapter(ABC):
         await self._init_browser()
 
         try:
-            async with asyncio.timeout(90):
+            async with asyncio.timeout(self.PRODUCT_CRAWL_TIMEOUT_SECONDS):
                 # Use domcontentloaded + explicit price selector wait instead of
                 # networkidle — networkidle stalls on JD due to ad trackers/WebSocket pings
                 await self._page.goto(url, wait_until="domcontentloaded", timeout=45000)
@@ -263,7 +266,7 @@ class BasePlatformAdapter(ABC):
         except TimeoutError:
             return {
                 "success": False,
-                "error": "Crawl timeout: page took longer than 90s to respond",
+                "error": f"Crawl timeout: page took longer than {self.PRODUCT_CRAWL_TIMEOUT_SECONDS}s to respond",
             }
         except PlaywrightTimeoutError as e:
             return {

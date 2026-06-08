@@ -22,7 +22,33 @@ from app.core.crawler_paths import build_profile_dir
 from app.core.system_log import emit_system_log_detached
 from app.domains.crawling import profile_service
 from app.domains.crawling.profile_pool import AVAILABLE, DISABLED, LOGIN_REQUIRED
+from app.domains.crawling.profile_utils import (
+    assert_profile_not_leased,
+)
 from app.models.crawl_profile import CrawlProfile
+
+
+async def _emit_profile_event(
+    profile_key: str,
+    event_type: str,
+    *,
+    message: str,
+    severity: str = "info",
+    status: str = "success",
+    payload: dict | None = None,
+) -> None:
+    """Emit a system log event for a profile runtime operation."""
+    await emit_system_log_detached(
+        category="runtime",
+        event_type=event_type,
+        source="crawler",
+        severity=severity,
+        status=status,
+        message=message,
+        entity_type="crawl_profile",
+        entity_id=profile_key,
+        payload=payload,
+    )
 
 _BACKUP_MAGIC = b"PM_PROFILE_BACKUP_V1\n"
 _SALT_SIZE = 16
@@ -98,11 +124,6 @@ def runtime_capabilities() -> dict:
         "supports_profile_export": has_gui,
         "recommended_action": "open_login_browser" if has_gui else "import_profile_backup",
     }
-
-
-def _assert_not_leased(profile: CrawlProfile) -> None:
-    if profile.lease_until is not None and profile.lease_until > datetime.now(UTC):
-        raise profile_service.CrawlProfileLeaseActiveError(profile.profile_key)
 
 
 def _derive_key(password: str, salt: bytes) -> bytes:
@@ -183,7 +204,7 @@ async def open_login_session(
         if not caps["supports_login_session"]:
             raise ProfileRuntimeUnsupportedError("Current server does not support visible browser sessions")
         profile = await profile_service.get_profile(db, profile_key)
-        _assert_not_leased(profile)
+        assert_profile_not_leased(profile)
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
 
@@ -209,15 +230,12 @@ async def open_login_session(
             context, page = await _run_on_profile_executor(executor, _open)
         except Exception as exc:
             executor.shutdown(wait=False, cancel_futures=True)
-            await emit_system_log_detached(
-                category="runtime",
-                event_type="profile_login.session_failed",
-                source="crawler",
+            await _emit_profile_event(
+                profile_key,
+                "profile_login.session_failed",
                 severity="error",
                 status="failed",
                 message=f"Profile login session failed for {profile_key}",
-                entity_type="crawl_profile",
-                entity_id=profile_key,
                 payload={"profile_key": profile_key, "platform": platform_name, "reason": str(exc)},
             )
             raise
@@ -231,15 +249,11 @@ async def open_login_session(
             executor=executor,
             started_at=time.time(),
         )
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_login.session_started",
-            source="crawler",
-            severity="info",
+        await _emit_profile_event(
+            profile_key,
+            "profile_login.session_started",
             status="running",
             message=f"Profile login session started for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key, "platform": platform_name},
         )
         return {"profile_key": profile_key, "platform": platform_name, "status": "active", "start_url": url}
@@ -279,15 +293,11 @@ async def close_login_session(profile_key: str) -> dict:
             await _run_on_profile_executor(session.executor, session.context.close)
         finally:
             session.executor.shutdown(wait=False, cancel_futures=True)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_login.session_closed",
-            source="crawler",
-            severity="info",
+        await _emit_profile_event(
+            profile_key,
+            "profile_login.session_closed",
             status="closed",
             message=f"Profile login session closed for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key, "platform": session.platform},
         )
         return {
@@ -301,21 +311,16 @@ async def close_login_session(profile_key: str) -> dict:
 async def export_profile_backup(db: AsyncSession, *, profile_key: str, password: str) -> bytes:
     async with _profile_lock(profile_key):
         profile = await profile_service.get_profile(db, profile_key)
-        _assert_not_leased(profile)
+        assert_profile_not_leased(profile)
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
         profile_dir = build_profile_dir(profile_key)
         data = await asyncio.to_thread(_make_tar_bytes, profile_dir)
         encrypted = await asyncio.to_thread(_encrypt, data, password)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_backup.exported",
-            source="crawler",
-            severity="info",
-            status="success",
+        await _emit_profile_event(
+            profile_key,
+            "profile_backup.exported",
             message=f"Profile backup exported for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key},
         )
         return encrypted
@@ -331,7 +336,7 @@ async def import_profile_backup(
 ) -> CrawlProfile:
     async with _profile_lock(profile_key):
         profile = await profile_service.get_profile(db, profile_key)
-        _assert_not_leased(profile)
+        assert_profile_not_leased(profile)
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
         profile_dir = build_profile_dir(profile_key)
@@ -348,15 +353,10 @@ async def import_profile_backup(
         profile.updated_at = datetime.now(UTC)
         await db.commit()
         await db.refresh(profile)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_backup.imported",
-            source="crawler",
-            severity="info",
-            status="success",
+        await _emit_profile_event(
+            profile_key,
+            "profile_backup.imported",
             message=f"Profile backup imported for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key},
         )
         return profile
@@ -371,7 +371,7 @@ async def test_profile(
 ) -> dict:
     async with _profile_lock(profile_key):
         profile = await profile_service.get_profile(db, profile_key)
-        _assert_not_leased(profile)
+        assert_profile_not_leased(profile)
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
         url = start_url or default_start_url(platform_name)
@@ -401,15 +401,11 @@ async def test_profile(
                 return "login_required", "Login or verification is required"
             return "ready", None
 
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_login.test_started",
-            source="crawler",
-            severity="info",
+        await _emit_profile_event(
+            profile_key,
+            "profile_login.test_started",
             status="running",
             message=f"Profile test started for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key, "platform": platform_name},
         )
         try:
@@ -427,15 +423,12 @@ async def test_profile(
         profile.updated_at = datetime.now(UTC)
         await db.commit()
         await db.refresh(profile)
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="profile_login.test_completed" if status == "ready" else "profile_login.test_failed",
-            source="crawler",
+        await _emit_profile_event(
+            profile_key,
+            "profile_login.test_completed" if status == "ready" else "profile_login.test_failed",
             severity="info" if status == "ready" else "warning",
             status=status,
             message=f"Profile test {status} for {profile_key}",
-            entity_type="crawl_profile",
-            entity_id=profile_key,
             payload={"profile_key": profile_key, "platform": platform_name},
         )
         return {"profile_key": profile_key, "platform": platform_name, "status": status, "message": message}

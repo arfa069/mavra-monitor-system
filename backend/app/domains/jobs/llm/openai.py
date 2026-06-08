@@ -2,20 +2,11 @@
 
 from __future__ import annotations
 
-import json
-import re
-
 import httpx
 
 from app.config import settings
 from app.domains.jobs.llm.provider import LLMProvider, MatchAnalysis
-
-
-def _extract_json(content: str) -> dict:
-    match = re.search(r"\{.*\}", content, flags=re.S)
-    if not match:
-        raise ValueError("No JSON payload found in LLM response")
-    return json.loads(match.group(0))
+from app.domains.jobs.llm.utils import extract_json
 
 
 class OpenAIProvider(LLMProvider):
@@ -61,7 +52,7 @@ class OpenAIProvider(LLMProvider):
             data = response.json()
 
         content = data["choices"][0]["message"]["content"]
-        result = _extract_json(content)
+        result = extract_json(content)
         return MatchAnalysis(
             match_score=int(result["match_score"]),
             match_reason=str(result["match_reason"]),

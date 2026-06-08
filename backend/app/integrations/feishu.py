@@ -4,6 +4,16 @@ from __future__ import annotations
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    """Return a shared AsyncClient instance (created on first call)."""
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(timeout=10.0)
+    return _client
+
 
 @retry(
     stop=stop_after_attempt(3),
@@ -32,7 +42,7 @@ async def send_feishu_notification(webhook_url: str, message: str) -> dict:
         },
     }
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(webhook_url, json=payload)
-        response.raise_for_status()
-        return response.json()
+    client = _get_client()
+    response = await client.post(webhook_url, json=payload)
+    response.raise_for_status()
+    return response.json()

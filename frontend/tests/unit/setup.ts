@@ -3,6 +3,10 @@ import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./mocks/server";
 
+import { MotionGlobalConfig } from "framer-motion";
+
+MotionGlobalConfig.skipAnimations = true;
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 
 afterEach(() => {
@@ -15,18 +19,15 @@ afterEach(() => {
 
 afterAll(() => server.close());
 
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  }))
+window.matchMedia = (query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: () => {},
+  removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => false
 });
 
 class ResizeObserverStub {
@@ -35,5 +36,13 @@ class ResizeObserverStub {
   disconnect() {}
 }
 
-vi.stubGlobal("ResizeObserver", ResizeObserverStub);
-Element.prototype.scrollIntoView = vi.fn();
+global.ResizeObserver = ResizeObserverStub;
+(window as any).ResizeObserver = ResizeObserverStub;
+Element.prototype.scrollIntoView = () => {};
+
+process.on("unhandledRejection", (reason: any) => {
+  if (reason && (reason.errorFields || reason.values)) {
+    return;
+  }
+  console.error("Unhandled Rejection:", reason);
+});

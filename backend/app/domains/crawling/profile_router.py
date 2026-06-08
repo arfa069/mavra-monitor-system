@@ -22,10 +22,40 @@ from app.schemas.crawl_profile import (
 
 router = APIRouter(prefix="/crawl-profiles", tags=["crawl-profiles"])
 
+# All profile exceptions that map to HTTPException responses
+_PROFILE_EXCEPTIONS = (
+    profile_service.CrawlProfileNotFoundError,
+    profile_service.CrawlProfileLeaseActiveError,
+    profile_service.CrawlProfileAlreadyExistsError,
+    profile_service.CrawlProfileInUseError,
+    profile_runtime_service.ProfileAlreadyOpenError,
+    profile_runtime_service.ProfileRuntimeUnsupportedError,
+    profile_runtime_service.ProfileBackupError,
+)
+
 
 def _require_admin(current_user: User) -> None:
     if current_user.role not in {"admin", "super_admin"}:
         raise HTTPException(status_code=403, detail="Admin role required")
+
+
+def _raise_profile_http(exc: Exception) -> None:
+    """Map profile domain exceptions to HTTPExceptions."""
+    if isinstance(exc, profile_service.CrawlProfileNotFoundError):
+        raise HTTPException(status_code=404, detail="Profile not found") from exc
+    if isinstance(exc, profile_service.CrawlProfileLeaseActiveError):
+        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    if isinstance(exc, profile_service.CrawlProfileAlreadyExistsError):
+        raise HTTPException(status_code=409, detail="Profile already exists") from exc
+    if isinstance(exc, profile_service.CrawlProfileInUseError):
+        raise HTTPException(status_code=409, detail="Profile is used by configs") from exc
+    if isinstance(exc, profile_runtime_service.ProfileAlreadyOpenError):
+        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
+    if isinstance(exc, profile_runtime_service.ProfileRuntimeUnsupportedError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if isinstance(exc, profile_runtime_service.ProfileBackupError):
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    raise
 
 
 @router.get("/runtime-capabilities", response_model=CrawlProfileRuntimeCapabilities)
@@ -71,12 +101,8 @@ async def rename_profile(
             profile_key=profile_key,
             new_profile_key=data.profile_key,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_service.CrawlProfileAlreadyExistsError as exc:
-        raise HTTPException(status_code=409, detail="Profile already exists") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.post("/{profile_key}/copy", response_model=CrawlProfileResponse, status_code=status.HTTP_201_CREATED)
@@ -89,12 +115,8 @@ async def copy_profile(
         raise HTTPException(status_code=409, detail="Profile login session is already open")
     try:
         return await profile_service.copy_profile(db, profile_key=profile_key)
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_service.CrawlProfileAlreadyExistsError as exc:
-        raise HTTPException(status_code=409, detail="Profile already exists") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.delete("/{profile_key}", status_code=status.HTTP_204_NO_CONTENT)
@@ -107,12 +129,8 @@ async def delete_profile(
         raise HTTPException(status_code=409, detail="Profile login session is already open")
     try:
         await profile_service.delete_profile(db, profile_key=profile_key)
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_service.CrawlProfileInUseError as exc:
-        raise HTTPException(status_code=409, detail="Profile is used by configs") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
     return None
 
 
@@ -131,10 +149,8 @@ async def update_profile(
             platform_hint=data.platform_hint,
             last_error=data.last_error,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.post("/{profile_key}/release-stale", response_model=CrawlProfileResponse)
@@ -145,10 +161,8 @@ async def release_stale_profile(
 ):
     try:
         return await profile_service.release_stale_profile(db, profile_key=profile_key)
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.post("/{profile_key}/login-session", response_model=CrawlProfileLoginSessionResponse)
@@ -165,14 +179,8 @@ async def open_login_session(
             platform_name=data.platform,
             start_url=data.start_url,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_runtime_service.ProfileAlreadyOpenError as exc:
-        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
-    except profile_runtime_service.ProfileRuntimeUnsupportedError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.get("/{profile_key}/login-session", response_model=CrawlProfileLoginSessionResponse)
@@ -205,12 +213,8 @@ async def test_profile(
             platform_name=data.platform,
             start_url=data.start_url,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_runtime_service.ProfileAlreadyOpenError as exc:
-        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
 
 
 @router.post("/{profile_key}/export")
@@ -227,12 +231,8 @@ async def export_profile_backup(
             profile_key=profile_key,
             password=data.password,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except profile_runtime_service.ProfileAlreadyOpenError as exc:
-        raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
     return Response(
         content=content,
         media_type="application/octet-stream",
@@ -258,13 +258,6 @@ async def import_profile_backup(
             data=await file.read(),
             force=force,
         )
-    except profile_service.CrawlProfileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail="Profile not found") from exc
-    except profile_service.CrawlProfileLeaseActiveError as exc:
-        raise HTTPException(status_code=409, detail="Profile lease is still active") from exc
-    except (
-        profile_runtime_service.ProfileAlreadyOpenError,
-        profile_runtime_service.ProfileBackupError,
-    ) as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except _PROFILE_EXCEPTIONS as exc:
+        _raise_profile_http(exc)
     return CrawlProfileBackupImportResponse(profile_key=profile_key, imported=True)

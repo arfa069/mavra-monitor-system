@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.json_utils import safe_json_dumps
 from app.domains.jobs.runtime import JobCrawlRuntimeContext
 
 
@@ -43,4 +43,4 @@ class JobRuntimeJsonlLogger:
         }
         payload.update(fields)
         with self.log_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False, default=str) + "\n")
+            handle.write(safe_json_dumps(payload, default=str) + "\n")

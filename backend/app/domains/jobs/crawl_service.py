@@ -5,6 +5,7 @@ import asyncio
 import logging
 import random
 import re
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -32,12 +33,17 @@ logger = logging.getLogger(__name__)
 
 VALID_JOB_PLATFORMS = {"boss", "51job", "liepin"}
 _JOB_CRAWL_LOCK = asyncio.Lock()
+# Allow 2 cooldown cycles before abandoning detail fetch on repeated cookie failures
 DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2
 DETAIL_RETRY_DELAY_SECONDS = (20.0, 40.0)
 DETAIL_FETCH_DELAY_SECONDS = (5.0, 10.0)
 DETAIL_FETCH_TIMEOUT_SECONDS = 15.0
+# Stop after 1 WAF block to avoid triggering stricter anti-bot measures
 DETAIL_WAF_BLOCK_LIMIT = 1
+# Retry up to 3 times on transient timeouts before giving up
 DETAIL_TIMEOUT_LIMIT = 3
+# Stagger sequential config crawls to stay under platform rate limits
+CONFIG_CRAWL_DELAY_SECONDS = (3.0, 6.0)
 
 
 async def _emit_job_crawl_enqueued(
@@ -59,6 +65,54 @@ async def _emit_job_crawl_enqueued(
         entity_type=entity_type,
         entity_id=entity_id,
         payload={"task_id": task.task_id, **payload},
+    )
+
+
+_RE_SALARY_BONUS = re.compile(r'·\d+薪')
+_RE_SALARY_SPACES = re.compile(r'\s+')
+_RE_SALARY_RANGE = re.compile(r'(\d+)[kK]?-(\d+)[kK]?')
+_RE_SALARY_SINGLE = re.compile(r'^(\d+)[kK]?$')
+
+
+async def _emit_job_match_enqueued(
+    user_id: int,
+    resume_id: int,
+    task_id: str,
+    total: int,
+) -> None:
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_match_analysis.enqueued",
+        source="jobs",
+        severity="info",
+        status="pending",
+        message=f"Auto match analysis enqueued for resume {resume_id}",
+        user_id=user_id,
+        entity_type="resume",
+        entity_id=str(resume_id),
+        payload={"task_id": task_id, "resume_id": resume_id, "job_count": total, "source": "crawl_auto"},
+    )
+
+
+async def _emit_job_crawl_result(
+    user_id: int,
+    task_id: str,
+    total: int,
+    success: int,
+    errors: int,
+) -> None:
+    ok = errors == 0
+    await emit_system_log_detached(
+        category="runtime",
+        event_type="job_crawl.completed" if ok else "job_crawl.failed",
+        source="jobs",
+        severity="info" if ok else "error",
+        status="completed" if ok else "failed",
+        message=f"Job crawl for all active configs {'completed' if ok else 'failed'}",
+        user_id=user_id,
+        entity_type="job_crawl",
+        entity_id=task_id,
+        payload={"task_id": task_id, "total": total, "success": success, "errors": errors},
     )
 
 
@@ -160,21 +214,18 @@ def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
         return None, None
 
     # Remove bonus part like "·14薪"
-    salary_str = re.sub(r'·\d+薪', '', salary_str)
+    salary_str = _RE_SALARY_BONUS.sub('', salary_str)
 
-    # Match patterns like "20-40K", "20K", "20-40k", "面议"
     if salary_str in ('面议', '薪资面议', '薪资面议 '):
         return None, None
 
-    # Remove spaces and clean up
-    salary_str = re.sub(r'\s+', '', salary_str)
+    salary_str = _RE_SALARY_SPACES.sub('', salary_str)
 
-    match = re.match(r'(\d+)[kK]?-(\d+)[kK]?', salary_str)
+    match = _RE_SALARY_RANGE.match(salary_str)
     if match:
         return int(match.group(1)), int(match.group(2))
 
-    # Single value like "20K"
-    match = re.match(r'^(\d+)[kK]?$', salary_str.strip())
+    match = _RE_SALARY_SINGLE.match(salary_str.strip())
     if match:
         val = int(match.group(1))
         return val, val
@@ -185,7 +236,6 @@ def parse_salary(salary_str: str | None) -> tuple[int | None, int | None]:
 async def process_job_results(
     config_id: int,
     jobs: list[dict],
-    total_scraped: int,
     adapter: BasePlatformAdapter | None = None,
     *,
     platform: str = "boss",
@@ -195,7 +245,6 @@ async def process_job_results(
     Args:
         config_id: The JobSearchConfig ID that was crawled
         jobs: List of job data dicts from BossZhipinAdapter
-        total_scraped: Total number of jobs seen in this crawl (for logging)
 
     Returns:
         {"new_count": N, "updated_count": N, "deactivated_count": N}
@@ -222,7 +271,6 @@ async def process_job_results(
             logger.warning(f"JobSearchConfig {config_id} not found")
             return {"new_count": 0, "updated_count": 0, "deactivated_count": 0}
 
-        # Get job_ids seen in this crawl
         seen_job_ids = {job["job_id"] for job in jobs if job.get("job_id")}
 
         # Deactivate jobs that were seen last time but not this time (grace period)
@@ -239,16 +287,19 @@ async def process_job_results(
 
             for job in all_active_jobs:
                 if job.job_id in seen_job_ids:
-                    # Job is still present — reset counter
-                    job.consecutive_miss_count = 0
-                    job.last_active_at = datetime.now(UTC)
+                    # Job is still present — reset counter only if needed
+                    if job.consecutive_miss_count != 0:
+                        job.consecutive_miss_count = 0
+                        job.last_active_at = datetime.now(UTC)
                 else:
                     # Job not seen this crawl — increment miss counter
-                    job.consecutive_miss_count = (job.consecutive_miss_count or 0) + 1
-                    if job.consecutive_miss_count >= threshold:
-                        job.is_active = False
-                        job.last_updated_at = datetime.now(UTC)
-                        deactivated_count += 1
+                    new_miss = (job.consecutive_miss_count or 0) + 1
+                    if new_miss != job.consecutive_miss_count:
+                        job.consecutive_miss_count = new_miss
+                        if new_miss >= threshold and job.is_active:
+                            job.is_active = False
+                            job.last_updated_at = datetime.now(UTC)
+                            deactivated_count += 1
 
         # Batch query: find all jobs by job_id in ONE query
         job_ids = [job["job_id"] for job in jobs if job.get("job_id")]
@@ -274,29 +325,41 @@ async def process_job_results(
             job_data = job_id_to_data[job_id]
             salary = job_data.get("salary")
             salary_min, salary_max = parse_salary(salary)
-            # Update existing job
-            job_obj.last_updated_at = datetime.now(UTC)
-            job_obj.is_active = True
-            if job_data.get("title"):
+            has_changes = False
+            if not job_obj.is_active:
+                job_obj.is_active = True
+                has_changes = True
+            if job_data.get("title") and job_obj.title != job_data["title"]:
                 job_obj.title = job_data["title"]
-            if job_data.get("company"):
+                has_changes = True
+            if job_data.get("company") and job_obj.company != job_data["company"]:
                 job_obj.company = job_data["company"]
-            if salary:
+                has_changes = True
+            if salary and job_obj.salary != salary:
                 job_obj.salary = salary
                 job_obj.salary_min = salary_min
                 job_obj.salary_max = salary_max
-            if job_data.get("location"):
+                has_changes = True
+            if job_data.get("location") and job_obj.location != job_data["location"]:
                 job_obj.location = job_data["location"]
-            if job_data.get("experience"):
+                has_changes = True
+            if job_data.get("experience") and job_obj.experience != job_data["experience"]:
                 job_obj.experience = job_data["experience"]
-            if job_data.get("education"):
+                has_changes = True
+            if job_data.get("education") and job_obj.education != job_data["education"]:
                 job_obj.education = job_data["education"]
-            if job_data.get("url"):
+                has_changes = True
+            if job_data.get("url") and job_obj.url != job_data["url"]:
                 job_obj.url = job_data["url"]
-            if job_data.get("description"):
+                has_changes = True
+            if job_data.get("description") and job_obj.description != job_data["description"]:
                 job_obj.description = job_data["description"]
-            if job_data.get("address"):
+                has_changes = True
+            if job_data.get("address") and job_obj.address != job_data["address"]:
                 job_obj.address = job_data["address"]
+                has_changes = True
+            if has_changes:
+                job_obj.last_updated_at = datetime.now(UTC)
             if not job_obj.description:
                 detail_jobs.append(job_obj)
             updated_count += 1
@@ -348,22 +411,34 @@ async def process_job_results(
                 key = (item["title"], item["company"], item["salary"])
                 existing_dup = dedup_map.get(key)
                 if existing_dup:
-                    # Update existing record with new job_id
-                    existing_dup.job_id = item["job_id"]
-                    existing_dup.last_updated_at = now
-                    existing_dup.is_active = True
-                    if item["location"]:
+                    # Update existing record with new job_id only when changed
+                    dup_changed = False
+                    if existing_dup.job_id != item["job_id"]:
+                        existing_dup.job_id = item["job_id"]
+                        dup_changed = True
+                    if not existing_dup.is_active:
+                        existing_dup.is_active = True
+                        dup_changed = True
+                    if item["location"] and existing_dup.location != item["location"]:
                         existing_dup.location = item["location"]
-                    if item["experience"]:
+                        dup_changed = True
+                    if item["experience"] and existing_dup.experience != item["experience"]:
                         existing_dup.experience = item["experience"]
-                    if item["education"]:
+                        dup_changed = True
+                    if item["education"] and existing_dup.education != item["education"]:
                         existing_dup.education = item["education"]
-                    if item["url"]:
+                        dup_changed = True
+                    if item["url"] and existing_dup.url != item["url"]:
                         existing_dup.url = item["url"]
-                    if item.get("description"):
+                        dup_changed = True
+                    if item.get("description") and existing_dup.description != item["description"]:
                         existing_dup.description = item["description"]
-                    if item.get("address"):
+                        dup_changed = True
+                    if item.get("address") and existing_dup.address != item["address"]:
                         existing_dup.address = item["address"]
+                        dup_changed = True
+                    if dup_changed:
+                        existing_dup.last_updated_at = now
                     if not existing_dup.description:
                         detail_jobs.append(existing_dup)
                     updated_count += 1
@@ -413,6 +488,8 @@ async def process_job_results(
         if new_count > 0 and config.notify_on_new:
             try:
                 await send_new_job_notification(config, new_count, total_scraped)
+            except (ValueError, ConnectionError, TimeoutError) as exc:
+                logger.warning("Failed to send job notification for config %s: %s", config_id, exc)
             except Exception:
                 logger.exception("Failed to send job notification for config %s", config_id)
 
@@ -440,97 +517,55 @@ async def process_job_results(
             cookie_failure_cooldowns = 0
             retry_detail_jobs: list[Job] = []
             for job_obj in detail_jobs:
-                try:
-                    logger.info("Fetching job detail: platform=%s job_id=%s db_id=%s", platform, job_obj.job_id, job_obj.id)
-                    result = await asyncio.wait_for(
-                        update_job_detail(
-                            job_obj,
-                            adapter=adapter,
-                            platform=platform,
-                            profile_key=_config_profile_key(config),
-                            db=db,
-                        ),
-                        timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
-                    )
-                    if isinstance(result, Exception):
-                        detail_errors += 1
-                        retry_detail_jobs.append(job_obj)
-                    elif isinstance(result, dict) and not result.get("success"):
-                        failure_category = result.get("failure_category") or ""
-                        err = str(result.get("error", ""))
-                        if platform == "liepin" and failure_category == "detail_unavailable":
-                            logger.info(
-                                "Detail fetch unavailable: platform=%s job_id=%s db_id=%s category=%s error=%s",
-                                platform,
-                                job_obj.job_id,
-                                job_obj.id,
-                                failure_category,
-                                err,
-                            )
-                            consecutive_cookie_failures = 0
-                            consecutive_waf_blocks = 0
-                            consecutive_detail_timeouts = 0
-                            continue
-                        detail_errors += 1
-                        logger.warning(
-                            "Detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
-                            platform,
-                            job_obj.job_id,
-                            job_obj.id,
-                            failure_category,
-                            err,
-                        )
-                        if "Blocked by Aliyun WAF" in err:
-                            consecutive_waf_blocks += 1
-                            logger.warning(
-                                "Detail fetch blocked by WAF: platform=%s job_id=%s db_id=%s consecutive=%d/%d",
-                                platform,
-                                job_obj.job_id,
-                                job_obj.id,
-                                consecutive_waf_blocks,
-                                DETAIL_WAF_BLOCK_LIMIT,
-                            )
-                            if platform == "51job" and consecutive_waf_blocks >= DETAIL_WAF_BLOCK_LIMIT:
-                                logger.warning("Bailing out of 51job detail fetch after repeated WAF blocks")
-                                break
-                            continue
-                        retry_detail_jobs.append(job_obj)
-                        consecutive_waf_blocks = 0
-                        if "code=37" in err or "code=36" in err or "Cookie expired" in err:
-                            consecutive_cookie_failures += 1
-                        else:
-                            consecutive_cookie_failures = 0
-                    else:
-                        detail_updates += 1
-                        consecutive_cookie_failures = 0
-                        consecutive_waf_blocks = 0
-                        consecutive_detail_timeouts = 0
-                except TimeoutError:
+                outcome, err = await _fetch_single_job_detail(
+                    job_obj, adapter, platform, config, db
+                )
+
+                if outcome == "success":
+                    detail_updates += 1
+                    consecutive_cookie_failures = 0
+                    consecutive_waf_blocks = 0
+                    consecutive_detail_timeouts = 0
+                elif outcome == "unavailable":
+                    consecutive_cookie_failures = 0
+                    consecutive_waf_blocks = 0
+                    consecutive_detail_timeouts = 0
+                    continue
+                elif outcome == "waf_block":
+                    detail_errors += 1
+                    consecutive_waf_blocks += 1
                     logger.warning(
-                        "Detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
-                        DETAIL_FETCH_TIMEOUT_SECONDS,
+                        "Detail fetch blocked by WAF: platform=%s job_id=%s db_id=%s consecutive=%d/%d",
                         platform,
                         job_obj.job_id,
                         job_obj.id,
+                        consecutive_waf_blocks,
+                        DETAIL_WAF_BLOCK_LIMIT,
                     )
+                    if platform == "51job" and consecutive_waf_blocks >= DETAIL_WAF_BLOCK_LIMIT:
+                        logger.warning("Bailing out of 51job detail fetch after repeated WAF blocks")
+                        break
+                    continue
+                elif outcome == "timeout":
                     detail_errors += 1
                     consecutive_cookie_failures += 1
                     consecutive_detail_timeouts += 1
                     if consecutive_detail_timeouts >= DETAIL_TIMEOUT_LIMIT:
                         logger.warning("Bailing out of detail fetch after %d consecutive timeouts", consecutive_detail_timeouts)
                         break
-                except Exception:
+                    continue
+                elif outcome == "cookie_retry":
                     detail_errors += 1
                     retry_detail_jobs.append(job_obj)
                     consecutive_cookie_failures += 1
-                    logger.exception(
-                        "Detail fetch raised: platform=%s job_id=%s db_id=%s",
-                        platform,
-                        job_obj.job_id,
-                        job_obj.id,
-                    )
+                    consecutive_waf_blocks = 0
+                else:  # retry
+                    detail_errors += 1
+                    retry_detail_jobs.append(job_obj)
+                    consecutive_waf_blocks = 0
+                    consecutive_cookie_failures = 0
 
-                # 连续 cookie 失败时先冷却，再继续串行补详情；多次冷却仍失败才停止。
+                # Cool down after consecutive cookie failures.
                 if consecutive_cookie_failures >= 3:
                     remaining = len(detail_jobs) - detail_jobs.index(job_obj) - 1
                     if cookie_failure_cooldowns < DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT:
@@ -555,7 +590,7 @@ async def process_job_results(
                     )
                     break
 
-                # 5-10秒间隔，避免触发反爬
+                # 5-10s interval to avoid anti-crawl triggers.
                 await asyncio.sleep(random.uniform(*DETAIL_FETCH_DELAY_SECONDS))
             if retry_detail_jobs:
                 retry_delay = random.uniform(*DETAIL_RETRY_DELAY_SECONDS)
@@ -566,30 +601,12 @@ async def process_job_results(
                 )
                 await asyncio.sleep(retry_delay)
                 for job_obj in retry_detail_jobs:
-                    try:
-                        logger.info("Retrying job detail: platform=%s job_id=%s db_id=%s", platform, job_obj.job_id, job_obj.id)
-                        result = await asyncio.wait_for(
-                            update_job_detail(
-                                job_obj,
-                                adapter=adapter,
-                                platform=platform,
-                                profile_key=_config_profile_key(config),
-                                db=db,
-                            ),
-                            timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
-                        )
-                        if isinstance(result, dict) and result.get("success"):
-                            detail_updates += 1
-                        elif isinstance(result, dict):
-                            logger.warning(
-                                "Retry detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
-                                platform,
-                                job_obj.job_id,
-                                job_obj.id,
-                                result.get("failure_category") or "",
-                                result.get("error") or "",
-                            )
-                    except TimeoutError:
+                    outcome, _ = await _fetch_single_job_detail(
+                        job_obj, adapter, platform, config, db
+                    )
+                    if outcome == "success":
+                        detail_updates += 1
+                    elif outcome == "timeout":
                         logger.warning(
                             "Retry detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
                             DETAIL_FETCH_TIMEOUT_SECONDS,
@@ -597,9 +614,17 @@ async def process_job_results(
                             job_obj.job_id,
                             job_obj.id,
                         )
-                    except Exception:
-                        logger.exception("Retry detail fetch failed for job %s", job_obj.id)
-
+                    elif outcome in ("unavailable", "waf_block"):
+                        pass
+                    else:
+                        logger.warning(
+                            "Retry detail fetch failed: platform=%s job_id=%s db_id=%s outcome=%s error=%s",
+                            platform,
+                            job_obj.job_id,
+                            job_obj.id,
+                            outcome,
+                            _,
+                        )
                     await asyncio.sleep(random.uniform(*DETAIL_FETCH_DELAY_SECONDS))
             if detail_errors:
                 logger.info("Detail fetch completed: %d errors out of %d jobs", detail_errors, len(detail_jobs))
@@ -619,23 +644,14 @@ async def process_job_results(
                         source="crawl_auto",
                     )
                     if enqueue_result["status"] == "pending":
-                        await emit_system_log_detached(
-                            category="runtime",
-                            event_type="job_match_analysis.enqueued",
-                            source="jobs",
-                            severity="info",
-                            status="pending",
-                            message=f"Auto match analysis enqueued for resume {resume.id}",
-                            user_id=config.user_id,
-                            entity_type="resume",
-                            entity_id=str(resume.id),
-                            payload={
-                                "task_id": enqueue_result["task_id"],
-                                "resume_id": resume.id,
-                                "job_count": enqueue_result["total"],
-                                "source": "crawl_auto",
-                            },
+                        await _emit_job_match_enqueued(
+                            config.user_id,
+                            resume.id,
+                            enqueue_result["task_id"],
+                            enqueue_result["total"],
                         )
+                except (ConnectionError, TimeoutError, ValueError) as exc:
+                    logger.warning("Failed to enqueue match analysis for resume %s: %s", resume.id, exc)
                 except Exception:
                     logger.exception("Failed to enqueue match analysis for resume %s", resume.id)
 
@@ -724,11 +740,116 @@ async def update_job_detail(
         return await _update(db_session)
 
 
+async def _fetch_single_job_detail(
+    job_obj: Job,
+    adapter,
+    platform: str,
+    config: JobSearchConfig,
+    db: AsyncSession,
+) -> tuple[str, str]:
+    """Fetch a single job detail and return (outcome, error_message).
+
+    Outcomes:
+    - "success": Detail fetched successfully.
+    - "unavailable": Detail not available (e.g. liepin).
+    - "waf_block": Blocked by WAF.
+    - "timeout": Fetch timed out.
+    - "cookie_retry": Cookie/auth error, should retry.
+    - "retry": Other error, should retry.
+    """
+    try:
+        logger.info(
+            "Fetching job detail: platform=%s job_id=%s db_id=%s",
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+        )
+        result = await asyncio.wait_for(
+            update_job_detail(
+                job_obj,
+                adapter=adapter,
+                platform=platform,
+                profile_key=_config_profile_key(config),
+                db=db,
+            ),
+            timeout=DETAIL_FETCH_TIMEOUT_SECONDS,
+        )
+    except TimeoutError:
+        logger.warning(
+            "Detail fetch timed out after %.0fs: platform=%s job_id=%s db_id=%s",
+            DETAIL_FETCH_TIMEOUT_SECONDS,
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+        )
+        return "timeout", ""
+    except (ConnectionError, ValueError) as exc:
+        logger.warning(
+            "Detail fetch failed: platform=%s job_id=%s db_id=%s error=%s",
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+            exc,
+        )
+        return "retry", str(exc)
+    except Exception:
+        logger.exception(
+            "Detail fetch raised unexpected error: platform=%s job_id=%s db_id=%s",
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+        )
+        return "retry", "unexpected"
+
+    if isinstance(result, Exception):
+        return "retry", str(result)
+
+    if not isinstance(result, dict) or result.get("success"):
+        return "success", ""
+
+    failure_category = result.get("failure_category") or ""
+    err = str(result.get("error", ""))
+
+    if platform == "liepin" and failure_category == "detail_unavailable":
+        logger.info(
+            "Detail fetch unavailable: platform=%s job_id=%s db_id=%s category=%s error=%s",
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+            failure_category,
+            err,
+        )
+        return "unavailable", err
+
+    if "Blocked by Aliyun WAF" in err:
+        logger.warning(
+            "Detail fetch blocked by WAF: platform=%s job_id=%s db_id=%s",
+            platform,
+            job_obj.job_id,
+            job_obj.id,
+        )
+        return "waf_block", err
+
+    logger.warning(
+        "Detail fetch failed: platform=%s job_id=%s db_id=%s category=%s error=%s",
+        platform,
+        job_obj.job_id,
+        job_obj.id,
+        failure_category,
+        err,
+    )
+
+    if "code=37" in err or "code=36" in err or "Cookie expired" in err:
+        return "cookie_retry", err
+
+    return "retry", err
+
+
 async def crawl_single_config(
     config_id: int,
     adapter: BasePlatformAdapter | None = None,
     *,
-    _lock_already_held: bool = False,
+    lock_already_held: bool = False,
     runtime_context=None,
     **kwargs,
 ) -> dict:
@@ -742,15 +863,15 @@ async def crawl_single_config(
             the adapter's session and cookies across multiple configs to
             avoid redundant cookie acquisition and browser tab churn.
     """
-    if not _lock_already_held:
+    if not lock_already_held:
         if _JOB_CRAWL_LOCK.locked():
             logger.warning("Job crawl skipped: another job crawl is in progress")
-            return {"status": "skipped", "reason": "another_job_crawl_in_progress"}
+            return {"status": "skipped", "error": "another_job_crawl_in_progress"}
         async with _JOB_CRAWL_LOCK:
             return await crawl_single_config(
                 config_id,
                 adapter=adapter,
-                _lock_already_held=True,
+                lock_already_held=True,
                 runtime_context=runtime_context,
                 **kwargs,
             )
@@ -775,7 +896,6 @@ async def crawl_single_config(
             stats = await process_job_results(
                 config_id=config_id,
                 jobs=result["jobs"],
-                total_scraped=result["count"],
                 adapter=adapter,
                 platform=platform,
             )
@@ -792,7 +912,9 @@ async def crawl_single_config(
                 db.add(log)
                 await db.commit()
             return {"status": "error", "error": result.get("error")}
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, ValueError) as exc:
+        logger.warning("Config crawl failed for config_id %d: %s", config_id, exc)
+    except Exception:
         import logging
         logging.getLogger("app.domains.jobs.crawl_service").exception(
             "Unexpected error crawling config_id %d", config_id
@@ -801,12 +923,12 @@ async def crawl_single_config(
             log = JobCrawlLog(
                 search_config_id=config_id,
                 status="ERROR",
-                error_message=f"Unhandled error: {str(exc)}",
+                error_message="Unhandled error during crawl",
                 scraped_at=datetime.now(UTC),
             )
             db.add(log)
             await db.commit()
-        return {"status": "error", "error": str(exc)}
+        return {"status": "error", "error": "crawl_failed"}
 
 
 async def _get_job_config_user_id(config_id: int) -> int | None:
@@ -848,6 +970,12 @@ async def _profile_lease_heartbeat(
                     await renew_task_lease(db, record)
             async with AsyncSessionLocal() as db:
                 await pool.renew(db, lease)
+        except (ConnectionError, TimeoutError) as exc:
+            logger.warning(
+                "Failed to renew profile lease heartbeat for crawl task record %s: %s",
+                record_id,
+                exc,
+            )
         except Exception:
             logger.warning(
                 "Failed to renew profile lease heartbeat for crawl task record %s",
@@ -915,7 +1043,7 @@ async def crawl_all_job_searches(
     source: str = "manual",
     *,
     user_id: int | None = None,
-    _lock_already_held: bool = False,
+    lock_already_held: bool = False,
 ) -> dict:
     """Crawl all active job search configs.
 
@@ -923,7 +1051,7 @@ async def crawl_all_job_searches(
     cookie acquisition happens at most once per platform instead of once
     per config.
     """
-    if not _lock_already_held:
+    if not lock_already_held:
         if _JOB_CRAWL_LOCK.locked():
             logger.warning(
                 "Job crawl skipped: another job crawl is in progress (source=%s)",
@@ -940,7 +1068,7 @@ async def crawl_all_job_searches(
             return await crawl_all_job_searches(
                 source=source,
                 user_id=user_id,
-                _lock_already_held=True,
+                lock_already_held=True,
             )
 
     async with AsyncSessionLocal() as db:
@@ -991,7 +1119,7 @@ async def crawl_all_job_searches(
                         result = await crawl_single_config(
                             config.id,
                             adapter=adapter,
-                            _lock_already_held=True,
+                            lock_already_held=True,
                             runtime_context=runtime_context,
                         )
                         details.append({"config_id": config.id, **result})
@@ -1002,12 +1130,17 @@ async def crawl_all_job_searches(
 
                         idx += 1
                         if idx < total:
-                            delay = random.uniform(3, 6)
+                            delay = random.uniform(*CONFIG_CRAWL_DELAY_SECONDS)
                             logger.debug("Waiting %.1fs before next config", delay)
                             await asyncio.sleep(delay)
-        except Exception as exc:
+        except (ConnectionError, TimeoutError, ValueError) as exc:
             for config in platform_configs:
                 details.append({"config_id": config.id, "status": "error", "error": str(exc)})
+                error_count += 1
+        except Exception:
+            logger.exception("Platform group crawl failed unexpectedly")
+            for config in platform_configs:
+                details.append({"config_id": config.id, "status": "error", "error": "内部错误"})
                 error_count += 1
 
     return {
@@ -1100,7 +1233,7 @@ async def enqueue_job_all_children(
     record: CrawlTaskRecord,
     parent_task: CrawlTask,
     *,
-    progress_callback,
+    progress_callback: Callable[[CrawlTask], Awaitable[None]],
 ) -> dict:
     """Create pending job_platform_profile child tasks for a claimed job_all task."""
     from app.core.task_registry import TaskStatus
@@ -1171,7 +1304,7 @@ async def execute_job_platform_profile_task(
     record: CrawlTaskRecord,
     child_task: CrawlTask,
     *,
-    progress_callback,
+    progress_callback: Callable[[CrawlTask], Awaitable[None]],
 ) -> dict:
     """Execute one claimed job_platform_profile child task under one profile lease."""
     from app.domains.crawling.profile_pool import (
@@ -1228,13 +1361,18 @@ async def execute_job_platform_profile_task(
                         child_errors += 1
 
                     if idx < len(config_ids) - 1:
-                        await asyncio.sleep(random.uniform(3, 6))
+                        await asyncio.sleep(random.uniform(*CONFIG_CRAWL_DELAY_SECONDS))
     except ProfileAlreadyLeasedError:
         raise
-    except Exception as exc:
+    except (ConnectionError, TimeoutError, ValueError) as exc:
         remaining = len(config_ids) - child_success - child_errors
         child_errors += remaining
         child_details.append({"status": "error", "error": str(exc)})
+    except Exception:
+        logger.exception("Batch config crawl failed unexpectedly")
+        remaining = len(config_ids) - child_success - child_errors
+        child_errors += remaining
+        child_details.append({"status": "error", "error": "内部错误"})
 
     child_task.total = len(config_ids)
     child_task.success = child_success
@@ -1324,23 +1462,12 @@ async def aggregate_parent_task_if_children_finished(parent_task_id: str) -> boo
 
         await sync_record_from_runtime_task(db, parent_record, parent_task)
 
-        ok = errors == 0
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="job_crawl.completed" if ok else "job_crawl.failed",
-            source="jobs",
-            severity="info" if ok else "error",
-            status="completed" if ok else "failed",
-            message=f"Job crawl for all active configs {'completed' if ok else 'failed'}",
-            user_id=parent_record.user_id,
-            entity_type="job_crawl",
-            entity_id=parent_task_id,
-            payload={
-                "task_id": parent_task_id,
-                "total": total,
-                "success": success,
-                "errors": errors,
-            },
+        await _emit_job_crawl_result(
+            parent_record.user_id,
+            parent_task_id,
+            total,
+            success,
+            errors,
         )
 
     return True

@@ -110,11 +110,12 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
+    const isAuthUrl = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/me");
+
     if (
       err.response?.status === 401 &&
       !originalRequest._retry &&
-      originalRequest.url !== "/v1/auth/login" &&
-      originalRequest.url !== "/v1/auth/me"
+      !isAuthUrl
     ) {
       if (refreshState.isRefreshing) {
         // Queue request until refresh completes
@@ -142,7 +143,12 @@ api.interceptors.response.use(
       } catch {
         refreshState.failedQueue.forEach(({ reject }) => reject(err));
         refreshState.failedQueue = [];
-        window.location.href = "/login";
+        if (
+          window.location.pathname !== "/login" &&
+          window.location.pathname !== "/register"
+        ) {
+          window.location.href = "/login";
+        }
         return Promise.reject(err);
       } finally {
         refreshState.isRefreshing = false;

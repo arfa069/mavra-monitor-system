@@ -109,18 +109,36 @@ class BrowserManager:
             profile.updated_at = datetime.now(UTC)
             await db.commit()
 
+    async def _emit_browser_event(
+        self,
+        event_type: str,
+        severity: str,
+        status: str,
+        message: str,
+        profile_key: str,
+        payload: dict | None = None,
+    ) -> None:
+        await emit_system_log_detached(
+            category="runtime",
+            event_type=event_type,
+            source="crawler",
+            severity=severity,
+            status=status,
+            message=message,
+            entity_type="crawl_profile",
+            entity_id=profile_key,
+            payload=payload,
+        )
+
     async def _assert_profile_usable(self, db: AsyncSession, profile_key: str) -> None:
         profile = await get_profile(db, profile_key)
         if profile.status in BLOCKED_PROFILE_STATUSES:
-            await emit_system_log_detached(
-                category="runtime",
-                event_type=f"product_profile.{profile.status}",
-                source="crawler",
-                severity="warning",
-                status="failed",
-                message=f"Product profile {profile_key} is {profile.status}",
-                entity_type="crawl_profile",
-                entity_id=profile_key,
+            await self._emit_browser_event(
+                f"product_profile.{profile.status}",
+                "warning",
+                "failed",
+                f"Product profile {profile_key} is {profile.status}",
+                profile_key,
                 payload={"profile_key": profile_key, "status": profile.status},
             )
             raise BrowserProfileUnavailableError(
@@ -153,15 +171,12 @@ class BrowserManager:
                     task_id=task_id,
                 )
             except ProfileAlreadyLeasedError as exc:
-                await emit_system_log_detached(
-                    category="runtime",
-                    event_type="product_profile.leased",
-                    source="crawler",
-                    severity="warning",
-                    status="failed",
-                    message=f"Product profile {profile_key} is already leased",
-                    entity_type="crawl_profile",
-                    entity_id=profile_key,
+                await self._emit_browser_event(
+                    "product_profile.leased",
+                    "warning",
+                    "failed",
+                    f"Product profile {profile_key} is already leased",
+                    profile_key,
                     payload={"profile_key": profile_key, "task_id": task_id},
                 )
                 raise BrowserProfileUnavailableError(
@@ -180,28 +195,22 @@ class BrowserManager:
                     )
                 except Exception as exc:
                     await self._mark_profile_error(profile_key, str(exc))
-                    await emit_system_log_detached(
-                        category="runtime",
-                        event_type="product_browser.start_failed",
-                        source="crawler",
-                        severity="error",
-                        status="failed",
-                        message=f"Product browser failed for {profile_key}: {exc}",
-                        entity_type="crawl_profile",
-                        entity_id=profile_key,
+                    await self._emit_browser_event(
+                        "product_browser.start_failed",
+                        "error",
+                        "failed",
+                        f"Product browser failed for {profile_key}: {exc}",
+                        profile_key,
                         payload={"profile_key": profile_key, "platform": platform},
                     )
                     raise
 
-                await emit_system_log_detached(
-                    category="runtime",
-                    event_type="product_browser.session_started",
-                    source="crawler",
-                    severity="info",
-                    status="success",
-                    message=f"Product browser session started for {profile_key}",
-                    entity_type="crawl_profile",
-                    entity_id=profile_key,
+                await self._emit_browser_event(
+                    "product_browser.session_started",
+                    "info",
+                    "success",
+                    f"Product browser session started for {profile_key}",
+                    profile_key,
                     payload={"profile_key": profile_key, "platform": platform},
                 )
                 session = BrowserSession(
@@ -220,15 +229,12 @@ class BrowserManager:
                     await context.close()
             finally:
                 if context is not None:
-                    await emit_system_log_detached(
-                        category="runtime",
-                        event_type="product_browser.session_closed",
-                        source="crawler",
-                        severity="info",
-                        status="success",
-                        message=f"Product browser session closed for {profile_key}",
-                        entity_type="crawl_profile",
-                        entity_id=profile_key,
+                    await self._emit_browser_event(
+                        "product_browser.session_closed",
+                        "info",
+                        "success",
+                        f"Product browser session closed for {profile_key}",
+                        profile_key,
                         payload={"profile_key": profile_key, "platform": platform},
                     )
                 async with self._db() as db:

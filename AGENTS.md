@@ -8,7 +8,7 @@
 
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (8030 symbols, 15092 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (8559 symbols, 15981 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -75,17 +75,17 @@ mavra-monitor-system/
 
 ## WHERE TO LOOK
 
-| Task                    | Location                                                                                            | Notes                                                                                                |
-| ----------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                            | Legacy, `/v1`, and `/api/v1` are mounted together                                                    |
-| Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                             | Playwright/CDP/profile-sensitive                                                                     |
-| Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                 | Boss uses CloakBrowser cookie refresh + `curl_cffi`; Liepin supports Chromium profile cookie loading |
-| Smart home              | `backend/app/domains/smart_home`, `backend/app/models/smart_home.py`, `backend/app/schemas/smart_home.py` | Home Assistant config, entity control, SSE fanout, encrypted token storage |
-| Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md` | Cookie-first + Bearer fallback                                                                       |
-| Frontend routes         | `frontend/src/App.tsx`                                                                              | Root redirects to `/jobs`                                                                            |
-| Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                 | Axios injects CSRF and refreshes 401                                                                 |
-| Design decisions        | `doc/DESIGN.md`, `frontend/src/styles/`                                                             | Mandatory before UI changes                                                                          |
-| Manual QA               | `backend/tests/manual_verification_checklist.md`                                                    | Browser evidence for UI/crawl-trigger changes                                                        |
+| Task                    | Location                                                                                                  | Notes                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Backend routes/lifespan | `backend/app/main.py`, `backend/app/domains/*/router.py`                                                  | Legacy, `/v1`, and `/api/v1` are mounted together                                                    |
+| Product crawl           | `backend/app/domains/crawling`, `backend/app/platforms`                                                   | Playwright/CDP/profile-sensitive                                                                     |
+| Job crawl               | `backend/app/domains/jobs`, `backend/app/platforms`                                                       | Boss uses CloakBrowser cookie refresh + `curl_cffi`; Liepin supports Chromium profile cookie loading |
+| Smart home              | `backend/app/domains/smart_home`, `backend/app/models/smart_home.py`, `backend/app/schemas/smart_home.py` | Home Assistant config, entity control, SSE fanout, encrypted token storage                           |
+| Auth/RBAC               | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md`       | Cookie-first + Bearer fallback                                                                       |
+| Frontend routes         | `frontend/src/App.tsx`                                                                                    | Root redirects to `/jobs`                                                                            |
+| Frontend API/auth       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                       | Axios injects CSRF and refreshes 401                                                                 |
+| Design decisions        | `doc/DESIGN.md`, `frontend/src/styles/`                                                                   | Mandatory before UI changes                                                                          |
+| Manual QA               | `backend/tests/manual_verification_checklist.md`                                                          | Browser evidence for UI/crawl-trigger changes                                                        |
 
 ## CODE MAP
 

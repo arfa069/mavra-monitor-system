@@ -37,7 +37,7 @@ export default function RegisterPage() {
       navigate("/login", { replace: true });
     } catch {
       message.error("Registration failed, please check your input");
-      form.resetFields(["password", "password_confirm"]);
+      form.setFieldsValue({ password: "", password_confirm: "" });
     } finally {
       setLoading(false);
     }

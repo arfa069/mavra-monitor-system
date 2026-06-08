@@ -8,11 +8,11 @@
 
 ## 问题汇总统计
 
-| 维度 | 高 | 中 | 低 | 小计 |
-|------|----|----|----|------|
-| 复用 | 2 | 4 | 2 | 8 |
-| 质量 | 7 | 8 | 4 | 19 |
-| 效率 | 2 | 1 | 2 | 5 |
+| 维度     | 高     | 中     | 低    | 小计   |
+| -------- | ------ | ------ | ----- | ------ |
+| 复用     | 2      | 4      | 2     | 8      |
+| 质量     | 7      | 8      | 4     | 19     |
+| 效率     | 2      | 1      | 2     | 5      |
 | **总计** | **11** | **13** | **8** | **30** |
 
 ---
@@ -322,25 +322,25 @@
 
 ## 按文件归类
 
-| 文件 | 问题数 | 主要问题 |
-|------|--------|----------|
-| `App.tsx` | 3 | theme 重建、加载状态重复、theme 嵌套过深 |
-| `SmartHomePage.tsx` | 6 | 抽象泄漏、SSE 回调、grouped 派生、climate 魔法字符串、错误格式化重复、setTimeout |
-| `AppLayout.tsx` | 2 | selectedKey 嵌套三元链、userMenuItems 重建 |
-| `DashboardPage.tsx` | 3 | 直接使用 axios、7 个独立请求、render 函数内定义函数 |
-| `ScheduleConfigPage.tsx` | 2 | 状态爆炸、setTimeout 延迟初始化 |
-| `EventCenterPage.tsx` | 2 | SSE 重复计数、双 effect 冗余依赖 |
-| `ProfilePage.tsx` | 3 | isAdmin 重复、日期格式化重复、全页刷新 |
-| `SettingsPage.tsx` | 2 | 错误格式化重复、全页刷新 |
-| `ProductsPage.tsx` | 3 | getErrorMessage 重复、日期格式化重复、防抖时间偏短 |
-| `useSmartHomeSSE.ts` | 1 | 回调引用不稳定 |
-| `useTheme.ts` | 1 | mount effect 问题 |
-| `client.ts` | 1 | 模块级全局变量 |
-| `useRecentAlerts.ts` | 1 | Promise.resolve().then 模式 |
-| `BatchImportModal.tsx` | 1 | step 魔法数字 |
-| `PriceTrendModal.tsx` | 1 | 魔法数字 + 不必要 useMemo |
-| `PageTransition.tsx` | 1 | variants 重建 |
-| `KPICard.tsx` | 1 | AntD 内部 API |
+| 文件                     | 问题数 | 主要问题                                                                         |
+| ------------------------ | ------ | -------------------------------------------------------------------------------- |
+| `App.tsx`                | 3      | theme 重建、加载状态重复、theme 嵌套过深                                         |
+| `SmartHomePage.tsx`      | 6      | 抽象泄漏、SSE 回调、grouped 派生、climate 魔法字符串、错误格式化重复、setTimeout |
+| `AppLayout.tsx`          | 2      | selectedKey 嵌套三元链、userMenuItems 重建                                       |
+| `DashboardPage.tsx`      | 3      | 直接使用 axios、7 个独立请求、render 函数内定义函数                              |
+| `ScheduleConfigPage.tsx` | 2      | 状态爆炸、setTimeout 延迟初始化                                                  |
+| `EventCenterPage.tsx`    | 2      | SSE 重复计数、双 effect 冗余依赖                                                 |
+| `ProfilePage.tsx`        | 3      | isAdmin 重复、日期格式化重复、全页刷新                                           |
+| `SettingsPage.tsx`       | 2      | 错误格式化重复、全页刷新                                                         |
+| `ProductsPage.tsx`       | 3      | getErrorMessage 重复、日期格式化重复、防抖时间偏短                               |
+| `useSmartHomeSSE.ts`     | 1      | 回调引用不稳定                                                                   |
+| `useTheme.ts`            | 1      | mount effect 问题                                                                |
+| `client.ts`              | 1      | 模块级全局变量                                                                   |
+| `useRecentAlerts.ts`     | 1      | Promise.resolve().then 模式                                                      |
+| `BatchImportModal.tsx`   | 1      | step 魔法数字                                                                    |
+| `PriceTrendModal.tsx`    | 1      | 魔法数字 + 不必要 useMemo                                                        |
+| `PageTransition.tsx`     | 1      | variants 重建                                                                    |
+| `KPICard.tsx`            | 1      | AntD 内部 API                                                                    |
 
 ---
 

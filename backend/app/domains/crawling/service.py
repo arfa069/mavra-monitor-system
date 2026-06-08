@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,17 +55,17 @@ async def _persist_product_crawl_result(
 
         # Persist data defensively: don't let DB failures mask a successful crawl
         try:
-            await save_price_history(product_id=product.id, price=price, currency=currency, scraped_at=scraped_at)
+            await save_price_history(db, product_id=product.id, price=price, currency=currency, scraped_at=scraped_at)
         except Exception:
             logger.exception("save_price_history failed for product %s", product.id)
         try:
             await save_crawl_log(
-                product.id, product.platform, "SUCCESS", price=price, currency=currency
+                db, product.id, product.platform, "SUCCESS", price=price, currency=currency
             )
         except Exception:
             logger.exception("save_crawl_log failed for product %s", product.id)
         try:
-            await check_price_alerts(product.id, price)
+            await check_price_alerts(db, product.id, price)
         except Exception:
             logger.exception("check_price_alerts failed for product %s", product.id)
 
@@ -80,7 +82,7 @@ async def _persist_product_crawl_result(
     error_msg = result_data.get("error", "Unknown error")
     try:
         await save_crawl_log(
-            product.id, product.platform, "ERROR", error_message=error_msg
+            db, product.id, product.platform, "ERROR", error_message=error_msg
         )
     except Exception:
         logger.exception("save_crawl_log (error) failed for product %s", product.id)
@@ -143,13 +145,13 @@ async def crawl_one_opencli(
                     }
             else:
                 error_msg = f"Unknown platform: {platform}"
-                await save_crawl_log(product_id, platform, "ERROR", error_message=error_msg)
+                await save_crawl_log(db, product_id, platform, "ERROR", error_message=error_msg)
                 return {"status": "error", "product_id": product_id, "reason": error_msg}
 
             return await _persist_product_crawl_result(db, product=product, result_data=result_data)
-    except Exception as exc:
+    except Exception:
         logger.exception("crawl_one_opencli failed for product %s", product_id)
-        return {"status": "error", "product_id": product_id, "reason": str(exc)}
+        return {"status": "error", "product_id": product_id, "reason": "crawl failed"}
 
 
 async def crawl_one(product_id: int) -> dict:
@@ -163,37 +165,39 @@ async def crawl_one(product_id: int) -> dict:
 async def get_active_products(
     user_id: int | None = None,
     platform: str | None = None,
-) -> list[Product]:
-    """Fetch active products from database, optionally filtered."""
-    stmt = select(Product).where(Product.active)
+) -> Sequence[Any]:
+    """Fetch active product IDs and platforms, optionally filtered."""
+    stmt = select(Product.id, Product.platform).where(Product.active)
     if user_id is not None:
         stmt = stmt.where(Product.user_id == user_id)
     if platform is not None:
         stmt = stmt.where(Product.platform == platform)
     async with AsyncSessionLocal() as db:
         result = await db.execute(stmt)
-        return list(result.scalars().all())
+        return list(result.all())
 
 
 async def save_price_history(
+    db: AsyncSession,
+    *,
     product_id: int,
     price: Decimal,
     currency: str,
     scraped_at: datetime,
 ) -> None:
     """Save price to history."""
-    async with AsyncSessionLocal() as db:
-        history = PriceHistory(
-            product_id=product_id,
-            price=price,
-            currency=currency,
-            scraped_at=scraped_at,
-        )
-        db.add(history)
-        await db.commit()
+    history = PriceHistory(
+        product_id=product_id,
+        price=price,
+        currency=currency,
+        scraped_at=scraped_at,
+    )
+    db.add(history)
+    await db.commit()
 
 
 async def save_crawl_log(
+    db: AsyncSession,
     product_id: int,
     platform: str,
     status: str,
@@ -202,97 +206,99 @@ async def save_crawl_log(
     error_message: str | None = None,
 ) -> None:
     """Save crawl log entry."""
-    async with AsyncSessionLocal() as db:
-        log = CrawlLog(
-            product_id=product_id,
-            platform=platform,
-            status=status,
-            price=price,
-            currency=currency,
-            timestamp=datetime.now(UTC),
-            error_message=error_message,
-        )
-        db.add(log)
-        await db.commit()
+    log = CrawlLog(
+        product_id=product_id,
+        platform=platform,
+        status=status,
+        price=price,
+        currency=currency,
+        timestamp=datetime.now(UTC),
+        error_message=error_message,
+    )
+    db.add(log)
+    await db.commit()
 
 
-async def check_price_alerts(product_id: int, current_price: Decimal) -> None:
+async def check_price_alerts(
+    db: AsyncSession,
+    product_id: int,
+    current_price: Decimal,
+) -> None:
     """Check and trigger price drop alerts."""
-    async with AsyncSessionLocal() as db:
-        result = await db.execute(
-            select(Alert).where(Alert.product_id == product_id, Alert.active)
-        )
-        alerts = result.scalars().all()
+    result = await db.execute(
+        select(Alert).where(Alert.product_id == product_id, Alert.active)
+    )
+    alerts = result.scalars().all()
 
-        if not alerts:
-            return
+    if not alerts:
+        return
 
-        product_user_result = await db.execute(
-            select(Product, User)
-            .join(User, User.id == Product.user_id)
-            .where(Product.id == product_id)
-        )
-        row = product_user_result.one_or_none()
+    product_user_result = await db.execute(
+        select(Product, User)
+        .join(User, User.id == Product.user_id)
+        .where(Product.id == product_id)
+    )
+    row = product_user_result.one_or_none()
 
-        if not row:
-            return
+    if not row:
+        return
 
-        product, user = row
+    product, user = row
 
-        if not user or not user.feishu_webhook_url:
-            return
+    if not user or not user.feishu_webhook_url:
+        return
 
-        latest_result = await db.execute(
-            select(PriceHistory)
-            .where(PriceHistory.product_id == product_id)
-            .order_by(PriceHistory.scraped_at.desc())
-            .limit(2)
-        )
-        price_records = list(latest_result.scalars().all())
+    latest_result = await db.execute(
+        select(PriceHistory)
+        .where(PriceHistory.product_id == product_id)
+        .order_by(PriceHistory.scraped_at.desc())
+        .limit(2)
+    )
+    price_records = list(latest_result.scalars().all())
 
-        if len(price_records) < 2:
-            return
+    if len(price_records) < 2:
+        return
 
-        previous_price = price_records[1].price
-        new_price = current_price
+    previous_price = price_records[1].price
+    new_price = current_price
 
-        for alert in alerts:
-            if alert.threshold_percent is None:
-                continue
+    for alert in alerts:
+        if alert.threshold_percent is None:
+            continue
 
-            if previous_price > 0:
-                drop_percent = ((previous_price - new_price) / previous_price) * 100
+        if previous_price > 0:
+            drop_percent = ((previous_price - new_price) / previous_price) * 100
 
-                if drop_percent >= alert.threshold_percent:
-                    if (
-                        alert.last_notified_price is not None
-                        and alert.last_notified_price <= new_price
-                    ):
-                        continue
+            if drop_percent >= alert.threshold_percent:
+                if (
+                    alert.last_notified_price is not None
+                    and alert.last_notified_price <= new_price
+                ):
+                    continue
 
-                    message = (
-                        f"Price Drop Alert: {product.title or product.url}\n"
-                        f"Platform: {product.platform}\n"
-                        f"Old Price: {previous_price} {price_records[1].currency}\n"
-                        f"New Price: {new_price} {price_records[1].currency}\n"
-                        f"Drop: {drop_percent:.2f}%\n"
-                        f"Link: {product.url}"
+                message = (
+                    f"Price Drop Alert: {product.title or product.url}\n"
+                    f"Platform: {product.platform}\n"
+                    f"Old Price: {previous_price} {price_records[1].currency}\n"
+                    f"New Price: {new_price} {price_records[1].currency}\n"
+                    f"Drop: {drop_percent:.2f}%\n"
+                    f"Link: {product.url}"
+                )
+
+                try:
+                    await send_feishu_notification(
+                        user.feishu_webhook_url,
+                        message,
                     )
 
-                    try:
-                        await send_feishu_notification(
-                            user.feishu_webhook_url,
-                            message,
-                        )
-
-                        alert.last_notified_at = datetime.now(UTC)
-                        alert.last_notified_price = new_price
-                        await db.commit()
-                    except Exception:
-                        logger.exception(
-                            "Failed to send price drop notification for product %s",
-                            product_id,
-                        )
+                    alert.last_notified_at = datetime.now(UTC)
+                    alert.last_notified_price = new_price
+                    await db.commit()
+                except Exception:
+                    logger.exception(
+                        "Failed to send price drop notification for product %s",
+                        product_id,
+                    )
 
 
 async def list_crawl_logs(

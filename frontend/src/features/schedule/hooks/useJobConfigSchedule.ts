@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { jobsApi } from "@/features/jobs";
 import type { JobConfigScheduleInfo, JobSearchConfig } from "../types";
+import { isValidCronExpression } from "../utils/cron";
 
 export function useJobConfigSchedule(message: {
   error: (msg: string) => void;
@@ -46,6 +47,11 @@ export function useJobConfigSchedule(message: {
 
   const save = useCallback(
     async (configId: number, value: string | null) => {
+      if (!isValidCronExpression(value)) {
+        message.error("Invalid cron expression");
+        return;
+      }
+
       setSaving((prev) => ({ ...prev, [configId]: true }));
       try {
         await jobsApi.updateConfigCron(configId, {

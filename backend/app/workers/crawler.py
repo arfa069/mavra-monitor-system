@@ -37,6 +37,28 @@ from app.workers.executor import execute_claimed_task
 
 logger = logging.getLogger(__name__)
 
+
+async def _emit_worker_event(
+    event_type: str,
+    severity: str,
+    status: str,
+    message: str,
+    worker_id: str,
+    payload: dict | None = None,
+) -> None:
+    await emit_system_log_detached(
+        category="runtime",
+        event_type=event_type,
+        source="crawler_worker",
+        severity=severity,
+        status=status,
+        message=message,
+        entity_type="crawler_worker",
+        entity_id=worker_id,
+        payload=payload,
+    )
+
+
 _shutdown_event: asyncio.Event | None = None
 
 
@@ -168,15 +190,12 @@ async def run_worker(args: argparse.Namespace) -> None:
         "Crawler worker %s started (kind=%s, platforms=%s, concurrency=%d)",
         worker_id, args.kind, args.platform, worker_concurrency,
     )
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawler_worker.started",
-        source="crawler_worker",
-        severity="info",
-        status="running",
-        message=f"Crawler worker {worker_id} started (kind={args.kind}, platforms={args.platform}, concurrency={worker_concurrency})",
-        entity_type="crawler_worker",
-        entity_id=worker_id,
+    await _emit_worker_event(
+        "crawler_worker.started",
+        "info",
+        "running",
+        f"Crawler worker {worker_id} started (kind={args.kind}, platforms={args.platform}, concurrency={worker_concurrency})",
+        worker_id,
         payload={
             "worker_id": worker_id,
             "kind": args.kind,
@@ -202,15 +221,12 @@ async def run_worker(args: argparse.Namespace) -> None:
             async with AsyncSessionLocal() as db:
                 hb = await heartbeat_worker(db, worker_id)
                 if hb is None:
-                    await emit_system_log_detached(
-                        category="runtime",
-                        event_type="crawler_worker.heartbeat_failed",
-                        source="crawler_worker",
-                        severity="warning",
-                        status="warning",
-                        message=f"Worker {worker_id} heartbeat returned None",
-                        entity_type="crawler_worker",
-                        entity_id=worker_id,
+                    await _emit_worker_event(
+                        "crawler_worker.heartbeat_failed",
+                        "warning",
+                        "warning",
+                        f"Worker {worker_id} heartbeat returned None",
+                        worker_id,
                         payload={"worker_id": worker_id},
                     )
 
@@ -273,15 +289,12 @@ async def run_worker(args: argparse.Namespace) -> None:
         async with AsyncSessionLocal() as db:
             await mark_worker_stopping(db, worker_id)
         await engine.dispose()
-        await emit_system_log_detached(
-            category="runtime",
-            event_type="crawler_worker.stopped",
-            source="crawler_worker",
-            severity="info",
-            status="stopped",
-            message=f"Crawler worker {worker_id} stopped",
-            entity_type="crawler_worker",
-            entity_id=worker_id,
+        await _emit_worker_event(
+            "crawler_worker.stopped",
+            "info",
+            "stopped",
+            f"Crawler worker {worker_id} stopped",
+            worker_id,
             payload={"worker_id": worker_id},
         )
 

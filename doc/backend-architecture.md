@@ -222,27 +222,27 @@ User (1) ──────< Product (多)
 
 ### 5.3 关键表说明
 
-| 表名                         | 说明                           | 隔离方式                               |
-| ---------------------------- | ------------------------------ | -------------------------------------- |
-| `users`                      | 用户账户（含飞书 Webhook URL） | 无（全局）                             |
-| `users_roles`                | RBAC 角色定义                  | 无（全局）                             |
-| `users_permissions`          | RBAC 权限定义                  | 无（全局）                             |
-| `users_roles_permissions`    | RBAC 角色-权限多对多关联       | 无（全局）                             |
-| `users_resource_permissions` | 资源级 ACL（跨用户资源授权）   | subject_id + resource_type/resource_id |
-| `products`                   | 监控的商品                     | user_id 隔离                           |
-| `products_price_history`     | 价格历史记录                   | 通过 product_id 间接隔离               |
-| `products_alerts`            | 降价告警配置                   | 通过 product_id 间接隔离               |
-| `crawl_logs`                 | 爬取日志                       | product_id nullable（系统日志无归属）  |
-| `products_platform_crons`    | per-platform 商品爬取 cron     | user_id 隔离                           |
-| `jobs_search_configs`        | BOSS 搜索配置                  | user_id 隔离                           |
-| `jobs`                       | 爬取的职位                     | 通过 search_config_id 间接隔离         |
-| `jobs_resumes`               | 用户简历                       | user_id 隔离                           |
-| `jobs_match_results`         | LLM 匹配结果                   | user_id 隔离                           |
-| `smart_home_configs`         | Home Assistant 连接配置        | 全局单实例                             |
-| `smart_home_entity_preferences` | Home Assistant 实体显示偏好 | user_id + entity_id 唯一               |
-| `crawl_tasks`                | 商品/职位爬取任务持久状态      | user_id nullable；按 task_id 查询      |
-| `crawl_profiles`             | 浏览器 profile 元数据和租约    | 全局 profile_key 唯一                  |
-| `crawler_workers`            | 独立 crawler worker 心跳和能力 | 全局 worker_id 唯一                    |
+| 表名                            | 说明                           | 隔离方式                               |
+| ------------------------------- | ------------------------------ | -------------------------------------- |
+| `users`                         | 用户账户（含飞书 Webhook URL） | 无（全局）                             |
+| `users_roles`                   | RBAC 角色定义                  | 无（全局）                             |
+| `users_permissions`             | RBAC 权限定义                  | 无（全局）                             |
+| `users_roles_permissions`       | RBAC 角色-权限多对多关联       | 无（全局）                             |
+| `users_resource_permissions`    | 资源级 ACL（跨用户资源授权）   | subject_id + resource_type/resource_id |
+| `products`                      | 监控的商品                     | user_id 隔离                           |
+| `products_price_history`        | 价格历史记录                   | 通过 product_id 间接隔离               |
+| `products_alerts`               | 降价告警配置                   | 通过 product_id 间接隔离               |
+| `crawl_logs`                    | 爬取日志                       | product_id nullable（系统日志无归属）  |
+| `products_platform_crons`       | per-platform 商品爬取 cron     | user_id 隔离                           |
+| `jobs_search_configs`           | BOSS 搜索配置                  | user_id 隔离                           |
+| `jobs`                          | 爬取的职位                     | 通过 search_config_id 间接隔离         |
+| `jobs_resumes`                  | 用户简历                       | user_id 隔离                           |
+| `jobs_match_results`            | LLM 匹配结果                   | user_id 隔离                           |
+| `smart_home_configs`            | Home Assistant 连接配置        | 全局单实例                             |
+| `smart_home_entity_preferences` | Home Assistant 实体显示偏好    | user_id + entity_id 唯一               |
+| `crawl_tasks`                   | 商品/职位爬取任务持久状态      | user_id nullable；按 task_id 查询      |
+| `crawl_profiles`                | 浏览器 profile 元数据和租约    | 全局 profile_key 唯一                  |
+| `crawler_workers`               | 独立 crawler worker 心跳和能力 | 全局 worker_id 唯一                    |
 
 **数据隔离原则**：所有包含 `user_id` 的表均通过 `user_id = current_user.id` 过滤查询。
 
@@ -262,7 +262,7 @@ User (1) ──────< Product (多)
 | `/admin`            | `/v1/admin`, `/api/v1/admin`                       | `domains/admin/router.py`            | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin）                            |
 | `/events`           | `/v1/events`, `/api/v1/events`                     | `domains/events/router.py`           | 事件中心列表和 SSE                                                              |
 | `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard`               | `domains/dashboard/router.py`        | Dashboard KPI / 趋势 / SSE                                                      |
-| `/smart-home`       | `/v1/smart-home`, `/api/v1/smart-home`             | `domains/smart_home/router.py`       | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE                     |
+| `/smart-home`       | `/v1/smart-home`, `/api/v1/smart-home`             | `domains/smart_home/router.py`       | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE                      |
 | `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py`       | APScheduler 状态（admin/super_admin）                                           |
 
 `main.py` 同时注册旧路径、`/v1` 和 `/api/v1`。前端开发环境中 Vite 代理会去掉浏览器 URL 的 `/api` 前缀，因此浏览器请求 `/api/v1/...` 到达后端时对应 `/v1/...`。

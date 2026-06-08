@@ -12,15 +12,38 @@ from app.domains.crawling.profile_pool import (
     LOGIN_REQUIRED,
     ensure_profile,
 )
+from app.domains.crawling.profile_utils import (
+    CrawlProfileLeaseActiveError,
+    assert_profile_not_leased,
+)
 from app.models.crawl_profile import CrawlProfile
+
+
+async def _emit_profile_event(
+    profile_key: str,
+    event_type: str,
+    *,
+    message: str,
+    severity: str = "info",
+    status: str = "success",
+    payload: dict | None = None,
+) -> None:
+    """Emit a system log event for a crawl profile operation."""
+    await emit_system_log_detached(
+        category="runtime",
+        event_type=event_type,
+        source="crawler",
+        severity=severity,
+        status=status,
+        message=message,
+        entity_type="crawl_profile",
+        entity_id=profile_key,
+        payload=payload,
+    )
 
 
 class CrawlProfileNotFoundError(LookupError):
     """Raised when a crawl profile does not exist."""
-
-
-class CrawlProfileLeaseActiveError(RuntimeError):
-    """Raised when a non-expired lease is still active."""
 
 
 class CrawlProfileInUseError(RuntimeError):
@@ -39,15 +62,10 @@ async def list_profiles(db: AsyncSession) -> list[CrawlProfile]:
 async def create_profile(db: AsyncSession, *, profile_key: str, platform_hint: str | None) -> CrawlProfile:
     profile = await ensure_profile(db, profile_key=profile_key, platform_hint=platform_hint)
     build_profile_dir(profile_key).mkdir(parents=True, exist_ok=True)
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.created",
-        source="crawler",
-        severity="info",
-        status="success",
+    await _emit_profile_event(
+        profile_key,
+        "crawl_profile.created",
         message=f"Crawl profile {profile_key} created",
-        entity_type="crawl_profile",
-        entity_id=profile_key,
         payload={"profile_key": profile_key, "platform_hint": platform_hint},
     )
     return profile
@@ -63,12 +81,6 @@ def _copy_profile_key(profile_key: str, counter: int | None = None) -> str:
     return f"{profile_key[: 80 - len(suffix)]}{suffix}"
 
 
-def _assert_not_active(profile: CrawlProfile) -> None:
-    current = datetime.now(UTC)
-    if profile.lease_until is not None and profile.lease_until > current:
-        raise CrawlProfileLeaseActiveError(profile.profile_key)
-
-
 async def rename_profile(
     db: AsyncSession,
     *,
@@ -82,7 +94,7 @@ async def rename_profile(
         return await get_profile(db, profile_key)
 
     profile = await get_profile(db, profile_key)
-    _assert_not_active(profile)
+    assert_profile_not_leased(profile)
     build_profile_dir(new_profile_key)
     if await _profile_exists(db, new_profile_key):
         raise CrawlProfileAlreadyExistsError(new_profile_key)
@@ -144,15 +156,10 @@ async def rename_profile(
             shutil.rmtree(new_dir)
         raise
 
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.renamed",
-        source="crawler",
-        severity="info",
-        status="success",
+    await _emit_profile_event(
+        new_profile_key,
+        "crawl_profile.renamed",
         message=f"Crawl profile {profile_key} renamed to {new_profile_key}",
-        entity_type="crawl_profile",
-        entity_id=new_profile_key,
         payload={"old_profile_key": profile_key, "profile_key": new_profile_key},
     )
     return renamed
@@ -160,7 +167,7 @@ async def rename_profile(
 
 async def copy_profile(db: AsyncSession, *, profile_key: str) -> CrawlProfile:
     profile = await get_profile(db, profile_key)
-    _assert_not_active(profile)
+    assert_profile_not_leased(profile)
 
     new_profile_key = _copy_profile_key(profile_key)
     counter = 2
@@ -194,15 +201,10 @@ async def copy_profile(db: AsyncSession, *, profile_key: str) -> CrawlProfile:
             shutil.rmtree(new_dir)
         raise
 
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.copied",
-        source="crawler",
-        severity="info",
-        status="success",
+    await _emit_profile_event(
+        new_profile_key,
+        "crawl_profile.copied",
         message=f"Crawl profile {profile_key} copied to {new_profile_key}",
-        entity_type="crawl_profile",
-        entity_id=new_profile_key,
         payload={"source_profile_key": profile_key, "profile_key": new_profile_key},
     )
     return copied
@@ -213,7 +215,7 @@ async def delete_profile(db: AsyncSession, *, profile_key: str) -> None:
     from app.models.product import ProductPlatformCron, ProductPlatformProfileBinding
 
     profile = await get_profile(db, profile_key)
-    _assert_not_active(profile)
+    assert_profile_not_leased(profile)
 
     job_ref = await db.execute(
         select(JobSearchConfig.id).where(JobSearchConfig.profile_key == profile_key).limit(1)
@@ -236,15 +238,11 @@ async def delete_profile(db: AsyncSession, *, profile_key: str) -> None:
     await db.commit()
     if profile_dir.exists():
         shutil.rmtree(profile_dir)
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.deleted",
-        source="crawler",
+    await _emit_profile_event(
+        profile_key,
+        "crawl_profile.deleted",
         severity="warning",
-        status="success",
         message=f"Crawl profile {profile_key} deleted",
-        entity_type="crawl_profile",
-        entity_id=profile_key,
         payload={"profile_key": profile_key},
     )
 
@@ -283,15 +281,11 @@ async def update_profile(
     profile.updated_at = current
     await db.commit()
     await db.refresh(profile)
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.updated",
-        source="crawler",
+    await _emit_profile_event(
+        profile_key,
+        "crawl_profile.updated",
         severity="warning" if status in {LOGIN_REQUIRED, DISABLED} else "info",
-        status="success",
         message=f"Crawl profile {profile_key} updated",
-        entity_type="crawl_profile",
-        entity_id=profile_key,
         payload={"profile_key": profile_key, "status": profile.status},
     )
     return profile
@@ -309,15 +303,11 @@ async def release_stale_profile(db: AsyncSession, *, profile_key: str) -> CrawlP
     profile.updated_at = current
     await db.commit()
     await db.refresh(profile)
-    await emit_system_log_detached(
-        category="runtime",
-        event_type="crawl_profile.stale_lease_released",
-        source="crawler",
+    await _emit_profile_event(
+        profile_key,
+        "crawl_profile.stale_lease_released",
         severity="warning",
-        status="success",
         message=f"Stale lease released for crawl profile {profile_key}",
-        entity_type="crawl_profile",
-        entity_id=profile_key,
         payload={"profile_key": profile_key},
     )
     return profile

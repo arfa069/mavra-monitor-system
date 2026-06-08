@@ -1,27 +1,10 @@
 """Redis-backed login attempt lockout."""
 from __future__ import annotations
 
-import asyncio
-
-import redis.asyncio as redis
-
-from app.config import settings
+from app.core.redis_client import get_redis
 
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_DURATION_SECONDS = 900  # 15 minutes
-
-_redis_client: redis.Redis | None = None
-_redis_loop: asyncio.AbstractEventLoop | None = None
-
-
-async def _get_redis() -> redis.Redis:
-    """Get or create Redis client (connection reused per event loop)."""
-    global _redis_client, _redis_loop
-    current_loop = asyncio.get_running_loop()
-    if _redis_client is None or _redis_loop is not current_loop:
-        _redis_client = redis.from_url(settings.redis_url_with_password)
-        _redis_loop = current_loop
-    return _redis_client
 
 
 async def is_account_locked(username: str) -> tuple[bool, int]:
@@ -30,7 +13,7 @@ async def is_account_locked(username: str) -> tuple[bool, int]:
     Returns:
         tuple of (is_locked, minutes_remaining)
     """
-    redis_client = await _get_redis()
+    redis_client = await get_redis()
     key = f"login_attempts:{username}"
     count = await redis_client.get(key)
     if count is None:
@@ -47,7 +30,7 @@ async def is_account_locked(username: str) -> tuple[bool, int]:
 
 async def record_failed_login(username: str) -> None:
     """Record a failed login attempt."""
-    redis_client = await _get_redis()
+    redis_client = await get_redis()
     key = f"login_attempts:{username}"
     count = await redis_client.incr(key)
     if count == 1:
@@ -56,5 +39,5 @@ async def record_failed_login(username: str) -> None:
 
 async def clear_login_attempts(username: str) -> None:
     """Clear failed login attempts after successful login."""
-    redis_client = await _get_redis()
+    redis_client = await get_redis()
     await redis_client.delete(f"login_attempts:{username}")

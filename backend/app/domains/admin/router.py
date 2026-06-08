@@ -4,7 +4,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.audit import log_audit
+from app.core.audit import log_audit_from_request
 from app.core.permissions import require_permission
 from app.core.security import stage_delete_user_sessions
 from app.database import get_db
@@ -117,8 +117,9 @@ async def create_user(
     except service.AdminUserError as exc:
         raise _admin_user_error_response(exc) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.create",
         actor_user_id=current_user.id,
         target_type="user",
@@ -128,8 +129,6 @@ async def create_user(
             "email": new_user.email,
             "role": new_user.role,
         },
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -175,15 +174,14 @@ async def update_user(
     except service.AdminUserError as exc:
         raise _admin_user_error_response(exc) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.update",
         actor_user_id=current_user.id,
         target_type="user",
         target_id=user.id,
         details={"changed_fields": changed_fields},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -208,15 +206,14 @@ async def delete_user(
     except service.AdminUserError as exc:
         raise _admin_user_error_response(exc) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="user.delete",
         actor_user_id=current_user.id,
         target_type="user",
         target_id=user.id,
         details={"username": user.username},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -276,8 +273,9 @@ async def grant_resource_permission(
             detail="权限授予失败，所有变更已回滚",
         ) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="permission.grant",
         actor_user_id=current_user.id,
         target_type="resource_permission",
@@ -289,8 +287,6 @@ async def grant_resource_permission(
             "permission": grant.permission,
             "count": granted_count,
         },
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -343,15 +339,14 @@ async def revoke_resource_permission(
             detail="资源权限不存在",
         ) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="permission.revoke",
         actor_user_id=current_user.id,
         target_type="resource_permission",
         target_id=permission_id,
         details=details,
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -390,15 +385,14 @@ async def update_resource_permission(
             detail="资源权限已存在，修改失败",
         ) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="permission.update",
         actor_user_id=current_user.id,
         target_type="resource_permission",
         target_id=permission_id,
         details={"updated_fields": updated_fields},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 
@@ -464,15 +458,14 @@ async def update_role_permissions(
             detail=f"未知权限: {', '.join(sorted(exc.missing))}",
         ) from exc
 
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="rbac.role_permissions_update",
         actor_user_id=current_user.id,
         target_type="role",
         target_id=role.id,
         details={"role": role_name, "permissions": update_data.permissions},
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
 

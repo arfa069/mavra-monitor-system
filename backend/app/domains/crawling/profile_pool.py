@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import select
@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.crawler_paths import build_profile_dir
 from app.core.profile_lease import ProfileLease
 from app.models.crawl_profile import CrawlProfile
+from app.utils.time import now_utc
 
 AVAILABLE = "available"
 LEASED = "leased"
@@ -32,10 +33,6 @@ class ProfileUnavailableError(RuntimeError):
     """Raised when a profile is not eligible for use."""
 
 
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
 async def ensure_profile(
     db: AsyncSession,
     *,
@@ -48,7 +45,7 @@ async def ensure_profile(
         select(CrawlProfile).where(CrawlProfile.profile_key == profile_key)
     )
     profile = result.scalar_one_or_none()
-    current = _now()
+    current = now_utc()
     if profile is None:
         profile = CrawlProfile(
             profile_key=profile_key,
@@ -77,7 +74,7 @@ async def _get_or_create_profile_for_update(
     platform_hint: str | None,
 ) -> CrawlProfile:
     profile_dir = build_profile_dir(profile_key, root=root)
-    current = _now()
+    current = now_utc()
     result = await db.execute(
         select(CrawlProfile)
         .where(CrawlProfile.profile_key == profile_key)
@@ -133,7 +130,7 @@ class DatabaseProfilePool:
             root=self.root,
             platform_hint=platform,
         )
-        current = _now()
+        current = now_utc()
         if profile.status in BLOCKING_STATUSES:
             raise ProfileUnavailableError(
                 f"Profile {profile_key!r} is {profile.status}"
@@ -180,7 +177,7 @@ class DatabaseProfilePool:
         profile.lease_owner = None
         profile.lease_task_id = None
         profile.lease_until = None
-        profile.updated_at = _now()
+        profile.updated_at = now_utc()
         await db.commit()
 
     async def renew(
@@ -202,7 +199,7 @@ class DatabaseProfilePool:
             return
         if lease.task_id is not None and profile.lease_task_id != lease.task_id:
             return
-        current = _now()
+        current = now_utc()
         profile.lease_until = current + timedelta(seconds=lease_seconds)
         profile.last_used_at = current
         profile.updated_at = current
@@ -236,7 +233,7 @@ async def recover_stale_profile_leases(
     *,
     now: datetime | None = None,
 ) -> int:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlProfile).where(
             CrawlProfile.lease_until.is_not(None),

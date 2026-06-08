@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.audit import log_audit
+from app.core.audit import log_audit_from_request
 from app.core.permissions import require_permission
 from app.database import AsyncSessionLocal, get_db
 from app.domains.smart_home import service
@@ -87,15 +87,14 @@ async def update_config(
         config = await service.save_config(db, data=data)
     except Exception as exc:
         raise _http_error(exc) from exc
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="smart_home.config.update",
         actor_user_id=current_user.id,
         target_type="smart_home_config",
         target_id=config.id,
         details={"base_url": str(data.base_url), "token": data.token},
-        ip_address=request.client.host if request.client else "",
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
     response = SmartHomeConfigResponse.model_validate(config)
@@ -147,15 +146,14 @@ async def call_service(
         )
     except Exception as exc:
         raise _http_error(exc) from exc
-    await log_audit(
-        db=db,
+    await log_audit_from_request(
+        request,
+        db,
         action="smart_home.entity.control",
         actor_user_id=current_user.id,
         target_type="smart_home_entity",
         target_id=None,
         details={"entity_id": entity_id, "service": data.service},
-        ip_address=request.client.host if request.client else "",
-        user_agent=request.headers.get("user-agent", "")[:512],
         commit=True,
     )
     return SmartHomeServiceResponse(

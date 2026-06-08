@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.audit import log_audit
+from app.core.audit import log_audit_from_request
 from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.core.system_log import emit_system_log_detached
@@ -138,30 +138,15 @@ async def create_config(
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 
-    # Audit log
-
-    ip_address = request.client.host if request.client else ""
-
-    await log_audit(
-
-        db=db,
-
+    await log_audit_from_request(
+        request,
+        db,
         action="job_config.create",
-
         actor_user_id=current_user.id,
-
         target_type="job_config",
-
         target_id=config.id,
-
         details={"name": config.name},
-
-        ip_address=ip_address,
-
-        user_agent=request.headers.get("user-agent", "")[:512],
-
         commit=True,
-
     )
 
     return config
@@ -513,30 +498,15 @@ async def update_config(
 
                 raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 
-    # Audit log
-
-    ip_address = request.client.host if request.client else ""
-
-    await log_audit(
-
-        db=db,
-
+    await log_audit_from_request(
+        request,
+        db,
         action="job_config.update",
-
         actor_user_id=current_user.id,
-
         target_type="job_config",
-
         target_id=config_id,
-
         details={"name": config.name, "updated_fields": list(update_data.keys())},
-
-        ip_address=ip_address,
-
-        user_agent=request.headers.get("user-agent", "")[:512],
-
         commit=True,
-
     )
 
     return config
@@ -573,30 +543,15 @@ async def delete_config(
 
     await job_service.remove_job_config(db, config=config)
 
-    # Audit log
-
-    ip_address = request.client.host if request.client else ""
-
-    await log_audit(
-
-        db=db,
-
+    await log_audit_from_request(
+        request,
+        db,
         action="job_config.delete",
-
         actor_user_id=current_user.id,
-
         target_type="job_config",
-
         target_id=config_id,
-
         details=config_info,
-
-        ip_address=ip_address,
-
-        user_agent=request.headers.get("user-agent", "")[:512],
-
         commit=True,
-
     )
 
     return {"message": "Config deleted"}
@@ -911,30 +866,15 @@ async def update_config_cron(
 
             raise HTTPException(status_code=400, detail=f"Scheduler error: {str(exc)}")
 
-    # Audit log
-
-    ip_address = request.client.host if request.client else ""
-
-    await log_audit(
-
-        db=db,
-
+    await log_audit_from_request(
+        request,
+        db,
         action="schedule.update",
-
         actor_user_id=current_user.id,
-
         target_type="job_config",
-
         target_id=config.id,
-
         details={"config_name": config.name, "cron_expression": data.cron_expression},
-
-        ip_address=ip_address,
-
-        user_agent=request.headers.get("user-agent", "")[:512],
-
         commit=True,
-
     )
 
     return config

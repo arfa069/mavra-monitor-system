@@ -70,6 +70,7 @@ export default function SmartHomePage() {
   const message = App.useApp().message;
   const { hasPermission } = useAuth();
   const canConfigure = hasPermission("smart_home:configure");
+  const canControl = hasPermission("smart_home:control");
   const [entities, setEntities] = useState<SmartHomeEntity[]>([]);
   const [connected, setConnected] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
@@ -274,7 +275,7 @@ export default function SmartHomePage() {
                       {["light", "switch", "fan"].includes(entity.domain) && (
                         <Switch
                           checked={entity.state === "on"}
-                          disabled={!entity.available}
+                          disabled={!entity.available || !canControl}
                           onChange={() =>
                             void callService(entity, nextToggleService(entity))
                           }
@@ -283,6 +284,7 @@ export default function SmartHomePage() {
                       {entity.domain === "cover" && (
                         <Space>
                           <Button
+                            disabled={!canControl}
                             onClick={() =>
                               void callService(entity, SERVICE.OPEN_COVER)
                             }
@@ -290,6 +292,7 @@ export default function SmartHomePage() {
                             Open
                           </Button>
                           <Button
+                            disabled={!canControl}
                             onClick={() =>
                               void callService(entity, SERVICE.STOP_COVER)
                             }
@@ -297,6 +300,7 @@ export default function SmartHomePage() {
                             Stop
                           </Button>
                           <Button
+                            disabled={!canControl}
                             onClick={() =>
                               void callService(entity, SERVICE.CLOSE_COVER)
                             }
@@ -309,7 +313,7 @@ export default function SmartHomePage() {
                         <Space wrap>
                           <Select
                             value={entity.state}
-                            disabled={!entity.available}
+                            disabled={!entity.available || !canControl}
                             style={{ minWidth: 100 }}
                             options={(Array.isArray(
                               entity.attributes.hvac_modes,
@@ -341,7 +345,7 @@ export default function SmartHomePage() {
                                   : undefined
                               }
                               value={entity.attributes.temperature}
-                              disabled={!entity.available}
+                              disabled={!entity.available || !canControl}
                               suffix="°C"
                               onChange={(value) => {
                                 if (value !== null) {
@@ -360,6 +364,7 @@ export default function SmartHomePage() {
                       )}
                       {["scene", "script"].includes(entity.domain) && (
                         <Button
+                          disabled={!canControl}
                           icon={<PoweroffOutlined />}
                           onClick={() =>
                             void callService(entity, SERVICE.TURN_ON)

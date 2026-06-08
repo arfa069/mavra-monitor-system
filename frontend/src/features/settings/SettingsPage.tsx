@@ -4,12 +4,13 @@ import { useAuth } from "@/shared/contexts/AuthContext";
 import { formatApiError } from "@/shared/api/client";
 import { useThemeContext } from "@/shared/components/ThemeProvider";
 import { configApi } from "./api/config";
+import { applyUserConfig } from "./userConfigState";
 import type { MotionSpeed } from "./types";
 import { motion } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const stagger = useStaggerAnimation();
   const { motionSpeed, setMotionSpeed } = useThemeContext();
   const message = App.useApp().message;
@@ -22,7 +23,10 @@ export default function SettingsPage() {
   }) => {
     setLoading(true);
     try {
-      await configApi.update(values);
+      const response = await configApi.update(values);
+      if (user) {
+        login(applyUserConfig(user, response.data));
+      }
       message.success("Settings saved");
     } catch (error: unknown) {
       message.error(formatApiError(error, "Save failed"));

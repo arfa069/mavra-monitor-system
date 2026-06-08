@@ -119,7 +119,8 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [message, page, pageSize, roleFilter, search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, roleFilter, search]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

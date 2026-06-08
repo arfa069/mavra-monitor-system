@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import datetime
 from typing import Any
 
@@ -11,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_stream import event_stream_broker
+from app.core.json_utils import json_default, safe_json_dumps
 from app.core.security import get_current_user, get_current_user_cookie
 from app.core.system_log import can_view_event
 from app.database import get_db
@@ -56,12 +56,6 @@ def _item_matches_filters(
         if keyword.lower() not in haystack:
             return False
     return True
-
-
-def _json_default(value: Any) -> str:
-    if isinstance(value, datetime):
-        return value.isoformat()
-    return str(value)
 
 
 @router.get("", response_model=EventCenterListResponse)
@@ -146,7 +140,7 @@ async def stream_events(
                     end_at=end_at,
                 ):
                     continue
-                payload = json.dumps(item, ensure_ascii=False, default=_json_default)
+                payload = safe_json_dumps(item, default=json_default)
                 yield f"data: {payload}\n\n"
         finally:
             await event_stream_broker.unsubscribe(queue)

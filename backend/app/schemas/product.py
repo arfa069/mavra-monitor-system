@@ -1,13 +1,12 @@
 """Product schemas."""
-import zoneinfo
 from datetime import datetime
 
-from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.alert import AlertResponse
 from app.schemas.crawl_profile import validate_profile_key_value
 from app.schemas.price_history import PriceHistorySummary
+from app.schemas.validators import validate_cron_value, validate_timezone_value
 
 
 class ProductCreate(BaseModel):
@@ -135,30 +134,12 @@ class ProductPlatformCronCreate(BaseModel):
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            CronTrigger.from_crontab(val)
-        except Exception as exc:
-            raise ValueError(f"Invalid cron expression: {exc}")
-        return val
+        return validate_cron_value(v)
 
     @field_validator("cron_timezone")
     @classmethod
     def validate_timezone(cls, v: str | None) -> str | None:
-        if not v:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            zoneinfo.ZoneInfo(val)
-        except Exception:
-            raise ValueError(f"Invalid timezone: {v}")
-        return val
+        return validate_timezone_value(v)
 
 
 class ProductPlatformCronUpdate(BaseModel):
@@ -174,30 +155,12 @@ class ProductPlatformCronUpdate(BaseModel):
     @field_validator("cron_expression")
     @classmethod
     def validate_cron(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            CronTrigger.from_crontab(val)
-        except Exception as exc:
-            raise ValueError(f"Invalid cron expression: {exc}")
-        return val
+        return validate_cron_value(v)
 
     @field_validator("cron_timezone")
     @classmethod
     def validate_timezone(cls, v: str | None) -> str | None:
-        if not v:
-            return v
-        val = v.strip()
-        if not val:
-            return None
-        try:
-            zoneinfo.ZoneInfo(val)
-        except Exception:
-            raise ValueError(f"Invalid timezone: {v}")
-        return val
+        return validate_timezone_value(v)
 
 
 class ProductPlatformProfileBindingResponse(BaseModel):

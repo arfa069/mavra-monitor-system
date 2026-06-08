@@ -7,7 +7,6 @@ import {
   Navigate,
   Outlet,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
 import { App as AntdApp, ConfigProvider, Spin, theme } from "antd";
 import { AuthProvider, useAuth } from "@/shared/contexts/AuthContext";
@@ -68,9 +67,8 @@ function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
   );
 }
 
-// Error Fallback component (uses hooks, must be inside Router)
+// Error Fallback component (does not use router hooks so it can render outside Router)
 function ErrorFallback() {
-  const navigate = useNavigate();
   return (
     <div
       style={{
@@ -100,7 +98,7 @@ function ErrorFallback() {
         Please refresh the page or contact an administrator
       </div>
       <button
-        onClick={() => navigate("/login")}
+        onClick={() => { window.location.href = "/login"; }}
         style={{
           padding: "8px 16px",
           background: "var(--color-primary)",

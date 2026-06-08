@@ -18,28 +18,28 @@
 
 来源：[`backend/app/core/permissions.py`](../backend/app/core/permissions.py)
 
-| 权限                 | user | admin | super_admin |
-| -------------------- | :--: | :---: | :---------: |
-| `user:read`          |  ❌  |  ✅   |     ✅      |
-| `user:manage`        |  ❌  |  ✅   |     ✅      |
-| `user:delete`        |  ❌  |  ✅   |     ✅      |
-| `crawl:execute`      |  ✅  |  ❌   |     ✅      |
-| `crawl:read_logs`    |  ✅  |  ✅   |     ✅      |
-| `schedule:read`      |  ✅  |  ✅   |     ✅      |
-| `schedule:configure` |  ❌  |  ❌   |     ✅      |
-| `config:read`        |  ❌  |  ✅   |     ✅      |
-| `config:write`       |  ✅  |  ✅   |     ✅      |
-| `product:read`       |  ❌  |  ❌   |     ✅      |
-| `product:write`      |  ❌  |  ❌   |     ✅      |
-| `product:delete`     |  ❌  |  ❌   |     ✅      |
-| `job:read`           |  ❌  |  ❌   |     ✅      |
-| `job:write`          |  ❌  |  ❌   |     ✅      |
-| `job:delete`         |  ❌  |  ❌   |     ✅      |
-| `smart_home:read`    |  ✅  |  ✅   |     ✅      |
-| `smart_home:control` |  ✅  |  ✅   |     ✅      |
+| 权限                   | user | admin | super_admin |
+| ---------------------- | :--: | :---: | :---------: |
+| `user:read`            |  ❌  |  ✅   |     ✅      |
+| `user:manage`          |  ❌  |  ✅   |     ✅      |
+| `user:delete`          |  ❌  |  ✅   |     ✅      |
+| `crawl:execute`        |  ✅  |  ❌   |     ✅      |
+| `crawl:read_logs`      |  ✅  |  ✅   |     ✅      |
+| `schedule:read`        |  ✅  |  ✅   |     ✅      |
+| `schedule:configure`   |  ❌  |  ❌   |     ✅      |
+| `config:read`          |  ❌  |  ✅   |     ✅      |
+| `config:write`         |  ✅  |  ✅   |     ✅      |
+| `product:read`         |  ❌  |  ❌   |     ✅      |
+| `product:write`        |  ❌  |  ❌   |     ✅      |
+| `product:delete`       |  ❌  |  ❌   |     ✅      |
+| `job:read`             |  ❌  |  ❌   |     ✅      |
+| `job:write`            |  ❌  |  ❌   |     ✅      |
+| `job:delete`           |  ❌  |  ❌   |     ✅      |
+| `smart_home:read`      |  ✅  |  ✅   |     ✅      |
+| `smart_home:control`   |  ✅  |  ✅   |     ✅      |
 | `smart_home:configure` |  ❌  |  ✅   |     ✅      |
-| `rbac:read`          |  ❌  |  ❌   |     ✅      |
-| `rbac:manage`        |  ❌  |  ❌   |     ✅      |
+| `rbac:read`            |  ❌  |  ❌   |     ✅      |
+| `rbac:manage`          |  ❌  |  ❌   |     ✅      |
 
 ## 端点 → 权限映射
 
@@ -177,10 +177,10 @@
 
 ## 前端路由守卫
 
-| 守卫              | 保护范围                                                                            | 行为               |
-| ----------------- | ----------------------------------------------------------------------------------- | ------------------ |
+| 守卫              | 保护范围                                                                                           | 行为               |
+| ----------------- | -------------------------------------------------------------------------------------------------- | ------------------ |
 | `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`  |
-| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                 | 权限不足 → `/jobs` |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                                | 权限不足 → `/jobs` |
 
 角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
 | `PublicRoute` | `/login`, `/register` | 已登录 → `/jobs` |

@@ -165,7 +165,7 @@ async def test_create_job_config_audit_success_path_calls_log_audit():
     mock_db.refresh = AsyncMock(side_effect=_refresh_side_effect)
     setup_overrides(current_user, mock_db)
 
-    with patch("app.domains.jobs.router.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
+    with patch("app.core.audit.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
@@ -202,7 +202,7 @@ async def test_update_job_config_audit_failure_does_not_break_business_success()
     mock_db.refresh = AsyncMock()
     setup_overrides(current_user, mock_db)
 
-    with patch("app.domains.jobs.router.log_audit", new=AsyncMock(return_value=None)):
+    with patch("app.core.audit.log_audit", new=AsyncMock(return_value=None)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
@@ -231,7 +231,7 @@ async def test_delete_job_config_audit_success_path_calls_log_audit():
     mock_db.commit = AsyncMock()
     setup_overrides(current_user, mock_db)
 
-    with patch("app.domains.jobs.router.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
+    with patch("app.core.audit.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.delete("/jobs/configs/303")
@@ -273,7 +273,7 @@ async def test_login_audit_failure_does_not_break_business_success():
         patch("app.domains.auth.router.is_account_locked", new=AsyncMock(return_value=(False, 0))),
         patch("app.domains.auth.router.verify_password", return_value=True),
         patch("app.domains.auth.router.clear_login_attempts", new=AsyncMock()),
-        patch("app.domains.auth.router.log_audit", new=AsyncMock(return_value=None)),
+        patch("app.core.audit.log_audit", new=AsyncMock(return_value=None)),
     ):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -321,7 +321,7 @@ async def test_logout_audit_failure_does_not_break_business_success():
     ])
     setup_overrides(current_user, mock_db)
 
-    with patch("app.domains.auth.router.log_audit", new=AsyncMock(return_value=None)):
+    with patch("app.core.audit.log_audit", new=AsyncMock(return_value=None)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(

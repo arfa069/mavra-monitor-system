@@ -254,3 +254,9 @@ class TestJobSearchConfigSchemas:
         update = JobSearchConfigUpdate(cron_expression="0 12 * * *", cron_timezone="UTC")
         assert update.cron_expression == "0 12 * * *"
         assert update.cron_timezone == "UTC"
+
+    def test_cron_only_update_rejects_invalid_expression(self):
+        from app.schemas.job import JobConfigCronUpdate
+
+        with pytest.raises(ValidationError):
+            JobConfigCronUpdate(cron_expression="bad_cron")

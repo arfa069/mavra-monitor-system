@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.crawler_worker import CrawlerWorkerRecord
-
-
-def _now() -> datetime:
-    return datetime.now(UTC)
+from app.utils.time import now_utc
 
 
 async def register_worker(
@@ -24,7 +21,7 @@ async def register_worker(
     pid: int,
     now: datetime | None = None,
 ) -> CrawlerWorkerRecord:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlerWorkerRecord).where(CrawlerWorkerRecord.worker_id == worker_id)
     )
@@ -64,7 +61,7 @@ async def heartbeat_worker(
     *,
     now: datetime | None = None,
 ) -> CrawlerWorkerRecord | None:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlerWorkerRecord).where(CrawlerWorkerRecord.worker_id == worker_id)
     )
@@ -85,7 +82,7 @@ async def mark_worker_stopping(
     *,
     now: datetime | None = None,
 ) -> CrawlerWorkerRecord | None:
-    current = now or _now()
+    current = now or now_utc()
     result = await db.execute(
         select(CrawlerWorkerRecord).where(CrawlerWorkerRecord.worker_id == worker_id)
     )
@@ -106,7 +103,7 @@ async def mark_stale_workers_offline(
     stale_after_seconds: int,
     now: datetime | None = None,
 ) -> int:
-    current = now or _now()
+    current = now or now_utc()
     threshold = current - timedelta(seconds=stale_after_seconds)
     result = await db.execute(
         select(CrawlerWorkerRecord).where(
