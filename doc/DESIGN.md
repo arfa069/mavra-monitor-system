@@ -1,136 +1,296 @@
-# Design System — Price Monitor & Job Tracker
+# Design System — Mavra Monitor System
 
 ## Product Context
 
-- **What this is:** 电商价格监控系统（支持淘宝、京东、亚马逊）+ Boss直聘职位搜索监控后台。自动抓取商品/职位信息，价格降价时通过飞书 Webhook 推送告警。
-- **Who it's for:** 个人用户或小型团队，需要同时监控多个电商平台价格和职位机会的运营/采购人员。
-- **Space/industry:** 电商工具 / 价格追踪 / 后台管理系统（Dashboard）
-- **Project type:** Web App / Dashboard / Internal Tool
-- **Tech stack:** React 18 + Vite + TypeScript + Ant Design 5
+Mavra Monitor System is a personal automation center for prices, job opportunities, and Home Assistant state.
+
+It watches the user's world quietly, then surfaces only the changes worth attention. The product is no longer positioned as a backend dashboard first. It should feel like a smart private assistant that does not interrupt you.
+
+## Design Thesis
+
+**Lived-In Morning Brief:** Mavra watches quietly, then only speaks when something is worth attention.
+
+The first screen should answer three questions:
+
+1. Is everything quiet?
+2. What actually deserves attention?
+3. What can safely wait?
+
+The product should feel warm on first touch and precise on demand. Today can read like a morning note. Tables, rules, logs, and admin screens must still scan like real tools.
+
+## Non-Negotiables
+
+- The first screen is Today, not a KPI wall.
+- Summary surfaces may be warm and human.
+- Tables, forms, logs, and admin pages stay compact and precise.
+- Browser QA must flag UI that still looks neo-brutalist: hard black borders, pop color blocks, offset shadows, uppercase zine labels.
+- Do not trigger real crawls or real smart-home service calls during visual QA.
 
 ## Aesthetic Direction
 
-- **Direction:** Neo-Brutalist Zine (新粗野主义杂志风)
-- **Decoration level:** Expressive (高对比度、粗描边、硬投影、手写贴纸感)
-- **Mood:** 强烈、个性、专业。用黑白坚硬的骨架（3px solid black 边框）确立工具的安全感与力量感；用高对比度的波普淡色块（Macaron 2.0）打破传统管理系统的无聊与沉闷，创造一种仿佛在翻阅先锋独立杂志（Zine）的视觉冲击力。
-- **Memorable thing:** 绝不无聊、高度耐看、富有报刊印刷张力的极客仪表盘。
+- **Direction:** Lived-In Morning Brief
+- **Decoration level:** Intentional
+- **Mood:** warm, domestic, calm, attentive, precise
+- **Memorable thing:** It feels like a smart private assistant that does not interrupt you.
+
+The interface should feel like a home surface or morning note, not a SaaS analytics wall. It can use warm paper-like surfaces, soft borders, rounded cards, gentle status chips, and calm motion. It must not hide important operational details.
 
 ## Typography
 
-- **Display/Hero:** Syne — 极具艺术感与几何张力的无衬线字体，大字号下拥有独特的现代解构美感，用于品牌标识、Hero 区域与大标题。
-- **Body:** Outfit — 亲和且极易阅读的几何无衬线体，小字号下表现优异，用于正文段落和表单说明。
-- **UI/Labels:** Outfit (Same as body) — 部分表头或导航项采用 uppercase 并加重字重。
-- **Data/Tables:** Space Grotesk — 充满工业美学特质的几何等宽数字字体，最适合价格对齐和高精度数值呈现。
-- **Code:** JetBrains Mono — 用于开发日志、定时表达式及底层配置代码。
-- **Loading:**
-  - Syne：Google Fonts (`https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap`)
-  - Outfit：Google Fonts (`https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap`)
-  - Space Grotesk：Google Fonts (`https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap`)
-  - 使用 `font-display: swap` 防止 FOIT。
-- **Scale:**
-  | Token | Size | Weight | Line Height | Letter Spacing | Usage |
-  |-------|------|--------|-------------|----------------|-------|
-  | Hero / Display XL | clamp(32px, 5vw, 48px) | 800 | 1.0 | -1.0px | 登录页品牌标题（Syne） |
-  | Display | 28px | 800 | 1.1 | -0.5px | 页面大标题（Syne） |
-  | Headline | 20px | 800 | 1.35 | -0.2px | 区块标题、卡片标题（Syne） |
-  | Lead | 16px | 400 | 1.45 | -0.1px | 引导段落（Outfit） |
-  | Body | 14px | 400 | 1.5 | -0.2px | 正文、表格内容（Outfit） |
-  | Small | 13px | 400 | 1.5 | -0.1px | 辅助文字、次要信息（Outfit） |
-  | Micro | 11px | 600 | 1.3 | 0.05em | 极小标签、元信息（Outfit） |
-  | Mono / Eyebrow | 12px | 700 | 1.3 | 0.5px | 代码标签、表头（Space Grotesk, uppercase）|
+The target typography is editorial warmth plus utility precision.
+
+- **Display:** Newsreader / Noto Serif SC where self-hosted assets are available. Fallback: Georgia, Songti SC, serif.
+- **Body/UI:** IBM Plex Sans / Noto Sans SC where self-hosted assets are available. Fallback: Outfit, Microsoft YaHei, system sans-serif.
+- **Data/Code:** IBM Plex Mono where self-hosted assets are available. Fallback: JetBrains Mono, monospace.
+
+Current implementation must not add remote font runtime dependencies. If exact target fonts are needed, vendor the font files into `frontend/public/fonts` and declare them in `frontend/src/styles/fonts.css`.
+
+### Type Scale
+
+| Token | Size | Weight | Usage |
+| --- | ---: | ---: | --- |
+| display-xl | `48px` | 500 | Today summary on desktop |
+| display-lg | `34px` | 500 | Page title |
+| headline | `22px` | 600 | Section title |
+| card-title | `17px` | 600 | Card title |
+| body | `14px` | 400 | Default UI text |
+| small | `13px` | 400 | Secondary text |
+| caption | `12px` | 500 | Labels and helper text |
+| data | `13px` | 500 | Numeric cells |
+
+Rule: summary copy may be warm; control labels must stay plain.
 
 ## Color
 
-- **Approach:** Pop Art Contrast (波普撞色 + 绝对描边)
-- **Primary:** `#000000` (墨黑) — 文字、核心边框、交互主要按钮
-- **Canvas:** `#f8f6f0` (纸张暖白) — 页面大背景
-- **Surface Soft:** `#fbf6e3` (复古象牙黄) — 卡片备用色、输入框背景、代码块背景
-- **Hairline / Border:** `#000000` (绝对黑线) — 所有卡片、按钮、容器边框，宽度固定为 3px
-- **Muted:** `#666666` — 极少数非关键辅助文字（其余多使用墨黑配合字重区分）
+Approach: warm neutral base with natural status colors.
 
-- **Color Blocks (波普撞色色块 - 语义化映射)：**
-  | Name | Hex | Semantic | Used For |
-  |------|-----|----------|----------|
-  | Yellow | `#FBEE6B` | 强调/高亮 | 品牌主标志、核心强调块 |
-  | Lime | `#B8F2A1` | 成功/抓取 | 价格下降标识、商品标题色块、抓取完成状态 |
-  | Pink | `#FFB3D9` | 警报/急聘 | 告警卡片、职位搜索急聘卡片、报错及警报状态 |
-  | Lilac | `#D2C1FB` | 配置/用户 | 设置页标题、定时调度配置、用户账户相关卡片 |
-  | Cyan | `#99F0F9` | 系统/信息 | 页面头部条状横幅、常规监控正常状态、信息提示 |
-  | Orange | `#FFB88C` | 交互/警告 | 切换按钮、橙色徽章、中度警示 |
+| Token | Hex | Usage |
+| --- | --- | --- |
+| canvas | `#f3dfc8` | App background, warm base |
+| surface | `#fff7ec` | Main cards and panels |
+| surface-raised | `#ffffff` | Data cards, tables, dialogs |
+| ink | `#33251b` | Primary text |
+| muted | `#705947` | Secondary text |
+| border | `rgba(93, 61, 38, 0.12)` | Soft structural border |
+| sage | `#7e976b` | Quiet, healthy, running |
+| clay | `#d9826b` | Attention, price movement, warm alert |
+| mist | `#7aa2a4` | Home, ambient info |
+| butter | `#fff1cf` | Gentle action chips |
+| rose | `#f8d7c8` | Important but non-critical notice |
 
-- **Dark Mode (赛博高刷粗野模式)：**
-  当切换到赛博暗色模式时，画布变为极深曜石色，边框反转为纯白描边，色块升级为发光霓虹：
-  - Canvas → `#0e0e11`
-  - Primary → `#ffffff`
-  - Border → `#ffffff` (宽度维持 3px，投影阴影色同步反转为 `#ffffff`)
-  - Swatches (发光霓虹模式):
-    - Yellow: `#f8e400`
-    - Lime: `#00ff66`
-    - Pink: `#ff007f`
-    - Lilac: `#8b3dff`
-    - Cyan: `#00f0ff`
-    - Orange: `#ff7f00`
-    - Cream/Surface Soft: `#1b1b24`
+Semantic tokens:
 
-## Spacing
+| Token | Hex | Meaning |
+| --- | --- | --- |
+| success | `#7e976b` | Good state, completed, normal |
+| warning | `#d89a57` | Needs review soon |
+| danger | `#c75f4c` | Failed, blocked, urgent |
+| info | `#7aa2a4` | Neutral system information |
+| opportunity | `#d9826b` | Price/job opportunity worth attention |
 
-- **Base unit:** 4px
-- **Density:** 紧凑 (Compact) / 舒适 (Comfortable)
-- **Scale:**
-  | Token | Value | Usage |
-  |-------|-------|-------|
-  | hair | 3px | 核心粗边框 / 分割线线宽 |
-  | xxs | 4px | 按钮图标间距、紧凑内边距 |
-  | xs | 8px | 标签内边距、按钮内侧间距 |
-  | sm | 12px | 表单行间距、常规组件间隙 |
-  | md | 16px | 表格行内边距、卡片行距 |
-  | lg | 24px | 卡片内部内边距、区块外边距 |
-  | xl | 32px | 页面大边距、大区块间隔 |
-  | xxl | 48px | 登录面板大留白 |
+Avoid:
+
+- Purple gradients
+- Beige-only screens with no contrast
+- Harsh black borders from the old neo-brutalist system
+- Neon dark mode as the default personality
+
+## Spacing And Shape
+
+- **Base unit:** `4px`
+- **Default density:** comfortable for Today and overview pages
+- **Compact density:** required for tables, admin pages, logs, and configuration
+
+| Token | Value | Usage |
+| --- | ---: | --- |
+| xs | `4px` | Tight icon/text gaps |
+| sm | `8px` | Chips, compact controls |
+| md | `12px` | Form rows, list rows |
+| lg | `16px` | Card internals |
+| xl | `24px` | Section gaps |
+| 2xl | `32px` | Page-level spacing |
+| 3xl | `48px` | Today composition |
+
+Radius:
+
+| Token | Value | Usage |
+| --- | ---: | --- |
+| sm | `10px` | Inputs, chips |
+| md | `16px` | Table containers |
+| lg | `24px` | Cards |
+| xl | `32px` | Today hero panels |
+| pill | `9999px` | Chips and small action buttons |
+
+Use soft shadows sparingly:
+
+- `0 16px 50px rgba(92, 58, 29, 0.10)` for raised warm panels
+- `0 24px 80px rgba(92, 58, 29, 0.12)` for Today hero panels
+- No heavy offset shadows
+- No decorative blurred blobs
 
 ## Layout
 
-- **Approach:** Grid-disciplined + Layered Asymmetry (网格对齐 + 错位重叠)
-- **Grid:** 12列网格，大屏严格对齐数据表，小屏适配折叠。
-- **Max content width:** 1280px。
-- **Border radius hierarchy:** 粗野主义不提倡大圆角，采用低圆角设计维持硬朗感。
-  - sm: 4px — 徽章、提示框
-  - md: 8px — 输入框、小卡片
-  - lg: 16px — 大卡片、数据表容器、面板
-  - pill: 9999px — 状态胶囊标签、圆形头像
-- **Elevation (硬投影阴影):**
-  新粗野主义不使用任何软模糊阴影 (blur: 0)，取而代之的是纯色硬边错位阴影：
-  - Card / Panel Shadow: `box-shadow: 6px 6px 0px #000000`
-  - Interactive Button Shadow: `box-shadow: 3px 3px 0px #000000`
-  - Active / Expanded State: `box-shadow: 10px 10px 0px #000000`
-  - Dark Mode: 对应阴影色反转为 `#ffffff`
+The first screen is `Today`.
+
+Recommended structure:
+
+1. Time and quiet badge
+2. Human summary
+3. Attention queue
+4. Module status panel
+5. Recent assistant actions
+
+Desktop:
+
+- Two-column layout: main rhythm and side status
+- Max content width: `1280px`
+- Today can be more spacious than operational pages
+
+Mobile:
+
+- Single-column feed
+- Attention queue first
+- Summary copy wraps cleanly and never covers controls
+
+Data-heavy pages:
+
+- Use compact tables
+- Keep filters sticky when useful
+- Prefer row actions over decorative card grids
+- Charts should answer one question at a time
+
+## Information Architecture
+
+Primary navigation:
+
+- Today
+- Prices
+- Jobs
+- Home
+- Rules
+- Activity
+- Analytics
+- Settings
+
+Keep `/dashboard` available as Analytics. Do not remove the current chart-heavy dashboard until Today is proven in daily use.
+
+## Component Language
+
+### Daily Summary
+
+Large serif statement with one specific sentence.
+
+Good:
+
+> 今天只提醒 2 件事。
+
+Bad:
+
+> Welcome back to your powerful dashboard.
+
+### Attention Queue
+
+A ranked list of things worth attention.
+
+Each item includes:
+
+- life-context label, such as morning, today, later
+- short plain-language reason
+- source/module marker
+- one primary action
+- one defer action when useful
+
+### Quiet State
+
+Quiet is a first-class state, not an empty state.
+
+Examples:
+
+- 家里设备都在安静运行。
+- 今天没有新的高匹配职位。
+- 价格看守没有发现值得处理的变化。
+
+### Rule Cards
+
+Rules should read like outcomes before settings.
+
+Example:
+
+> 当显示器低于 1299 元时提醒我。
+
+Advanced configuration can expand below the plain sentence.
+
+### Tables
+
+Tables stay practical. Use tabular numbers, right-align numeric values, keep row height compact, and use color only for meaningful state.
 
 ## Motion
 
-- **Approach:** Snappy + Bounce (清脆硬朗与轻微弹跳)
-- **Easing:** `cubic-bezier(0.175, 0.885, 0.32, 1.275)` (轻微回弹/过冲)
-- **Interactive Rules:**
-  - Hover 效果：当鼠标悬浮在卡片/按钮上时，产生向左上角平移且硬阴影向右下角伸展的动效：
-    ```css
-    transform: translate(-3px, -3px);
-    box-shadow: 9px 9px 0px #000000;
-    ```
-  - Active 效果：当点击按钮时，产生向右下角压实且阴影消失的动效，创造极强的交互反响：
-    ```css
-    transform: translate(3px, 3px);
-    box-shadow: 0px 0px 0px #000000;
-    ```
-  - Duration scale:
-    - Micro: 80ms (Hover 状态的平移缩回)
-    - Short: 150ms (弹窗弹出、卡片翻转)
-    - Medium: 250ms (路由过渡动画)
+Approach: quiet, tactile, low-frequency.
 
-## Decisions Log
+Rules:
 
-| Date       | Decision                                           | Rationale                                                                                                                 |
-| ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-11 | Initial design system documented                   | Created by /design-consultation based on existing Figma Marketing Style implementation                                    |
-| 2026-05-11 | Replace Inter with General Sans + DM Sans          | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism         |
-| 2026-06-08 | Migrate to Neo-Brutalist Zine design system        | Selected via user choices to implement a highly visually distinct, high-contrast, premium pop art layout for monitors.    |
-| 2026-06-08 | Introduce Syne + Outfit + Space Grotesk typography | Syne adds raw header personality; Outfit handles micro-readability; Space Grotesk formats price alignment with precision. |
-| 2026-06-08 | Revamp color palette to Pop Art Macaron 2.0        | Added bold 3px black strokes with offset flat shadows to represent a retro zine look; dark mode flips to white borders.   |
+- Page transitions: `180-240ms`
+- Card hover: small lift, `1-2px`
+- Attention item entrance: subtle fade and vertical movement
+- Status changes: soft color wash, no bouncing
+- Background animation: none by default
+
+Easing:
+
+- enter: `cubic-bezier(0.2, 0.8, 0.2, 1)`
+- exit: `cubic-bezier(0.4, 0, 1, 1)`
+- move: `cubic-bezier(0.2, 0, 0, 1)`
+
+## Writing Style
+
+The UI voice is warm but not cute.
+
+Use:
+
+- short sentences
+- specific observations
+- "worth looking at" language
+- calm verbs like watching, running, quiet, ready, changed
+
+Avoid:
+
+- hype
+- fake personality
+- "AI assistant" theatrics
+- jokes in operational states
+- vague praise
+
+Good examples:
+
+- 今天只提醒 2 件事。
+- 这个职位值得晚点打开。
+- 客厅已经进入早晨模式。
+- 价格还没有到你设的目标。
+
+## Migration From Previous System
+
+The old system was Neo-Brutalist Zine: thick black borders, hard shadows, pop colors, Syne, Outfit, and Space Grotesk.
+
+The new system changes the emotional center:
+
+| Previous | New |
+| --- | --- |
+| high contrast zine dashboard | warm lived-in assistant |
+| hard black `3px` borders | soft warm `1px` borders |
+| pop color blocks | natural semantic color |
+| loud hover movement | quiet tactile motion |
+| dashboard-first | Today brief first |
+| technical module naming | life-context summary first |
+
+Implementation should not be a one-file token swap. The homepage composition, navigation language, empty states, and table density need to change together.
+
+## QA Checklist
+
+- `/today` communicates quiet/attention status without showing a KPI wall.
+- Prices, Jobs, and Home are reachable in one click.
+- `/dashboard` remains available as Analytics.
+- Dense tables remain faster to scan than card grids.
+- Empty states are calm and useful.
+- Mobile layout stacks without overlap.
+- Browser QA uses mocked APIs only.

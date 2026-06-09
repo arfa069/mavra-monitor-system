@@ -1,6 +1,8 @@
 /* ============================================================
-   Self-hosted Fonts — Syne, Outfit, Space Grotesk, JetBrains Mono
-   All fonts served locally; zero external font dependencies
+   Self-hosted Fonts
+   Current assets remain local; no runtime font CDN dependency.
+   Target stacks in design-tokens.css include editorial/system fallbacks
+   until Newsreader, Noto SC, and IBM Plex assets are vendored.
    ============================================================ */
 
 /* ---- Syne (Display) — variable font, weights 700-800 ---- */

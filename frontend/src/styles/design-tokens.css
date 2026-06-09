@@ -1,143 +1,154 @@
 /* ============================================================
-   Neo-Brutalist Zine — CSS Design Tokens
-   Source: DESIGN.md (Pop Art Contrast & Absolute Stroke)
+   Lived-In Morning Brief — CSS Design Tokens
+   Source: doc/DESIGN.md
    ============================================================ */
 
 :root {
-  /* --- Colors: Brand & Accent --- */
-  --color-primary: #000000;
-  --color-on-primary: #ffffff;
-  --color-ink: #000000;
-  --color-canvas: #f8f6f0; /* Warm paper off-white */
-  --color-inverse-canvas: #0e0e11;
-  --color-inverse-ink: #ffffff;
-  --color-border: #000000;
-
-  /* --- Colors: Swatches / Block Pastels --- */
-  --color-block-yellow: #fbee6b;
-  --color-block-lime: #b8f2a1;
-  --color-block-lilac: #d2c1fb;
-  --color-block-cyan: #99f0f9;
-  --color-block-pink: #ffb3d9;
-  --color-block-orange: #ffb88c;
-  --color-block-cream: #fbf6e3; /* Surface Soft */
-  --color-surface-soft: #fbf6e3;
+  /* --- Colors: Warm base --- */
+  --color-canvas: #f3dfc8;
+  --color-surface: #fff7ec;
+  --color-surface-soft: #fff7ec;
   --color-surface-raised: #ffffff;
+  --color-ink: #33251b;
+  --color-muted: #705947;
+  --color-border: rgba(93, 61, 38, 0.12);
+  --color-border-strong: rgba(93, 61, 38, 0.22);
+  --color-hairline: var(--color-border);
+  --color-hairline-soft: rgba(93, 61, 38, 0.08);
 
-  /* --- Colors: Semantic --- */
-  --color-muted: #666666;
-  --color-success: #b8f2a1; /* Lime */
-  --color-warning: #ffb88c; /* Orange */
-  --color-error: #ffb3d9; /* Pink */
-  --color-info: #99f0f9; /* Cyan */
-  --color-hairline: #000000;
-  --color-hairline-soft: #000000;
+  /* --- Colors: Natural signals --- */
+  --color-sage: #7e976b;
+  --color-clay: #d9826b;
+  --color-mist: #7aa2a4;
+  --color-butter: #fff1cf;
+  --color-rose: #f8d7c8;
+
+  --color-success: #7e976b;
+  --color-warning: #d89a57;
+  --color-error: #c75f4c;
+  --color-info: #7aa2a4;
+  --color-opportunity: #d9826b;
+
+  --color-primary: var(--color-sage);
+  --color-on-primary: #ffffff;
+  --color-primary-hover: #6f885e;
+  --color-border-hover: var(--color-border-strong);
+  --color-focus-ring: rgba(126, 151, 107, 0.22);
+  --color-danger-bg-hover: #f1c4b6;
+  --color-scrollbar-hover: rgba(112, 89, 71, 0.44);
+
+  --color-inverse-canvas: #211a16;
+  --color-inverse-ink: #f7f0e4;
+
+  /* --- Legacy aliases for incremental migration --- */
+  --color-block-yellow: var(--color-butter);
+  --color-block-lime: var(--color-sage);
+  --color-block-lilac: #e9dfd2;
+  --color-block-cyan: var(--color-mist);
+  --color-block-pink: var(--color-rose);
+  --color-block-orange: var(--color-clay);
+  --color-block-cream: var(--color-surface);
 
   /* --- Typography --- */
-  --font-display: "Syne", sans-serif;
-  --font-body: "Outfit", sans-serif;
-  --font-data: "Space Grotesk", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Newsreader", "Noto Serif SC", Georgia, "Songti SC", serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "Outfit", "Microsoft YaHei",
+    system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", "JetBrains Mono", monospace;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
 
   --font-variant-numeric: tabular-nums;
   --font-feature-numeric: "tnum";
 
-  --font-size-display-xl: clamp(32px, 5vw, 48px);
-  --font-size-display-lg: 28px;
-  --font-size-headline: 20px;
+  --font-size-display-xl: 48px;
+  --font-size-display-lg: 34px;
+  --font-size-headline: 22px;
   --font-size-subhead: 20px;
-  --font-size-card-title: 16px;
+  --font-size-card-title: 17px;
   --font-size-body-lg: 16px;
   --font-size-body: 14px;
   --font-size-body-sm: 13px;
   --font-size-link: 14px;
   --font-size-button: 14px;
   --font-size-eyebrow: 12px;
-  --font-size-caption: 11px;
+  --font-size-caption: 12px;
   --font-size-lead: 16px;
   --font-size-micro: 11px;
 
-  --font-weight-display: 800;
-  --font-weight-headline: 800;
-  --font-weight-subhead: 800;
-  --font-weight-card-title: 800;
+  --font-weight-display: 500;
+  --font-weight-headline: 600;
+  --font-weight-subhead: 600;
+  --font-weight-card-title: 600;
   --font-weight-body-lg: 400;
   --font-weight-body: 400;
   --font-weight-body-sm: 400;
-  --font-weight-link: 400;
-  --font-weight-button: 800;
-  --font-weight-eyebrow: 700;
-  --font-weight-caption: 600;
+  --font-weight-link: 500;
+  --font-weight-button: 600;
+  --font-weight-eyebrow: 500;
+  --font-weight-caption: 500;
   --font-weight-lead: 400;
-  --font-weight-micro: 600;
+  --font-weight-micro: 500;
 
-  --line-height-display-xl: 1;
-  --line-height-display-lg: 1.1;
-  --line-height-headline: 1.35;
+  --line-height-display-xl: 1.04;
+  --line-height-display-lg: 1.08;
+  --line-height-headline: 1.3;
   --line-height-subhead: 1.35;
-  --line-height-card-title: 1.45;
-  --line-height-body-lg: 1.4;
+  --line-height-card-title: 1.4;
+  --line-height-body-lg: 1.45;
   --line-height-body: 1.5;
   --line-height-body-sm: 1.5;
   --line-height-link: 1.4;
   --line-height-button: 1.4;
   --line-height-eyebrow: 1.3;
-  --line-height-caption: 1.3;
-  --line-height-lead: 1.45;
+  --line-height-caption: 1.35;
+  --line-height-lead: 1.55;
   --line-height-micro: 1.3;
 
-  --letter-spacing-display-xl: -1px;
-  --letter-spacing-display-lg: -0.5px;
-  --letter-spacing-headline: -0.2px;
-  --letter-spacing-subhead: -0.2px;
-  --letter-spacing-body-lg: -0.1px;
-  --letter-spacing-body: -0.2px;
-  --letter-spacing-body-sm: -0.1px;
-  --letter-spacing-link: -0.1px;
-  --letter-spacing-button: -0.1px;
-  --letter-spacing-eyebrow: 0.5px;
-  --letter-spacing-caption: 0.5px;
-  --letter-spacing-lead: -0.1px;
-  --letter-spacing-micro: 0.05em;
+  --letter-spacing-display-xl: -0.02em;
+  --letter-spacing-display-lg: -0.015em;
+  --letter-spacing-headline: 0;
+  --letter-spacing-subhead: 0;
+  --letter-spacing-body-lg: 0;
+  --letter-spacing-body: 0;
+  --letter-spacing-body-sm: 0;
+  --letter-spacing-link: 0;
+  --letter-spacing-button: 0;
+  --letter-spacing-eyebrow: 0;
+  --letter-spacing-caption: 0;
+  --letter-spacing-lead: 0;
+  --letter-spacing-micro: 0;
 
   /* --- Spacing --- */
-  --spacing-hair: 3px; /* 3px core border */
-  --border-width: 3px;
+  --spacing-hair: 1px;
+  --border-width: 1px;
   --spacing-xxs: 4px;
-  --spacing-xs: 8px;
-  --spacing-sm: 12px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
-  --spacing-section: 96px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-xxl: 32px;
+  --spacing-section: 48px;
 
-  /* --- Rounded Corners --- */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  /* --- Rounded corners --- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
   --radius-pill: 9999px;
   --radius-full: 9999px;
 
-  /* --- Elevation (Neo-Brutalist Flat Shadows) --- */
-  --shadow-offset-sm: 3px 3px 0px #000000;
-  --shadow-offset-md: 6px 6px 0px #000000;
-  --shadow-offset-lg: 10px 10px 0px #000000;
+  /* --- Elevation --- */
+  --shadow-soft: 0 16px 50px rgba(92, 58, 29, 0.1);
+  --shadow-panel: 0 24px 80px rgba(92, 58, 29, 0.12);
+  --shadow-offset-sm: var(--shadow-soft);
+  --shadow-offset-md: var(--shadow-soft);
+  --shadow-offset-lg: var(--shadow-panel);
+  --shadow-card: var(--shadow-soft);
+  --shadow-modal: var(--shadow-panel);
+  --shadow-nav: var(--shadow-soft);
 
-  --shadow-card: var(--shadow-offset-md);
-  --shadow-modal: var(--shadow-offset-lg);
-  --shadow-nav: var(--shadow-offset-sm);
-
-  /* --- Interaction --- */
-  --color-primary-hover: #111111;
-  --color-border-hover: #000000;
-  --color-focus-ring: rgba(0, 0, 0, 0.08);
-  --color-danger-bg-hover: #ffb3d9;
-  --color-scrollbar-hover: #000000;
-
-  /* --- Z-Index Scale --- */
+  /* --- Z-index scale --- */
   --z-base: 0;
   --z-dropdown: 100;
   --z-sticky: 200;
@@ -147,7 +158,7 @@
   --z-toast: 600;
 }
 
-/* ---- Density Mode ---- */
+/* ---- Density modes ---- */
 :root {
   --density-padding-xs: 8px;
   --density-padding-sm: 12px;
@@ -181,55 +192,56 @@
   --density-section-gap: 32px;
 }
 
-/* ---- Dark/Cyber Mode (Cyber-Brutalist) ---- */
+/* ---- Evening mode ---- */
 [data-theme="dark"] {
-  --color-primary: #ffffff;
-  --color-on-primary: #000000;
-  --color-ink: #ffffff;
-  --color-canvas: #0e0e11; /* Deep space */
-  --color-inverse-canvas: #f8f6f0;
-  --color-inverse-ink: #000000;
-  --color-border: #ffffff;
+  --color-primary: #d8c3a5;
+  --color-on-primary: #211a16;
+  --color-ink: #f7f0e4;
+  --color-canvas: #211a16;
+  --color-surface: #2b221c;
+  --color-surface-soft: #2b221c;
+  --color-surface-raised: #332820;
+  --color-muted: #c9b8a5;
+  --color-border: rgba(247, 240, 228, 0.18);
+  --color-border-strong: rgba(247, 240, 228, 0.28);
+  --color-hairline: var(--color-border);
+  --color-hairline-soft: rgba(247, 240, 228, 0.1);
 
-  /* Neon swatches for cyber-zine */
-  --color-block-yellow: #f8e400;
-  --color-block-lime: #00ff66;
-  --color-block-lilac: #8b3dff;
-  --color-block-cyan: #00f0ff;
-  --color-block-pink: #ff007f;
-  --color-block-orange: #ff7f00;
-  --color-block-cream: #1b1b24; /* Surface Soft */
-  --color-surface-soft: #1b1b24;
-  --color-surface-raised: #1b1b24;
+  --color-sage: #a7bd92;
+  --color-clay: #e0a087;
+  --color-mist: #a0c3c5;
+  --color-butter: #4b3b26;
+  --color-rose: #5b332b;
+  --color-success: #a7bd92;
+  --color-warning: #e0b072;
+  --color-error: #e08c78;
+  --color-info: #a0c3c5;
+  --color-opportunity: #e0a087;
 
-  --color-muted: #888888;
-  --color-success: #00ff66;
-  --color-warning: #ff7f00;
-  --color-error: #ff007f;
-  --color-info: #00f0ff;
-  --color-hairline: #ffffff;
-  --color-hairline-soft: #ffffff;
+  --color-block-yellow: var(--color-butter);
+  --color-block-lime: var(--color-sage);
+  --color-block-lilac: #3a3028;
+  --color-block-cyan: var(--color-mist);
+  --color-block-pink: var(--color-rose);
+  --color-block-orange: var(--color-clay);
+  --color-block-cream: var(--color-surface);
 
-  --shadow-offset-sm: 3px 3px 0px #ffffff;
-  --shadow-offset-md: 6px 6px 0px #ffffff;
-  --shadow-offset-lg: 10px 10px 0px #ffffff;
-
-  --color-primary-hover: #eeeeee;
-  --color-border-hover: #ffffff;
-  --color-focus-ring: rgba(255, 255, 255, 0.08);
-  --color-danger-bg-hover: #ff007f;
-  --color-scrollbar-hover: #ffffff;
+  --shadow-soft: 0 16px 50px rgba(0, 0, 0, 0.22);
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.3);
+  --shadow-offset-sm: var(--shadow-soft);
+  --shadow-offset-md: var(--shadow-soft);
+  --shadow-offset-lg: var(--shadow-panel);
 }
 
-/* ---- Ant Design Token Overrides ---- */
+/* ---- Ant Design token bridge ---- */
 :root {
   --ant-color-primary: var(--color-primary);
   --ant-color-bg-layout: var(--color-canvas);
-  --ant-color-bg-container: var(--color-block-cream);
+  --ant-color-bg-container: var(--color-surface);
   --ant-color-text: var(--color-ink);
   --ant-color-text-secondary: var(--color-muted);
   --ant-color-border: var(--color-border);
-  --ant-color-border-secondary: var(--color-border);
+  --ant-color-border-secondary: var(--color-hairline-soft);
   --ant-border-radius: var(--radius-md);
   --ant-font-size: var(--font-size-body);
   --ant-line-height: var(--line-height-body);

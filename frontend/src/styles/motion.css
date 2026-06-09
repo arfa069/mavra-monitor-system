@@ -1,5 +1,5 @@
 /* ============================================================
-   Motion System — Neo-Brutalist Snappy & Bounce
+   Motion System — Lived-In Morning Brief
    ============================================================ */
 
 /* ---- Keyframes ---- */
@@ -26,12 +26,15 @@
   }
 }
 
-/* ---- Spring Easing & snappiness ---- */
+/* ---- Calm easing & tactility ---- */
 :root {
-  --ease-brutalist: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  --duration-micro: 80ms;
-  --duration-short: 150ms;
-  --duration-medium: 250ms;
+  --ease-calm-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-calm-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-calm-move: cubic-bezier(0.2, 0, 0, 1);
+  --ease-brutalist: var(--ease-calm-enter);
+  --duration-micro: 100ms;
+  --duration-short: 180ms;
+  --duration-medium: 240ms;
 }
 
 /* ---- Transition Helpers ---- */
