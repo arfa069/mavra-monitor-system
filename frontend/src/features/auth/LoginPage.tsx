@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   const from =
     (location.state as { from?: { pathname: string } })?.from?.pathname ||
-    "/dashboard";
+    "/today";
 
   const handleSubmit = async (values: LoginFormValues) => {
     setLoading(true);
@@ -60,20 +60,20 @@ export default function LoginPage() {
                 />
               </svg>
             </div>
-            <span className="login-logo-name">Price Monitor</span>
+            <span className="login-logo-name">Mavra</span>
           </div>
 
           {/* Hero copy */}
           <div className="login-hero">
             <h1 className="login-headline">
-              All Prices
+              Your day,
               <br />
-              One Dashboard
+              quietly sorted
             </h1>
             <p className="login-subhead">
-              Track prices across Taobao, JD, and Amazon
+              Prices, jobs, and home signals gathered
               <br />
-              Auto alerts on price drops, never miss a deal
+              into a calm daily brief.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function LoginPage() {
         <div className="login-form-card">
           <div className="login-form-header">
             <h2 className="login-form-title">Welcome Back</h2>
-            <p className="login-form-subtitle">Sign in to Price Monitor</p>
+            <p className="login-form-subtitle">Sign in to Mavra</p>
           </div>
 
           <Form
@@ -170,7 +170,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Text className="login-copyright">Price Monitor © 2026</Text>
+        <Text className="login-copyright">Mavra watches quietly © 2026</Text>
       </div>
 
       <style>{`
@@ -215,16 +215,16 @@ export default function LoginPage() {
           font-size: 18px;
           font-weight: 480;
           color: var(--color-ink);
-          letter-spacing: -0.2px;
+          letter-spacing: 0;
         }
 
         /* Hero */
         .login-headline {
           font-family: var(--font-display);
-          font-size: clamp(40px, 5vw, 64px);
+          font-size: 56px;
           font-weight: 340;
           line-height: 1.05;
-          letter-spacing: -1.72px;
+          letter-spacing: 0;
           color: var(--color-ink);
           margin: 0 0 24px 0;
           animation: fadeInUp 150ms ease-out 100ms both;
@@ -285,7 +285,7 @@ export default function LoginPage() {
           font-size: 26px;
           font-weight: 540;
           line-height: 1.35;
-          letter-spacing: -0.26px;
+          letter-spacing: 0;
           color: var(--color-ink);
           margin: 0 0 6px 0;
         }
@@ -397,7 +397,7 @@ export default function LoginPage() {
           font-family: var(--font-body) !important;
           font-size: 16px !important;
           font-weight: 480 !important;
-          letter-spacing: -0.1px !important;
+          letter-spacing: 0 !important;
           background: var(--color-primary) !important;
           border: none !important;
           color: var(--color-on-primary) !important;
@@ -454,8 +454,8 @@ export default function LoginPage() {
           font-family: 'JetBrains Mono', monospace !important;
           font-size: 11px !important;
           font-weight: 400 !important;
-          letter-spacing: 0.6px !important;
-          text-transform: uppercase !important;
+          letter-spacing: 0 !important;
+          text-transform: none !important;
           color: var(--color-muted) !important;
           animation: fadeInUp 150ms ease-out 250ms both;
         }
@@ -479,6 +479,10 @@ export default function LoginPage() {
 
           .login-logo {
             margin-bottom: 32px;
+          }
+
+          .login-headline {
+            font-size: 40px;
           }
 
           .login-form-panel {

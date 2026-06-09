@@ -71,28 +71,28 @@ export default function RegisterPage() {
                 />
               </svg>
             </div>
-            <span className="login-logo-name">Price Monitor</span>
+            <span className="login-logo-name">Mavra</span>
           </div>
 
           {/* Hero copy */}
           <div className="login-hero">
             <h1 className="login-headline">
-              Join Us
+              Start with
               <br />
-              Start Monitoring
+              a quieter brief
             </h1>
             <p className="login-subhead">
-              Create an account and start tracking prices for free
+              Bring your price, job, and home checks
               <br />
-              Get price drop alerts instantly
+              into one gentle morning rhythm.
             </p>
           </div>
 
           {/* Feature pills */}
           <div className="login-features">
-            <span className="feature-chip">Free to Use</span>
-            <span className="feature-chip">Instant Alerts</span>
-            <span className="feature-chip">Data Secure</span>
+            <span className="feature-chip">Daily brief</span>
+            <span className="feature-chip">Quiet alerts</span>
+            <span className="feature-chip">Private by design</span>
           </div>
         </div>
 
@@ -105,7 +105,7 @@ export default function RegisterPage() {
         <div className="login-form-card">
           <div className="login-form-header">
             <h2 className="login-form-title">Create Account</h2>
-            <p className="login-form-subtitle">Join Price Monitor</p>
+            <p className="login-form-subtitle">Join Mavra</p>
           </div>
 
           <Form
@@ -226,7 +226,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <Text className="login-copyright">Price Monitor © 2026</Text>
+        <Text className="login-copyright">Mavra watches quietly © 2026</Text>
       </div>
 
       <style>{`
@@ -269,15 +269,15 @@ export default function RegisterPage() {
           font-size: 18px;
           font-weight: 480;
           color: var(--color-ink);
-          letter-spacing: -0.2px;
+          letter-spacing: 0;
         }
 
         .login-headline {
           font-family: var(--font-display);
-          font-size: clamp(40px, 5vw, 64px);
+          font-size: 56px;
           font-weight: 340;
           line-height: 1.05;
-          letter-spacing: -1.72px;
+          letter-spacing: 0;
           color: var(--color-ink);
           margin: 0 0 24px 0;
           animation: fadeInUp 150ms ease-out 100ms both;
@@ -304,8 +304,8 @@ export default function RegisterPage() {
           font-family: 'JetBrains Mono', monospace;
           font-size: 12px;
           font-weight: 400;
-          letter-spacing: 0.6px;
-          text-transform: uppercase;
+          letter-spacing: 0;
+          text-transform: none;
           color: var(--color-ink);
           background: var(--color-surface-soft);
           border: 1px solid var(--color-hairline);
@@ -317,7 +317,7 @@ export default function RegisterPage() {
           position: absolute;
           right: -60px;
           top: 50%;
-          transform: translateY(-50%) rotate(-4deg);
+          transform: translateY(-50%);
           width: 320px;
           height: 320px;
           background: var(--color-block-lilac);
@@ -356,7 +356,7 @@ export default function RegisterPage() {
           font-size: 26px;
           font-weight: 540;
           line-height: 1.35;
-          letter-spacing: -0.26px;
+          letter-spacing: 0;
           color: var(--color-ink);
           margin: 0 0 6px 0;
         }
@@ -442,7 +442,7 @@ export default function RegisterPage() {
           font-family: var(--font-body) !important;
           font-size: 16px !important;
           font-weight: 480 !important;
-          letter-spacing: -0.1px !important;
+          letter-spacing: 0 !important;
           background: var(--color-primary) !important;
           border: none !important;
           color: var(--color-on-primary) !important;
@@ -498,8 +498,8 @@ export default function RegisterPage() {
           font-family: 'JetBrains Mono', monospace !important;
           font-size: 11px !important;
           font-weight: 400 !important;
-          letter-spacing: 0.6px !important;
-          text-transform: uppercase !important;
+          letter-spacing: 0 !important;
+          text-transform: none !important;
           color: var(--color-muted) !important;
           animation: fadeInUp 150ms ease-out 250ms both;
         }
@@ -521,6 +521,10 @@ export default function RegisterPage() {
 
           .login-logo {
             margin-bottom: 32px;
+          }
+
+          .login-headline {
+            font-size: 40px;
           }
 
           .login-form-panel {

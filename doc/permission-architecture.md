@@ -179,11 +179,11 @@
 
 | 守卫              | 保护范围                                                                                           | 行为               |
 | ----------------- | -------------------------------------------------------------------------------------------------- | ------------------ |
-| `ProtectedRoute`  | `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`  |
-| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                                | 权限不足 → `/jobs` |
+| `ProtectedRoute`  | `/today`, `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`    |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                                         | 权限不足 → `/today` |
+| `PublicRoute`     | `/login`, `/register`                                                                                       | 已登录 → `/today`   |
 
 角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
-| `PublicRoute` | `/login`, `/register` | 已登录 → `/jobs` |
 
 > 前端守卫仅做 UX 级别保护，**真正的安全边界在后端 API**。
 

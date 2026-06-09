@@ -35,11 +35,11 @@ test.describe("Authentication E2E", () => {
 
     await page.click('button[type="submit"]');
 
-    // Should redirect back to settings or dashboard (if state was lost on initial E2E load)
+    // Should redirect back to settings or today (if state was lost on initial E2E load)
     await page.waitForURL(
-      (url) => url.pathname === "/settings" || url.pathname === "/dashboard",
+      (url) => url.pathname === "/settings" || url.pathname === "/today",
     );
-    if (page.url().includes("/dashboard")) {
+    if (page.url().includes("/today")) {
       await page.goto("/settings");
     }
     await expect(page).toHaveURL(/.*\/settings/);
@@ -129,7 +129,7 @@ test.describe("Authentication E2E", () => {
 
     await page.click('button[type="submit"]');
 
-    await page.waitForURL("**/dashboard");
+    await page.waitForURL("**/today");
 
     const localStorageKeys = await page.evaluate(() => {
       return {
