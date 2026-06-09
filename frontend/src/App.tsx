@@ -17,6 +17,9 @@ import {
   ThemeProvider,
   useThemeContext,
 } from "@/shared/components/ThemeProvider";
+const TodayPage = React.lazy(() =>
+  import("@/features/today").then((m) => ({ default: m.TodayPage })),
+);
 const JobsPage = React.lazy(() => import("@/features/jobs"));
 const ProductsPage = React.lazy(() => import("@/features/products"));
 const AdminUsersPage = React.lazy(() =>
@@ -177,7 +180,7 @@ function PermissionRoute({
   }
 
   if (!user || !hasPermission(permission)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/today" replace />;
   }
 
   return children;
@@ -192,7 +195,7 @@ function PublicRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/today" replace />;
   }
 
   return children;
@@ -218,51 +221,60 @@ function AppRoutes() {
       algorithm:
         currentTheme === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
       token: {
-        colorPrimary: currentTheme === "dark" ? "#ffffff" : "#000000",
-        colorBgLayout: currentTheme === "dark" ? "#0e0e11" : "#f8f6f0",
-        colorBgContainer: currentTheme === "dark" ? "#1b1b24" : "#fbf6e3",
-        colorText: currentTheme === "dark" ? "#ffffff" : "#000000",
-        colorTextSecondary: currentTheme === "dark" ? "#888888" : "#666666",
-        colorBorder: currentTheme === "dark" ? "#ffffff" : "#000000",
-        colorBorderSecondary: currentTheme === "dark" ? "#ffffff" : "#000000",
-        colorSuccess: currentTheme === "dark" ? "#00ff66" : "#b8f2a1",
-        colorWarning: currentTheme === "dark" ? "#ff7f00" : "#ffb88c",
-        colorError: currentTheme === "dark" ? "#ff007f" : "#ffb3d9",
-        colorInfo: currentTheme === "dark" ? "#00f0ff" : "#99f0f9",
-        borderRadius: 8,
+        colorPrimary: currentTheme === "dark" ? "#d8c3a5" : "#7e976b",
+        colorBgLayout: currentTheme === "dark" ? "#211a16" : "#f3dfc8",
+        colorBgContainer: currentTheme === "dark" ? "#2b221c" : "#fff7ec",
+        colorText: currentTheme === "dark" ? "#f7f0e4" : "#33251b",
+        colorTextSecondary: currentTheme === "dark" ? "#c9b8a5" : "#705947",
+        colorBorder:
+          currentTheme === "dark"
+            ? "rgba(247, 240, 228, 0.18)"
+            : "rgba(93, 61, 38, 0.12)",
+        colorBorderSecondary:
+          currentTheme === "dark"
+            ? "rgba(247, 240, 228, 0.12)"
+            : "rgba(93, 61, 38, 0.08)",
+        colorSuccess: "#7e976b",
+        colorWarning: "#d89a57",
+        colorError: "#c75f4c",
+        colorInfo: "#7aa2a4",
+        borderRadius: 16,
         fontSize: 14,
         fontFamily:
-          "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        fontFamilyCode: "'JetBrains Mono', monospace",
+          '"IBM Plex Sans", "Noto Sans SC", "Outfit", "Microsoft YaHei", sans-serif',
+        fontFamilyCode: '"IBM Plex Mono", "JetBrains Mono", monospace',
       },
       components: {
         Button: {
           borderRadius: 9999,
-          paddingInline: 20,
-          controlHeight: 40,
+          paddingInline: 18,
+          controlHeight: 36,
         },
         Input: {
-          borderRadius: 8,
+          borderRadius: 16,
           paddingInline: 14,
           controlHeight: 40,
         },
         Select: {
-          borderRadius: 8,
+          borderRadius: 16,
           controlHeight: 40,
         },
         Table: {
-          borderRadius: 8,
-          headerBg: currentTheme === "dark" ? "#8b3dff" : "#fbee6b",
+          borderRadius: 16,
+          headerBg: currentTheme === "dark" ? "#2b221c" : "#fff7ec",
         },
         Card: {
-          borderRadius: 16,
+          borderRadius: 24,
         },
         Tag: {
           borderRadius: 9999,
         },
         Menu: {
-          itemSelectedBg: currentTheme === "dark" ? "#00ff66" : "#b8f2a1",
-          itemSelectedColor: "#000000",
+          itemSelectedBg:
+            currentTheme === "dark"
+              ? "rgba(216, 195, 165, 0.14)"
+              : "rgba(126, 151, 107, 0.16)",
+          itemSelectedColor: currentTheme === "dark" ? "#f7f0e4" : "#33251b",
         },
       },
     }),
@@ -295,6 +307,7 @@ function AppRoutes() {
 
               {/* Protected routes */}
               <Route element={<ProtectedLayoutRoute />}>
+                <Route path="/today" element={<TodayPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/events" element={<EventCenterPage />} />
                 <Route path="/jobs" element={<JobsPage />} />
@@ -322,8 +335,8 @@ function AppRoutes() {
               </Route>
 
               {/* Default routes */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/today" replace />} />
+              <Route path="*" element={<Navigate to="/today" replace />} />
             </Routes>
           </React.Suspense>
         </BrowserRouter>

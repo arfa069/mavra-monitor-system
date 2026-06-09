@@ -10,7 +10,7 @@ export function DailySummary({ brief }: DailySummaryProps) {
     <section className="today-summary" aria-labelledby="today-summary-title">
       <div className="today-summary__meta">
         <span>今天</span>
-        <Tag className="today-summary__quiet" bordered={false}>
+        <Tag className="today-summary__quiet" variant="filled">
           Quiet score {brief.quietScore}
         </Tag>
       </div>

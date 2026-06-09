@@ -99,6 +99,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const selectedKey = useMemo(() => {
     const path = location.pathname;
     const prefix = [
+      "/today",
       "/schedule",
       "/events",
       "/jobs",
@@ -108,7 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ].find((p) => path.startsWith(p));
     if (prefix) return prefix;
     if (path.startsWith("/admin")) return path;
-    return "/products";
+    return "/today";
   }, [location.pathname]);
 
   const handleMenuClick = ({ key }: { key: string }) => {
@@ -119,34 +120,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const menuItems = useMemo(
     () => [
       {
+        key: "/today",
+        icon: <HomeOutlined style={{ fontSize: 14 }} />,
+        label: "Today",
+      },
+      {
         key: "/dashboard",
         icon: <DashboardOutlined style={{ fontSize: 14 }} />,
-        label: "Dashboard",
+        label: "Analytics",
       },
       {
         key: "/events",
         icon: <NotificationOutlined style={{ fontSize: 14 }} />,
-        label: "Event Center",
+        label: "Activity",
       },
       {
         key: "/jobs",
         icon: <TeamOutlined style={{ fontSize: 14 }} />,
-        label: "Job Management",
+        label: "Jobs",
       },
       {
         key: "/products",
         icon: <ShoppingCartOutlined style={{ fontSize: 14 }} />,
-        label: "Product Management",
+        label: "Prices",
       },
       {
         key: "/schedule",
         icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
-        label: "Schedule Config",
+        label: "Rules",
       },
       {
         key: "/smart-home",
         icon: <HomeOutlined style={{ fontSize: 14 }} />,
-        label: "Smart Home",
+        label: "Home",
       },
       ...(hasPermission("user:read")
         ? [
@@ -191,33 +197,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             style={{
               width: 34,
               height: 34,
-              borderRadius: "var(--radius-sm)",
-              border: "var(--border-width) solid var(--color-border)",
-              background: "var(--color-block-yellow)",
+              borderRadius: "var(--radius-pill)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-butter)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#000000",
-              fontSize: 18,
-              fontWeight: 800,
+              color: "var(--color-ink)",
+              fontSize: 16,
+              fontWeight: 700,
               fontFamily: "var(--font-display)",
-              boxShadow: "2px 2px 0px var(--color-border)",
-              transform: "rotate(-3deg)",
+              boxShadow: "var(--shadow-soft)",
             }}
           >
-            P
+            M
           </div>
           <div
             style={{
               color: "var(--color-ink)",
               fontSize: 18,
-              fontWeight: 800,
-              textTransform: "uppercase",
-              letterSpacing: "-0.5px",
-              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              letterSpacing: 0,
+              fontFamily: "var(--font-body)",
             }}
           >
-            Price Monitor
+            Mavra
           </div>
         </div>
 
@@ -230,10 +234,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             style={{
               color: "var(--color-ink)",
               fontSize: 16,
-              border: "var(--border-width) solid var(--color-border)",
-              background: "var(--color-block-cream)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
               borderRadius: "var(--radius-pill)",
-              boxShadow: "2px 2px 0px var(--color-border)",
+              boxShadow: "none",
             }}
             onClick={() => setDrawerOpen(true)}
             aria-label="Open Menu"
@@ -244,10 +248,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClick={toggleTheme}
               style={{
                 color: "var(--color-ink)",
-                background: "var(--color-block-orange)",
-                border: "var(--border-width) solid var(--color-border)",
+                background: "var(--color-butter)",
+                border: "1px solid var(--color-border)",
                 borderRadius: "var(--radius-pill)",
-                boxShadow: "2px 2px 0px var(--color-border)",
+                boxShadow: "none",
                 padding: "4px 12px",
                 height: 36,
                 fontSize: 15,
@@ -269,17 +273,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <Button
                 style={{
-                  color: "#000000",
+                  color: "var(--color-ink)",
                   height: 36,
                   padding: "4px 12px",
-                  background: "var(--color-block-cyan)",
-                  border: "var(--border-width) solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius-pill)",
-                  boxShadow: "2px 2px 0px var(--color-border)",
-                  fontFamily: "var(--font-display)",
+                  boxShadow: "none",
+                  fontFamily: "var(--font-body)",
                   fontSize: 13,
-                  fontWeight: 800,
-                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  textTransform: "none",
                   marginRight: 12,
                 }}
                 aria-label="User Menu"
@@ -290,9 +294,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     icon={<UserOutlined />}
                     style={{
                       backgroundColor: "#ffffff",
-                      color: "#000000",
+                      color: "var(--color-ink)",
                       fontSize: 11,
-                      border: "1.5px solid #000000",
+                      border: "1px solid var(--color-border)",
                     }}
                   />
                   <span>{user?.username || "User"}</span>
@@ -304,10 +308,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               icon={<BarsOutlined style={{ fontSize: 14 }} />}
               style={{
                 color: "var(--color-ink)",
-                background: "var(--color-block-lilac)",
-                border: "var(--border-width) solid var(--color-border)",
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
                 borderRadius: "var(--radius-pill)",
-                boxShadow: "2px 2px 0px var(--color-border)",
+                boxShadow: "none",
                 padding: "4px 12px",
                 height: 36,
               }}
@@ -402,7 +406,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   fontWeight: 700,
                 }}
               >
-                P
+                M
               </div>
               <span
                 style={{
@@ -412,7 +416,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   fontFamily: "var(--font-body)",
                 }}
               >
-                Price Monitor
+                Mavra
               </span>
             </div>
           </m.div>
@@ -473,12 +477,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           color: "var(--color-ink)",
           fontSize: 12,
           fontFamily: "var(--font-mono)",
-          letterSpacing: "0.6px",
-          textTransform: "uppercase",
+          letterSpacing: 0,
+          textTransform: "none",
           borderTop: "var(--border-width) solid var(--color-border)",
         }}
       >
-        Price Monitor © 2026
+        Mavra watches quietly © 2026
       </Layout.Footer>
     </Layout>
   );
