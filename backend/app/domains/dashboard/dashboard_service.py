@@ -34,8 +34,12 @@ if TYPE_CHECKING:
 class DashboardService:
     """Service for aggregating dashboard KPI data."""
 
-    USER_KPI_CACHE_TTL = 25
-    SYSTEM_KPI_CACHE_TTL = 25
+    # User KPI is cached longer than the SSE poll interval (30 s) so that
+    # repeated polls within the same window always hit cache instead of
+    # running 6 parallel DB queries every cycle.
+    USER_KPI_CACHE_TTL = 60
+    # System KPI changes even more slowly; 2-minute cache is fine.
+    SYSTEM_KPI_CACHE_TTL = 120
     TREND_CACHE_TTL = 300
 
     def __init__(
@@ -88,63 +92,66 @@ class DashboardService:
         """Calculate personal KPI metrics for a user."""
         today_start = today_start_utc()
 
-        # Total products — N+1 optimized: parallel COUNT queries
+        # Total products
         product_count_q = select(func.count()).select_from(Product).where(
             Product.user_id == user_id
         )
 
         user_product_ids_q = select(Product.id).where(Product.user_id == user_id)
 
-        latest_today_prices = (
+        # Price drops today: single CTE scan with conditional aggregation.
+        # The previous approach used two separate window-function subqueries joined
+        # together, which required two full PriceHistory scans.  This version does
+        # one pass: for each product keep the MIN scraped_at per day bucket, then
+        # compare today-bucket price vs previous-bucket price in one aggregation.
+        ranked_cte = (
             select(
                 PriceHistory.product_id.label("product_id"),
-                PriceHistory.price.label("today_price"),
+                PriceHistory.price.label("price"),
+                case(
+                    (PriceHistory.scraped_at >= today_start, 1),
+                    else_=0,
+                ).label("is_today"),
                 func.row_number()
                 .over(
-                    partition_by=PriceHistory.product_id,
+                    partition_by=[
+                        PriceHistory.product_id,
+                        case(
+                            (PriceHistory.scraped_at >= today_start, 1),
+                            else_=0,
+                        ),
+                    ],
                     order_by=PriceHistory.scraped_at.desc(),
                 )
-                .label("row_number"),
+                .label("rn"),
             )
-            .where(
-                PriceHistory.product_id.in_(user_product_ids_q),
-                PriceHistory.scraped_at >= today_start,
-            )
-            .subquery()
-        )
-        latest_previous_prices = (
-            select(
-                PriceHistory.product_id.label("product_id"),
-                PriceHistory.price.label("previous_price"),
-                func.row_number()
-                .over(
-                    partition_by=PriceHistory.product_id,
-                    order_by=PriceHistory.scraped_at.desc(),
-                )
-                .label("row_number"),
-            )
-            .where(
-                PriceHistory.product_id.in_(user_product_ids_q),
-                PriceHistory.scraped_at < today_start,
-            )
-            .subquery()
+            .where(PriceHistory.product_id.in_(user_product_ids_q))
+            .cte("ranked_prices")
         )
 
-        # Price drops today: latest price today lower than latest price before today
+        today_price_col = func.max(
+            case((ranked_cte.c.is_today == 1, ranked_cte.c.price), else_=None)
+        )
+        prev_price_col = func.max(
+            case((ranked_cte.c.is_today == 0, ranked_cte.c.price), else_=None)
+        )
+
         price_drops_q = (
             select(func.count())
             .select_from(
-                latest_today_prices.join(
-                    latest_previous_prices,
-                    latest_today_prices.c.product_id
-                    == latest_previous_prices.c.product_id,
+                select(
+                    ranked_cte.c.product_id,
+                    today_price_col.label("today_price"),
+                    prev_price_col.label("prev_price"),
                 )
-            )
-            .where(
-                latest_today_prices.c.row_number == 1,
-                latest_previous_prices.c.row_number == 1,
-                latest_today_prices.c.today_price
-                < latest_previous_prices.c.previous_price,
+                .where(ranked_cte.c.rn == 1)
+                .group_by(ranked_cte.c.product_id)
+                .having(
+                    today_price_col.isnot(None),
+                    prev_price_col.isnot(None),
+                    today_price_col < prev_price_col,
+                )
+                .subquery()
             )
         )
 
