@@ -1,5 +1,5 @@
 /* ============================================================
-   Global Styles — Neo-Brutalist Zine Design System
+   Global Styles — Lived-In Morning Brief Design System
    ============================================================ */
 
 /* Load fonts first */
@@ -38,45 +38,23 @@ body {
   position: relative;
 }
 
-/* Subtle dot-grid paper background pattern */
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    radial-gradient(var(--color-border) 1.5px, transparent 1.5px),
-    radial-gradient(var(--color-border) 1.5px, transparent 1.5px);
-  background-size: 24px 24px;
-  background-position:
-    0 0,
-    12px 12px;
-  opacity: 0.04;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Custom Brutalist Scrollbars */
+/* Calm native-feeling scrollbars */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--color-canvas);
-  border-left: var(--border-width) solid var(--color-border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-block-yellow);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: rgba(112, 89, 71, 0.28);
+  border-radius: var(--radius-pill);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-block-orange);
+  background: rgba(112, 89, 71, 0.44);
 }
 
 /* Color block backgrounds */
@@ -126,10 +104,10 @@ body::after {
 
 /* ---- Ant Design Table override ---- */
 .ant-table-wrapper {
-  border: var(--border-width) solid var(--color-border) !important;
+  border: 1px solid var(--color-border) !important;
   border-radius: var(--radius-md) !important;
   overflow: hidden !important;
-  box-shadow: var(--shadow-offset-md) !important;
+  box-shadow: none !important;
 }
 
 .ant-table-container {

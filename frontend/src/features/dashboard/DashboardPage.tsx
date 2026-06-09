@@ -106,7 +106,7 @@ export default function DashboardPage() {
           marginBottom: 24,
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>数据看板</h1>
+        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>数据分析</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Segmented
             options={TIME_RANGE_OPTIONS}

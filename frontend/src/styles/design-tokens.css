@@ -103,8 +103,8 @@
   --line-height-lead: 1.55;
   --line-height-micro: 1.3;
 
-  --letter-spacing-display-xl: -0.02em;
-  --letter-spacing-display-lg: -0.015em;
+  --letter-spacing-display-xl: 0;
+  --letter-spacing-display-lg: 0;
   --letter-spacing-headline: 0;
   --letter-spacing-subhead: 0;
   --letter-spacing-body-lg: 0;
