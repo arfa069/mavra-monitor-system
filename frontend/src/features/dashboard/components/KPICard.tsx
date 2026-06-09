@@ -41,7 +41,7 @@ export function KPICard({
           prefix={prefix}
           suffix={suffix}
           precision={precision}
-          valueStyle={valueStyle}
+          styles={{ content: valueStyle }}
         />
       </Card>
     </m.div>

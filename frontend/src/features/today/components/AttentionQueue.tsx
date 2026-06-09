@@ -19,7 +19,10 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
   }
 
   return (
-    <section className="today-card" aria-labelledby="today-attention-title">
+    <section
+      className="today-attention-section"
+      aria-labelledby="today-attention-title"
+    >
       <h2 id="today-attention-title">值得看</h2>
       <div className="today-attention-list">
         {items.map((item) => (

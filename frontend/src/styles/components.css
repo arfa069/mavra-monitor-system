@@ -332,7 +332,8 @@
   padding: var(--spacing-lg);
 }
 
-.today-card h2 {
+.today-card h2,
+.today-attention-section h2 {
   margin: 0 0 var(--spacing-md);
   font-family: var(--font-body);
   font-size: var(--font-size-headline);

@@ -159,7 +159,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {
               key: "/admin/users",
               icon: <TeamOutlined style={{ fontSize: 14 }} />,
-              label: "User Management",
+              label: "Users",
             },
             {
               key: "/admin/audit-logs",
@@ -372,7 +372,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           placement="left"
           onClose={() => setDrawerOpen(false)}
           open={drawerOpen}
-          width={220}
+          size={220}
           styles={{
             body: { padding: 0, background: "var(--color-surface-soft)" },
             header: { display: "none" },
@@ -449,10 +449,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         style={{
           flex: 1,
           marginTop: 56,
-          marginBottom: 48,
+          marginBottom: isMobile ? 0 : 48,
           padding: "24px",
           background: "var(--color-canvas)",
-          minHeight: "calc(100vh - 104px)",
+          minHeight: isMobile
+            ? "calc(100vh - 56px)"
+            : "calc(100vh - 104px)",
           overflow: "auto",
           position: "relative",
         }}
@@ -465,7 +467,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <Layout.Footer
         style={{
-          position: "fixed",
+          position: isMobile ? "static" : "fixed",
           bottom: 0,
           left: 0,
           right: 0,
