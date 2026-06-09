@@ -10,20 +10,23 @@ export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false }
-    }
+      mutations: { retry: false },
+    },
   });
 }
 
 export function renderWithApp(
   ui: ReactElement,
-  options: { route?: string; withAuth?: boolean } = {}
+  options: { route?: string; withAuth?: boolean } = {},
 ) {
   const queryClient = createTestQueryClient();
   const Wrapper = ({ children }: PropsWithChildren) => {
-    const content = options.withAuth === false ? children : (
-      <AuthProvider>{children}</AuthProvider>
-    );
+    const content =
+      options.withAuth === false ? (
+        children
+      ) : (
+        <AuthProvider>{children}</AuthProvider>
+      );
 
     return (
       <MemoryRouter initialEntries={[options.route ?? "/"]}>

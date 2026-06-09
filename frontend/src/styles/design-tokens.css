@@ -12,7 +12,7 @@
   --color-inverse-canvas: #0e0e11;
   --color-inverse-ink: #ffffff;
   --color-border: #000000;
-  
+
   /* --- Colors: Swatches / Block Pastels --- */
   --color-block-yellow: #fbee6b;
   --color-block-lime: #b8f2a1;
@@ -28,17 +28,17 @@
   --color-muted: #666666;
   --color-success: #b8f2a1; /* Lime */
   --color-warning: #ffb88c; /* Orange */
-  --color-error: #ffb3d9;   /* Pink */
-  --color-info: #99f0f9;    /* Cyan */
+  --color-error: #ffb3d9; /* Pink */
+  --color-info: #99f0f9; /* Cyan */
   --color-hairline: #000000;
   --color-hairline-soft: #000000;
 
   /* --- Typography --- */
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'Outfit', sans-serif;
-  --font-data: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  
+  --font-display: "Syne", sans-serif;
+  --font-body: "Outfit", sans-serif;
+  --font-data: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
   --font-variant-numeric: tabular-nums;
   --font-feature-numeric: "tnum";
 
@@ -71,7 +71,7 @@
   --font-weight-lead: 400;
   --font-weight-micro: 600;
 
-  --line-height-display-xl: 1.0;
+  --line-height-display-xl: 1;
   --line-height-display-lg: 1.1;
   --line-height-headline: 1.35;
   --line-height-subhead: 1.35;
@@ -86,7 +86,7 @@
   --line-height-lead: 1.45;
   --line-height-micro: 1.3;
 
-  --letter-spacing-display-xl: -1.0px;
+  --letter-spacing-display-xl: -1px;
   --letter-spacing-display-lg: -0.5px;
   --letter-spacing-headline: -0.2px;
   --letter-spacing-subhead: -0.2px;
@@ -125,7 +125,7 @@
   --shadow-offset-sm: 3px 3px 0px #000000;
   --shadow-offset-md: 6px 6px 0px #000000;
   --shadow-offset-lg: 10px 10px 0px #000000;
-  
+
   --shadow-card: var(--shadow-offset-md);
   --shadow-modal: var(--shadow-offset-lg);
   --shadow-nav: var(--shadow-offset-sm);
@@ -190,7 +190,7 @@
   --color-inverse-canvas: #f8f6f0;
   --color-inverse-ink: #000000;
   --color-border: #ffffff;
-  
+
   /* Neon swatches for cyber-zine */
   --color-block-yellow: #f8e400;
   --color-block-lime: #00ff66;

@@ -110,13 +110,11 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    const isAuthUrl = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/me");
+    const isAuthUrl =
+      originalRequest.url?.includes("/auth/login") ||
+      originalRequest.url?.includes("/auth/me");
 
-    if (
-      err.response?.status === 401 &&
-      !originalRequest._retry &&
-      !isAuthUrl
-    ) {
+    if (err.response?.status === 401 && !originalRequest._retry && !isAuthUrl) {
       if (refreshState.isRefreshing) {
         // Queue request until refresh completes
         originalRequest._retry = true;

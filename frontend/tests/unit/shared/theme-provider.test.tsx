@@ -1,6 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ThemeProvider, useThemeContext } from "@/shared/components/ThemeProvider";
+import {
+  ThemeProvider,
+  useThemeContext,
+} from "@/shared/components/ThemeProvider";
 import type { ReactNode } from "react";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -23,7 +26,9 @@ describe("ThemeProvider and useTheme", () => {
 
     expect(result.current.theme).toBe("dark");
     expect(result.current.motionSpeed).toBe("slow");
-    expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe("slow");
+    expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe(
+      "slow",
+    );
   });
 
   it("falls back to normal motion speed if stored speed is invalid", () => {
@@ -36,16 +41,17 @@ describe("ThemeProvider and useTheme", () => {
 
   it("falls back to system prefers-color-scheme when no theme is stored", () => {
     const originalMatchMedia = window.matchMedia;
-    window.matchMedia = (query: string) => ({
-      matches: query.includes("dark"),
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false
-    } as any);
+    window.matchMedia = (query: string) =>
+      ({
+        matches: query.includes("dark"),
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as any;
 
     const { result } = renderHook(() => useThemeContext(), { wrapper });
 
@@ -73,6 +79,8 @@ describe("ThemeProvider and useTheme", () => {
       result.current.setMotionSpeed("fast");
     });
     expect(result.current.motionSpeed).toBe("fast");
-    expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe("fast");
+    expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe(
+      "fast",
+    );
   });
 });

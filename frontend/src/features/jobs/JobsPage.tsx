@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, message, Table, Tag, Tabs } from "antd";
 
 import type { ColumnsType } from "antd/es/table";
@@ -384,7 +384,7 @@ export default function JobsPage() {
             />
           </Card>
 
-          <motion.div
+          <m.div
             variants={stagger.item}
             className="fg-card"
             style={{ marginTop: 16 }}
@@ -410,7 +410,7 @@ export default function JobsPage() {
                 matchRecommendations={matchRecommendations}
               />
             </div>
-          </motion.div>
+          </m.div>
         </>
       ),
     },
@@ -483,16 +483,16 @@ export default function JobsPage() {
       </div>
 
       {/* Tab sections */}
-      <motion.div
+      <m.div
         variants={stagger.container}
         initial="hidden"
         animate="show"
         style={{ marginTop: 24 }}
       >
-        <motion.div variants={stagger.item}>
+        <m.div variants={stagger.item}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} items={items} />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       <JobDrawer
         open={drawerOpen}

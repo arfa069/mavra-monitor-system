@@ -41,9 +41,10 @@
   text-transform: uppercase;
   font-size: var(--font-size-button) !important;
   box-shadow: var(--shadow-offset-sm) !important;
-  transition: transform var(--duration-micro) var(--ease-brutalist),
-              box-shadow var(--duration-micro) var(--ease-brutalist),
-              background-color var(--duration-micro) var(--ease-brutalist) !important;
+  transition:
+    transform var(--duration-micro) var(--ease-brutalist),
+    box-shadow var(--duration-micro) var(--ease-brutalist),
+    background-color var(--duration-micro) var(--ease-brutalist) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -142,8 +143,9 @@
   font-family: var(--font-body) !important;
   font-size: var(--font-size-body) !important;
   box-shadow: var(--shadow-offset-sm) !important;
-  transition: border-color var(--duration-micro) ease,
-              box-shadow var(--duration-micro) ease !important;
+  transition:
+    border-color var(--duration-micro) ease,
+    box-shadow var(--duration-micro) ease !important;
 }
 
 /* Affix / Search input */
@@ -173,8 +175,9 @@
   border-radius: var(--radius-lg) !important;
   background: var(--color-block-cream) !important;
   box-shadow: var(--shadow-offset-md) !important;
-  transition: transform var(--duration-short) var(--ease-brutalist),
-              box-shadow var(--duration-short) var(--ease-brutalist) !important;
+  transition:
+    transform var(--duration-short) var(--ease-brutalist),
+    box-shadow var(--duration-short) var(--ease-brutalist) !important;
   overflow: hidden;
 }
 
@@ -204,28 +207,6 @@
 .ant-card-body,
 .fg-card-toolbar {
   background: transparent !important;
-}
-
-/* ---- Zine Cards with Rotated Ribbon Tags ---- */
-.zine-card {
-  position: relative;
-}
-
-.ribbon-tag {
-  position: absolute;
-  top: 12px;
-  right: -10px;
-  background-color: var(--color-block-yellow);
-  color: #000000;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 800;
-  padding: 4px 12px;
-  border: var(--border-width) solid var(--color-border);
-  transform: rotate(3deg);
-  box-shadow: 2px 2px 0px var(--color-border);
-  text-transform: uppercase;
-  z-index: 10;
 }
 
 /* ---- Tables ---- */
@@ -375,9 +356,18 @@
 }
 
 /* Brand badges */
-.platform-badge--taobao { background: #f25c1c !important; color: #ffffff !important; }
-.platform-badge--jd { background: #e4393c !important; color: #ffffff !important; }
-.platform-badge--amazon { background: #ff9900 !important; color: #ffffff !important; }
+.platform-badge--taobao {
+  background: #f25c1c !important;
+  color: #ffffff !important;
+}
+.platform-badge--jd {
+  background: #e4393c !important;
+  color: #ffffff !important;
+}
+.platform-badge--amazon {
+  background: #ff9900 !important;
+  color: #ffffff !important;
+}
 
 /* ---- Page Headers (Neo-Brutalist rotated collage style) ---- */
 .page-header {
@@ -394,15 +384,33 @@
   transform: rotate(-0.5deg) scale(1.005);
 }
 
-.page-header.bg-lime { background: var(--color-block-lime) !important; }
-.page-header.bg-cream { background: var(--color-block-cream) !important; }
-.page-header.bg-lilac { background: var(--color-block-lilac) !important; }
-.page-header.bg-mint { background: var(--color-block-lime) !important; }
-.page-header.bg-pink { background: var(--color-block-pink) !important; }
-.page-header.bg-coral { background: var(--color-block-orange) !important; }
-.page-header.bg-surface-soft { background: var(--color-surface-soft) !important; }
-.page-header.bg-admin { background: var(--color-block-pink) !important; }
-.page-header.bg-admin-lilac { background: var(--color-block-lilac) !important; }
+.page-header.bg-lime {
+  background: var(--color-block-lime) !important;
+}
+.page-header.bg-cream {
+  background: var(--color-block-cream) !important;
+}
+.page-header.bg-lilac {
+  background: var(--color-block-lilac) !important;
+}
+.page-header.bg-mint {
+  background: var(--color-block-lime) !important;
+}
+.page-header.bg-pink {
+  background: var(--color-block-pink) !important;
+}
+.page-header.bg-coral {
+  background: var(--color-block-orange) !important;
+}
+.page-header.bg-surface-soft {
+  background: var(--color-surface-soft) !important;
+}
+.page-header.bg-admin {
+  background: var(--color-block-pink) !important;
+}
+.page-header.bg-admin-lilac {
+  background: var(--color-block-lilac) !important;
+}
 
 .page-title {
   font-family: var(--font-display) !important;

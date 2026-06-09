@@ -6,13 +6,16 @@ import { server } from "../mocks/server";
 describe("shared API client", () => {
   it("formats string and validation-list errors", () => {
     expect(
-      formatApiError({ response: { data: { detail: "denied" } } } as any, "fallback")
+      formatApiError(
+        { response: { data: { detail: "denied" } } } as any,
+        "fallback",
+      ),
     ).toBe("denied");
     expect(
       formatApiError(
         { response: { data: { detail: [{ msg: "first" }, "second"] } } } as any,
-        "fallback"
-      )
+        "fallback",
+      ),
     ).toBe("first; second");
   });
 
@@ -22,7 +25,7 @@ describe("shared API client", () => {
       http.patch("/api/v1/config", async ({ request }) => {
         expect(request.headers.get("X-CSRF-Token")).toBe("csrf-test");
         return HttpResponse.json({ ok: true });
-      })
+      }),
     );
 
     await api.patch("/v1/config", { data_retention_days: 30 });
@@ -51,12 +54,12 @@ describe("shared API client", () => {
           return new HttpResponse(null, { status: 401 });
         }
         return HttpResponse.json({ data: "p2-success" });
-      })
+      }),
     );
 
     const [res1, res2] = await Promise.all([
       api.get("/v1/protected-1"),
-      api.get("/v1/protected-2")
+      api.get("/v1/protected-2"),
     ]);
 
     expect(res1.data).toEqual({ data: "p1-success" });

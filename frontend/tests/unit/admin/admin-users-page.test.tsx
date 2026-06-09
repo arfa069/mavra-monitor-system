@@ -17,7 +17,7 @@ describe("AdminUsersPage", { timeout: 30000 }, () => {
         is_active: true,
         permissions: ["user:read", "user:manage"],
         created_at: "2026-06-08T00:00:00Z",
-        updated_at: "2026-06-08T00:00:00Z"
+        updated_at: "2026-06-08T00:00:00Z",
       },
       {
         id: 2,
@@ -27,10 +27,10 @@ describe("AdminUsersPage", { timeout: 30000 }, () => {
         is_active: true,
         permissions: ["user:read"],
         created_at: "2026-06-08T00:00:00Z",
-        updated_at: "2026-06-08T00:00:00Z"
-      }
+        updated_at: "2026-06-08T00:00:00Z",
+      },
     ],
-    total: 2
+    total: 2,
   };
 
   it("renders user table but hides action controls for read-only user", async () => {
@@ -40,12 +40,12 @@ describe("AdminUsersPage", { timeout: 30000 }, () => {
       username: "read-only-guy",
       email: "readonly@example.com",
       role: "user",
-      permissions: ["user:read"] // Only user:read
+      permissions: ["user:read"], // Only user:read
     };
 
     server.use(
       http.get("/api/v1/auth/me", () => HttpResponse.json(readOnlyUser)),
-      http.get("/api/v1/admin/users", () => HttpResponse.json(mockUsersList))
+      http.get("/api/v1/admin/users", () => HttpResponse.json(mockUsersList)),
     );
 
     renderWithApp(<AdminUsersPage />);
@@ -55,13 +55,15 @@ describe("AdminUsersPage", { timeout: 30000 }, () => {
     expect(screen.getByText("normal-user")).toBeInTheDocument();
 
     // New User button should not be present
-    expect(screen.queryByRole("button", { name: /new user/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /new user/i }),
+    ).not.toBeInTheDocument();
 
     // Edit and Delete actions in the table should be disabled
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
     const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
-    editButtons.forEach(btn => expect(btn).toBeDisabled());
-    deleteButtons.forEach(btn => expect(btn).toBeDisabled());
+    editButtons.forEach((btn) => expect(btn).toBeDisabled());
+    deleteButtons.forEach((btn) => expect(btn).toBeDisabled());
   });
 
   it("shows management controls for users with user:manage and user:delete permissions", async () => {
@@ -71,18 +73,20 @@ describe("AdminUsersPage", { timeout: 30000 }, () => {
       username: "manager-guy",
       email: "manager@example.com",
       role: "admin",
-      permissions: ["user:read", "user:manage", "user:delete"]
+      permissions: ["user:read", "user:manage", "user:delete"],
     };
 
     server.use(
       http.get("/api/v1/auth/me", () => HttpResponse.json(managerUser)),
-      http.get("/api/v1/admin/users", () => HttpResponse.json(mockUsersList))
+      http.get("/api/v1/admin/users", () => HttpResponse.json(mockUsersList)),
     );
 
     renderWithApp(<AdminUsersPage />);
 
     // New User button should be present
-    expect(await screen.findByRole("button", { name: /new user/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /new user/i }),
+    ).toBeInTheDocument();
 
     // Actions column with Edit / Delete should be enabled
     const editButtons = screen.getAllByRole("button", { name: /edit/i });

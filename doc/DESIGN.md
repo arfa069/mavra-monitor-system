@@ -103,7 +103,7 @@
   - Card / Panel Shadow: `box-shadow: 6px 6px 0px #000000`
   - Interactive Button Shadow: `box-shadow: 3px 3px 0px #000000`
   - Active / Expanded State: `box-shadow: 10px 10px 0px #000000`
-  - Dark Mode: 对应阴影色反转为 `#ffffff` 
+  - Dark Mode: 对应阴影色反转为 `#ffffff`
 
 ## Motion
 
@@ -127,10 +127,10 @@
 
 ## Decisions Log
 
-| Date       | Decision                                            | Rationale                                                                                                               |
-|------------|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| 2026-05-11 | Initial design system documented                    | Created by /design-consultation based on existing Figma Marketing Style implementation                                  |
-| 2026-05-11 | Replace Inter with General Sans + DM Sans           | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism       |
+| Date       | Decision                                           | Rationale                                                                                                                 |
+| ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-11 | Initial design system documented                   | Created by /design-consultation based on existing Figma Marketing Style implementation                                    |
+| 2026-05-11 | Replace Inter with General Sans + DM Sans          | Inter is overused in AI-generated designs; General Sans adds modern character without sacrificing professionalism         |
 | 2026-06-08 | Migrate to Neo-Brutalist Zine design system        | Selected via user choices to implement a highly visually distinct, high-contrast, premium pop art layout for monitors.    |
-| 2026-06-08 | Introduce Syne + Outfit + Space Grotesk typography   | Syne adds raw header personality; Outfit handles micro-readability; Space Grotesk formats price alignment with precision.|
-| 2026-06-08 | Revamp color palette to Pop Art Macaron 2.0         | Added bold 3px black strokes with offset flat shadows to represent a retro zine look; dark mode flips to white borders.  |
+| 2026-06-08 | Introduce Syne + Outfit + Space Grotesk typography | Syne adds raw header personality; Outfit handles micro-readability; Space Grotesk formats price alignment with precision. |
+| 2026-06-08 | Revamp color palette to Pop Art Macaron 2.0        | Added bold 3px black strokes with offset flat shadows to represent a retro zine look; dark mode flips to white borders.   |

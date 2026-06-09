@@ -17,8 +17,8 @@ export const adminUser = {
     "job:write",
     "smart_home:read",
     "smart_home:control",
-    "smart_home:configure"
-  ]
+    "smart_home:configure",
+  ],
 };
 
 export const readOnlyUser = {
@@ -31,8 +31,8 @@ export const readOnlyUser = {
     "schedule:read",
     "product:read",
     "job:read",
-    "smart_home:read"
-  ]
+    "smart_home:read",
+  ],
 };
 
 export const mockProducts = [
@@ -46,7 +46,7 @@ export const mockProducts = [
     target_price: 90.0,
     alert_enabled: true,
     created_at: "2026-06-08T00:00:00Z",
-    updated_at: "2026-06-08T01:00:00Z"
+    updated_at: "2026-06-08T01:00:00Z",
   },
   {
     id: 2,
@@ -58,8 +58,8 @@ export const mockProducts = [
     target_price: 300.0,
     alert_enabled: false,
     created_at: "2026-06-08T00:00:00Z",
-    updated_at: "2026-06-08T01:00:00Z"
-  }
+    updated_at: "2026-06-08T01:00:00Z",
+  },
 ];
 
 export const mockJobConfigs = [
@@ -72,7 +72,7 @@ export const mockJobConfigs = [
     is_active: true,
     cron_expr: "0 9 * * *",
     timezone: "Asia/Shanghai",
-    created_at: "2026-06-08T00:00:00Z"
+    created_at: "2026-06-08T00:00:00Z",
   },
   {
     id: 2,
@@ -83,8 +83,8 @@ export const mockJobConfigs = [
     is_active: false,
     cron_expr: null,
     timezone: "Asia/Shanghai",
-    created_at: "2026-06-08T00:00:00Z"
-  }
+    created_at: "2026-06-08T00:00:00Z",
+  },
 ];
 
 export const mockJobResults = [
@@ -96,8 +96,8 @@ export const mockJobResults = [
     salary: "25k-35k",
     city: "Shanghai",
     url: "https://example.invalid/boss/job-1/detail",
-    crawled_at: "2026-06-08T02:00:00Z"
-  }
+    crawled_at: "2026-06-08T02:00:00Z",
+  },
 ];
 
 export const mockProfiles = [
@@ -108,7 +108,7 @@ export const mockProfiles = [
     platform_hint: "boss",
     status: "idle",
     is_locked: false,
-    last_used_at: "2026-06-08T01:30:00Z"
+    last_used_at: "2026-06-08T01:30:00Z",
   },
   {
     key: "liepin_chrome_profile",
@@ -117,8 +117,8 @@ export const mockProfiles = [
     platform_hint: "liepin",
     status: "leased",
     is_locked: true,
-    last_used_at: "2026-06-08T01:45:00Z"
-  }
+    last_used_at: "2026-06-08T01:45:00Z",
+  },
 ];
 
 export const mockEvents = {
@@ -137,7 +137,7 @@ export const mockEvents = {
       entity_type: "crawler",
       entity_id: "taobao",
       trace_id: "trace-1",
-      payload: null
+      payload: null,
     },
     {
       id: "evt-2",
@@ -153,16 +153,16 @@ export const mockEvents = {
       entity_type: "smart_home",
       entity_id: "ha",
       trace_id: "trace-2",
-      payload: null
-    }
+      payload: null,
+    },
   ],
-  total: 2
+  total: 2,
 };
 
 export const mockSmartHomeConfig = {
   url: "https://example.invalid/ha-api",
   token_configured: true,
-  status: "connected"
+  status: "connected",
 };
 
 export const mockSmartHomeEntities = [
@@ -170,14 +170,14 @@ export const mockSmartHomeEntities = [
     entity_id: "light.living_room_light",
     name: "Living Room Light",
     state: "on",
-    attributes: { brightness: 255 }
+    attributes: { brightness: 255 },
   },
   {
     entity_id: "switch.smart_plug",
     name: "Smart Plug",
     state: "off",
-    attributes: {}
-  }
+    attributes: {},
+  },
 ];
 
 export const mockAdminUsers = [
@@ -188,7 +188,7 @@ export const mockAdminUsers = [
     role: "super_admin",
     is_active: true,
     permissions: adminUser.permissions,
-    created_at: "2026-06-01T00:00:00Z"
+    created_at: "2026-06-01T00:00:00Z",
   },
   {
     id: 2,
@@ -197,6 +197,6 @@ export const mockAdminUsers = [
     role: "user",
     is_active: true,
     permissions: readOnlyUser.permissions,
-    created_at: "2026-06-02T00:00:00Z"
-  }
+    created_at: "2026-06-02T00:00:00Z",
+  },
 ];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   App,
   Table,
@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
       expandedRowRender: (record: User) => (
         <AnimatePresence>
           {expandedUserId === record.id && (
-            <motion.div
+            <m.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -317,7 +317,7 @@ export default function AdminUsersPage() {
                 onInfoSave={handleInfoSave}
                 infoForm={editingInfoForm}
               />
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       ),
@@ -348,9 +348,9 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <motion.div variants={stagger.container} initial="hidden" animate="show">
+      <m.div variants={stagger.container} initial="hidden" animate="show">
         {/* Toolbar */}
-        <motion.div
+        <m.div
           variants={stagger.item}
           style={{
             marginBottom: 16,
@@ -397,9 +397,9 @@ export default function AdminUsersPage() {
             </Button>
           )}
           <div style={{ flex: 1 }} />
-        </motion.div>
+        </m.div>
 
-        <motion.div variants={stagger.item}>
+        <m.div variants={stagger.item}>
           <Table
             columns={columns}
             dataSource={users}
@@ -420,8 +420,8 @@ export default function AdminUsersPage() {
               },
             }}
           />
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       <Modal
         title={editingUser ? "Edit User" : "New User"}

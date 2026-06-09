@@ -4,7 +4,7 @@ import { formatApiError } from "@/shared/api/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { formatDateTime } from "@/shared/utils/date";
 import { authApi } from "./api/auth";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function ProfilePage() {
@@ -51,9 +51,9 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <motion.div variants={stagger.container} initial="hidden" animate="show">
+    <m.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header — cream color block */}
-      <motion.div variants={stagger.item} className="page-header bg-cream">
+      <m.div variants={stagger.item} className="page-header bg-cream">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Account</p>
@@ -63,12 +63,9 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.div
-        variants={stagger.item}
-        style={{ maxWidth: 560, marginTop: 24 }}
-      >
+      <m.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
         {/* Info card */}
         <div className="fg-card" style={{ marginBottom: 16 }}>
           <div className="fg-card-header">
@@ -184,7 +181,7 @@ export default function ProfilePage() {
             </Form>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

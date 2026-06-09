@@ -1,8 +1,16 @@
 import { test, expect } from "./fixtures/app-test";
-import { mockEvents, mockSmartHomeConfig, mockSmartHomeEntities, readOnlyUser } from "./fixtures/test-data";
+import {
+  mockEvents,
+  mockSmartHomeConfig,
+  mockSmartHomeEntities,
+  readOnlyUser,
+} from "./fixtures/test-data";
 
 test.describe("Events and Smart Home Feature E2E", () => {
-  test("renders events list, handles filtering and details drawer", async ({ page, api }) => {
+  test("renders events list, handles filtering and details drawer", async ({
+    page,
+    api,
+  }) => {
     // Override events mock
     api.use("GET", "/api/v1/events", () => ({ body: mockEvents }));
 
@@ -10,21 +18,28 @@ test.describe("Events and Smart Home Feature E2E", () => {
     await expect(page.locator("[data-page-transition]")).toBeVisible();
 
     // Verify events render in table
-    await expect(page.locator("text=Taobao crawler scanned 2 items.")).toBeVisible();
-    await expect(page.locator("text=Failed to connect to Home Assistant.")).toBeVisible();
+    await expect(
+      page.locator("text=Taobao crawler scanned 2 items."),
+    ).toBeVisible();
+    await expect(
+      page.locator("text=Failed to connect to Home Assistant."),
+    ).toBeVisible();
 
     // Click on event row or details icon to trigger details drawer (if exists)
     // Here we click the Message text
     await page.click("text=Taobao crawler scanned 2 items.");
     // Drawer appears
     const drawer = page.locator(".ant-drawer");
-    if (await drawer.count() > 0) {
+    if ((await drawer.count()) > 0) {
       await expect(drawer).toBeVisible();
       await page.click(".ant-drawer-close");
     }
   });
 
-  test("handles realtime event deduplication via EventSource stub injection", async ({ page, api }) => {
+  test("handles realtime event deduplication via EventSource stub injection", async ({
+    page,
+    api,
+  }) => {
     // Relies on global FakeEventSource stub injected by app-test fixture
 
     api.use("GET", "/api/v1/events", () => ({
@@ -44,11 +59,11 @@ test.describe("Events and Smart Home Feature E2E", () => {
             entity_type: "crawler",
             entity_id: "taobao",
             trace_id: "trace-1",
-            payload: null
-          }
+            payload: null,
+          },
         ],
-        total: 1
-      }
+        total: 1,
+      },
     }));
 
     await page.goto("/events");
@@ -73,13 +88,15 @@ test.describe("Events and Smart Home Feature E2E", () => {
           entity_type: "crawler",
           entity_id: "taobao",
           trace_id: "trace-1",
-          payload: null
+          payload: null,
         };
         // Trigger event
         if (sse.onmessage) {
           sse.onmessage({ data: JSON.stringify(payload) });
         } else {
-          sse.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(payload) }));
+          sse.dispatchEvent(
+            new MessageEvent("message", { data: JSON.stringify(payload) }),
+          );
         }
       }
     });
@@ -89,15 +106,20 @@ test.describe("Events and Smart Home Feature E2E", () => {
     await expect(page.locator("text=Initial crawl event")).toHaveCount(1);
   });
 
-  test("renders smart home config, cards, and disables controls for readonly", async ({ page, api }) => {
+  test("renders smart home config, cards, and disables controls for readonly", async ({
+    page,
+    api,
+  }) => {
     // Return HA config and entities
-    api.use("GET", "/api/v1/smart-home/config", () => ({ body: mockSmartHomeConfig }));
+    api.use("GET", "/api/v1/smart-home/config", () => ({
+      body: mockSmartHomeConfig,
+    }));
     api.use("GET", "/api/v1/smart-home/entities", () => ({
       body: {
         items: mockSmartHomeEntities,
         connected: true,
-        last_error: null
-      }
+        last_error: null,
+      },
     }));
 
     await page.goto("/smart-home");
@@ -110,7 +132,9 @@ test.describe("Events and Smart Home Feature E2E", () => {
     // Override as read-only user and check that control buttons/switches are disabled
     const noControlUser = {
       ...readOnlyUser,
-      permissions: readOnlyUser.permissions.filter(p => p !== "smart_home:control")
+      permissions: readOnlyUser.permissions.filter(
+        (p) => p !== "smart_home:control",
+      ),
     };
     api.use("GET", "/api/v1/auth/me", () => ({ body: noControlUser }));
     await page.reload();

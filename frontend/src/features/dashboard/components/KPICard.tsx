@@ -1,6 +1,6 @@
 import { Card, Statistic } from "antd";
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 
 interface KPICardProps {
   title: string;
@@ -22,7 +22,7 @@ export function KPICard({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       whileHover={prefersReducedMotion ? {} : { y: -4, scale: 1.015 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       style={{ cursor: "pointer" }}
@@ -44,6 +44,6 @@ export function KPICard({
           valueStyle={valueStyle}
         />
       </Card>
-    </motion.div>
+    </m.div>
   );
 }

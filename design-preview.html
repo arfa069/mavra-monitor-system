@@ -1,799 +1,881 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neo-Brutalist Zine — Design System Preview</title>
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-  
-  <style>
-    /* ============================================================
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neo-Brutalist Zine — Design System Preview</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ============================================================
        Neo-Brutalist Zine — Design Tokens (CSS Variables)
        ============================================================ */
-    :root {
-      /* Palette */
-      --color-canvas: #f8f6f0; /* Warm paper off-white */
-      --color-ink: #000000;
-      --color-border: #000000;
-      
-      /* Block Pastels */
-      --color-block-yellow: #fbee6b;
-      --color-block-lime: #b8f2a1;
-      --color-block-lilac: #d2c1fb;
-      --color-block-cyan: #99f0f9;
-      --color-block-pink: #ffb3d9;
-      --color-block-orange: #ffb88c;
-      --color-block-cream: #fbf6e3;
-      
-      /* Typography */
-      --font-display: 'Syne', sans-serif;
-      --font-body: 'Outfit', sans-serif;
-      --font-data: 'Space Grotesk', sans-serif;
-      --font-mono: 'JetBrains Mono', sans-serif;
-      
-      /* Spacing & Borders */
-      --border-width: 3px;
-      --radius-sm: 4px;
-      --radius-md: 8px;
-      --radius-lg: 16px;
-      --radius-pill: 9999px;
-      
-      /* Shadow (Neo-Brutalist Flat Drop Shadow) */
-      --shadow-offset-sm: 3px 3px 0px #000000;
-      --shadow-offset-md: 6px 6px 0px #000000;
-      --shadow-offset-lg: 10px 10px 0px #000000;
-    }
+      :root {
+        /* Palette */
+        --color-canvas: #f8f6f0; /* Warm paper off-white */
+        --color-ink: #000000;
+        --color-border: #000000;
 
-    /* Dark Mode Toggle (High-Contrast Cyber-Brutalist) */
-    [data-theme="cyber"] {
-      --color-canvas: #0e0e11;
-      --color-ink: #ffffff;
-      --color-border: #ffffff;
-      
-      --color-block-yellow: #f8e400;
-      --color-block-lime: #00ff66;
-      --color-block-lilac: #8b3dff;
-      --color-block-cyan: #00f0ff;
-      --color-block-pink: #ff007f;
-      --color-block-orange: #ff7f00;
-      --color-block-cream: #1b1b24;
-      
-      --shadow-offset-sm: 3px 3px 0px #ffffff;
-      --shadow-offset-md: 6px 6px 0px #ffffff;
-      --shadow-offset-lg: 10px 10px 0px #ffffff;
-    }
+        /* Block Pastels */
+        --color-block-yellow: #fbee6b;
+        --color-block-lime: #b8f2a1;
+        --color-block-lilac: #d2c1fb;
+        --color-block-cyan: #99f0f9;
+        --color-block-pink: #ffb3d9;
+        --color-block-orange: #ffb88c;
+        --color-block-cream: #fbf6e3;
 
-    /* ============================================================
+        /* Typography */
+        --font-display: "Syne", sans-serif;
+        --font-body: "Outfit", sans-serif;
+        --font-data: "Space Grotesk", sans-serif;
+        --font-mono: "JetBrains Mono", sans-serif;
+
+        /* Spacing & Borders */
+        --border-width: 3px;
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 16px;
+        --radius-pill: 9999px;
+
+        /* Shadow (Neo-Brutalist Flat Drop Shadow) */
+        --shadow-offset-sm: 3px 3px 0px #000000;
+        --shadow-offset-md: 6px 6px 0px #000000;
+        --shadow-offset-lg: 10px 10px 0px #000000;
+      }
+
+      /* Dark Mode Toggle (High-Contrast Cyber-Brutalist) */
+      [data-theme="cyber"] {
+        --color-canvas: #0e0e11;
+        --color-ink: #ffffff;
+        --color-border: #ffffff;
+
+        --color-block-yellow: #f8e400;
+        --color-block-lime: #00ff66;
+        --color-block-lilac: #8b3dff;
+        --color-block-cyan: #00f0ff;
+        --color-block-pink: #ff007f;
+        --color-block-orange: #ff7f00;
+        --color-block-cream: #1b1b24;
+
+        --shadow-offset-sm: 3px 3px 0px #ffffff;
+        --shadow-offset-md: 6px 6px 0px #ffffff;
+        --shadow-offset-lg: 10px 10px 0px #ffffff;
+      }
+
+      /* ============================================================
        Base Reset & Visual Styles
        ============================================================ */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: var(--font-body);
-      background-color: var(--color-canvas);
-      color: var(--color-ink);
-      min-height: 100vh;
-      padding: 40px 24px;
-      line-height: 1.5;
-      position: relative;
-    }
-
-    /* Subtle graph paper grid pattern */
-    body::after {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image: 
-        radial-gradient(var(--color-border) 1px, transparent 1px), 
-        radial-gradient(var(--color-border) 1px, transparent 1px);
-      background-size: 24px 24px;
-      background-position: 0 0, 12px 12px;
-      opacity: 0.03;
-      z-index: -1;
-      pointer-events: none;
-    }
-
-    .container {
-      max-width: 1300px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 32px;
-    }
-
-    @media (max-width: 1024px) {
-      .container {
-        grid-template-columns: 1fr;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    }
 
-    /* ============================================================
+      body {
+        font-family: var(--font-body);
+        background-color: var(--color-canvas);
+        color: var(--color-ink);
+        min-height: 100vh;
+        padding: 40px 24px;
+        line-height: 1.5;
+        position: relative;
+      }
+
+      /* Subtle graph paper grid pattern */
+      body::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+          radial-gradient(var(--color-border) 1px, transparent 1px),
+          radial-gradient(var(--color-border) 1px, transparent 1px);
+        background-size: 24px 24px;
+        background-position:
+          0 0,
+          12px 12px;
+        opacity: 0.03;
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 32px;
+      }
+
+      @media (max-width: 1024px) {
+        .container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ============================================================
        Neo-Brutalist Block Components
        ============================================================ */
-    .zine-card {
-      background-color: var(--color-block-cream);
-      border: var(--border-width) solid var(--color-border);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-offset-md);
-      padding: 24px;
-      position: relative;
-      transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
+      .zine-card {
+        background-color: var(--color-block-cream);
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-offset-md);
+        padding: 24px;
+        position: relative;
+        transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
 
-    .zine-card:hover {
-      transform: translate(-3px, -3px);
-      box-shadow: var(--shadow-offset-lg);
-    }
+      .zine-card:hover {
+        transform: translate(-3px, -3px);
+        box-shadow: var(--shadow-offset-lg);
+      }
 
-    /* Sticky Corner Ribbon Tag */
-    .ribbon-tag {
-      position: absolute;
-      top: 12px;
-      right: -10px;
-      background-color: var(--color-block-yellow);
-      color: #000;
-      font-family: var(--font-display);
-      font-size: 11px;
-      font-weight: 800;
-      padding: 4px 12px;
-      border: var(--border-width) solid #000;
-      transform: rotate(3deg);
-      box-shadow: 2px 2px 0px #000;
-      text-transform: uppercase;
-    }
+      /* Sticky Corner Ribbon Tag */
+      .ribbon-tag {
+        position: absolute;
+        top: 12px;
+        right: -10px;
+        background-color: var(--color-block-yellow);
+        color: #000;
+        font-family: var(--font-display);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 4px 12px;
+        border: var(--border-width) solid #000;
+        transform: rotate(3deg);
+        box-shadow: 2px 2px 0px #000;
+        text-transform: uppercase;
+      }
 
-    /* ============================================================
+      /* ============================================================
        Sidebar Navigation & Brand Banner
        ============================================================ */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      height: fit-content;
-    }
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        height: fit-content;
+      }
 
-    .brand {
-      background-color: var(--color-block-yellow);
-      color: #000000;
-      padding: 24px;
-      border: var(--border-width) solid #000000;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-offset-md);
-      transform: rotate(-1.5deg);
-    }
+      .brand {
+        background-color: var(--color-block-yellow);
+        color: #000000;
+        padding: 24px;
+        border: var(--border-width) solid #000000;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-offset-md);
+        transform: rotate(-1.5deg);
+      }
 
-    .brand-title {
-      font-family: var(--font-display);
-      font-size: 32px;
-      font-weight: 800;
-      line-height: 1;
-      text-transform: uppercase;
-      letter-spacing: -1px;
-    }
+      .brand-title {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+      }
 
-    .brand-subtitle {
-      font-family: var(--font-data);
-      font-size: 12px;
-      font-weight: 700;
-      margin-top: 8px;
-      text-transform: uppercase;
-    }
+      .brand-subtitle {
+        font-family: var(--font-data);
+        font-size: 12px;
+        font-weight: 700;
+        margin-top: 8px;
+        text-transform: uppercase;
+      }
 
-    .nav-links {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 16px;
-    }
+      .nav-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 16px;
+      }
 
-    .nav-item a {
-      display: block;
-      padding: 12px 16px;
-      color: var(--color-ink);
-      text-decoration: none;
-      border: var(--border-width) solid var(--color-border);
-      border-radius: var(--radius-md);
-      background-color: var(--color-block-cream);
-      font-family: var(--font-display);
-      font-weight: 800;
-      font-size: 16px;
-      text-transform: uppercase;
-      box-shadow: var(--shadow-offset-sm);
-      transition: all 0.1s ease;
-    }
+      .nav-item a {
+        display: block;
+        padding: 12px 16px;
+        color: var(--color-ink);
+        text-decoration: none;
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md);
+        background-color: var(--color-block-cream);
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 16px;
+        text-transform: uppercase;
+        box-shadow: var(--shadow-offset-sm);
+        transition: all 0.1s ease;
+      }
 
-    .nav-item.active a {
-      background-color: var(--color-block-lime);
-      color: #000000;
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-offset-md);
-    }
+      .nav-item.active a {
+        background-color: var(--color-block-lime);
+        color: #000000;
+        transform: translate(-2px, -2px);
+        box-shadow: var(--shadow-offset-md);
+      }
 
-    .nav-item a:hover:not(.active) {
-      background-color: var(--color-block-pink);
-      color: #000000;
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-offset-md);
-    }
+      .nav-item a:hover:not(.active) {
+        background-color: var(--color-block-pink);
+        color: #000000;
+        transform: translate(-2px, -2px);
+        box-shadow: var(--shadow-offset-md);
+      }
 
-    .theme-toggle-btn {
-      width: 100%;
-      padding: 12px;
-      border: var(--border-width) solid var(--color-border);
-      border-radius: var(--radius-pill);
-      background-color: var(--color-block-orange);
-      color: #000000;
-      font-family: var(--font-display);
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: var(--shadow-offset-sm);
-      text-transform: uppercase;
-      margin-top: 8px;
-    }
+      .theme-toggle-btn {
+        width: 100%;
+        padding: 12px;
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-pill);
+        background-color: var(--color-block-orange);
+        color: #000000;
+        font-family: var(--font-display);
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: var(--shadow-offset-sm);
+        text-transform: uppercase;
+        margin-top: 8px;
+      }
 
-    .theme-toggle-btn:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-offset-md);
-      background-color: var(--color-block-cyan);
-    }
+      .theme-toggle-btn:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: var(--shadow-offset-md);
+        background-color: var(--color-block-cyan);
+      }
 
-    /* ============================================================
+      /* ============================================================
        Main Panel & Dashboard Layout
        ============================================================ */
-    .main-content {
-      display: flex;
-      flex-direction: column;
-      gap: 32px;
-    }
+      .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
 
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: var(--color-block-cyan);
-      color: #000000;
-      padding: 24px;
-      border: var(--border-width) solid #000000;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-offset-md);
-      transform: rotate(0.5deg);
-    }
+      .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--color-block-cyan);
+        color: #000000;
+        padding: 24px;
+        border: var(--border-width) solid #000000;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-offset-md);
+        transform: rotate(0.5deg);
+      }
 
-    .title-area h1 {
-      font-family: var(--font-display);
-      font-size: 38px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: -1px;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
+      .title-area h1 {
+        font-family: var(--font-display);
+        font-size: 38px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
 
-    .title-area p {
-      font-family: var(--font-data);
-      font-weight: 500;
-      font-size: 13px;
-    }
+      .title-area p {
+        font-family: var(--font-data);
+        font-weight: 500;
+        font-size: 13px;
+      }
 
-    /* Stat Cards Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 24px;
-    }
+      /* Stat Cards Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+      }
 
-    .stat-card {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+      .stat-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-    .stat-title {
-      font-family: var(--font-display);
-      font-size: 14px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+      .stat-title {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-    .stat-val {
-      font-family: var(--font-data);
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-    }
+      .stat-val {
+        font-family: var(--font-data);
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
 
-    .stat-val .unit {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--color-ink);
-    }
+      .stat-val .unit {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--color-ink);
+      }
 
-    .stat-trend {
-      font-family: var(--font-data);
-      font-weight: 700;
-      font-size: 12px;
-      border-top: 1.5px dashed var(--color-border);
-      padding-top: 8px;
-      margin-top: auto;
-    }
+      .stat-trend {
+        font-family: var(--font-data);
+        font-weight: 700;
+        font-size: 12px;
+        border-top: 1.5px dashed var(--color-border);
+        padding-top: 8px;
+        margin-top: auto;
+      }
 
-    /* Brutalist Table */
-    .table-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+      /* Brutalist Table */
+      .table-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
 
-    .table-title {
-      font-family: var(--font-display);
-      font-size: 24px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
+      .table-title {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
 
-    .table-filters {
-      display: flex;
-      gap: 8px;
-    }
+      .table-filters {
+        display: flex;
+        gap: 8px;
+      }
 
-    .pill-btn {
-      padding: 6px 16px;
-      border-radius: var(--radius-pill);
-      border: var(--border-width) solid var(--color-border);
-      background-color: var(--color-block-cream);
-      color: var(--color-ink);
-      font-family: var(--font-display);
-      font-weight: 800;
-      cursor: pointer;
-      font-size: 12px;
-      text-transform: uppercase;
-      box-shadow: 2px 2px 0px #000;
-    }
+      .pill-btn {
+        padding: 6px 16px;
+        border-radius: var(--radius-pill);
+        border: var(--border-width) solid var(--color-border);
+        background-color: var(--color-block-cream);
+        color: var(--color-ink);
+        font-family: var(--font-display);
+        font-weight: 800;
+        cursor: pointer;
+        font-size: 12px;
+        text-transform: uppercase;
+        box-shadow: 2px 2px 0px #000;
+      }
 
-    .pill-btn:hover, .pill-btn.active {
-      background-color: var(--color-block-yellow);
-      color: #000;
-      transform: translate(-1px, -1px);
-      box-shadow: 3px 3px 0px #000;
-    }
+      .pill-btn:hover,
+      .pill-btn.active {
+        background-color: var(--color-block-yellow);
+        color: #000;
+        transform: translate(-1px, -1px);
+        box-shadow: 3px 3px 0px #000;
+      }
 
-    .data-table-wrapper {
-      border: var(--border-width) solid var(--color-border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      box-shadow: var(--shadow-offset-sm);
-    }
+      .data-table-wrapper {
+        border: var(--border-width) solid var(--color-border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-offset-sm);
+      }
 
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      background-color: var(--color-block-cream);
-    }
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        background-color: var(--color-block-cream);
+      }
 
-    .data-table th, .data-table td {
-      padding: 16px;
-      border-bottom: var(--border-width) solid var(--color-border);
-    }
+      .data-table th,
+      .data-table td {
+        padding: 16px;
+        border-bottom: var(--border-width) solid var(--color-border);
+      }
 
-    .data-table th {
-      background-color: var(--color-block-yellow);
-      color: #000000;
-      font-family: var(--font-display);
-      font-weight: 800;
-      font-size: 13px;
-      text-transform: uppercase;
-    }
+      .data-table th {
+        background-color: var(--color-block-yellow);
+        color: #000000;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 13px;
+        text-transform: uppercase;
+      }
 
-    .data-table tr:last-child td {
-      border-bottom: none;
-    }
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
 
-    .data-table tr:hover td {
-      background-color: rgba(255, 255, 255, 0.4);
-    }
+      .data-table tr:hover td {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
 
-    .item-name {
-      font-family: var(--font-display);
-      font-weight: 800;
-      font-size: 16px;
-      color: var(--color-ink);
-    }
+      .item-name {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 16px;
+        color: var(--color-ink);
+      }
 
-    .item-platform {
-      font-family: var(--font-data);
-      font-size: 12px;
-      font-weight: 600;
-    }
+      .item-platform {
+        font-family: var(--font-data);
+        font-size: 12px;
+        font-weight: 600;
+      }
 
-    .price-col {
-      font-family: var(--font-data);
-      font-weight: 700;
-      font-size: 16px;
-    }
+      .price-col {
+        font-family: var(--font-data);
+        font-weight: 700;
+        font-size: 16px;
+      }
 
-    /* Sticker Status Badge */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 12px;
-      border: 2px solid #000000;
-      border-radius: var(--radius-pill);
-      font-family: var(--font-display);
-      font-weight: 800;
-      font-size: 11px;
-      box-shadow: 2px 2px 0px #000000;
-      text-transform: uppercase;
-    }
+      /* Sticker Status Badge */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border: 2px solid #000000;
+        border-radius: var(--radius-pill);
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 11px;
+        box-shadow: 2px 2px 0px #000000;
+        text-transform: uppercase;
+      }
 
-    .badge-success {
-      background-color: var(--color-block-lime);
-      color: #000;
-    }
+      .badge-success {
+        background-color: var(--color-block-lime);
+        color: #000;
+      }
 
-    .badge-error {
-      background-color: var(--color-block-pink);
-      color: #000;
-    }
+      .badge-error {
+        background-color: var(--color-block-pink);
+        color: #000;
+      }
 
-    .badge-warning {
-      background-color: var(--color-block-orange);
-      color: #000;
-    }
+      .badge-warning {
+        background-color: var(--color-block-orange);
+        color: #000;
+      }
 
-    .badge-info {
-      background-color: var(--color-block-cyan);
-      color: #000;
-    }
+      .badge-info {
+        background-color: var(--color-block-cyan);
+        color: #000;
+      }
 
-    /* ============================================================
+      /* ============================================================
        Interactive Spec Demonstration Section
        ============================================================ */
-    .spec-section {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-    }
+      .spec-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+      }
 
-    .color-swatch-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
-    }
+      .color-swatch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
 
-    .swatch {
-      height: 80px;
-      border-radius: var(--radius-md);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 10px;
-      font-size: 11px;
-      font-weight: 800;
-      border: var(--border-width) solid #000000;
-      box-shadow: 3px 3px 0px #000000;
-      color: #000000;
-    }
+      .swatch {
+        height: 80px;
+        border-radius: var(--radius-md);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        border: var(--border-width) solid #000000;
+        box-shadow: 3px 3px 0px #000000;
+        color: #000000;
+      }
 
-    .swatch-name {
-      text-transform: uppercase;
-    }
-    .swatch-hex {
-      font-family: var(--font-mono);
-      font-size: 10px;
-    }
+      .swatch-name {
+        text-transform: uppercase;
+      }
+      .swatch-hex {
+        font-family: var(--font-mono);
+        font-size: 10px;
+      }
 
-    /* Typo specimen */
-    .typo-specimen {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-top: 16px;
-    }
+      /* Typo specimen */
+      .typo-specimen {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 16px;
+      }
 
-    .typo-row {
-      border-bottom: 2px dashed var(--color-border);
-      padding-bottom: 12px;
-    }
+      .typo-row {
+        border-bottom: 2px dashed var(--color-border);
+        padding-bottom: 12px;
+      }
 
-    .typo-label {
-      font-size: 11px;
-      color: var(--color-ink);
-      font-family: var(--font-mono);
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
+      .typo-label {
+        font-size: 11px;
+        color: var(--color-ink);
+        font-family: var(--font-mono);
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
 
-    /* Chart area */
-    .chart-container {
-      margin-top: 16px;
-      height: 120px;
-      border: var(--border-width) solid #000000;
-      border-radius: var(--radius-md);
-      background-color: var(--color-block-cream);
-      box-shadow: var(--shadow-offset-sm);
-      overflow: hidden;
-      position: relative;
-    }
+      /* Chart area */
+      .chart-container {
+        margin-top: 16px;
+        height: 120px;
+        border: var(--border-width) solid #000000;
+        border-radius: var(--radius-md);
+        background-color: var(--color-block-cream);
+        box-shadow: var(--shadow-offset-sm);
+        overflow: hidden;
+        position: relative;
+      }
 
-    svg.neon-chart {
-      width: 100%;
-      height: 100%;
-    }
+      svg.neon-chart {
+        width: 100%;
+        height: 100%;
+      }
 
-    svg.neon-chart path.line {
-      fill: none;
-      stroke: #000000;
-      stroke-width: 4;
-    }
+      svg.neon-chart path.line {
+        fill: none;
+        stroke: #000000;
+        stroke-width: 4;
+      }
 
-    svg.neon-chart path.grid-line {
-      stroke: rgba(0,0,0,0.1);
-      stroke-width: 2;
-    }
+      svg.neon-chart path.grid-line {
+        stroke: rgba(0, 0, 0, 0.1);
+        stroke-width: 2;
+      }
 
-    svg.neon-chart circle.dot {
-      fill: var(--color-block-pink);
-      stroke: #000;
-      stroke-width: 3;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="container">
-    
-    <!-- ============================================================
+      svg.neon-chart circle.dot {
+        fill: var(--color-block-pink);
+        stroke: #000;
+        stroke-width: 3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- ============================================================
          SIDEBAR NAVIGATION
          ============================================================ -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-title">Mavra Sys</div>
-        <div class="brand-subtitle">Price & Job Tracker</div>
-      </div>
-      
-      <nav>
-        <ul class="nav-links">
-          <li class="nav-item active"><a href="#">📊 控制面板</a></li>
-          <li class="nav-item"><a href="#">🛍️ 价格监控</a></li>
-          <li class="nav-item"><a href="#">💼 职位搜索</a></li>
-          <li class="nav-item"><a href="#">⚙️ 系统配置</a></li>
-        </ul>
-      </nav>
-      
-      <button class="theme-toggle-btn" id="theme-toggle">
-        切换：赛博高刷粗野
-      </button>
-    </aside>
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-title">Mavra Sys</div>
+          <div class="brand-subtitle">Price & Job Tracker</div>
+        </div>
 
-    <!-- ============================================================
+        <nav>
+          <ul class="nav-links">
+            <li class="nav-item active"><a href="#">📊 控制面板</a></li>
+            <li class="nav-item"><a href="#">🛍️ 价格监控</a></li>
+            <li class="nav-item"><a href="#">💼 职位搜索</a></li>
+            <li class="nav-item"><a href="#">⚙️ 系统配置</a></li>
+          </ul>
+        </nav>
+
+        <button class="theme-toggle-btn" id="theme-toggle">
+          切换：赛博高刷粗野
+        </button>
+      </aside>
+
+      <!-- ============================================================
          MAIN DASHBOARD
          ============================================================ -->
-    <main class="main-content">
-      
-      <!-- HEADER -->
-      <header class="header-bar">
-        <div class="title-area">
-          <h1>新粗野主义杂志风 // ZINE_SYSTEM</h1>
-          <p>高对比度粗边框，富有报刊张力与玩乐质感的商品/职位监控中心</p>
-        </div>
-      </header>
-
-      <!-- STAT CARDS -->
-      <section class="stats-grid">
-        <div class="zine-card stat-card" style="background-color: var(--color-block-yellow);">
-          <div class="ribbon-tag">Hot Drop</div>
-          <span class="stat-title">已监控商品</span>
-          <div class="stat-val">0028 <span class="unit">件</span></div>
-          <div class="stat-trend">
-            ⚡ 5件商品今天降价了
+      <main class="main-content">
+        <!-- HEADER -->
+        <header class="header-bar">
+          <div class="title-area">
+            <h1>新粗野主义杂志风 // ZINE_SYSTEM</h1>
+            <p>高对比度粗边框，富有报刊张力与玩乐质感的商品/职位监控中心</p>
           </div>
-        </div>
+        </header>
 
-        <div class="zine-card stat-card" style="background-color: var(--color-block-pink);">
-          <span class="stat-title">已追踪职位</span>
-          <div class="stat-val">0142 <span class="unit">个</span></div>
-          <div class="stat-trend">
-            🔥 12个今日新增匹配
+        <!-- STAT CARDS -->
+        <section class="stats-grid">
+          <div
+            class="zine-card stat-card"
+            style="background-color: var(--color-block-yellow)"
+          >
+            <div class="ribbon-tag">Hot Drop</div>
+            <span class="stat-title">已监控商品</span>
+            <div class="stat-val">0028 <span class="unit">件</span></div>
+            <div class="stat-trend">⚡ 5件商品今天降价了</div>
           </div>
-        </div>
 
-        <div class="zine-card stat-card" style="background-color: var(--color-block-lime);">
-          <span class="stat-title">今日爬取调度</span>
-          <div class="stat-val">1240 <span class="unit">次</span></div>
-          <div class="stat-trend">
-            💥 调度就绪 (100% 成功率)
+          <div
+            class="zine-card stat-card"
+            style="background-color: var(--color-block-pink)"
+          >
+            <span class="stat-title">已追踪职位</span>
+            <div class="stat-val">0142 <span class="unit">个</span></div>
+            <div class="stat-trend">🔥 12个今日新增匹配</div>
           </div>
-        </div>
-      </section>
 
-      <!-- MOCKUP: TABLE + CHART -->
-      <section class="zine-card table-container">
-        <div class="table-header">
-          <h2 class="table-title">降价监控细节明细 // DATA STREAM</h2>
-          <div class="table-filters">
-            <button class="pill-btn active">全部平台</button>
-            <button class="pill-btn">京东</button>
-            <button class="pill-btn">淘宝</button>
-            <button class="pill-btn">波斯直聘</button>
+          <div
+            class="zine-card stat-card"
+            style="background-color: var(--color-block-lime)"
+          >
+            <span class="stat-title">今日爬取调度</span>
+            <div class="stat-val">1240 <span class="unit">次</span></div>
+            <div class="stat-trend">💥 调度就绪 (100% 成功率)</div>
           </div>
-        </div>
+        </section>
 
-        <!-- Simulated price trend chart -->
-        <div class="chart-container">
-          <svg class="neon-chart" viewBox="0 0 500 120" preserveAspectRatio="none">
-            <!-- Grid Lines -->
-            <line class="grid-line" x1="0" y1="30" x2="500" y2="30" />
-            <line class="grid-line" x1="0" y1="60" x2="500" y2="60" />
-            <line class="grid-line" x1="0" y1="90" x2="500" y2="90" />
-            <line class="grid-line" x1="125" y1="0" x2="125" y2="120" />
-            <line class="grid-line" x1="250" y1="0" x2="250" y2="120" />
-            <line class="grid-line" x1="375" y1="0" x2="375" y2="120" />
-            
-            <path class="line" d="M 0 100 Q 120 40 250 80 T 500 20" />
-            <!-- Node circles -->
-            <circle class="dot" cx="250" cy="80" r="6" />
-            <circle class="dot" cx="500" cy="20" r="6" />
-          </svg>
-        </div>
-
-        <div class="data-table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>监控目标 & 平台</th>
-                <th>当前价格 / 待遇</th>
-                <th>目标价</th>
-                <th>降价幅度</th>
-                <th>监控状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>
-                  <div>
-                    <div class="item-name">MacBook Pro 16 M3 Max</div>
-                    <div class="item-platform">京东自营 / 爬虫成功</div>
-                  </div>
-                </td>
-                <td class="price-col" style="color: var(--color-block-pink); -webkit-text-stroke: 1px #000; font-size: 18px;">¥23,499.00</td>
-                <td class="price-col">¥24,000.00</td>
-                <td class="price-col" style="background-color: var(--color-block-lime); font-weight: 800;">-¥1,500.00</td>
-                <td><span class="badge badge-success">ALRT_TRIGGERED</span></td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <div class="item-name">Sony WH-1000XM5 耳机</div>
-                    <div class="item-platform">亚马逊海外购</div>
-                  </div>
-                </td>
-                <td class="price-col">¥1,899.00</td>
-                <td class="price-col">¥1,800.00</td>
-                <td class="price-col">-</td>
-                <td><span class="badge badge-info">MONITOR_ACTIVE</span></td>
-              </tr>
-              <tr>
-                <td>
-                  <div>
-                    <div class="item-name">全栈开发工程师 // 杭州 · 字节跳动</div>
-                    <div class="item-platform">Boss 直聘 / Cloak 适配器</div>
-                  </div>
-                </td>
-                <td class="price-col">30-50K · 15薪</td>
-                <td class="price-col">35K+</td>
-                <td class="price-col" style="background-color: var(--color-block-yellow); font-weight: 800;">+ NEW JOB</td>
-                <td><span class="badge badge-error">CRITICAL_MATCH</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- SPECIFICATION & TOKENS SHOWCASE -->
-      <section class="spec-section">
-        
-        <!-- COLORS SPEC -->
-        <div class="zine-card">
-          <h2 class="table-title">色彩构成 // Zine Palettes</h2>
-          <p style="font-size: 13px; margin-top: 4px;">
-            精心调配的波普复古淡色块（Macaron 2.0），搭配 3px 绝对黑描边与硬边阴影。
-          </p>
-          
-          <div class="color-swatch-grid">
-            <div class="swatch" style="background-color: var(--color-block-yellow);">
-              <span class="swatch-name">Yellow</span>
-              <span class="swatch-hex">#FBEE6B</span>
-            </div>
-            <div class="swatch" style="background-color: var(--color-block-lime);">
-              <span class="swatch-name">Lime</span>
-              <span class="swatch-hex">#B8F2A1</span>
-            </div>
-            <div class="swatch" style="background-color: var(--color-block-lilac);">
-              <span class="swatch-name">Lilac</span>
-              <span class="swatch-hex">#D2C1FB</span>
-            </div>
-            <div class="swatch" style="background-color: var(--color-block-pink);">
-              <span class="swatch-name">Pink</span>
-              <span class="swatch-hex">#FFB3D9</span>
-            </div>
-            <div class="swatch" style="background-color: var(--color-block-cyan);">
-              <span class="swatch-name">Cyan</span>
-              <span class="swatch-hex">#99F0F9</span>
-            </div>
-            <div class="swatch" style="background-color: var(--color-block-orange);">
-              <span class="swatch-name">Orange</span>
-              <span class="swatch-hex">#FFB88C</span>
+        <!-- MOCKUP: TABLE + CHART -->
+        <section class="zine-card table-container">
+          <div class="table-header">
+            <h2 class="table-title">降价监控细节明细 // DATA STREAM</h2>
+            <div class="table-filters">
+              <button class="pill-btn active">全部平台</button>
+              <button class="pill-btn">京东</button>
+              <button class="pill-btn">淘宝</button>
+              <button class="pill-btn">波斯直聘</button>
             </div>
           </div>
-        </div>
 
-        <!-- TYPOGRAPHY SPEC -->
-        <div class="zine-card">
-          <h2 class="table-title">字体排版 // Zine Typo</h2>
-          <div class="typo-specimen">
-            <div class="typo-row">
-              <div class="typo-label">Display — Syne (800 Bold / Geometric)</div>
-              <div style="font-family: var(--font-display); font-size: 26px; font-weight: 800; text-transform: uppercase;">
-                MAVRA SYSTEM
+          <!-- Simulated price trend chart -->
+          <div class="chart-container">
+            <svg
+              class="neon-chart"
+              viewBox="0 0 500 120"
+              preserveAspectRatio="none"
+            >
+              <!-- Grid Lines -->
+              <line class="grid-line" x1="0" y1="30" x2="500" y2="30" />
+              <line class="grid-line" x1="0" y1="60" x2="500" y2="60" />
+              <line class="grid-line" x1="0" y1="90" x2="500" y2="90" />
+              <line class="grid-line" x1="125" y1="0" x2="125" y2="120" />
+              <line class="grid-line" x1="250" y1="0" x2="250" y2="120" />
+              <line class="grid-line" x1="375" y1="0" x2="375" y2="120" />
+
+              <path class="line" d="M 0 100 Q 120 40 250 80 T 500 20" />
+              <!-- Node circles -->
+              <circle class="dot" cx="250" cy="80" r="6" />
+              <circle class="dot" cx="500" cy="20" r="6" />
+            </svg>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>监控目标 & 平台</th>
+                  <th>当前价格 / 待遇</th>
+                  <th>目标价</th>
+                  <th>降价幅度</th>
+                  <th>监控状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="item-name">MacBook Pro 16 M3 Max</div>
+                      <div class="item-platform">京东自营 / 爬虫成功</div>
+                    </div>
+                  </td>
+                  <td
+                    class="price-col"
+                    style="
+                      color: var(--color-block-pink);
+                      -webkit-text-stroke: 1px #000;
+                      font-size: 18px;
+                    "
+                  >
+                    ¥23,499.00
+                  </td>
+                  <td class="price-col">¥24,000.00</td>
+                  <td
+                    class="price-col"
+                    style="
+                      background-color: var(--color-block-lime);
+                      font-weight: 800;
+                    "
+                  >
+                    -¥1,500.00
+                  </td>
+                  <td>
+                    <span class="badge badge-success">ALRT_TRIGGERED</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="item-name">Sony WH-1000XM5 耳机</div>
+                      <div class="item-platform">亚马逊海外购</div>
+                    </div>
+                  </td>
+                  <td class="price-col">¥1,899.00</td>
+                  <td class="price-col">¥1,800.00</td>
+                  <td class="price-col">-</td>
+                  <td><span class="badge badge-info">MONITOR_ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div>
+                      <div class="item-name">
+                        全栈开发工程师 // 杭州 · 字节跳动
+                      </div>
+                      <div class="item-platform">Boss 直聘 / Cloak 适配器</div>
+                    </div>
+                  </td>
+                  <td class="price-col">30-50K · 15薪</td>
+                  <td class="price-col">35K+</td>
+                  <td
+                    class="price-col"
+                    style="
+                      background-color: var(--color-block-yellow);
+                      font-weight: 800;
+                    "
+                  >
+                    + NEW JOB
+                  </td>
+                  <td><span class="badge badge-error">CRITICAL_MATCH</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SPECIFICATION & TOKENS SHOWCASE -->
+        <section class="spec-section">
+          <!-- COLORS SPEC -->
+          <div class="zine-card">
+            <h2 class="table-title">色彩构成 // Zine Palettes</h2>
+            <p style="font-size: 13px; margin-top: 4px">
+              精心调配的波普复古淡色块（Macaron 2.0），搭配 3px
+              绝对黑描边与硬边阴影。
+            </p>
+
+            <div class="color-swatch-grid">
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-yellow)"
+              >
+                <span class="swatch-name">Yellow</span>
+                <span class="swatch-hex">#FBEE6B</span>
+              </div>
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-lime)"
+              >
+                <span class="swatch-name">Lime</span>
+                <span class="swatch-hex">#B8F2A1</span>
+              </div>
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-lilac)"
+              >
+                <span class="swatch-name">Lilac</span>
+                <span class="swatch-hex">#D2C1FB</span>
+              </div>
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-pink)"
+              >
+                <span class="swatch-name">Pink</span>
+                <span class="swatch-hex">#FFB3D9</span>
+              </div>
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-cyan)"
+              >
+                <span class="swatch-name">Cyan</span>
+                <span class="swatch-hex">#99F0F9</span>
+              </div>
+              <div
+                class="swatch"
+                style="background-color: var(--color-block-orange)"
+              >
+                <span class="swatch-name">Orange</span>
+                <span class="swatch-hex">#FFB88C</span>
               </div>
             </div>
-            <div class="typo-row">
-              <div class="typo-label">Body — Outfit (Regular / 400)</div>
-              <div style="font-family: var(--font-body); font-size: 14px; font-weight: 400;">
-                基于粗野主义纸张感的设计系统更新规范，保证极致的可视个性和极高的信息对比度。
+          </div>
+
+          <!-- TYPOGRAPHY SPEC -->
+          <div class="zine-card">
+            <h2 class="table-title">字体排版 // Zine Typo</h2>
+            <div class="typo-specimen">
+              <div class="typo-row">
+                <div class="typo-label">
+                  Display — Syne (800 Bold / Geometric)
+                </div>
+                <div
+                  style="
+                    font-family: var(--font-display);
+                    font-size: 26px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                  "
+                >
+                  MAVRA SYSTEM
+                </div>
               </div>
-            </div>
-            <div class="typo-row">
-              <div class="typo-label">Data / Numbers — Space Grotesk (700)</div>
-              <div style="font-family: var(--font-data); font-size: 16px; font-weight: 700;">
-                ¥23,499.00 vs TARGET: ¥24,000.00
+              <div class="typo-row">
+                <div class="typo-label">Body — Outfit (Regular / 400)</div>
+                <div
+                  style="
+                    font-family: var(--font-body);
+                    font-size: 14px;
+                    font-weight: 400;
+                  "
+                >
+                  基于粗野主义纸张感的设计系统更新规范，保证极致的可视个性和极高的信息对比度。
+                </div>
+              </div>
+              <div class="typo-row">
+                <div class="typo-label">
+                  Data / Numbers — Space Grotesk (700)
+                </div>
+                <div
+                  style="
+                    font-family: var(--font-data);
+                    font-size: 16px;
+                    font-weight: 700;
+                  "
+                >
+                  ¥23,499.00 vs TARGET: ¥24,000.00
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
+      </main>
+    </div>
 
-      </section>
-
-    </main>
-
-  </div>
-
-  <script>
-    // Theme Toggle Handler (Light paper vs Dark cyber-brutalist)
-    const toggleBtn = document.getElementById('theme-toggle');
-    toggleBtn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      if (currentTheme === 'cyber') {
-        document.documentElement.removeAttribute('data-theme');
-        toggleBtn.innerHTML = '切换：赛博高刷粗野';
-      } else {
-        document.documentElement.setAttribute('data-theme', 'cyber');
-        toggleBtn.innerHTML = '切换：纸质复古粗野';
-      }
-    });
-  </script>
-</body>
+    <script>
+      // Theme Toggle Handler (Light paper vs Dark cyber-brutalist)
+      const toggleBtn = document.getElementById("theme-toggle");
+      toggleBtn.addEventListener("click", () => {
+        const currentTheme =
+          document.documentElement.getAttribute("data-theme");
+        if (currentTheme === "cyber") {
+          document.documentElement.removeAttribute("data-theme");
+          toggleBtn.innerHTML = "切换：赛博高刷粗野";
+        } else {
+          document.documentElement.setAttribute("data-theme", "cyber");
+          toggleBtn.innerHTML = "切换：纸质复古粗野";
+        }
+      });
+    </script>
+  </body>
 </html>

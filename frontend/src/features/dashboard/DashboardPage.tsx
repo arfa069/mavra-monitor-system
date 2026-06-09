@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Segmented, Skeleton, Tag } from "antd";
 import api from "@/shared/api/client";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import {
   ShoppingCartOutlined,
@@ -90,14 +90,14 @@ export default function DashboardPage() {
     refreshing ? <Tag color="processing">刷新中</Tag> : undefined;
 
   return (
-    <motion.div
+    <m.div
       variants={stagger.container}
       initial="hidden"
       animate="show"
       style={{ padding: "24px" }}
     >
       {/* Header */}
-      <motion.div
+      <m.div
         variants={stagger.item}
         style={{
           display: "flex",
@@ -115,10 +115,10 @@ export default function DashboardPage() {
           />
           {!connected && sseError && <Tag color="warning">{sseError}</Tag>}
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Personal KPI Cards */}
-      <motion.div variants={stagger.item}>
+      <m.div variants={stagger.item}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={12} sm={12} md={8} lg={4}>
             <KPICard
@@ -157,10 +157,10 @@ export default function DashboardPage() {
             />
           </Col>
         </Row>
-      </motion.div>
+      </m.div>
 
       {/* Product Monitoring */}
-      <motion.div variants={stagger.item}>
+      <m.div variants={stagger.item}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} lg={8}>
             <Card
@@ -205,10 +205,10 @@ export default function DashboardPage() {
             </Card>
           </Col>
         </Row>
-      </motion.div>
+      </m.div>
 
       {/* Job Monitoring */}
-      <motion.div variants={stagger.item}>
+      <m.div variants={stagger.item}>
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} lg={8}>
             <Card
@@ -253,19 +253,19 @@ export default function DashboardPage() {
             </Card>
           </Col>
         </Row>
-      </motion.div>
+      </m.div>
 
       {/* System Operations — Admin Only */}
       {isAdmin && (
         <>
-          <motion.div variants={stagger.item}>
+          <m.div variants={stagger.item}>
             <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>
               系统运营
             </h2>
-          </motion.div>
+          </m.div>
 
           {/* System KPI Cards */}
-          <motion.div variants={stagger.item}>
+          <m.div variants={stagger.item}>
             {systemKPI ? (
               <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={12} sm={8} lg={4}>
@@ -330,10 +330,10 @@ export default function DashboardPage() {
                 </Col>
               </Row>
             )}
-          </motion.div>
+          </m.div>
 
           {/* System Charts */}
-          <motion.div variants={stagger.item}>
+          <m.div variants={stagger.item}>
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={24} lg={12}>
                 <Card
@@ -366,10 +366,10 @@ export default function DashboardPage() {
                 </Card>
               </Col>
             </Row>
-          </motion.div>
+          </m.div>
 
           {/* Recent Alerts */}
-          <motion.div variants={stagger.item}>
+          <m.div variants={stagger.item}>
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={24}>
                 <Card
@@ -384,9 +384,9 @@ export default function DashboardPage() {
                 </Card>
               </Col>
             </Row>
-          </motion.div>
+          </m.div>
         </>
       )}
-    </motion.div>
+    </m.div>
   );
 }

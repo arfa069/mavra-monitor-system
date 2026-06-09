@@ -1,60 +1,31 @@
 /* ============================================================
-   Self-hosted & Google Fonts
+   Self-hosted Fonts — Syne, Outfit, Space Grotesk, JetBrains Mono
+   All fonts served locally; zero external font dependencies
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
-
-/* ---- General Sans (Display) ---- */
+/* ---- Syne (Display) — variable font, weights 700-800 ---- */
 @font-face {
-  font-family: "General Sans";
-  src: url("/fonts/GeneralSans-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "General Sans";
-  src: url("/fonts/GeneralSans-500.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "General Sans";
-  src: url("/fonts/GeneralSans-600.woff2") format("woff2");
-  font-weight: 600;
+  font-family: "Syne";
+  src: url("/fonts/Syne-latin.woff2") format("woff2");
+  font-weight: 700 800;
   font-style: normal;
   font-display: swap;
 }
 
-/* ---- DM Sans (Body) ---- */
+/* ---- Outfit (Body) — variable font, weights 300-700 ---- */
 @font-face {
-  font-family: "DM Sans";
-  src: url("/fonts/DMSans-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "DM Sans";
-  src: url("/fonts/DMSans-500.woff2") format("woff2");
-  font-weight: 500;
+  font-family: "Outfit";
+  src: url("/fonts/Outfit-latin.woff2") format("woff2");
+  font-weight: 300 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* ---- Geist (Data/Tables — tabular-nums) ---- */
+/* ---- Space Grotesk (Data) — variable font, weights 400-700 ---- */
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-400.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-500.woff2") format("woff2");
-  font-weight: 500;
+  font-family: "Space Grotesk";
+  src: url("/fonts/SpaceGrotesk-latin.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }

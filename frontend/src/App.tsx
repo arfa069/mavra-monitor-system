@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo } from "react";
 import React from "react";
+import { LazyMotion, domAnimation } from "framer-motion";
 import {
   BrowserRouter,
   Routes,
@@ -98,7 +99,9 @@ function ErrorFallback() {
         Please refresh the page or contact an administrator
       </div>
       <button
-        onClick={() => { window.location.href = "/login"; }}
+        onClick={() => {
+          window.location.href = "/login";
+        }}
         style={{
           padding: "8px 16px",
           background: "var(--color-primary)",
@@ -228,7 +231,8 @@ function AppRoutes() {
         colorInfo: currentTheme === "dark" ? "#00f0ff" : "#99f0f9",
         borderRadius: 8,
         fontSize: 14,
-        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily:
+          "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fontFamilyCode: "'JetBrains Mono', monospace",
       },
       components: {
@@ -331,11 +335,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </ThemeProvider>
+      <LazyMotion features={domAnimation} strict>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </ThemeProvider>
+      </LazyMotion>
     </ErrorBoundary>
   );
 }

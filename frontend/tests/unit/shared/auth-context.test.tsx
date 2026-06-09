@@ -7,15 +7,42 @@ import { renderWithApp } from "../test-utils";
 import { testUser } from "../mocks/handlers";
 
 const ProbeComponent = () => {
-  const { user, isAuthenticated, isAdmin, hasPermission, hasAnyPermission, hasAllPermissions, login, logout } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isAdmin,
+    hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
+    login,
+    logout,
+  } = useAuth();
   return (
     <div>
-      <span data-testid="user-info">{user ? `${user.username}:${isAuthenticated}:${isAdmin}` : "null:false:false"}</span>
+      <span data-testid="user-info">
+        {user
+          ? `${user.username}:${isAuthenticated}:${isAdmin}`
+          : "null:false:false"}
+      </span>
       <span data-testid="permission-check">{`schedule:${hasPermission("schedule:read")}`}</span>
       <span data-testid="any-permission-check">{`any:${hasAnyPermission(["user:manage", "non-existent"])}`}</span>
       <span data-testid="all-permissions-check">{`all:${hasAllPermissions(["user:read", "user:manage"])}`}</span>
-      <button data-testid="login-btn" onClick={() => login({ id: 2, username: "newuser", role: "admin", permissions: ["user:read"] } as any)}>Login</button>
-      <button data-testid="logout-btn" onClick={logout}>Logout</button>
+      <button
+        data-testid="login-btn"
+        onClick={() =>
+          login({
+            id: 2,
+            username: "newuser",
+            role: "admin",
+            permissions: ["user:read"],
+          } as any)
+        }
+      >
+        Login
+      </button>
+      <button data-testid="logout-btn" onClick={logout}>
+        Logout
+      </button>
     </div>
   );
 };
@@ -32,13 +59,18 @@ describe("AuthContext", () => {
 
   it("produces unauthenticated state on /auth/me 401 response", async () => {
     server.use(
-      http.get("/api/v1/auth/me", () => new HttpResponse(null, { status: 401 }))
+      http.get(
+        "/api/v1/auth/me",
+        () => new HttpResponse(null, { status: 401 }),
+      ),
     );
 
     renderWithApp(<ProbeComponent />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("user-info")).toHaveTextContent("null:false:false");
+      expect(screen.getByTestId("user-info")).toHaveTextContent(
+        "null:false:false",
+      );
     });
     expect(screen.getByText("schedule:false")).toBeInTheDocument();
   });
@@ -50,14 +82,19 @@ describe("AuthContext", () => {
     fireEvent.click(screen.getByTestId("login-btn"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("user-info")).toHaveTextContent("newuser:true:true");
+      expect(screen.getByTestId("user-info")).toHaveTextContent(
+        "newuser:true:true",
+      );
     });
     expect(screen.getByText("schedule:false")).toBeInTheDocument();
   });
 
   it("logout() calls the API and clears the user even when the logout request fails", async () => {
     server.use(
-      http.post("/api/v1/auth/logout", () => new HttpResponse(null, { status: 500 }))
+      http.post(
+        "/api/v1/auth/logout",
+        () => new HttpResponse(null, { status: 500 }),
+      ),
     );
 
     renderWithApp(<ProbeComponent />);
@@ -66,7 +103,9 @@ describe("AuthContext", () => {
     fireEvent.click(screen.getByTestId("logout-btn"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("user-info")).toHaveTextContent("null:false:false");
+      expect(screen.getByTestId("user-info")).toHaveTextContent(
+        "null:false:false",
+      );
     });
   });
 });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
@@ -663,7 +663,7 @@ export default function ProductsPage() {
         </Space>
       </div>
 
-      <motion.div
+      <m.div
         variants={stagger.container}
         initial="hidden"
         animate="show"
@@ -676,11 +676,7 @@ export default function ProductsPage() {
               size="middle"
               style={{ width: "100%" }}
             >
-              <motion.div
-                id="products"
-                variants={stagger.item}
-                className="fg-card"
-              >
+              <m.div id="products" variants={stagger.item} className="fg-card">
                 <div className="fg-card-header">
                   <span
                     style={{
@@ -853,9 +849,9 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
 
-              <motion.div
+              <m.div
                 id="crawl-logs"
                 variants={stagger.item}
                 className="fg-card"
@@ -923,12 +919,12 @@ export default function ProductsPage() {
                     No crawl records
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             </Space>
           </Col>
 
           <Col xs={24} xl={8} style={{ display: "flex" }}>
-            <motion.div
+            <m.div
               variants={stagger.item}
               className="fg-card"
               style={{ flex: 1, minHeight: 520 }}
@@ -977,10 +973,10 @@ export default function ProductsPage() {
                   Schedule controls when to crawl products automatically.
                 </p>
               </div>
-            </motion.div>
+            </m.div>
           </Col>
         </Row>
-      </motion.div>
+      </m.div>
 
       <ProductFormModal
         key={editModal.record?.id ?? "new"}

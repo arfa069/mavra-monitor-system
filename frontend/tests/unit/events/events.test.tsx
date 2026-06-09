@@ -1,6 +1,14 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi, beforeAll, afterAll, beforeEach } from "vitest";
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "vitest";
 import EventCenterPage from "@/features/events/EventCenterPage";
 import { eventsApi } from "@/features/events/api/events";
 import { server } from "../mocks/server";
@@ -18,7 +26,7 @@ class EventSourceStub {
 
   emit(payload: unknown) {
     this.onmessage?.(
-      new MessageEvent("message", { data: JSON.stringify(payload) })
+      new MessageEvent("message", { data: JSON.stringify(payload) }),
     );
   }
 
@@ -48,7 +56,7 @@ describe("EventCenterPage (Events feature)", () => {
       event_type: "",
       category: null,
       severity: undefined,
-      keyword: "test"
+      keyword: "test",
     } as any);
 
     expect(url).toBe("/api/v1/events/stream?kind=system&keyword=test");
@@ -65,17 +73,17 @@ describe("EventCenterPage (Events feature)", () => {
         source: "scheduler",
         message: "Scheduler started",
         payload: {},
-        created_at: "2026-06-08T00:00:00Z"
-      }
+        created_at: "2026-06-08T00:00:00Z",
+      },
     ];
 
     server.use(
       http.get("/api/v1/events", () => {
         return HttpResponse.json({
           items: mockEvents,
-          total: 1
+          total: 1,
         });
-      })
+      }),
     );
 
     const { unmount } = renderWithApp(<EventCenterPage />);
@@ -97,7 +105,7 @@ describe("EventCenterPage (Events feature)", () => {
       source: "web",
       message: "User logged in",
       payload: {},
-      created_at: "2026-06-08T00:01:00Z"
+      created_at: "2026-06-08T00:01:00Z",
     };
 
     sseInstance.emit(newEvent);

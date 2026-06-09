@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import { useMemo, type ReactNode } from "react";
 import type { MotionSpeed } from "@/shared/types/motion";
 
@@ -63,7 +63,7 @@ export default function PageTransition({
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div
+      <m.div
         key={pathname}
         data-page-transition={pathname}
         data-motion-speed={speed}
@@ -81,7 +81,7 @@ export default function PageTransition({
         }}
       >
         {children}
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }

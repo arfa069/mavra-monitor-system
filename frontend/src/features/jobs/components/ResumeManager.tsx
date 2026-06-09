@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   App,
   Button,
@@ -20,12 +20,6 @@ import {
   FilePdfOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-// Vite transforms this at build time — resolves to the worker file URL
-const _pdfWorkerUrl = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
-
 import {
   useCreateResume,
   useDeleteResume,
@@ -86,6 +80,10 @@ export default function ResumeManager({
   const handlePdfUpload = async (file: File) => {
     setPdfLoading(true);
     try {
+      const _pdfWorkerUrl = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url,
+      ).toString();
       const pdfjs = await import("pdfjs-dist");
       pdfjs.GlobalWorkerOptions.workerSrc = _pdfWorkerUrl;
 
@@ -278,14 +276,14 @@ export default function ResumeManager({
       ) : !resumes?.length ? (
         <Empty description="No resumes, please upload one first" />
       ) : (
-        <motion.div
+        <m.div
           variants={stagger.container}
           initial="hidden"
           animate="show"
           style={{ display: "grid", gap: 12 }}
         >
           {resumes.map((resume) => (
-            <motion.div key={resume.id} variants={stagger.item}>
+            <m.div key={resume.id} variants={stagger.item}>
               <Card
                 size="small"
                 title={resume.name}
@@ -332,9 +330,9 @@ export default function ResumeManager({
                   {new Date(resume.created_at).toLocaleString("en-US")}
                 </Typography.Text>
               </Card>
-            </motion.div>
+            </m.div>
           ))}
-        </motion.div>
+        </m.div>
       )}
 
       <Modal

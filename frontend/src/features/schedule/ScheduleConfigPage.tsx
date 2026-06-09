@@ -17,7 +17,7 @@ import {
   Table,
   Tag,
 } from "antd";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import type { ColumnsType } from "antd/es/table";
 import { configApi } from "@/features/settings";
@@ -323,9 +323,9 @@ export default function ScheduleConfigPage() {
   ];
 
   return (
-    <motion.div variants={stagger.container} initial="hidden" animate="show">
+    <m.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header — mint color block (DESIGN.md: Mint — Config) */}
-      <motion.div variants={stagger.item} className="page-header bg-mint">
+      <m.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Automation</p>
@@ -336,10 +336,10 @@ export default function ScheduleConfigPage() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {isReadOnly && (
-        <motion.div variants={stagger.item}>
+        <m.div variants={stagger.item}>
           <Alert
             type="warning"
             message="Read-only Mode"
@@ -347,11 +347,11 @@ export default function ScheduleConfigPage() {
             style={{ marginBottom: 24 }}
             showIcon
           />
-        </motion.div>
+        </m.div>
       )}
 
       {isError && !isLoading && (
-        <motion.div variants={stagger.item}>
+        <m.div variants={stagger.item}>
           <Alert
             type="error"
             message="Load Failed"
@@ -367,11 +367,11 @@ export default function ScheduleConfigPage() {
             }
             style={{ marginBottom: 24 }}
           />
-        </motion.div>
+        </m.div>
       )}
 
       {/* Cron config card */}
-      <motion.div
+      <m.div
         variants={stagger.item}
         className="fg-card"
         style={{ marginTop: 24 }}
@@ -446,10 +446,10 @@ export default function ScheduleConfigPage() {
             locale={{ emptyText: "No job search configs" }}
           />
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Data & notification card */}
-      <motion.div
+      <m.div
         variants={stagger.item}
         className="fg-card"
         style={{ marginTop: 16 }}
@@ -528,7 +528,7 @@ export default function ScheduleConfigPage() {
             </Space>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       <Modal
         title="Add Product Crawl Timer"
@@ -614,6 +614,6 @@ export default function ScheduleConfigPage() {
         onClose={() => generator.closeGenerator()}
         onApply={handleApplyCron}
       />
-    </motion.div>
+    </m.div>
   );
 }

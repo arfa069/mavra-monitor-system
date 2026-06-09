@@ -10,8 +10,22 @@ describe("JobConfigForm", () => {
   const onCreateProfile = vi.fn();
 
   const mockProfiles = [
-    { id: 1, profile_key: "default", status: "ready", platform: "boss", created_at: "", updated_at: "" },
-    { id: 2, profile_key: "test-profile", status: "disabled", platform: "boss", created_at: "", updated_at: "" }
+    {
+      id: 1,
+      profile_key: "default",
+      status: "ready",
+      platform: "boss",
+      created_at: "",
+      updated_at: "",
+    },
+    {
+      id: 2,
+      profile_key: "test-profile",
+      status: "disabled",
+      platform: "boss",
+      created_at: "",
+      updated_at: "",
+    },
   ];
 
   beforeEach(() => {
@@ -26,13 +40,15 @@ describe("JobConfigForm", () => {
         onCancel={onCancel}
         onSubmit={onSubmit}
         onCreateProfile={onCreateProfile}
-      />
+      />,
     );
 
     const okBtn = screen.getByRole("button", { name: /ok/i });
     fireEvent.click(okBtn);
 
-    expect(await screen.findByText("Please enter config name")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please enter config name"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Please enter URL")).toBeInTheDocument();
 
     const user = userEvent.setup();
@@ -50,12 +66,15 @@ describe("JobConfigForm", () => {
         onCancel={onCancel}
         onSubmit={onSubmit}
         onCreateProfile={onCreateProfile}
-      />
+      />,
     );
 
     const user = userEvent.setup();
     const urlInput = screen.getByLabelText("Boss Search URL");
-    await user.type(urlInput, "https://www.zhipin.com/web/geek/job?query=golang");
+    await user.type(
+      urlInput,
+      "https://www.zhipin.com/web/geek/job?query=golang",
+    );
 
     await waitFor(() => {
       expect(screen.getByLabelText("Keyword")).toHaveValue("golang");
@@ -77,7 +96,7 @@ describe("JobConfigForm", () => {
       cron_expression: "0 12 * * *",
       cron_timezone: "Asia/Shanghai",
       created_at: "",
-      updated_at: ""
+      updated_at: "",
     };
 
     renderWithApp(
@@ -88,11 +107,15 @@ describe("JobConfigForm", () => {
         onCancel={onCancel}
         onSubmit={onSubmit}
         onCreateProfile={onCreateProfile}
-      />
+      />,
     );
 
-    expect(await screen.findByLabelText("Config Name")).toHaveValue("Existing Search");
-    expect(screen.getByLabelText("Boss Search URL")).toHaveValue("https://www.zhipin.com/web/geek/job?query=react");
+    expect(await screen.findByLabelText("Config Name")).toHaveValue(
+      "Existing Search",
+    );
+    expect(screen.getByLabelText("Boss Search URL")).toHaveValue(
+      "https://www.zhipin.com/web/geek/job?query=react",
+    );
     expect(screen.getByLabelText("Keyword")).toHaveValue("react");
     expect(screen.getByLabelText("Enable Config")).toBeChecked();
     expect(screen.getByLabelText("New Job Notification")).not.toBeChecked();
@@ -107,14 +130,17 @@ describe("JobConfigForm", () => {
         onCancel={onCancel}
         onSubmit={onSubmit}
         onCreateProfile={onCreateProfile}
-      />
+      />,
     );
 
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Config Name"), "New Search");
-    await user.type(screen.getByLabelText("Boss Search URL"), "https://www.zhipin.com/web/geek/job?query=rust");
-    
+    await user.type(
+      screen.getByLabelText("Boss Search URL"),
+      "https://www.zhipin.com/web/geek/job?query=rust",
+    );
+
     // Choose profile (already defaults to 'default')
     const okBtn = screen.getByRole("button", { name: /ok/i });
     await user.click(okBtn);
@@ -126,8 +152,8 @@ describe("JobConfigForm", () => {
           platform: "boss",
           profile_key: "default",
           url: "https://www.zhipin.com/web/geek/job?query=rust",
-          keyword: "rust"
-        })
+          keyword: "rust",
+        }),
       );
     });
   });
@@ -141,7 +167,7 @@ describe("JobConfigForm", () => {
         onCancel={onCancel}
         onSubmit={onSubmit}
         onCreateProfile={onCreateProfile}
-      />
+      />,
     );
 
     const user = userEvent.setup();
@@ -154,7 +180,10 @@ describe("JobConfigForm", () => {
 
     const modalTitle = screen.getByText("New Profile");
     const newProfileModal = modalTitle.closest("[role='dialog']")!;
-    const modalOkBtn = within(newProfileModal as HTMLElement).getByRole("button", { name: /ok/i });
+    const modalOkBtn = within(newProfileModal as HTMLElement).getByRole(
+      "button",
+      { name: /ok/i },
+    );
     await user.click(modalOkBtn);
 
     await waitFor(() => {

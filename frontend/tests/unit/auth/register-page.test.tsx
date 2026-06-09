@@ -14,7 +14,7 @@ vi.mock("react-router-dom", async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    Link: ({ children, to }: any) => <a href={to}>{children}</a>
+    Link: ({ children, to }: any) => <a href={to}>{children}</a>,
   };
 });
 
@@ -25,13 +25,19 @@ describe("RegisterPage", () => {
     const submitBtn = screen.getByRole("button", { name: /sign up/i });
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText("Please enter username")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please enter username"),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Please enter email")).toBeInTheDocument();
-    expect(await screen.findByText("Please enter password")).toBeInTheDocument();
-    
+    expect(
+      await screen.findByText("Please enter password"),
+    ).toBeInTheDocument();
+
     // Custom validator and required validator might both trigger, causing duplicates
     await waitFor(async () => {
-      const confirmErrors = await screen.findAllByText("Please confirm password");
+      const confirmErrors = await screen.findAllByText(
+        "Please confirm password",
+      );
       expect(confirmErrors.length).toBeGreaterThan(0);
     });
   });
@@ -48,7 +54,9 @@ describe("RegisterPage", () => {
     const submitBtn = screen.getByRole("button", { name: /sign up/i });
     await user.click(submitBtn);
 
-    expect(await screen.findByText("Passwords do not match")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Passwords do not match"),
+    ).toBeInTheDocument();
   });
 
   it("registers successfully and navigates to login page", async () => {
@@ -56,8 +64,14 @@ describe("RegisterPage", () => {
     server.use(
       http.post("/api/v1/auth/register", async ({ request }) => {
         requestPayload = await request.json();
-        return HttpResponse.json({ id: 2, username: "newuser", email: "new@example.com", role: "user", permissions: [] });
-      })
+        return HttpResponse.json({
+          id: 2,
+          username: "newuser",
+          email: "new@example.com",
+          role: "user",
+          permissions: [],
+        });
+      }),
     );
 
     renderWithApp(<RegisterPage />);
@@ -76,7 +90,7 @@ describe("RegisterPage", () => {
         username: "newuser",
         email: "new@example.com",
         password: "123456",
-        password_confirm: "123456"
+        password_confirm: "123456",
       });
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
@@ -87,16 +101,22 @@ describe("RegisterPage", () => {
     server.use(
       http.post("/api/v1/auth/register", () => {
         return new HttpResponse(null, { status: 400 });
-      })
+      }),
     );
 
     renderWithApp(<RegisterPage />);
 
     const user = userEvent.setup();
-    const usernameInput = screen.getByPlaceholderText("Username") as HTMLInputElement;
+    const usernameInput = screen.getByPlaceholderText(
+      "Username",
+    ) as HTMLInputElement;
     const emailInput = screen.getByPlaceholderText("Email") as HTMLInputElement;
-    const passwordInput = screen.getByPlaceholderText("Password") as HTMLInputElement;
-    const confirmInput = screen.getByPlaceholderText("Confirm Password") as HTMLInputElement;
+    const passwordInput = screen.getByPlaceholderText(
+      "Password",
+    ) as HTMLInputElement;
+    const confirmInput = screen.getByPlaceholderText(
+      "Confirm Password",
+    ) as HTMLInputElement;
 
     await user.type(usernameInput, "newuser");
     await user.type(emailInput, "new@example.com");

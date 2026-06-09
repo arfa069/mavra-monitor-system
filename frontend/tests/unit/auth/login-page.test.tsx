@@ -15,8 +15,8 @@ vi.mock("react-router-dom", async () => {
     ...actual,
     useNavigate: () => mockNavigate,
     useLocation: () => ({
-      state: { from: { pathname: "/settings" } }
-    })
+      state: { from: { pathname: "/settings" } },
+    }),
   };
 });
 
@@ -27,8 +27,12 @@ describe("LoginPage", () => {
     const submitBtn = screen.getByRole("button", { name: /sign in/i });
     fireEvent.click(submitBtn);
 
-    expect(await screen.findByText("Please enter username or email")).toBeInTheDocument();
-    expect(await screen.findByText("Please enter password")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please enter username or email"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please enter password"),
+    ).toBeInTheDocument();
   });
 
   it("succeeds on correct credentials, redirects, and sets no localStorage auth", async () => {
@@ -37,20 +41,26 @@ describe("LoginPage", () => {
       http.post("/api/v1/auth/login", async ({ request }) => {
         requestPayload = await request.json();
         return HttpResponse.json(testUser);
-      })
+      }),
     );
 
     renderWithApp(<LoginPage />);
 
     const user = userEvent.setup();
-    await user.type(screen.getByPlaceholderText(/user@example.com/i), "default");
+    await user.type(
+      screen.getByPlaceholderText(/user@example.com/i),
+      "default",
+    );
     await user.type(screen.getByPlaceholderText(/••••••••/i), "123456");
 
     const submitBtn = screen.getByRole("button", { name: /sign in/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
-      expect(requestPayload).toEqual({ username: "default", password: "123456" });
+      expect(requestPayload).toEqual({
+        username: "default",
+        password: "123456",
+      });
       expect(mockNavigate).toHaveBeenCalledWith("/settings", { replace: true });
     });
 
@@ -62,14 +72,18 @@ describe("LoginPage", () => {
     server.use(
       http.post("/api/v1/auth/login", () => {
         return new HttpResponse(null, { status: 401 });
-      })
+      }),
     );
 
     renderWithApp(<LoginPage />);
 
     const user = userEvent.setup();
-    const usernameInput = screen.getByPlaceholderText(/user@example.com/i) as HTMLInputElement;
-    const passwordInput = screen.getByPlaceholderText(/••••••••/i) as HTMLInputElement;
+    const usernameInput = screen.getByPlaceholderText(
+      /user@example.com/i,
+    ) as HTMLInputElement;
+    const passwordInput = screen.getByPlaceholderText(
+      /••••••••/i,
+    ) as HTMLInputElement;
 
     await user.type(usernameInput, "default");
     await user.type(passwordInput, "wrongpassword");

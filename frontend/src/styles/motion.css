@@ -63,11 +63,21 @@
 }
 
 /* Stagger delays for list items */
-.stagger-1 { animation-delay: 40ms; }
-.stagger-2 { animation-delay: 80ms; }
-.stagger-3 { animation-delay: 120ms; }
-.stagger-4 { animation-delay: 160ms; }
-.stagger-5 { animation-delay: 200ms; }
+.stagger-1 {
+  animation-delay: 40ms;
+}
+.stagger-2 {
+  animation-delay: 80ms;
+}
+.stagger-3 {
+  animation-delay: 120ms;
+}
+.stagger-4 {
+  animation-delay: 160ms;
+}
+.stagger-5 {
+  animation-delay: 200ms;
+}
 
 /* ---- Data Update Flash ---- */
 .animate-data-flash {
@@ -107,19 +117,6 @@
     transform var(--duration-short) var(--ease-brutalist),
     box-shadow var(--duration-short) var(--ease-brutalist),
     background-color var(--duration-short) var(--ease-brutalist);
-}
-
-/* ---- Neo-Brutalist Zine Interactive Classes ---- */
-.zine-card-hover {
-  composes: card-transition;
-}
-.zine-card-hover:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: var(--shadow-offset-lg);
-}
-.zine-card-hover:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0px 0px 0px;
 }
 
 /* ---- Reduced Motion ---- */

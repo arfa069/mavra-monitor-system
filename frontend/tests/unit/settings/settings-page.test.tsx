@@ -11,7 +11,9 @@ describe("SettingsPage", () => {
     renderWithApp(<SettingsPage />);
 
     // Renders with default MSW user values (defined in handlers.ts)
-    expect(await screen.findByLabelText("Data Retention (Days)")).toHaveValue("365");
+    expect(await screen.findByLabelText("Data Retention (Days)")).toHaveValue(
+      "365",
+    );
     expect(screen.getByLabelText("飞书 Webhook URL")).toHaveValue("");
   });
 
@@ -24,9 +26,9 @@ describe("SettingsPage", () => {
           id: 1,
           username: "default",
           feishu_webhook_url: "https://hook.feishu.cn/123",
-          data_retention_days: 90
+          data_retention_days: 90,
         });
-      })
+      }),
     );
 
     const { queryClient } = renderWithApp(<SettingsPage />);
@@ -47,7 +49,7 @@ describe("SettingsPage", () => {
     await waitFor(() => {
       expect(patchPayload).toEqual({
         feishu_webhook_url: "https://hook.feishu.cn/123",
-        data_retention_days: 90
+        data_retention_days: 90,
       });
       expect(screen.getByText("Settings saved")).toBeInTheDocument();
     });
@@ -58,9 +60,9 @@ describe("SettingsPage", () => {
       http.patch("/api/v1/config", () => {
         return HttpResponse.json(
           { detail: "Validation failed: URL is invalid" },
-          { status: 422 }
+          { status: 422 },
         );
-      })
+      }),
     );
 
     renderWithApp(<SettingsPage />);
@@ -69,7 +71,9 @@ describe("SettingsPage", () => {
     const saveBtn = await screen.findByRole("button", { name: /save/i });
     await user.click(saveBtn);
 
-    expect(await screen.findByText("Validation failed: URL is invalid")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Validation failed: URL is invalid"),
+    ).toBeInTheDocument();
   });
 
   it("sets motion speed and updates localStorage", async () => {
@@ -80,7 +84,9 @@ describe("SettingsPage", () => {
     fireEvent.click(fastSegment);
 
     await waitFor(() => {
-      expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe("fast");
+      expect(localStorage.getItem("mavra-monitor-system-motion-speed")).toBe(
+        "fast",
+      );
     });
   });
 });

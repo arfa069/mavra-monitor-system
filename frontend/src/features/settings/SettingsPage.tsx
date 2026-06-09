@@ -6,7 +6,7 @@ import { useThemeContext } from "@/shared/components/ThemeProvider";
 import { configApi } from "./api/config";
 import { applyUserConfig } from "./userConfigState";
 import type { MotionSpeed } from "./types";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 export default function SettingsPage() {
@@ -36,9 +36,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <motion.div variants={stagger.container} initial="hidden" animate="show">
+    <m.div variants={stagger.container} initial="hidden" animate="show">
       {/* Page header */}
-      <motion.div variants={stagger.item} className="page-header bg-mint">
+      <m.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">Preferences</p>
@@ -48,12 +48,9 @@ export default function SettingsPage() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.div
-        variants={stagger.item}
-        style={{ maxWidth: 560, marginTop: 24 }}
-      >
+      <m.div variants={stagger.item} style={{ maxWidth: 560, marginTop: 24 }}>
         <div className="fg-card">
           <div className="fg-card-header">
             <span className="fg-card-header-title">Personal Settings</span>
@@ -114,7 +111,7 @@ export default function SettingsPage() {
             </Form>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

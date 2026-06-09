@@ -14,11 +14,7 @@ describe("ProductFormModal", () => {
 
   it("detects platforms automatically from typed URLs", async () => {
     renderWithApp(
-      <ProductFormModal
-        open
-        onCancel={onCancel}
-        onSubmit={onSubmit}
-      />
+      <ProductFormModal open onCancel={onCancel} onSubmit={onSubmit} />,
     );
 
     const user = userEvent.setup();
@@ -47,23 +43,21 @@ describe("ProductFormModal", () => {
 
   it("requires platform and product URL and validates URL format", async () => {
     renderWithApp(
-      <ProductFormModal
-        open
-        onCancel={onCancel}
-        onSubmit={onSubmit}
-      />
+      <ProductFormModal open onCancel={onCancel} onSubmit={onSubmit} />,
     );
 
     const okBtn = screen.getByRole("button", { name: /ok/i });
     fireEvent.click(okBtn);
 
-    expect(await screen.findByText("Please select platform")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please select platform"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Please enter product URL")).toBeInTheDocument();
 
     const user = userEvent.setup();
     const urlInput = screen.getByLabelText("Product URL");
     await user.type(urlInput, "not-a-url");
-    
+
     expect(await screen.findByText("Invalid URL format")).toBeInTheDocument();
   });
 
@@ -77,13 +71,13 @@ describe("ProductFormModal", () => {
       price: 100,
       lowest_price: 90,
       created_at: "2026-06-08T00:00:00Z",
-      updated_at: "2026-06-08T00:00:00Z"
+      updated_at: "2026-06-08T00:00:00Z",
     };
 
     const mockAlert = {
       id: 99,
       active: true,
-      threshold_percent: 10
+      threshold_percent: 10,
     };
 
     renderWithApp(
@@ -93,11 +87,13 @@ describe("ProductFormModal", () => {
         existingAlert={mockAlert}
         onCancel={onCancel}
         onSubmit={onSubmit}
-      />
+      />,
     );
 
     expect(await screen.findByText("JD")).toBeInTheDocument();
-    expect(screen.getByLabelText("Product URL")).toHaveValue("https://item.jd.com/123.html");
+    expect(screen.getByLabelText("Product URL")).toHaveValue(
+      "https://item.jd.com/123.html",
+    );
     expect(screen.getByLabelText("Title")).toHaveValue("Test JD Item");
     expect(screen.getByLabelText("Active")).toBeChecked();
     expect(screen.getByLabelText("Enable Alert")).toBeChecked();
@@ -106,11 +102,7 @@ describe("ProductFormModal", () => {
 
   it("submits alert enable/disable payloads correctly", async () => {
     renderWithApp(
-      <ProductFormModal
-        open
-        onCancel={onCancel}
-        onSubmit={onSubmit}
-      />
+      <ProductFormModal open onCancel={onCancel} onSubmit={onSubmit} />,
     );
 
     const user = userEvent.setup();
@@ -140,19 +132,15 @@ describe("ProductFormModal", () => {
         alert: {
           existingId: null,
           enabled: true,
-          threshold: 12
-        }
+          threshold: 12,
+        },
       });
     });
   });
 
   it("handles cancel button clicks", async () => {
     renderWithApp(
-      <ProductFormModal
-        open
-        onCancel={onCancel}
-        onSubmit={onSubmit}
-      />
+      <ProductFormModal open onCancel={onCancel} onSubmit={onSubmit} />,
     );
 
     const cancelBtn = await screen.findByRole("button", { name: /cancel/i });

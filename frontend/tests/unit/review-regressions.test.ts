@@ -22,7 +22,7 @@ describe("review regressions", () => {
       role: "admin" as const,
       permissions: ["config:read" as const],
       feishu_webhook_url: "old",
-      data_retention_days: 365
+      data_retention_days: 365,
     };
 
     expect(
@@ -32,12 +32,12 @@ describe("review regressions", () => {
         feishu_webhook_url: "new",
         data_retention_days: 180,
         created_at: null,
-        updated_at: null
-      })
+        updated_at: null,
+      }),
     ).toEqual({
       ...user,
       feishu_webhook_url: "new",
-      data_retention_days: 180
+      data_retention_days: 180,
     });
   });
 

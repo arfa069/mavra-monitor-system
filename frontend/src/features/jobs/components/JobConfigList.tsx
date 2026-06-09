@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   App,
   Button,
@@ -113,7 +113,7 @@ export default function JobConfigList({
       ) : !configs?.length ? (
         <Empty description="No Configs" />
       ) : (
-        <motion.div
+        <m.div
           variants={stagger.container}
           initial="hidden"
           animate="show"
@@ -121,7 +121,7 @@ export default function JobConfigList({
         >
           <Space orientation="vertical" style={{ width: "100%" }}>
             {configs.map((config) => (
-              <motion.div key={config.id} variants={stagger.item}>
+              <m.div key={config.id} variants={stagger.item}>
                 <Card
                   size="small"
                   title={config.name}
@@ -215,10 +215,10 @@ export default function JobConfigList({
                     </Space>
                   </div>
                 </Card>
-              </motion.div>
+              </m.div>
             ))}
           </Space>
-        </motion.div>
+        </m.div>
       )}
 
       <JobConfigForm

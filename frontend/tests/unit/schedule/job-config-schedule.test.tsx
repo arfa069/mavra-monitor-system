@@ -10,15 +10,15 @@ vi.mock("@/features/jobs", async (importOriginal) => {
     jobsApi: {
       getConfigs: vi.fn(),
       getJobConfigSchedules: vi.fn(),
-      updateConfigCron: vi.fn()
-    }
+      updateConfigCron: vi.fn(),
+    },
   };
 });
 
 describe("useJobConfigSchedule Hook", () => {
   const mockMessage = {
     error: vi.fn(),
-    success: vi.fn()
+    success: vi.fn(),
   };
 
   beforeEach(() => {
@@ -27,17 +27,26 @@ describe("useJobConfigSchedule Hook", () => {
 
   it("load() merges config rows and scheduler status by config_id", async () => {
     const mockConfigs = [
-      { id: 1, name: "JD Config", platform: "jd", cron_expression: "0 9 * * *" },
-      { id: 2, name: "Taobao Config", platform: "taobao", cron_expression: "" }
+      {
+        id: 1,
+        name: "JD Config",
+        platform: "jd",
+        cron_expression: "0 9 * * *",
+      },
+      { id: 2, name: "Taobao Config", platform: "taobao", cron_expression: "" },
     ];
     const mockSchedules = {
       configs: [
-        { config_id: 1, active: true, next_run: "2026-06-08T09:00:00Z" }
-      ]
+        { config_id: 1, active: true, next_run: "2026-06-08T09:00:00Z" },
+      ],
     };
 
-    vi.mocked(jobsApi.getConfigs).mockResolvedValue({ data: mockConfigs } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({ data: mockSchedules } as any);
+    vi.mocked(jobsApi.getConfigs).mockResolvedValue({
+      data: mockConfigs,
+    } as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
+      data: mockSchedules,
+    } as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
 
@@ -47,11 +56,11 @@ describe("useJobConfigSchedule Hook", () => {
 
     expect(result.current.list).toEqual(mockConfigs);
     expect(result.current.schedules).toEqual({
-      1: { config_id: 1, active: true, next_run: "2026-06-08T09:00:00Z" }
+      1: { config_id: 1, active: true, next_run: "2026-06-08T09:00:00Z" },
     });
     expect(result.current.cronInputs).toEqual({
       1: "0 9 * * *",
-      2: ""
+      2: "",
     });
   });
 
@@ -68,12 +77,21 @@ describe("useJobConfigSchedule Hook", () => {
 
   it("save sends timezone Asia/Shanghai and reloads on success", async () => {
     const mockConfigs = [
-      { id: 1, name: "JD Config", platform: "jd", cron_expression: "0 9 * * *" }
+      {
+        id: 1,
+        name: "JD Config",
+        platform: "jd",
+        cron_expression: "0 9 * * *",
+      },
     ];
     const mockSchedules = { configs: [] };
 
-    vi.mocked(jobsApi.getConfigs).mockResolvedValue({ data: mockConfigs } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({ data: mockSchedules } as any);
+    vi.mocked(jobsApi.getConfigs).mockResolvedValue({
+      data: mockConfigs,
+    } as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
+      data: mockSchedules,
+    } as any);
     vi.mocked(jobsApi.updateConfigCron).mockResolvedValue({} as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
@@ -84,7 +102,7 @@ describe("useJobConfigSchedule Hook", () => {
 
     expect(jobsApi.updateConfigCron).toHaveBeenCalledWith(1, {
       cron_expression: "0 9 * * *",
-      cron_timezone: "Asia/Shanghai"
+      cron_timezone: "Asia/Shanghai",
     });
     expect(mockMessage.success).toHaveBeenCalledWith("Saved");
     expect(jobsApi.getConfigs).toHaveBeenCalled(); // verified reload
@@ -127,7 +145,9 @@ describe("useJobConfigSchedule Hook", () => {
   it("accepts null/blank cron expression to disable the schedule", async () => {
     vi.mocked(jobsApi.updateConfigCron).mockResolvedValue({} as any);
     vi.mocked(jobsApi.getConfigs).mockResolvedValue({ data: [] } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({ data: { configs: [] } } as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
+      data: { configs: [] },
+    } as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
 
@@ -137,7 +157,7 @@ describe("useJobConfigSchedule Hook", () => {
 
     expect(jobsApi.updateConfigCron).toHaveBeenCalledWith(1, {
       cron_expression: null,
-      cron_timezone: "Asia/Shanghai"
+      cron_timezone: "Asia/Shanghai",
     });
     expect(mockMessage.success).toHaveBeenCalledWith("Saved");
   });

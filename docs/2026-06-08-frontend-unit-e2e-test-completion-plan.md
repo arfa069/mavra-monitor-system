@@ -36,15 +36,15 @@ The default unit and E2E commands must satisfy all of these constraints:
 
 ## Target Test Matrix
 
-| Layer | Required coverage |
-| --- | --- |
-| Pure unit | cron validation, event deduplication, user-config merge, date/error formatting |
-| Shared infrastructure | Axios CSRF/refresh behavior, AuthContext restore/login/logout/permissions, theme and motion persistence |
-| Hooks | schedule load/save, dashboard/event/smart-home SSE parsing and cleanup, React Query mutation invalidation |
-| Components | auth forms, settings, schedule permissions, product/job forms, profile management callbacks, admin permissions |
-| E2E auth/navigation | unauthenticated redirect, login success/failure, Cookie-first state, permission redirects, main navigation |
-| E2E features | settings persistence, schedule validation, event deduplication, products/jobs rendering, admin and smart-home read-only states |
-| Safety | no unmocked API calls and zero dangerous endpoint requests |
+| Layer                 | Required coverage                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Pure unit             | cron validation, event deduplication, user-config merge, date/error formatting                                                 |
+| Shared infrastructure | Axios CSRF/refresh behavior, AuthContext restore/login/logout/permissions, theme and motion persistence                        |
+| Hooks                 | schedule load/save, dashboard/event/smart-home SSE parsing and cleanup, React Query mutation invalidation                      |
+| Components            | auth forms, settings, schedule permissions, product/job forms, profile management callbacks, admin permissions                 |
+| E2E auth/navigation   | unauthenticated redirect, login success/failure, Cookie-first state, permission redirects, main navigation                     |
+| E2E features          | settings persistence, schedule validation, event deduplication, products/jobs rendering, admin and smart-home read-only states |
+| Safety                | no unmocked API calls and zero dangerous endpoint requests                                                                     |
 
 ## File Structure
 
@@ -106,6 +106,7 @@ The default unit and E2E commands must satisfy all of these constraints:
 ### Task 1: Install and Configure the Unit-Test Foundation
 
 **Files:**
+
 - Modify: `frontend/package.json`
 - Modify: `frontend/package-lock.json`
 - Create: `frontend/vitest.config.ts`
@@ -171,11 +172,11 @@ export default mergeConfig(
           lines: 65,
           statements: 65,
           functions: 60,
-          branches: 55
-        }
-      }
-    }
-  })
+          branches: 55,
+        },
+      },
+    },
+  }),
 );
 ```
 
@@ -227,8 +228,8 @@ Object.defineProperty(window, "matchMedia", {
     removeListener: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn()
-  }))
+    dispatchEvent: vi.fn(),
+  })),
 });
 
 class ResizeObserverStub {
@@ -263,15 +264,15 @@ export const testUser = {
     "product:write",
     "job:read",
     "job:write",
-    "smart_home:read"
-  ]
+    "smart_home:read",
+  ],
 };
 
 export const handlers = [
   http.get("/api/v1/auth/me", () => HttpResponse.json(testUser)),
   http.post("/api/v1/auth/logout", () =>
-    HttpResponse.json({ message: "logged out" })
-  )
+    HttpResponse.json({ message: "logged out" }),
+  ),
 ];
 ```
 
@@ -301,20 +302,23 @@ export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
-      mutations: { retry: false }
-    }
+      mutations: { retry: false },
+    },
   });
 }
 
 export function renderWithApp(
   ui: ReactElement,
-  options: { route?: string; withAuth?: boolean } = {}
+  options: { route?: string; withAuth?: boolean } = {},
 ) {
   const queryClient = createTestQueryClient();
   const Wrapper = ({ children }: PropsWithChildren) => {
-    const content = options.withAuth === false ? children : (
-      <AuthProvider>{children}</AuthProvider>
-    );
+    const content =
+      options.withAuth === false ? (
+        children
+      ) : (
+        <AuthProvider>{children}</AuthProvider>
+      );
 
     return (
       <MemoryRouter initialEntries={[options.route ?? "/"]}>
@@ -362,7 +366,7 @@ describe("review regressions", () => {
       role: "admin" as const,
       permissions: ["config:read" as const],
       feishu_webhook_url: "old",
-      data_retention_days: 365
+      data_retention_days: 365,
     };
 
     expect(
@@ -372,12 +376,12 @@ describe("review regressions", () => {
         feishu_webhook_url: "new",
         data_retention_days: 180,
         created_at: null,
-        updated_at: null
-      })
+        updated_at: null,
+      }),
     ).toEqual({
       ...user,
       feishu_webhook_url: "new",
-      data_retention_days: 180
+      data_retention_days: 180,
     });
   });
 
@@ -411,6 +415,7 @@ git commit -m "test(frontend): establish vitest test foundation"
 ### Task 2: Cover Shared API, Authentication, and Theme Infrastructure
 
 **Files:**
+
 - Create: `frontend/tests/unit/shared/api-client.test.ts`
 - Create: `frontend/tests/unit/shared/auth-context.test.tsx`
 - Create: `frontend/tests/unit/shared/theme-provider.test.tsx`
@@ -430,13 +435,13 @@ import { server } from "../mocks/server";
 describe("shared API client", () => {
   it("formats string and validation-list errors", () => {
     expect(
-      formatApiError({ response: { data: { detail: "denied" } } }, "fallback")
+      formatApiError({ response: { data: { detail: "denied" } } }, "fallback"),
     ).toBe("denied");
     expect(
       formatApiError(
         { response: { data: { detail: [{ msg: "first" }, "second"] } } },
-        "fallback"
-      )
+        "fallback",
+      ),
     ).toBe("first; second");
   });
 
@@ -446,7 +451,7 @@ describe("shared API client", () => {
       http.patch("/api/v1/config", async ({ request }) => {
         expect(request.headers.get("X-CSRF-Token")).toBe("csrf-test");
         return HttpResponse.json({ ok: true });
-      })
+      }),
     );
 
     await api.patch("/v1/config", { data_retention_days: 30 });
@@ -500,10 +505,10 @@ server.use(
   http.post("/api/v1/auth/login", async ({ request }) => {
     expect(await request.json()).toEqual({
       username: "default",
-      password: "123456"
+      password: "123456",
     });
     return HttpResponse.json(testUser);
-  })
+  }),
 );
 ```
 
@@ -531,6 +536,7 @@ git commit -m "test(frontend): cover auth and shared infrastructure"
 ### Task 3: Cover Events, Schedule, and Settings Regressions
 
 **Files:**
+
 - Create: `frontend/tests/unit/events/events.test.tsx`
 - Create: `frontend/tests/unit/schedule/job-config-schedule.test.tsx`
 - Create: `frontend/tests/unit/settings/settings-page.test.tsx`
@@ -552,7 +558,7 @@ class EventSourceStub {
 
   emit(payload: unknown) {
     this.onmessage?.(
-      new MessageEvent("message", { data: JSON.stringify(payload) })
+      new MessageEvent("message", { data: JSON.stringify(payload) }),
     );
   }
 }
@@ -615,6 +621,7 @@ git commit -m "test(frontend): cover events schedules and settings"
 ### Task 4: Cover Product, Job, Admin, Dashboard, and Smart-Home Components
 
 **Files:**
+
 - Create: `frontend/tests/unit/products/product-form-modal.test.tsx`
 - Create: `frontend/tests/unit/jobs/job-config-form.test.tsx`
 - Create: `frontend/tests/unit/jobs/profile-management.test.tsx`
@@ -636,7 +643,7 @@ renderWithApp(
     onCancel={vi.fn()}
     onSubmit={onSubmit}
     confirmLoading={false}
-  />
+  />,
 );
 ```
 
@@ -711,6 +718,7 @@ git commit -m "test(frontend): cover feature components and realtime hooks"
 ### Task 5: Build a Mock-Only Playwright API Firewall
 
 **Files:**
+
 - Modify: `frontend/playwright.config.ts`
 - Create: `frontend/tests/e2e/fixtures/api-mock.ts`
 - Create: `frontend/tests/e2e/fixtures/app-test.ts`
@@ -734,20 +742,20 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure"
+    video: "retain-on-failure",
   },
   webServer: {
     command: "npm run dev -- --host 127.0.0.1",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000
+    timeout: 120_000,
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] }
-    }
-  ]
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
 });
 ```
 
@@ -761,7 +769,11 @@ Create `frontend/tests/e2e/fixtures/api-mock.ts`:
 import { expect, type Page, type Request, type Route } from "@playwright/test";
 
 type Json = Record<string, unknown> | unknown[];
-type MockResult = { status?: number; body?: Json; headers?: Record<string, string> };
+type MockResult = {
+  status?: number;
+  body?: Json;
+  headers?: Record<string, string>;
+};
 type Handler = (request: Request) => MockResult | Promise<MockResult>;
 
 const BLOCKED = [
@@ -771,7 +783,7 @@ const BLOCKED = [
   /^POST \/api\/v1\/crawl-profiles\/[^/]+\/test$/,
   /^POST \/api\/v1\/jobs\/match-results\/(?:analyze|analyze-async)$/,
   /^POST \/api\/v1\/smart-home\/config\/test$/,
-  /^POST \/api\/v1\/smart-home\/entities\/[^/]+\/service$/
+  /^POST \/api\/v1\/smart-home\/entities\/[^/]+\/service$/,
 ];
 
 export class ApiMock {
@@ -800,7 +812,7 @@ export class ApiMock {
         await route.fulfill({
           status: 501,
           contentType: "application/json",
-          body: JSON.stringify({ detail: `No E2E mock registered for ${key}` })
+          body: JSON.stringify({ detail: `No E2E mock registered for ${key}` }),
         });
         return;
       }
@@ -810,7 +822,7 @@ export class ApiMock {
         status: result.status ?? 200,
         contentType: "application/json",
         headers: result.headers,
-        body: JSON.stringify(result.body ?? {})
+        body: JSON.stringify(result.body ?? {}),
       });
     });
   }
@@ -849,12 +861,12 @@ export const test = base.extend<Fixtures>({
     const api = new ApiMock();
     api.use("GET", "/api/v1/auth/me", () => ({ body: adminUser }));
     api.use("POST", "/api/v1/auth/logout", () => ({
-      body: { message: "logged out" }
+      body: { message: "logged out" },
     }));
     await api.install(page);
     await use(api);
     api.assertSafe();
-  }
+  },
 });
 
 export { expect };
@@ -891,6 +903,7 @@ git commit -m "test(frontend): add mock-only playwright firewall"
 ### Task 6: Replace Stale Authentication and Navigation E2E Tests
 
 **Files:**
+
 - Create: `frontend/tests/e2e/auth.spec.ts`
 - Create: `frontend/tests/e2e/navigation.spec.ts`
 - Delete after replacements pass: `frontend/tests/e2e/basic.spec.ts`
@@ -915,7 +928,7 @@ Success handler:
 api.use("POST", "/api/v1/auth/login", async (request) => {
   expect(await request.postDataJSON()).toEqual({
     username: "default",
-    password: "123456"
+    password: "123456",
   });
   return { body: adminUser };
 });
@@ -963,6 +976,7 @@ git commit -m "test(frontend): replace stale auth and navigation e2e tests"
 ### Task 7: Add Safe Feature E2E Scenarios
 
 **Files:**
+
 - Create: `frontend/tests/e2e/settings-schedule.spec.ts`
 - Create: `frontend/tests/e2e/products-jobs.spec.ts`
 - Create: `frontend/tests/e2e/events-smart-home.spec.ts`
@@ -999,7 +1013,9 @@ Add explicit assertions:
 
 ```ts
 await expect(page.getByRole("button", { name: /crawl now/i })).toHaveCount(0);
-await expect(page.getByRole("button", { name: /test profile/i })).toHaveCount(0);
+await expect(page.getByRole("button", { name: /test profile/i })).toHaveCount(
+  0,
+);
 ```
 
 Do not click either control.
@@ -1048,6 +1064,7 @@ git commit -m "test(frontend): add safe feature e2e coverage"
 ### Task 8: Add CI Gates and Test Documentation
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 - Create: `frontend/tests/README.md`
 
@@ -1056,29 +1073,29 @@ git commit -m "test(frontend): add safe feature e2e coverage"
 Append a `frontend-quality` job to `.github/workflows/ci.yml`:
 
 ```yaml
-  frontend-quality:
-    name: Frontend lint, unit tests, and build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test:coverage
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-coverage
-          path: frontend/coverage
-          if-no-files-found: ignore
+frontend-quality:
+  name: Frontend lint, unit tests, and build
+  runs-on: ubuntu-latest
+  defaults:
+    run:
+      working-directory: frontend
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+    - run: npm ci
+    - run: npm run lint
+    - run: npm run test:coverage
+    - run: npm run build
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-coverage
+        path: frontend/coverage
+        if-no-files-found: ignore
 ```
 
 - [ ] **Step 2: Add a mock-only Playwright CI job**
@@ -1086,28 +1103,28 @@ Append a `frontend-quality` job to `.github/workflows/ci.yml`:
 Append:
 
 ```yaml
-  frontend-e2e:
-    name: Frontend mock-only E2E
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report
-          if-no-files-found: ignore
+frontend-e2e:
+  name: Frontend mock-only E2E
+  runs-on: ubuntu-latest
+  defaults:
+    run:
+      working-directory: frontend
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+    - run: npm ci
+    - run: npx playwright install --with-deps chromium
+    - run: npm run test:e2e
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: playwright-report
+        path: frontend/playwright-report
+        if-no-files-found: ignore
 ```
 
 Do not add PostgreSQL, Redis, backend startup, worker startup, crawler credentials, marketplace cookies, or browser-profile secrets to this job.

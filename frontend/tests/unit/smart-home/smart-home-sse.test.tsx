@@ -1,5 +1,14 @@
 import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
 import { useSmartHomeSSE } from "@/features/smart-home/hooks/useSmartHomeSSE";
 import { smartHomeApi } from "@/features/smart-home/api/smartHome";
 
@@ -9,13 +18,16 @@ class EventSourceStub {
   onerror: (() => void) | null = null;
   close = vi.fn();
 
-  constructor(public url: string, public options?: any) {
+  constructor(
+    public url: string,
+    public options?: any,
+  ) {
     EventSourceStub.instances.push(this);
   }
 
   emitMessage(payload: unknown) {
     this.onmessage?.(
-      new MessageEvent("message", { data: JSON.stringify(payload) })
+      new MessageEvent("message", { data: JSON.stringify(payload) }),
     );
   }
 
@@ -63,7 +75,7 @@ describe("useSmartHomeSSE Hook", () => {
     const mockEntity = {
       entity_id: "light.living_room",
       state: "on",
-      attributes: { friendly_name: "Living Room Light" }
+      attributes: { friendly_name: "Living Room Light" },
     };
 
     act(() => {
@@ -79,7 +91,9 @@ describe("useSmartHomeSSE Hook", () => {
     const esInstance = EventSourceStub.instances[0];
 
     act(() => {
-      esInstance.onmessage?.(new MessageEvent("message", { data: "invalid-json" }));
+      esInstance.onmessage?.(
+        new MessageEvent("message", { data: "invalid-json" }),
+      );
     });
 
     expect(onEntity).not.toHaveBeenCalled();
@@ -159,7 +173,9 @@ describe("useSmartHomeSSE Hook", () => {
   });
 
   it("closes EventSource and clears timers on unmount", () => {
-    const { unmount } = renderHook(() => useSmartHomeSSE(true, onEntity, onError));
+    const { unmount } = renderHook(() =>
+      useSmartHomeSSE(true, onEntity, onError),
+    );
     const esInstance = EventSourceStub.instances[0];
 
     act(() => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   App,
   Layout,
@@ -295,9 +295,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       border: "1.5px solid #000000",
                     }}
                   />
-                  <span>
-                    {user?.username || "User"}
-                  </span>
+                  <span>{user?.username || "User"}</span>
                 </Space>
               </Button>
             </Dropdown>
@@ -322,7 +320,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <motion.div
+        <m.div
           animate={{ width: collapsed ? 60 : 200 }}
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
           style={{
@@ -337,7 +335,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             borderRight: "var(--border-width) solid var(--color-border)",
           }}
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{
@@ -360,8 +358,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }}
               items={menuItems}
             />
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
 
       {/* Mobile Drawer */}
@@ -376,7 +374,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             header: { display: "none" },
           }}
         >
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.05 }}
@@ -417,7 +415,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 Price Monitor
               </span>
             </div>
-          </motion.div>
+          </m.div>
           <Menu
             mode="inline"
             selectedKeys={[selectedKey]}
@@ -434,7 +432,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content */}
-      <motion.div
+      <m.div
         className="app-content"
         animate={{
           marginLeft: isMobile ? 0 : collapsed ? 60 : 200,
@@ -458,7 +456,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <PageTransition pathname={location.pathname} speed={motionSpeed}>
           {children}
         </PageTransition>
-      </motion.div>
+      </m.div>
 
       {/* Footer */}
       <Layout.Footer

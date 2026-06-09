@@ -1,5 +1,14 @@
 import { renderHook, act } from "@testing-library/react";
-import { describe, expect, it, vi, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+} from "vitest";
 import { useDashboardSSE } from "@/features/dashboard/hooks/useDashboardSSE";
 
 class EventSourceStub {
@@ -9,13 +18,16 @@ class EventSourceStub {
   onerror: (() => void) | null = null;
   close = vi.fn();
 
-  constructor(public url: string, public options?: any) {
+  constructor(
+    public url: string,
+    public options?: any,
+  ) {
     EventSourceStub.instances.push(this);
   }
 
   emitMessage(payload: unknown) {
     this.onmessage?.(
-      new MessageEvent("message", { data: JSON.stringify(payload) })
+      new MessageEvent("message", { data: JSON.stringify(payload) }),
     );
   }
 
@@ -71,11 +83,11 @@ describe("useDashboardSSE Hook", () => {
       event: "kpi_update",
       data: {
         total_products: 5,
-        total_jobs: 10
+        total_jobs: 10,
       },
       system: {
-        cpu_usage: 12
-      }
+        cpu_usage: 12,
+      },
     };
 
     act(() => {
@@ -85,11 +97,11 @@ describe("useDashboardSSE Hook", () => {
     expect(result.current.data).toEqual({
       user: {
         total_products: 5,
-        total_jobs: 10
+        total_jobs: 10,
       },
       system: {
-        cpu_usage: 12
-      }
+        cpu_usage: 12,
+      },
     });
   });
 
@@ -102,7 +114,9 @@ describe("useDashboardSSE Hook", () => {
     });
 
     act(() => {
-      esInstance.onmessage?.(new MessageEvent("message", { data: "invalid-json" }));
+      esInstance.onmessage?.(
+        new MessageEvent("message", { data: "invalid-json" }),
+      );
     });
 
     expect(result.current.data).toBeNull();

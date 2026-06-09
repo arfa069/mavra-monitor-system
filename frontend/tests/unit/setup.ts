@@ -27,7 +27,7 @@ window.matchMedia = (query: string) => ({
   removeListener: () => {},
   addEventListener: () => {},
   removeEventListener: () => {},
-  dispatchEvent: () => false
+  dispatchEvent: () => false,
 });
 
 class ResizeObserverStub {

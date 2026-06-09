@@ -12,11 +12,7 @@ export default mergeConfig(
       restoreMocks: true,
       mockReset: true,
       testTimeout: 30000,
-      exclude: [
-        "node_modules",
-        "dist",
-        "tests/e2e/**"
-      ],
+      exclude: ["node_modules", "dist", "tests/e2e/**"],
       coverage: {
         provider: "v8",
         reporter: ["text", "html", "lcov"],
@@ -72,9 +68,9 @@ export default mergeConfig(
           lines: 65,
           statements: 65,
           functions: 60,
-          branches: 55
-        }
-      }
-    }
-  })
+          branches: 55,
+        },
+      },
+    },
+  }),
 );

@@ -12,7 +12,7 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
 import { eventsApi } from "./api/events";
@@ -216,8 +216,8 @@ export default function EventCenterPage() {
   ];
 
   return (
-    <motion.div variants={stagger.container} initial="hidden" animate="show">
-      <motion.div variants={stagger.item} className="page-header bg-mint">
+    <m.div variants={stagger.container} initial="hidden" animate="show">
+      <m.div variants={stagger.item} className="page-header bg-mint">
         <div className="page-header-inner">
           <div>
             <p className="page-eyebrow">System Events</p>
@@ -228,9 +228,9 @@ export default function EventCenterPage() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
-      <motion.div variants={stagger.item} style={{ marginBottom: 16 }}>
+      <m.div variants={stagger.item} style={{ marginBottom: 16 }}>
         <Space size={[12, 12]} wrap>
           <Select
             value={kind}
@@ -309,9 +309,9 @@ export default function EventCenterPage() {
           />
           <Button onClick={resetFilters}>Reset</Button>
         </Space>
-      </motion.div>
+      </m.div>
 
-      <motion.div variants={stagger.item}>
+      <m.div variants={stagger.item}>
         <Table
           rowKey="id"
           columns={columns}
@@ -329,7 +329,7 @@ export default function EventCenterPage() {
             },
           }}
         />
-      </motion.div>
+      </m.div>
 
       <Drawer
         title="Event Details"
@@ -396,6 +396,6 @@ export default function EventCenterPage() {
           </Space>
         ) : null}
       </Drawer>
-    </motion.div>
+    </m.div>
   );
 }

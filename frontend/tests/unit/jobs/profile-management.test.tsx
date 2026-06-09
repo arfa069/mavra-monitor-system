@@ -12,7 +12,7 @@ describe("ProfileManagement", () => {
       status: "available" as const,
       platform_hint: "boss",
       created_at: "",
-      updated_at: ""
+      updated_at: "",
     },
     {
       id: 2,
@@ -22,8 +22,8 @@ describe("ProfileManagement", () => {
       lease_task_id: "task-123",
       lease_until: "2026-06-08T12:00:00Z",
       created_at: "",
-      updated_at: ""
-    }
+      updated_at: "",
+    },
   ];
 
   const props = {
@@ -73,7 +73,9 @@ describe("ProfileManagement", () => {
     const modalOkBtn = screen.getByRole("button", { name: /ok/i });
     await user.click(modalOkBtn);
 
-    expect(await screen.findByText("Please enter profile key")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Please enter profile key"),
+    ).toBeInTheDocument();
 
     // Type valid profile key and submit
     const profileKeyInput = screen.getByLabelText("Profile Key");

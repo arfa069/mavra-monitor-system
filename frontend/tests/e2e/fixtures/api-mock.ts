@@ -1,7 +1,11 @@
 import { expect, type Page, type Request, type Route } from "@playwright/test";
 
 type Json = Record<string, unknown> | unknown[];
-type MockResult = { status?: number; body?: Json; headers?: Record<string, string> };
+type MockResult = {
+  status?: number;
+  body?: Json;
+  headers?: Record<string, string>;
+};
 type Handler = (request: Request) => MockResult | Promise<MockResult>;
 
 const BLOCKED = [
@@ -11,7 +15,7 @@ const BLOCKED = [
   /^POST \/api\/v1\/crawl-profiles\/[^/]+\/test$/,
   /^POST \/api\/v1\/jobs\/match-results\/(?:analyze|analyze-async)$/,
   /^POST \/api\/v1\/smart-home\/config\/test$/,
-  /^POST \/api\/v1\/smart-home\/entities\/[^/]+\/service$/
+  /^POST \/api\/v1\/smart-home\/entities\/[^/]+\/service$/,
 ];
 
 export class ApiMock {
@@ -28,9 +32,12 @@ export class ApiMock {
       async (route: Route) => {
         const request = route.request();
         const url = new URL(request.url());
-        
+
         // Safety guard: only intercept and mock actual API routes
-        if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/v1/")) {
+        if (
+          !url.pathname.startsWith("/api/") &&
+          !url.pathname.startsWith("/v1/")
+        ) {
           await route.continue();
           return;
         }
@@ -51,7 +58,9 @@ export class ApiMock {
           await route.fulfill({
             status: 501,
             contentType: "application/json",
-            body: JSON.stringify({ detail: `No E2E mock registered for ${key}` })
+            body: JSON.stringify({
+              detail: `No E2E mock registered for ${key}`,
+            }),
           });
           return;
         }
@@ -62,16 +71,16 @@ export class ApiMock {
             status: result.status ?? 200,
             contentType: "application/json",
             headers: result.headers,
-            body: JSON.stringify(result.body ?? {})
+            body: JSON.stringify(result.body ?? {}),
           });
         } catch (err) {
           await route.fulfill({
             status: 500,
             contentType: "application/json",
-            body: JSON.stringify({ detail: String(err) })
+            body: JSON.stringify({ detail: String(err) }),
           });
         }
-      }
+      },
     );
   }
 
