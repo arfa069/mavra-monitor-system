@@ -36,6 +36,7 @@ Thumbs.db
 # Dev artifacts (to be ignored)
 TODOS.md
 plan/
+.superpowers/
 docs/2026-05-13-resource-permission-impl.md
 docs/whimsical-growing-sutton.md
 
