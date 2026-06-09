@@ -80,8 +80,12 @@ async def lifespan(app: FastAPI):
     app.state.redis_client = redis.from_url(settings.redis_url_with_password)
     await recover_crawler_runtime_state()
     await _start_scheduler(app)
+    # Signal that all startup tasks completed successfully.
+    # /health reads this flag directly — no DB/Redis round-trip on every probe.
+    app.state.ready = True
     yield
-    # Shutdown: stop scheduler gracefully
+    # Shutdown
+    app.state.ready = False
     await _stop_scheduler(app)
     # Close database engine connections
     await engine.dispose()
@@ -293,10 +297,26 @@ async def platform_event_logging_middleware(request: Request, call_next):
 
 @app.get("/health")
 async def health_check():
-    """Public health check. Returns only overall status to avoid leaking internals.
+    """Lightweight liveness probe — reads an in-memory flag set during startup.
 
-    Detailed component status is intentionally not exposed; admins should
-    inspect logs / /scheduler/status (admin-gated) instead.
+    This endpoint is intended for load-balancer / k8s liveness checks and must
+    respond in <5ms. It does NOT perform DB or Redis round-trips.
+
+    For a full DB+Redis readiness check use GET /health/detailed (admin-only).
+    """
+    ready = getattr(app.state, "ready", False)
+    if not ready:
+        from fastapi import Response
+        return Response(content='{"status":"starting"}', status_code=503, media_type="application/json")
+    return {"status": "healthy"}
+
+
+@app.get("/health/detailed")
+async def health_check_detailed():
+    """Deep readiness probe — verifies DB and Redis connectivity.
+
+    Intended for internal monitoring / admin dashboards only.
+    Not exposed via the public load-balancer path.
     """
     healthy = True
 
