@@ -97,6 +97,14 @@ export const handlers = [
       updated_at: "2026-06-10T00:00:00Z",
     }),
   ),
+  http.get("/api/v1/smart-home/summary", () =>
+    HttpResponse.json({
+      configured: true,
+      connected: true,
+      active_count: 1,
+      unavailable_count: 0,
+    }),
+  ),
   http.get("/api/v1/smart-home/entities", () =>
     HttpResponse.json({
       items: [

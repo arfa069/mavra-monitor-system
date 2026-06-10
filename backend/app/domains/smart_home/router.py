@@ -30,6 +30,7 @@ from app.schemas.smart_home import (
     SmartHomeEntityListResponse,
     SmartHomeServiceRequest,
     SmartHomeServiceResponse,
+    SmartHomeSummaryResponse,
 )
 
 router = APIRouter(prefix="/smart-home", tags=["smart-home"])
@@ -125,6 +126,17 @@ async def list_entities(
 ):
     try:
         return await service.list_entities(db)
+    except Exception as exc:
+        raise _http_error(exc) from exc
+
+
+@router.get("/summary", response_model=SmartHomeSummaryResponse)
+async def get_summary(
+    current_user: User = Depends(require_permission("smart_home:read")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        return await service.get_summary(db)
     except Exception as exc:
         raise _http_error(exc) from exc
 

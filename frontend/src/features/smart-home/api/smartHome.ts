@@ -3,6 +3,7 @@ import type {
   SmartHomeConfig,
   SmartHomeConfigUpdate,
   SmartHomeEntityListResponse,
+  SmartHomeSummary,
   SmartHomeServiceRequest,
 } from "../types";
 
@@ -18,6 +19,7 @@ export const smartHomeApi = {
     }>("/v1/smart-home/config/test", data),
   listEntities: () =>
     api.get<SmartHomeEntityListResponse>("/v1/smart-home/entities"),
+  getSummary: () => api.get<SmartHomeSummary>("/v1/smart-home/summary"),
   callService: (entityId: string, data: SmartHomeServiceRequest) =>
     api.post(
       `/v1/smart-home/entities/${encodeURIComponent(entityId)}/service`,

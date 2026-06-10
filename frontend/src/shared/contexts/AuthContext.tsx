@@ -23,6 +23,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+let restoreAuthPromise: Promise<User | null> | null = null;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -32,9 +33,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const response = await authApi.getMe();
-        setUser(response.data);
+        restoreAuthPromise ??= authApi
+          .getMe()
+          .then((response) => response.data)
+          .catch(() => null);
+        const restoredUser = await restoreAuthPromise;
+        restoreAuthPromise = null;
+        setUser(restoredUser);
       } catch {
+        restoreAuthPromise = null;
         setUser(null);
       }
       setIsLoading(false);

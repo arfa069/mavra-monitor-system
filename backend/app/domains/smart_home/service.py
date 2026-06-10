@@ -1,7 +1,10 @@
 """Smart home business logic."""
 from __future__ import annotations
 
+import asyncio
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from time import monotonic
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +19,7 @@ from app.schemas.smart_home import (
     SmartHomeConfigUpdate,
     SmartHomeEntity,
     SmartHomeEntityListResponse,
+    SmartHomeSummaryResponse,
 )
 
 SUPPORTED_DOMAINS = {"light", "switch", "fan", "cover", "climate", "scene", "script"}
@@ -28,6 +32,18 @@ ALLOWED_SERVICES = {
     "scene": {"turn_on"},
     "script": {"turn_on"},
 }
+ENTITY_SNAPSHOT_CACHE_TTL_SECONDS = 10.0
+
+
+@dataclass
+class _EntitySnapshotCache:
+    key: tuple[str, str, bool] | None = None
+    response: SmartHomeEntityListResponse | None = None
+    expires_at: float = 0.0
+
+
+_entity_snapshot_cache = _EntitySnapshotCache()
+_entity_snapshot_lock = asyncio.Lock()
 
 
 class SmartHomeConfigMissingError(LookupError):
@@ -45,6 +61,38 @@ class SmartHomeUnsupportedServiceError(ValueError):
 def _client(config: SmartHomeConfig) -> HomeAssistantClient:
     token = decrypt_token(config.encrypted_token, settings.smart_home_secret_key)
     return HomeAssistantClient(base_url=config.base_url, token=token)
+
+
+def _snapshot_cache_key(config: SmartHomeConfig) -> tuple[str, str, bool]:
+    return (config.base_url, config.encrypted_token, config.enabled)
+
+
+def _clone_entity_response(
+    response: SmartHomeEntityListResponse,
+) -> SmartHomeEntityListResponse:
+    return SmartHomeEntityListResponse.model_validate(response.model_dump())
+
+
+def _get_cached_entity_response(
+    config: SmartHomeConfig,
+) -> SmartHomeEntityListResponse | None:
+    if _entity_snapshot_cache.key != _snapshot_cache_key(config):
+        return None
+    if _entity_snapshot_cache.response is None:
+        return None
+    if monotonic() >= _entity_snapshot_cache.expires_at:
+        return None
+    return _clone_entity_response(_entity_snapshot_cache.response)
+
+
+def _store_cached_entity_response(
+    config: SmartHomeConfig, response: SmartHomeEntityListResponse
+) -> None:
+    _entity_snapshot_cache.key = _snapshot_cache_key(config)
+    _entity_snapshot_cache.response = _clone_entity_response(response)
+    _entity_snapshot_cache.expires_at = (
+        monotonic() + ENTITY_SNAPSHOT_CACHE_TTL_SECONDS
+    )
 
 
 def normalize_entity(raw: dict[str, Any]) -> SmartHomeEntity | None:
@@ -122,17 +170,58 @@ async def list_entities(db: AsyncSession) -> SmartHomeEntityListResponse:
     config = await get_config(db)
     if not config.enabled:
         return SmartHomeEntityListResponse(items=[], total=0, connected=False, last_error="Smart home integration is disabled")
-    client = _client(config)
-    try:
-        states = await client.get_states()
-        items = [entity for raw in states if (entity := normalize_entity(raw)) is not None]
-        await repository.update_status(db, config=config, status="ok", error=None)
-        return SmartHomeEntityListResponse(items=items, total=len(items), connected=True)
-    except HomeAssistantError as exc:
-        await repository.update_status(db, config=config, status="error", error=str(exc))
-        return SmartHomeEntityListResponse(items=[], total=0, connected=False, last_error=str(exc))
-    finally:
-        await client.aclose()
+    cached = _get_cached_entity_response(config)
+    if cached is not None:
+        return cached
+
+    async with _entity_snapshot_lock:
+        cached = _get_cached_entity_response(config)
+        if cached is not None:
+            return cached
+
+        client = _client(config)
+        try:
+            states = await client.get_states()
+            items = [entity for raw in states if (entity := normalize_entity(raw)) is not None]
+            response = SmartHomeEntityListResponse(items=items, total=len(items), connected=True)
+            _store_cached_entity_response(config, response)
+            await repository.update_status(db, config=config, status="ok", error=None)
+            return response
+        except HomeAssistantError as exc:
+            await repository.update_status(db, config=config, status="error", error=str(exc))
+            return SmartHomeEntityListResponse(items=[], total=0, connected=False, last_error=str(exc))
+        finally:
+            await client.aclose()
+
+
+async def get_summary(db: AsyncSession) -> SmartHomeSummaryResponse:
+    config = await repository.get_config(db)
+    configured = bool(config and config.enabled and config.encrypted_token)
+    if not configured or config is None:
+        return SmartHomeSummaryResponse(
+            configured=False,
+            connected=False,
+            active_count=0,
+            unavailable_count=0,
+        )
+
+    cached = _get_cached_entity_response(config)
+    if cached is not None:
+        active_count = sum(1 for entity in cached.items if entity.available)
+        unavailable_count = len(cached.items) - active_count
+        return SmartHomeSummaryResponse(
+            configured=True,
+            connected=bool(cached.connected),
+            active_count=active_count,
+            unavailable_count=unavailable_count,
+        )
+
+    return SmartHomeSummaryResponse(
+        configured=True,
+        connected=config.last_status in {"ok", "connected"},
+        active_count=0,
+        unavailable_count=0,
+    )
 
 
 async def call_entity_service(db: AsyncSession, *, entity_id: str, service: str, service_data: dict[str, Any]) -> None:

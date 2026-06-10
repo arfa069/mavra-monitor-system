@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.smart_home import (
     SmartHomeEntity,
     SmartHomeEntityListResponse,
+    SmartHomeSummaryResponse,
 )
 
 
@@ -154,6 +155,42 @@ async def test_entities_filters_to_supported_domains(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["items"][0]["entity_id"] == "switch.kitchen"
+
+
+@pytest.mark.asyncio
+async def test_summary_returns_lightweight_home_signal(monkeypatch):
+    app.dependency_overrides[get_db] = _db_override
+    _override_user("user")
+
+    async def allow_permission(db, role_name, permission):
+        return True
+
+    async def get_summary(db):
+        return SmartHomeSummaryResponse(
+            configured=True,
+            connected=True,
+            active_count=4,
+            unavailable_count=1,
+        )
+
+    monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
+    monkeypatch.setattr("app.domains.smart_home.service.get_summary", get_summary)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.get("/v1/smart-home/summary")
+    finally:
+        _clear_overrides()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "configured": True,
+        "connected": True,
+        "active_count": 4,
+        "unavailable_count": 1,
+    }
 
 
 @pytest.mark.asyncio

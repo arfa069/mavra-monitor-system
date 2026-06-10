@@ -43,6 +43,13 @@ export interface SmartHomeEntityListResponse {
   last_error: string | null;
 }
 
+export interface SmartHomeSummary {
+  configured: boolean;
+  connected: boolean;
+  active_count: number;
+  unavailable_count: number;
+}
+
 export interface SmartHomeServiceRequest {
   service: string;
   service_data: Record<string, unknown>;

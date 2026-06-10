@@ -1,6 +1,9 @@
-import { screen, fireEvent, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "@/shared/contexts/AuthContext";
+import { authApi } from "@/features/auth/api/auth";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { server } from "../mocks/server";
 import { renderWithApp } from "../test-utils";
@@ -107,5 +110,22 @@ describe("AuthContext", () => {
         "null:false:false",
       );
     });
+  });
+
+  it("deduplicates auth restore during StrictMode remounts", async () => {
+    const getMeSpy = vi
+      .spyOn(authApi, "getMe")
+      .mockResolvedValue({ data: testUser } as never);
+
+    render(
+      <StrictMode>
+        <AuthProvider>
+          <ProbeComponent />
+        </AuthProvider>
+      </StrictMode>,
+    );
+
+    expect(await screen.findByText("default:true:true")).toBeInTheDocument();
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
   });
 });

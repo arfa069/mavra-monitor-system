@@ -56,6 +56,13 @@ class SmartHomeEntityListResponse(BaseModel):
     last_error: str | None = None
 
 
+class SmartHomeSummaryResponse(BaseModel):
+    configured: bool
+    connected: bool
+    active_count: int
+    unavailable_count: int
+
+
 class SmartHomeServiceRequest(BaseModel):
     service: str = Field(min_length=1, max_length=100)
     service_data: dict[str, Any] = Field(default_factory=dict)
