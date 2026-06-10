@@ -136,3 +136,4 @@ backend/app/platforms/.51job_cookies.json
 /frontend/test-results
 /frontend/playwright-report
 /frontend/coverage
+/.dup-scan
