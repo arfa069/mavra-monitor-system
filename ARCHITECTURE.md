@@ -8,6 +8,8 @@ A multi-user e-commerce price monitoring system that tracks product prices acros
 
 Browser clients authenticate with HttpOnly access/refresh cookies, short-lived access JWTs, refresh-token rotation, and CSRF protection on unsafe methods. API clients/scripts can still use the legacy `Authorization: Bearer <token>` fallback through `get_current_user`. Data is isolated per user — each user can only access their own products, alerts, jobs, and configurations.
 
+Auth write paths use a shared strong-password policy: new registrations, password changes, and WeChat registration-bound passwords must be at least 10 characters and include uppercase, lowercase, numeric, and special characters.
+
 ## Tech Stack
 
 - **Language**: Python 3.11+

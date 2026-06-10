@@ -78,6 +78,8 @@ JD_COOKIE=...
 ## API Endpoints
 
 > **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
+>
+> **密码策略**：新注册、用户改密和微信注册绑定密码统一要求至少 10 位，且必须同时包含大写字母、小写字母、数字和特殊字符。
 
 | Method           | Path                                              | Description                                        | 认证  |
 | ---------------- | ------------------------------------------------- | -------------------------------------------------- | ----- |
@@ -153,7 +155,7 @@ JD_COOKIE=...
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "testuser", "email": "test@example.com", "password": "123456"}'
+  -d '{"username": "testuser", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
 
 **请求体：**
@@ -161,7 +163,7 @@ curl -X POST http://localhost:8000/auth/register \
 |------|------|------|------|
 | username | string | 是 | 用户名（3-50字符） |
 | email | string | 是 | 邮箱地址 |
-| password | string | 是 | 密码（至少6位） |
+| password | string | 是 | 密码至少 10 位，且必须包含大写、小写、数字和特殊字符 |
 
 **响应（201 Created）：**
 
@@ -222,12 +224,13 @@ curl -b cookies.txt http://localhost:8000/auth/me
 | 400    | 用户名或邮箱已注册 | 注册时用户名或邮箱冲突                             |
 | 401    | 认证失败           | 用户名/密码错误、Cookie 缺失、Token 过期或会话失效 |
 | 403    | CSRF 失败          | 不安全方法缺少或携带了错误的 `X-CSRF-Token`        |
-| 422    | 参数验证失败       | 密码太短、邮箱格式错误等                           |
+| 422    | 参数验证失败       | 密码不满足强度要求、邮箱格式错误等                 |
 | 429    | 请求过于频繁       | 连续5次登录失败后锁定15分钟                        |
 
 ### 安全机制
 
 - **登录失败锁定**：连续5次登录失败后，账户将被锁定15分钟
+- **强密码策略**：注册、改密和微信注册绑定密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符
 - **Access Token 有效期**：15分钟；Refresh Token 有效期：14天
 - **Refresh 轮换**：`POST /auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
 - **CSRF 保护**：不安全方法校验 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
