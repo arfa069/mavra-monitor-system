@@ -94,26 +94,25 @@ export default function DashboardPage() {
       variants={stagger.container}
       initial="hidden"
       animate="show"
-      style={{ padding: "24px" }}
     >
-      {/* Header */}
-      <m.div
-        variants={stagger.item}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>数据分析</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Segmented
-            options={TIME_RANGE_OPTIONS}
-            value={days}
-            onChange={(v) => setDays(v as TimeRange)}
-          />
-          {!connected && sseError && <Tag color="warning">{sseError}</Tag>}
+      {/* Page header */}
+      <m.div variants={stagger.item} className="page-header bg-mint">
+        <div className="page-header-inner" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <p className="page-eyebrow">Analytics</p>
+            <h1 className="page-title" style={{ margin: 0 }}>数据分析</h1>
+            <p className="page-subtitle" style={{ margin: 0 }}>
+              监控系统运行状态、价格走势统计与候选人匹配度分析
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Segmented
+              options={TIME_RANGE_OPTIONS}
+              value={days}
+              onChange={(v) => setDays(v as TimeRange)}
+            />
+            {!connected && sseError && <Tag color="warning">{sseError}</Tag>}
+          </div>
         </div>
       </m.div>
 

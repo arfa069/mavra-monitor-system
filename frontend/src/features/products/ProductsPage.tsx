@@ -627,10 +627,20 @@ export default function ProductsPage() {
 
   return (
     <div className="page-root">
-      <div style={{ marginBottom: 20 }}>
-        <h1 className="page-title" style={{ marginBottom: 18 }}>
-          Product Management
-        </h1>
+      {/* Page header — cream color block */}
+      <div className="page-header bg-cream">
+        <div className="page-header-inner">
+          <div>
+            <p className="page-eyebrow">Prices</p>
+            <h1 className="page-title">Product Management</h1>
+            <p className="page-subtitle">
+              Track product prices on Taobao, JD, and Amazon, configure alert thresholds
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
         <Space
           size={28}
           style={{
@@ -652,8 +662,8 @@ export default function ProductsPage() {
                 borderRadius: 0,
                 borderBottom:
                   index === 0
-                    ? "2px solid var(--color-ink)"
-                    : "2px solid transparent",
+                     ? "2px solid var(--color-ink)"
+                     : "2px solid transparent",
                 fontWeight: index === 0 ? 600 : 400,
               }}
             >
