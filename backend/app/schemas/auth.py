@@ -3,6 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from app.core.passwords import validate_password_strength
 from app.schemas.base import BaseResponseSchema
 
 
@@ -10,7 +11,7 @@ class UserRegister(BaseModel):
     """Request schema for user registration."""
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
     email: EmailStr = Field(..., description="邮箱")
-    password: str = Field(..., min_length=6, max_length=100, description="密码")
+    password: str = Field(..., max_length=100, description="密码")
 
     @field_validator("username")
     @classmethod
@@ -19,6 +20,11 @@ class UserRegister(BaseModel):
         if not v.replace("_", "").replace("-", "").isalnum():
             raise ValueError("用户名只能包含字母、数字、下划线和连字符")
         return v.strip()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class UserLogin(BaseModel):
@@ -67,7 +73,12 @@ class ProfileUpdate(BaseModel):
 class PasswordChange(BaseModel):
     """Schema for password change."""
     old_password: str
-    new_password: str = Field(..., min_length=6, max_length=100)
+    new_password: str = Field(..., max_length=100)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 
 class MessageResponse(BaseModel):

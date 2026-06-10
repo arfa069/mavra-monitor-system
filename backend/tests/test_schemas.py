@@ -52,7 +52,11 @@ class TestUserRegister:
     def test_valid_registration(self):
         from app.schemas.auth import UserRegister
 
-        user = UserRegister(username="testuser", email="test@example.com", password="secure123")
+        user = UserRegister(
+            username="testuser",
+            email="test@example.com",
+            password="SecurePass1!",
+        )
         assert user.username == "testuser"
         assert user.email == "test@example.com"
 
@@ -60,25 +64,59 @@ class TestUserRegister:
         from app.schemas.auth import UserRegister
 
         with pytest.raises(ValidationError):
-            UserRegister(username="ab", email="test@example.com", password="secure123")
+            UserRegister(
+                username="ab",
+                email="test@example.com",
+                password="SecurePass1!",
+            )
 
     def test_username_invalid_characters(self):
         from app.schemas.auth import UserRegister
 
         with pytest.raises(ValidationError):
-            UserRegister(username="test@user", email="test@example.com", password="secure123")
+            UserRegister(
+                username="test@user",
+                email="test@example.com",
+                password="SecurePass1!",
+            )
 
     def test_invalid_email(self):
         from app.schemas.auth import UserRegister
 
         with pytest.raises(ValidationError):
-            UserRegister(username="testuser", email="not-an-email", password="secure123")
+            UserRegister(
+                username="testuser",
+                email="not-an-email",
+                password="SecurePass1!",
+            )
 
     def test_password_too_short(self):
         from app.schemas.auth import UserRegister
 
         with pytest.raises(ValidationError):
             UserRegister(username="testuser", email="test@example.com", password="12345")
+
+    @pytest.mark.parametrize(
+        ("password"),
+        [
+            "short1A!",
+            "lowercase1!",
+            "UPPERCASE1!",
+            "NoDigits!!",
+            "NoSpecial1A",
+        ],
+    )
+    def test_password_strength_requirements(self, password: str):
+        from app.schemas.auth import UserRegister
+
+        with pytest.raises(ValidationError) as exc_info:
+            UserRegister(
+                username="testuser",
+                email="test@example.com",
+                password=password,
+            )
+
+        assert "密码必须至少 10 位" in str(exc_info.value)
 
 
 class TestUserLogin:

@@ -65,7 +65,7 @@ async def test_register_success_returns_201(test_user, mock_get_db):
             json={
                 "username": test_user["username"],
                 "email": test_user["email"],
-                "password": test_user["password"],
+                "password": "SecurePass1!",
             },
         )
 
@@ -94,7 +94,7 @@ async def test_register_duplicate_username_returns_400(test_user, mock_get_db):
             json={
                 "username": test_user["username"],
                 "email": "new@example.com",
-                "password": test_user["password"],
+                "password": "SecurePass1!",
             },
         )
 
@@ -119,7 +119,7 @@ async def test_register_duplicate_email_returns_400(test_user, mock_get_db):
             json={
                 "username": "different_user",
                 "email": test_user["email"],
-                "password": test_user["password"],
+                "password": "SecurePass1!",
             },
         )
 
@@ -146,6 +146,25 @@ async def test_register_password_too_short_returns_422(mock_get_db):
     detail = response.json().get("detail", [])
     if isinstance(detail, list):
         assert any("password" in str(d).lower() or "length" in str(d).lower() for d in detail)
+
+
+@pytest.mark.asyncio
+async def test_register_password_missing_special_character_returns_422(mock_get_db):
+    """POST /auth/register with weak password returns 422."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/register",
+            json={
+                "username": "testuser",
+                "email": "test@example.com",
+                "password": "SecurePass12",
+            },
+        )
+
+    assert response.status_code == 422
+    detail = response.json().get("detail", [])
+    assert "10 位" in str(detail)
 
 
 @pytest.mark.asyncio
@@ -862,7 +881,7 @@ async def test_change_password_with_wrong_old_password_returns_400(test_user, mo
             },
             json={
                 "old_password": "wrong_password",
-                "new_password": "new_secure_password",
+                "new_password": "NewSecurePass1!",
             },
         )
 
@@ -927,7 +946,7 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
             },
             json={
                 "old_password": test_user["password"],
-                "new_password": "new_secure_password",
+                "new_password": "NewSecurePass1!",
             },
         )
 
@@ -946,12 +965,67 @@ async def test_change_password_without_cookie_returns_401():
         response = await client.post(
             "/auth/me/password",
             json={
-                "old_password": "old",
-                "new_password": "new_password",
+                "old_password": "OldPassword1!",
+                "new_password": "NewSecurePass1!",
             },
         )
 
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_change_password_with_weak_new_password_returns_422(test_user, mock_get_db):
+    """POST /auth/me/password with weak new password returns 422."""
+    from datetime import UTC, datetime
+
+    from app.core.security import create_access_token_sid, get_password_hash
+
+    token = create_access_token_sid(1, test_user["username"], 42)
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.created_at = datetime.now(UTC)
+    mock_user.hashed_password = get_password_hash(test_user["password"])
+    mock_user.role = "user"
+    mock_user.deleted_at = None
+
+    mock_session_obj = MagicMock()
+    mock_session_obj.id = 42
+    mock_session_obj.user_id = 1
+
+    mock_user_result = MagicMock()
+    mock_user_result.scalar_one_or_none.return_value = mock_user
+
+    mock_session_result = MagicMock()
+    mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+
+    mock_get_db.execute.side_effect = [
+        mock_user_result,
+        mock_session_result,
+    ]
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/me/password",
+            cookies={
+                "pm_access_token": token,
+                "pm_csrf_token": "csrf-value",
+            },
+            headers={
+                "X-CSRF-Token": "csrf-value",
+            },
+            json={
+                "old_password": test_user["password"],
+                "new_password": "alllowercase1!",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "10 位" in str(response.json().get("detail", []))
 
 
 # --- Password Change Session Cleanup Tests ---
@@ -1012,7 +1086,7 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
             },
             json={
                 "old_password": test_user["password"],
-                "new_password": "new_secure_password",
+                "new_password": "NewSecurePass1!",
             },
         )
 
@@ -1073,7 +1147,7 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
             },
             json={
                 "old_password": test_user["password"],
-                "new_password": "new_secure_password",
+                "new_password": "NewSecurePass1!",
             },
         )
 

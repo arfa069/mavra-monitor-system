@@ -34,7 +34,11 @@ class TestRegister:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
                     "/auth/register",
-                    json={"username": "testuser", "email": "test@example.com", "password": "123456"},
+                    json={
+                        "username": "testuser",
+                        "email": "test@example.com",
+                        "password": "SecurePass1!",
+                    },
                 )
             assert response.status_code == 201
             data = response.json()
@@ -65,7 +69,11 @@ class TestRegister:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
                     "/auth/register",
-                    json={"username": "testuser", "email": "test@example.com", "password": "123456"},
+                    json={
+                        "username": "testuser",
+                        "email": "test@example.com",
+                        "password": "SecurePass1!",
+                    },
                 )
             assert response.status_code == 400
             assert "用户名已注册" in response.json()["detail"]
@@ -90,7 +98,11 @@ class TestRegister:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
                     "/auth/register",
-                    json={"username": "testuser", "email": "test@example.com", "password": "123456"},
+                    json={
+                        "username": "testuser",
+                        "email": "test@example.com",
+                        "password": "SecurePass1!",
+                    },
                 )
             assert response.status_code == 400
             assert "邮箱已注册" in response.json()["detail"]

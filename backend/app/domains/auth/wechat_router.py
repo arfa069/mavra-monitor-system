@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.audit import log_audit_from_request
 from app.core.auth_cookies import set_auth_cookies
+from app.core.passwords import PASSWORD_STRENGTH_ERROR, validate_password_strength
 from app.core.permissions import get_role_permissions
 from app.core.security import (
     create_access_token,
@@ -332,6 +333,14 @@ async def register_with_wechat(
             status_code=status.HTTP_409_CONFLICT,
             detail="该微信账号已绑定其他用户",
         )
+
+    try:
+        validate_password_strength(password)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=PASSWORD_STRENGTH_ERROR,
+        ) from None
 
     try:
         new_user = await auth_service.register_wechat_user(

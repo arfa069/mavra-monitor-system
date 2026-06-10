@@ -59,6 +59,31 @@ describe("RegisterPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("blocks weak passwords before submit", async () => {
+    const registerSpy = vi.spyOn(authApi, "register");
+
+    renderWithApp(<RegisterPage />);
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Username"), "newuser");
+    await user.type(screen.getByPlaceholderText("Email"), "new@example.com");
+    await user.type(screen.getByPlaceholderText("Password"), "alllowercase1!");
+    await user.type(
+      screen.getByPlaceholderText("Confirm Password"),
+      "alllowercase1!",
+    );
+
+    await user.click(screen.getByRole("button", { name: /sign up/i }));
+
+    const messages = await screen.findAllByText(
+      "Password must be at least 10 characters and include uppercase, lowercase, number, and special character",
+    );
+    expect(messages.length).toBeGreaterThan(0);
+    expect(registerSpy).not.toHaveBeenCalled();
+
+    registerSpy.mockRestore();
+  });
+
   it("registers successfully and navigates to login page", async () => {
     let requestPayload: any = null;
     server.use(
@@ -79,8 +104,11 @@ describe("RegisterPage", () => {
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText("Username"), "newuser");
     await user.type(screen.getByPlaceholderText("Email"), "new@example.com");
-    await user.type(screen.getByPlaceholderText("Password"), "123456");
-    await user.type(screen.getByPlaceholderText("Confirm Password"), "123456");
+    await user.type(screen.getByPlaceholderText("Password"), "SecurePass1!");
+    await user.type(
+      screen.getByPlaceholderText("Confirm Password"),
+      "SecurePass1!",
+    );
 
     const submitBtn = screen.getByRole("button", { name: /sign up/i });
     await user.click(submitBtn);
@@ -89,8 +117,7 @@ describe("RegisterPage", () => {
       expect(requestPayload).toEqual({
         username: "newuser",
         email: "new@example.com",
-        password: "123456",
-        password_confirm: "123456",
+        password: "SecurePass1!",
       });
       expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true });
     });
@@ -120,8 +147,8 @@ describe("RegisterPage", () => {
 
     await user.type(usernameInput, "newuser");
     await user.type(emailInput, "new@example.com");
-    await user.type(passwordInput, "123456");
-    await user.type(confirmInput, "123456");
+    await user.type(passwordInput, "SecurePass1!");
+    await user.type(confirmInput, "SecurePass1!");
 
     const submitBtn = screen.getByRole("button", { name: /sign up/i });
     await user.click(submitBtn);

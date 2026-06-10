@@ -4,6 +4,7 @@ import { formatApiError } from "@/shared/api/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { formatDateTime } from "@/shared/utils/date";
 import { authApi } from "./api/auth";
+import { strongPasswordMessage, strongPasswordRule } from "./passwordPolicy";
 import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
@@ -161,7 +162,8 @@ export default function ProfilePage() {
               <Form.Item
                 name="new_password"
                 label="New Password"
-                rules={[{ required: true, min: 6 }]}
+                rules={[{ required: true }, strongPasswordRule()]}
+                extra={strongPasswordMessage}
               >
                 <Input.Password
                   style={{ fontFamily: "var(--font-body)" }}

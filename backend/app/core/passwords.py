@@ -6,6 +6,28 @@ import hashlib
 import bcrypt
 
 PASSWORD_HASH_PREFIX = "$bcrypt-sha256$"
+PASSWORD_STRENGTH_ERROR = (
+    "密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符"
+)
+
+
+def validate_password_strength(password: str) -> str:
+    """Validate password strength for new or changed credentials."""
+    has_min_length = len(password) >= 10
+    has_uppercase = any(char.isupper() for char in password)
+    has_lowercase = any(char.islower() for char in password)
+    has_digit = any(char.isdigit() for char in password)
+    has_special = any(not char.isalnum() and not char.isspace() for char in password)
+
+    if not (
+        has_min_length
+        and has_uppercase
+        and has_lowercase
+        and has_digit
+        and has_special
+    ):
+        raise ValueError(PASSWORD_STRENGTH_ERROR)
+    return password
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

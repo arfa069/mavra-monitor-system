@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Form, Input, Button, App, Typography } from "antd";
 import { UserOutlined, MailOutlined, LockOutlined } from "@ant-design/icons";
+import { formatApiError } from "@/shared/api/client";
 import { authApi } from "./api/auth";
+import { strongPasswordMessage, strongPasswordRule } from "./passwordPolicy";
 
 const { Text } = Typography;
 
@@ -31,12 +33,13 @@ export default function RegisterPage() {
         username: values.username,
         email: values.email,
         password: values.password,
-        password_confirm: values.password_confirm,
       });
       message.success("Registration successful! Please sign in");
       navigate("/login", { replace: true });
-    } catch {
-      message.error("Registration failed, please check your input");
+    } catch (error: unknown) {
+      message.error(
+        formatApiError(error, "Registration failed, please check your input"),
+      );
       form.setFieldsValue({ password: "", password_confirm: "" });
     } finally {
       setLoading(false);
@@ -169,12 +172,13 @@ export default function RegisterPage() {
               name="password"
               rules={[
                 { required: true, message: "Please enter password" },
-                { min: 6, message: "Password must be at least 6 characters" },
                 {
                   max: 50,
                   message: "Password must be no more than 50 characters",
                 },
+                strongPasswordRule(),
               ]}
+              extra={strongPasswordMessage}
               hasFeedback
             >
               <Input.Password
