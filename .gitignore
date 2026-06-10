@@ -37,6 +37,7 @@ Thumbs.db
 TODOS.md
 plan/
 .superpowers/
+.dup-scan/
 docs/2026-05-13-resource-permission-impl.md
 docs/whimsical-growing-sutton.md
 
@@ -136,3 +137,4 @@ backend/app/platforms/.51job_cookies.json
 /frontend/test-results
 /frontend/playwright-report
 /frontend/coverage
+/.dup-scan

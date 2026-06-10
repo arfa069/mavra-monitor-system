@@ -7,8 +7,10 @@ export function formatDateTime(
 ): string {
   if (!value) return "-";
   const date = typeof value === "object" ? value : new Date(value);
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }

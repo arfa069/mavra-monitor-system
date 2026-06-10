@@ -5,8 +5,9 @@ Existing `delete_*` helpers keep auto-commit for API compatibility.
 """
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime, timedelta
+
+from app.core.tokens import hash_token
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +48,7 @@ async def create_session_with_token(
     """
     from app.models.session import Session
 
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_hash = hash_token(token)
     await _enforce_session_limit(db, user_id, token_based=True)
 
     session = Session(
@@ -224,7 +225,7 @@ async def get_session_by_token(token: str, user_id: int, db: AsyncSession) -> ty
     """Return the current token session for a user, or None."""
     from app.models.session import Session
 
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_hash = hash_token(token)
     result = await db.execute(
         select(Session).where(
             Session.user_id == user_id,

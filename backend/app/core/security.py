@@ -9,7 +9,6 @@ Modules have been split into:
 """
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import TYPE_CHECKING
 
@@ -113,7 +112,7 @@ async def get_current_user(
     except (ValueError, TypeError):
         raise credentials_exception
 
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_hash = hash_token(token)
     from app.models.session import Session
 
     # Single query validates both user existence and session validity

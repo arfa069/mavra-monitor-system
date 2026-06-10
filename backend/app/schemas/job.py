@@ -5,17 +5,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.crawler_paths import build_profile_dir
 from app.schemas.base import BaseResponseSchema
+from app.schemas.crawl_profile import validate_profile_key_value
 from app.schemas.validators import validate_cron_value, validate_timezone_value
 
 JobPlatform = Literal["boss", "51job", "liepin"]
-
-
-def _validate_profile_key_value(value: str | None) -> str:
-    key = (value or "default").strip()
-    build_profile_dir(key)
-    return key
 
 
 class _JobSearchConfigFields(BaseModel):
@@ -43,7 +37,7 @@ class _JobSearchConfigFields(BaseModel):
     def validate_profile_key(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        return _validate_profile_key_value(v)
+        return validate_profile_key_value(v)
 
     @field_validator("cron_expression")
     @classmethod

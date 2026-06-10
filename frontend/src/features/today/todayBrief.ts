@@ -5,14 +5,6 @@ import type {
   TodaySourceData,
 } from "./types";
 
-function productName(source: TodaySourceData): string {
-  return source.products[0]?.title || "一个关注商品";
-}
-
-function jobName(source: TodaySourceData): string {
-  return source.jobMatches[0]?.title || "一个职位";
-}
-
 function buildPriceStatus(source: TodaySourceData): TodayModuleStatus {
   if (source.kpi.price_drops_today > 0) {
     return {
@@ -78,6 +70,10 @@ function buildHomeStatus(source: TodaySourceData): TodayModuleStatus {
   };
 }
 
+function firstSourceName(items: { title: string | null }[] | undefined, fallback: string): string {
+  return items?.[0]?.title || fallback;
+}
+
 function buildAttentionItems(source: TodaySourceData): TodayAttentionItem[] {
   const items: TodayAttentionItem[] = [];
 
@@ -86,7 +82,7 @@ function buildAttentionItems(source: TodaySourceData): TodayAttentionItem[] {
       id: "price-drop",
       kind: "price",
       timeLabel: "今天",
-      title: `${productName(source)} 到了心理价位`,
+      title: `${firstSourceName(source.products, "一个关注商品")} 到了心理价位`,
       description: "价格低于你设定的提醒条件，适合今天决定要不要买。",
       metric: `-${source.kpi.price_drops_today}`,
       actionLabel: "查看",
@@ -100,7 +96,7 @@ function buildAttentionItems(source: TodaySourceData): TodayAttentionItem[] {
       id: "job-match",
       kind: "job",
       timeLabel: "稍后",
-      title: `${jobName(source)} 值得晚点打开`,
+      title: `${firstSourceName(source.jobMatches, "一个职位")} 值得晚点打开`,
       description: topMatch?.company
         ? `${topMatch.company}${topMatch.location ? ` · ${topMatch.location}` : ""}`
         : "薪资、地点或匹配度接近你的设定。",

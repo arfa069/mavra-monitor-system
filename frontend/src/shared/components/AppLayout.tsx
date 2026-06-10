@@ -452,9 +452,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           marginBottom: isMobile ? 0 : 48,
           padding: "24px",
           background: "var(--color-canvas)",
-          minHeight: isMobile
-            ? "calc(100vh - 56px)"
-            : "calc(100vh - 104px)",
+          minHeight: isMobile ? "calc(100vh - 56px)" : "calc(100vh - 104px)",
           overflow: "auto",
           position: "relative",
         }}

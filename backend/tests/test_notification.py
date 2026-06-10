@@ -21,7 +21,7 @@ class TestSendFeishuNotification:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.integrations.feishu._get_client", return_value=mock_client):
             result = await send_feishu_notification(
                 "https://open.feishu.cn/hook/test", "Hello"
             )
@@ -56,7 +56,7 @@ class TestSendFeishuNotification:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        with patch("app.integrations.feishu._get_client", return_value=mock_client):
             with pytest.raises(Exception):
                 await send_feishu_notification(
                     "https://open.feishu.cn/hook/test", "Hello"

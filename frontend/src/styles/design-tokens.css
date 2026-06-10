@@ -51,8 +51,9 @@
 
   /* --- Typography --- */
   --font-display: "Newsreader", "Noto Serif SC", Georgia, "Songti SC", serif;
-  --font-body: "IBM Plex Sans", "Noto Sans SC", "Outfit", "Microsoft YaHei",
-    system-ui, sans-serif;
+  --font-body:
+    "IBM Plex Sans", "Noto Sans SC", "Outfit", "Microsoft YaHei", system-ui,
+    sans-serif;
   --font-data: "IBM Plex Mono", "JetBrains Mono", monospace;
   --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
 

@@ -1,9 +1,10 @@
 """Authentication schemas for request/response validation."""
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.core.passwords import validate_password_strength
+from app.schemas._common import IsActiveFromDeletedAtMixin
 from app.schemas.base import BaseResponseSchema
 
 
@@ -67,7 +68,7 @@ class WeChatRegisterRequest(BaseModel):
         return validate_password_strength(v)
 
 
-class UserResponse(BaseResponseSchema):
+class UserResponse(IsActiveFromDeletedAtMixin, BaseResponseSchema):
     """Response schema for user information.
 
     is_active is a compatibility projection of deleted_at (not the DB column).
@@ -79,17 +80,6 @@ class UserResponse(BaseResponseSchema):
     permissions: list[str] = Field(default_factory=list)
     is_active: bool = True
     created_at: datetime
-
-    @model_validator(mode="before")
-    @classmethod
-    def derive_is_active(cls, data):
-        """is_active is a compatibility projection of deleted_at."""
-        if hasattr(data, 'deleted_at'):
-            try:
-                data.is_active = data.deleted_at is None
-            except Exception:
-                pass
-        return data
 
 
 class TokenResponse(BaseModel):

@@ -1,18 +1,13 @@
 """Base model with common fields."""
-from datetime import UTC, datetime
-
 from sqlalchemy import Column, DateTime
 from sqlalchemy.orm import declarative_base
+
+from app.utils.time import now_utc
 
 Base = declarative_base()
 
 
-def _utc_now():
-    """Return current UTC time as timezone-aware datetime."""
-    return datetime.now(UTC)
-
-
 class TimestampMixin:
     """Mixin for created_at and updated_at timestamps."""
-    created_at = Column(DateTime(timezone=True), nullable=False, default=_utc_now)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_utc, onupdate=now_utc)

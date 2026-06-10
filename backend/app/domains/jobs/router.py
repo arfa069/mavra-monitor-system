@@ -526,13 +526,11 @@ async def delete_config(
 ):
     """Delete a config (cascades to jobs)."""
     try:
-        config = await job_service.get_job_config(
+        config, config_info = await job_service.delete_job_config(
             db, user_id=current_user.id, config_id=config_id
         )
     except job_service.JobConfigNotFoundError:
         raise HTTPException(status_code=404, detail="Config not found")
-
-    config_info = {"name": config.name}
 
     # Remove scheduler job before deletion
 
@@ -540,8 +538,6 @@ async def delete_config(
 
     if scheduler:
         scheduler.remove_job(config_id)
-
-    await job_service.remove_job_config(db, config=config)
 
     await log_audit_from_request(
         request,

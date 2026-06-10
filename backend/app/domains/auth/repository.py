@@ -1,11 +1,17 @@
 """Auth domain data access helpers."""
 
-import hashlib
 from inspect import isawaitable
+
+from app.core.tokens import hash_token
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domains.admin.repository import (
+    add_user,
+    get_active_user_by_email,
+    get_active_user_by_username,
+)
 from app.models.login_log import LoginLog
 from app.models.session import Session
 from app.models.user import User
@@ -61,41 +67,6 @@ async def get_wechat_openid_conflict(
     return result.scalar_one_or_none()
 
 
-async def get_active_user_by_username(
-    db: AsyncSession, *, username: str, exclude_user_id: int
-) -> User | None:
-    result = await db.execute(
-        select(User).where(
-            User.username == username,
-            User.id != exclude_user_id,
-            User.deleted_at.is_(None),
-        )
-    )
-    return result.scalar_one_or_none()
-
-
-async def get_active_user_by_email(
-    db: AsyncSession, *, email: str, exclude_user_id: int
-) -> User | None:
-    result = await db.execute(
-        select(User).where(
-            User.email == email,
-            User.id != exclude_user_id,
-            User.deleted_at.is_(None),
-        )
-    )
-    return result.scalar_one_or_none()
-
-
-async def add_user(db: AsyncSession, *, user: User) -> User:
-    added = db.add(user)
-    if isawaitable(added):
-        await added
-    await db.commit()
-    await db.refresh(user)
-    return user
-
-
 async def save_user(db: AsyncSession, *, user: User) -> User:
     await db.commit()
     await db.refresh(user)
@@ -120,7 +91,7 @@ async def add_login_log(
 async def delete_session_for_token(
     db: AsyncSession, *, user_id: int, token: str
 ) -> bool:
-    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    token_hash = hash_token(token)
     result = await db.execute(
         select(Session).where(
             Session.user_id == user_id,

@@ -8,7 +8,6 @@ import { authApi } from "@/features/auth/api/auth";
 import { renderWithApp } from "../test-utils";
 import { server } from "../mocks/server";
 
-
 describe("ProfilePage password policy", () => {
   it("blocks weak new passwords before submit", async () => {
     const changePasswordSpy = vi.spyOn(authApi, "changePassword");

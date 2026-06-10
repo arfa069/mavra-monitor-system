@@ -26,7 +26,9 @@ describe("TodayPage", () => {
   });
 
   it("renders the core brief when smart-home summary is unavailable", async () => {
-    server.use(http.get("/api/v1/smart-home/summary", () => HttpResponse.error()));
+    server.use(
+      http.get("/api/v1/smart-home/summary", () => HttpResponse.error()),
+    );
 
     renderWithApp(<TodayPage />, { withAuth: false });
 

@@ -291,7 +291,7 @@ async def test_open_login_session_serializes_same_profile(monkeypatch):
         lambda: {"supports_login_session": True},
     )
     monkeypatch.setattr(profile_service, "get_profile", AsyncMock(return_value=profile))
-    monkeypatch.setattr(profile_runtime_service, "emit_system_log_detached", AsyncMock())
+    monkeypatch.setattr(profile_runtime_service, "_emit_profile_event", AsyncMock())
 
     class FakePage:
         def goto(self, *args, **kwargs):
@@ -388,6 +388,7 @@ async def test_open_login_sessions_use_isolated_threads_for_sync_cloakbrowser(mo
         return profiles[profile_key]
 
     loop = asyncio.get_running_loop()
+    old_executor = getattr(loop, "_default_executor", None)
     default_executor = ThreadPoolExecutor(max_workers=1)
     loop.set_default_executor(default_executor)
     monkeypatch.setitem(
@@ -401,7 +402,7 @@ async def test_open_login_sessions_use_isolated_threads_for_sync_cloakbrowser(mo
         lambda: {"supports_login_session": True},
     )
     monkeypatch.setattr(profile_service, "get_profile", fake_get_profile)
-    monkeypatch.setattr(profile_runtime_service, "emit_system_log_detached", AsyncMock())
+    monkeypatch.setattr(profile_runtime_service, "_emit_profile_event", AsyncMock())
     for key in profiles:
         profile_runtime_service._sessions.pop(key, None)
         profile_runtime_service._profile_locks.pop(key, None)
@@ -430,6 +431,7 @@ async def test_open_login_sessions_use_isolated_threads_for_sync_cloakbrowser(mo
         for key in profiles:
             profile_runtime_service._sessions.pop(key, None)
             profile_runtime_service._profile_locks.pop(key, None)
+        loop.set_default_executor(old_executor)
         default_executor.shutdown(wait=True, cancel_futures=True)
 
 

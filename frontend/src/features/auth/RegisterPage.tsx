@@ -81,8 +81,7 @@ export default function RegisterPage() {
           <div className="login-hero">
             <h1 className="login-headline">
               Start with
-              <br />
-              a quieter brief
+              <br />a quieter brief
             </h1>
             <p className="login-subhead">
               Bring your price, job, and home checks

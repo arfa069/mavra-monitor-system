@@ -1,9 +1,8 @@
 """Session model for device tracking."""
-from datetime import UTC, datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 
-from app.models.base import Base, TimestampMixin, _utc_now
+from app.models.base import Base, TimestampMixin
+from app.utils.time import now_utc
 
 
 class Session(Base, TimestampMixin):
@@ -14,7 +13,7 @@ class Session(Base, TimestampMixin):
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     token_hash = Column(String(64), unique=True, nullable=True, index=True)
     refresh_token_hash = Column(String(64), unique=True, nullable=True)
-    refresh_expires_at = Column(DateTime(timezone=True), nullable=False, default=_utc_now)
+    refresh_expires_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)
     device = Column(String(255))
     ip_address = Column(String(45))
-    last_active_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
+    last_active_at = Column(DateTime(timezone=True), nullable=False, default=now_utc)

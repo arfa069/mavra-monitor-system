@@ -12,6 +12,16 @@ from app.models.job_crawl_log import JobCrawlLog
 from app.models.job_match import MatchResult, UserResume
 
 
+def _recommendation_rank_case():
+    """Build a SQLAlchemy case expression that maps apply_recommendation to a numeric rank."""
+    return case(
+        (MatchResult.apply_recommendation == "强烈推荐", 3),
+        (MatchResult.apply_recommendation == "可以考虑", 2),
+        (MatchResult.apply_recommendation == "不太匹配", 1),
+        else_=0,
+    )
+
+
 async def list_job_configs(
     db: AsyncSession, *, user_id: int, active: bool | None
 ) -> list[JobSearchConfig]:
@@ -131,12 +141,7 @@ async def list_match_results(
     page: int,
     page_size: int,
 ) -> tuple[list[MatchResult], int]:
-    recommendation_rank = case(
-        (MatchResult.apply_recommendation == "强烈推荐", 3),
-        (MatchResult.apply_recommendation == "可以考虑", 2),
-        (MatchResult.apply_recommendation == "不太匹配", 1),
-        else_=0,
-    )
+    recommendation_rank = _recommendation_rank_case()
     query = (
         select(MatchResult)
         .join(UserResume, MatchResult.resume_id == UserResume.id)
@@ -274,12 +279,7 @@ async def list_jobs(
     rec_map: dict[int, str | None] = {}
     if jobs:
         job_ids = [j.id for j in jobs]
-        rank = case(
-            (MatchResult.apply_recommendation == "强烈推荐", 3),
-            (MatchResult.apply_recommendation == "可以考虑", 2),
-            (MatchResult.apply_recommendation == "不太匹配", 1),
-            else_=0,
-        )
+        rank = _recommendation_rank_case()
         match_rows = await db.execute(
             select(MatchResult.job_id, MatchResult.apply_recommendation)
             .where(

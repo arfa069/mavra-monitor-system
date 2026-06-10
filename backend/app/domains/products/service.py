@@ -192,7 +192,7 @@ async def update_product_cron_config(
     )
 
 
-async def delete_product_cron_config(
+async def get_product_cron_config_for_deletion(
     db: AsyncSession, *, user_id: int, platform: str
 ) -> ProductPlatformCron:
     if platform not in VALID_PRODUCT_PLATFORMS:
@@ -207,7 +207,7 @@ async def delete_product_cron_config(
     return config
 
 
-async def remove_product_cron_config(
+async def delete_product_cron_config(
     db: AsyncSession, *, config: ProductPlatformCron
 ) -> None:
     await repository.delete_product_cron_config(db, config=config)
