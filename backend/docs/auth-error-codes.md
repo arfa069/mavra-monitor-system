@@ -41,7 +41,7 @@
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "existing_user", "email": "test@example.com", "password": "123456"}'
+  -d '{"username": "existing_user", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
 
 **响应示例：**
@@ -169,7 +169,7 @@ curl -X POST http://localhost:8000/auth/refresh
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "ab", "email": "test@example.com", "password": "123456"}'
+  -d '{"username": "ab", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
 
 **响应示例：**
@@ -188,7 +188,7 @@ curl -X POST http://localhost:8000/auth/register \
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "testuser", "email": "invalid_email", "password": "123456"}'
+  -d '{"username": "testuser", "email": "invalid_email", "password": "SecurePass1!"}'
 ```
 
 **响应示例：**
@@ -199,21 +199,21 @@ curl -X POST http://localhost:8000/auth/register \
 }
 ```
 
-#### 场景 3: 密码太短
+#### 场景 3: 密码不满足强度要求
 
 **请求示例：**
 
 ```bash
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "testuser", "email": "test@example.com", "password": "123"}'
+  -d '{"username": "testuser", "email": "test@example.com", "password": "weakpass12"}'
 ```
 
 **响应示例：**
 
 ```json
 {
-  "detail": "密码必须至少6位"
+  "detail": "密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符"
 }
 ```
 
@@ -222,7 +222,7 @@ curl -X POST http://localhost:8000/auth/register \
 |------|------|
 | username | 3-50字符，只能包含字母、数字、下划线和连字符 |
 | email | 有效的邮箱格式 |
-| password | 6-100字符 |
+| password | 10-100字符，且必须包含大写字母、小写字母、数字和特殊字符 |
 
 **解决方案：** 根据错误提示修改请求参数
 
@@ -255,20 +255,20 @@ curl -X POST http://localhost:8000/auth/login \
 
 ## 错误码速查表
 
-| 状态码 | detail 字段值                     | 含义                | 解决方案                        |
-| ------ | --------------------------------- | ------------------- | ------------------------------- |
-| 400    | 用户名已注册                      | 用户名已被占用      | 使用其他用户名                  |
-| 400    | 邮箱已注册                        | 邮箱已被占用        | 使用其他邮箱                    |
-| 401    | 用户名或密码错误                  | 登录凭证不正确      | 检查用户名和密码                |
-| 401    | 认证失败：未提供登录凭证          | 缺少 access Cookie  | 登录或 refresh                  |
-| 401    | 认证失败：Token 无效或已过期      | Access Token 过期   | 调用 `/auth/refresh` 或重新登录 |
-| 401    | 未提供刷新令牌                    | 缺少 refresh Cookie | 重新登录                        |
-| 401    | 刷新令牌无效或已过期              | Refresh Token 失效  | 重新登录                        |
-| 401    | 用户不存在或已被禁用              | 用户被禁用或不存在  | 联系管理员                      |
-| 403    | CSRF 验证失败：请求被拒绝         | CSRF 校验失败       | 携带正确 `X-CSRF-Token`         |
-| 422    | 密码必须至少6位                   | 密码长度不足        | 使用更长的密码                  |
-| 422    | 邮箱格式错误                      | 邮箱格式不正确      | 使用有效的邮箱格式              |
-| 429    | 登录尝试次数过多，请 X 分钟后再试 | 账户被锁定          | 等待锁定解除                    |
+| 状态码 | detail 字段值                                                    | 含义                | 解决方案                        |
+| ------ | ---------------------------------------------------------------- | ------------------- | ------------------------------- |
+| 400    | 用户名已注册                                                     | 用户名已被占用      | 使用其他用户名                  |
+| 400    | 邮箱已注册                                                       | 邮箱已被占用        | 使用其他邮箱                    |
+| 401    | 用户名或密码错误                                                 | 登录凭证不正确      | 检查用户名和密码                |
+| 401    | 认证失败：未提供登录凭证                                         | 缺少 access Cookie  | 登录或 refresh                  |
+| 401    | 认证失败：Token 无效或已过期                                     | Access Token 过期   | 调用 `/auth/refresh` 或重新登录 |
+| 401    | 未提供刷新令牌                                                   | 缺少 refresh Cookie | 重新登录                        |
+| 401    | 刷新令牌无效或已过期                                             | Refresh Token 失效  | 重新登录                        |
+| 401    | 用户不存在或已被禁用                                             | 用户被禁用或不存在  | 联系管理员                      |
+| 403    | CSRF 验证失败：请求被拒绝                                        | CSRF 校验失败       | 携带正确 `X-CSRF-Token`         |
+| 422    | 密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符 | 密码不满足强度要求  | 使用符合强密码策略的密码        |
+| 422    | 邮箱格式错误                                                     | 邮箱格式不正确      | 使用有效的邮箱格式              |
+| 429    | 登录尝试次数过多，请 X 分钟后再试                                | 账户被锁定          | 等待锁定解除                    |
 
 ## 开发建议
 

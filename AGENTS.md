@@ -8,7 +8,7 @@
 
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (8559 symbols, 15981 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (9425 symbols, 17511 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -124,11 +124,12 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 ## CONVENTIONS
 
 - Coding changes should load the `karpathy-guidelines` skill before implementation.
-- Default test user: `default` / `123456`; some manual docs mention `default123` / `123456`, verify actual seeded user before browser QA.
+- Default test user: `default` / `Adminf8869!@`; some manual docs mention `default123` / `Adminf8869!@`, verify actual seeded user before browser QA.
 - Use UTC-aware timestamps: `datetime.now(timezone.utc)`.
 - Compare prices with `Decimal`, not floats.
 - `user_id=1` legacy assumptions remain in crawler/product/job code, but auth is multi-user.
 - Browser auth is Cookie-first (`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`); scripts may use Bearer fallback.
+- New registration passwords, password changes, and WeChat registration-bound passwords must be at least 10 characters and include uppercase, lowercase, numeric, and special characters.
 - API modules use `/api/v1` from frontend; Vite proxy strips `/api` before backend.
 - `SMART_HOME_SECRET_KEY` must be set before saving a Home Assistant token; the smart-home routes use `smart_home:read`, `smart_home:control`, and `smart_home:configure`.
 

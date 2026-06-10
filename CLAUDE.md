@@ -6,7 +6,7 @@
 
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (8559 symbols, 15981 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (9425 symbols, 17511 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -97,7 +97,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backen
 ## 6.关键约定
 
 - user_id 硬编码为 1（单用户系统）已添加多用户认证，原有 user_id=1 硬编码仍适用于商品/职位爬取
-- 系统的测试用户: default 密码:123456
+- 系统的测试用户: default 密码:Adminf8869!@
 - 所有时间戳字段使用 UTC 时区（`datetime.now(timezone.utc)`）
 - 价格比较使用 Decimal 避免浮点误差
 - LLM provider 通过 `LLMProviderFactory` 切换，支持 Anthropic/OpenAI/Ollama

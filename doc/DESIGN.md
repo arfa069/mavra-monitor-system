@@ -47,16 +47,16 @@ Current implementation must not add remote font runtime dependencies. If exact t
 
 ### Type Scale
 
-| Token | Size | Weight | Usage |
-| --- | ---: | ---: | --- |
-| display-xl | `48px` | 500 | Today summary on desktop |
-| display-lg | `34px` | 500 | Page title |
-| headline | `22px` | 600 | Section title |
-| card-title | `17px` | 600 | Card title |
-| body | `14px` | 400 | Default UI text |
-| small | `13px` | 400 | Secondary text |
-| caption | `12px` | 500 | Labels and helper text |
-| data | `13px` | 500 | Numeric cells |
+| Token      |   Size | Weight | Usage                    |
+| ---------- | -----: | -----: | ------------------------ |
+| display-xl | `48px` |    500 | Today summary on desktop |
+| display-lg | `34px` |    500 | Page title               |
+| headline   | `22px` |    600 | Section title            |
+| card-title | `17px` |    600 | Card title               |
+| body       | `14px` |    400 | Default UI text          |
+| small      | `13px` |    400 | Secondary text           |
+| caption    | `12px` |    500 | Labels and helper text   |
+| data       | `13px` |    500 | Numeric cells            |
 
 Rule: summary copy may be warm; control labels must stay plain.
 
@@ -64,28 +64,28 @@ Rule: summary copy may be warm; control labels must stay plain.
 
 Approach: warm neutral base with natural status colors.
 
-| Token | Hex | Usage |
-| --- | --- | --- |
-| canvas | `#f3dfc8` | App background, warm base |
-| surface | `#fff7ec` | Main cards and panels |
-| surface-raised | `#ffffff` | Data cards, tables, dialogs |
-| ink | `#33251b` | Primary text |
-| muted | `#705947` | Secondary text |
-| border | `rgba(93, 61, 38, 0.12)` | Soft structural border |
-| sage | `#7e976b` | Quiet, healthy, running |
-| clay | `#d9826b` | Attention, price movement, warm alert |
-| mist | `#7aa2a4` | Home, ambient info |
-| butter | `#fff1cf` | Gentle action chips |
-| rose | `#f8d7c8` | Important but non-critical notice |
+| Token          | Hex                      | Usage                                 |
+| -------------- | ------------------------ | ------------------------------------- |
+| canvas         | `#f3dfc8`                | App background, warm base             |
+| surface        | `#fff7ec`                | Main cards and panels                 |
+| surface-raised | `#ffffff`                | Data cards, tables, dialogs           |
+| ink            | `#33251b`                | Primary text                          |
+| muted          | `#705947`                | Secondary text                        |
+| border         | `rgba(93, 61, 38, 0.12)` | Soft structural border                |
+| sage           | `#7e976b`                | Quiet, healthy, running               |
+| clay           | `#d9826b`                | Attention, price movement, warm alert |
+| mist           | `#7aa2a4`                | Home, ambient info                    |
+| butter         | `#fff1cf`                | Gentle action chips                   |
+| rose           | `#f8d7c8`                | Important but non-critical notice     |
 
 Semantic tokens:
 
-| Token | Hex | Meaning |
-| --- | --- | --- |
-| success | `#7e976b` | Good state, completed, normal |
-| warning | `#d89a57` | Needs review soon |
-| danger | `#c75f4c` | Failed, blocked, urgent |
-| info | `#7aa2a4` | Neutral system information |
+| Token       | Hex       | Meaning                               |
+| ----------- | --------- | ------------------------------------- |
+| success     | `#7e976b` | Good state, completed, normal         |
+| warning     | `#d89a57` | Needs review soon                     |
+| danger      | `#c75f4c` | Failed, blocked, urgent               |
+| info        | `#7aa2a4` | Neutral system information            |
 | opportunity | `#d9826b` | Price/job opportunity worth attention |
 
 Avoid:
@@ -101,25 +101,25 @@ Avoid:
 - **Default density:** comfortable for Today and overview pages
 - **Compact density:** required for tables, admin pages, logs, and configuration
 
-| Token | Value | Usage |
-| --- | ---: | --- |
-| xs | `4px` | Tight icon/text gaps |
-| sm | `8px` | Chips, compact controls |
-| md | `12px` | Form rows, list rows |
-| lg | `16px` | Card internals |
-| xl | `24px` | Section gaps |
-| 2xl | `32px` | Page-level spacing |
-| 3xl | `48px` | Today composition |
+| Token |  Value | Usage                   |
+| ----- | -----: | ----------------------- |
+| xs    |  `4px` | Tight icon/text gaps    |
+| sm    |  `8px` | Chips, compact controls |
+| md    | `12px` | Form rows, list rows    |
+| lg    | `16px` | Card internals          |
+| xl    | `24px` | Section gaps            |
+| 2xl   | `32px` | Page-level spacing      |
+| 3xl   | `48px` | Today composition       |
 
 Radius:
 
-| Token | Value | Usage |
-| --- | ---: | --- |
-| sm | `10px` | Inputs, chips |
-| md | `16px` | Table containers |
-| lg | `24px` | Cards |
-| xl | `32px` | Today hero panels |
-| pill | `9999px` | Chips and small action buttons |
+| Token |    Value | Usage                          |
+| ----- | -------: | ------------------------------ |
+| sm    |   `10px` | Inputs, chips                  |
+| md    |   `16px` | Table containers               |
+| lg    |   `24px` | Cards                          |
+| xl    |   `32px` | Today hero panels              |
+| pill  | `9999px` | Chips and small action buttons |
 
 Use soft shadows sparingly:
 
@@ -274,14 +274,14 @@ The old system was Neo-Brutalist Zine: thick black borders, hard shadows, pop co
 
 The new system changes the emotional center:
 
-| Previous | New |
-| --- | --- |
-| high contrast zine dashboard | warm lived-in assistant |
-| hard black `3px` borders | soft warm `1px` borders |
-| pop color blocks | natural semantic color |
-| loud hover movement | quiet tactile motion |
-| dashboard-first | Today brief first |
-| technical module naming | life-context summary first |
+| Previous                     | New                        |
+| ---------------------------- | -------------------------- |
+| high contrast zine dashboard | warm lived-in assistant    |
+| hard black `3px` borders     | soft warm `1px` borders    |
+| pop color blocks             | natural semantic color     |
+| loud hover movement          | quiet tactile motion       |
+| dashboard-first              | Today brief first          |
+| technical module naming      | life-context summary first |
 
 Implementation should not be a one-file token swap. The homepage composition, navigation language, empty states, and table density need to change together.
 

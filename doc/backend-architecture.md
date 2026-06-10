@@ -285,12 +285,14 @@ User (1) ──────< Product (多)
 ### 6.2 认证系统
 
 - `POST /auth/register` — 用户注册
+- `POST /auth/register`、`POST /auth/me/password` 与微信注册绑定密码统一执行强密码校验：至少 10 位，且必须同时包含大写字母、小写字母、数字和特殊字符
 - `POST /auth/login` — 用户登录（设置 HttpOnly Cookie：pm_access_token / pm_refresh_token / pm_csrf_token）
 - `POST /auth/refresh` — 刷新 access token（通过 pm_refresh_token Cookie）
 - `POST /auth/logout` — 登出（清除 Cookie + 删除 session）
 - `GET /auth/me` — 获取当前用户信息
 - `GET /auth/sessions` — 获取当前用户活跃会话列表
 - 密码 bcrypt 加密，登录失败锁定（5次失败锁定15分钟，Redis 持久化，重启不丢失）
+- 注册与改密的密码强度失败返回 422；微信注册绑定密码也走同一后端校验逻辑
 - 前端 AuthContext 状态管理，路由守卫（PublicRoute/ProtectedRoute）
 - 请求拦截器自动添加 Token
 

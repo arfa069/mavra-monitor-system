@@ -68,6 +68,8 @@ npm run dev
 ### API 测试命令
 
 ```bash
+# New registrations and password changes must use a strong password such as SecurePass1!.
+
 # Login first; browser auth is Cookie-first.
 curl -c cookies.txt -X POST http://127.0.0.1:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \

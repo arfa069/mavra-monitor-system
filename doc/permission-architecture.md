@@ -59,6 +59,11 @@
 | `GET /api/v1/auth/sessions`         | `get_current_user_cookie`        |
 | `DELETE /api/v1/auth/sessions/{id}` | `get_current_user_cookie` + CSRF |
 
+认证输入规则补充：
+
+- `POST /api/v1/auth/register` 和 `POST /api/v1/auth/me/password` 的新密码必须至少 10 位，且同时包含大写字母、小写字母、数字和特殊字符
+- 微信注册绑定密码复用同一强密码校验，失败时返回 `422 Unprocessable Entity`
+
 ### 用户管理 (`app.domains.admin.router`)
 
 | 端点                                                | 权限          |
@@ -177,11 +182,11 @@
 
 ## 前端路由守卫
 
-| 守卫              | 保护范围                                                                                           | 行为               |
-| ----------------- | -------------------------------------------------------------------------------------------------- | ------------------ |
-| `ProtectedRoute`  | `/today`, `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`    |
-| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                                         | 权限不足 → `/today` |
-| `PublicRoute`     | `/login`, `/register`                                                                                       | 已登录 → `/today`   |
+| 守卫              | 保护范围                                                                                                     | 行为                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | ------------------- |
+| `ProtectedRoute`  | `/today`, `/dashboard`, `/events`, `/jobs`, `/products`, `/schedule`, `/profile`, `/settings`, `/smart-home` | 未登录 → `/login`   |
+| `PermissionRoute` | `/admin/users`, `/admin/audit-logs`                                                                          | 权限不足 → `/today` |
+| `PublicRoute`     | `/login`, `/register`                                                                                        | 已登录 → `/today`   |
 
 角色权限矩阵嵌在 `/admin/users` 页面中，依赖 `rbac:read` 展示和 `rbac:manage` 编辑，不是独立路由。
 

@@ -58,6 +58,7 @@ Do not modify backend routes in this plan.
 ### Task 1: Refresh Design Source And Token Contract
 
 **Files:**
+
 - Modify: `doc/DESIGN.md`
 - Modify: `frontend/src/styles/fonts.css`
 - Modify: `frontend/src/styles/design-tokens.css`
@@ -216,6 +217,7 @@ git commit -m "style: add lived-in morning brief design tokens"
 ### Task 2: Add Today Brief Pure Model
 
 **Files:**
+
 - Create: `frontend/src/features/today/types.ts`
 - Create: `frontend/src/features/today/todayBrief.ts`
 - Create: `frontend/tests/unit/today/today-brief.test.ts`
@@ -503,13 +505,18 @@ function buildAttentionItems(source: TodaySourceData): TodayAttentionItem[] {
       description: topMatch?.company
         ? `${topMatch.company}${topMatch.location ? ` · ${topMatch.location}` : ""}`
         : "薪资、地点或匹配度接近你的设定。",
-      metric: topMatch ? String(Math.round(topMatch.score)) : String(source.kpi.match_count),
+      metric: topMatch
+        ? String(Math.round(topMatch.score))
+        : String(source.kpi.match_count),
       actionLabel: "收藏",
       href: "/jobs",
     });
   }
 
-  if (source.home.configured && (!source.home.connected || source.home.unavailableCount > 0)) {
+  if (
+    source.home.configured &&
+    (!source.home.connected || source.home.unavailableCount > 0)
+  ) {
     items.push({
       id: "home-attention",
       kind: "home",
@@ -580,6 +587,7 @@ git commit -m "feat(frontend): add today brief model"
 ### Task 3: Add Today Data Hook With Existing APIs
 
 **Files:**
+
 - Create: `frontend/src/features/today/hooks/useTodayData.ts`
 - Create: `frontend/src/features/today/index.ts`
 - Modify: `frontend/tests/unit/mocks/handlers.ts`
@@ -765,14 +773,19 @@ export function useTodayData(): TodayDataState {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
-        const [kpiResult, productsResult, matchesResult, configResult, entitiesResult] =
-          await Promise.allSettled([
-            api.get<DashboardKPIResponse>("/v1/dashboard/kpi"),
-            productsApi.list({ active: true, page: 1, size: 5 }),
-            jobsApi.getMatchResults({ page: 1, page_size: 5 }),
-            smartHomeApi.getConfig(),
-            smartHomeApi.listEntities(),
-          ]);
+        const [
+          kpiResult,
+          productsResult,
+          matchesResult,
+          configResult,
+          entitiesResult,
+        ] = await Promise.allSettled([
+          api.get<DashboardKPIResponse>("/v1/dashboard/kpi"),
+          productsApi.list({ active: true, page: 1, size: 5 }),
+          jobsApi.getMatchResults({ page: 1, page_size: 5 }),
+          smartHomeApi.getConfig(),
+          smartHomeApi.listEntities(),
+        ]);
 
         if (cancelled) return;
 
@@ -803,7 +816,9 @@ export function useTodayData(): TodayDataState {
         const config =
           configResult.status === "fulfilled" ? configResult.value.data : null;
         const entities =
-          entitiesResult.status === "fulfilled" ? entitiesResult.value.data : null;
+          entitiesResult.status === "fulfilled"
+            ? entitiesResult.value.data
+            : null;
 
         const source: TodaySourceData = {
           now: new Date(),
@@ -815,7 +830,8 @@ export function useTodayData(): TodayDataState {
             connected: Boolean(entities?.connected),
             unavailableCount:
               entities?.items.filter((entity) => !entity.available).length ?? 0,
-            activeCount: entities?.items.filter((entity) => entity.available).length ?? 0,
+            activeCount:
+              entities?.items.filter((entity) => entity.available).length ?? 0,
           },
         };
 
@@ -886,6 +902,7 @@ Do not commit yet if the suite is red only because Task 4 must create `TodayPage
 ### Task 4: Build Today UI Components And Page
 
 **Files:**
+
 - Create: `frontend/src/features/today/components/DailySummary.tsx`
 - Create: `frontend/src/features/today/components/AttentionQueue.tsx`
 - Create: `frontend/src/features/today/components/QuietStatusPanel.tsx`
@@ -952,7 +969,10 @@ export function AttentionQueue({ items }: AttentionQueueProps) {
       <h2 id="today-attention-title">值得看</h2>
       <div className="today-attention-list">
         {items.map((item) => (
-          <article className={`today-attention today-attention--${item.kind}`} key={item.id}>
+          <article
+            className={`today-attention today-attention--${item.kind}`}
+            key={item.id}
+          >
             <div className="today-attention__time">{item.timeLabel}</div>
             <div>
               <h3>{item.title}</h3>
@@ -1140,7 +1160,11 @@ Add these class rules to `frontend/src/styles/components.css` near custom compon
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 255, 255, 0.28)
+    ),
     var(--color-canvas);
   box-shadow: var(--shadow-panel);
 }
@@ -1291,6 +1315,7 @@ git commit -m "feat(frontend): add lived-in today page"
 ### Task 5: Route Today First And Update App Shell
 
 **Files:**
+
 - Modify: `frontend/src/App.tsx`
 - Modify: `frontend/src/shared/components/AppLayout.tsx`
 - Modify: `frontend/tests/e2e/navigation.spec.ts`
@@ -1454,7 +1479,7 @@ Update menu labels:
 Replace visible `Price Monitor` with:
 
 ```tsx
-Mavra
+Mavra;
 ```
 
 Replace footer:
@@ -1466,7 +1491,7 @@ Mavra watches quietly © 2026
 Change logo letter from `P` to:
 
 ```tsx
-M
+M;
 ```
 
 - [ ] **Step 6: Update route E2E**
@@ -1536,6 +1561,7 @@ git commit -m "feat(frontend): route to today first"
 ### Task 6: Soften Global Components Without Breaking Dense Workflows
 
 **Files:**
+
 - Modify: `frontend/src/styles/components.css`
 - Modify: `frontend/src/index.css`
 - Modify: `frontend/src/features/dashboard/DashboardPage.tsx`
@@ -1696,6 +1722,7 @@ git commit -m "style(frontend): soften global app surfaces"
 ### Task 7: Mock-Only Browser QA
 
 **Files:**
+
 - Modify: `frontend/tests/e2e/navigation.spec.ts`
 - Optionally modify: `frontend/tests/e2e/fixtures/api-mock.ts`
 
@@ -1727,7 +1754,9 @@ In `frontend/tests/e2e/navigation.spec.ts`, add:
 ```ts
 test("renders today as the first warm brief screen", async ({ page }) => {
   await page.goto("/today");
-  await expect(page.getByRole("heading", { name: /今天只提醒|今天很安静/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /今天只提醒|今天很安静/ }),
+  ).toBeVisible();
   await expect(page.getByText("今天的状态")).toBeVisible();
   await expect(page.locator(".today-summary")).toBeVisible();
 });
@@ -1771,6 +1800,7 @@ git commit -m "test(frontend): cover today-first navigation"
 ### Task 8: Final Verification And Documentation Sync
 
 **Files:**
+
 - Modify: `README.md` if it still describes root as `/jobs` or dashboard-first
 - Modify: `doc/frontend-architecture.md` if it documents the old design-system routing
 - Modify: `docs/2026-06-10-lived-in-morning-brief-design-system.md` only if implementation changed decisions
