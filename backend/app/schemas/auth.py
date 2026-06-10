@@ -33,6 +33,40 @@ class UserLogin(BaseModel):
     password: str = Field(..., description="密码")
 
 
+class WeChatQrResponse(BaseModel):
+    """Response schema for WeChat QR login bootstrap."""
+    qr_url: str
+    state: str
+
+
+class WeChatBindRequest(BaseModel):
+    """Request schema for binding WeChat to an existing account."""
+    temp_token: str
+    username: str
+    password: str
+
+
+class WeChatRegisterRequest(BaseModel):
+    """Request schema for registering an account from a WeChat callback."""
+    temp_token: str
+    username: str = Field(..., min_length=3, max_length=50, description="用户名")
+    email: EmailStr = Field(..., description="邮箱")
+    password: str = Field(..., max_length=100, description="密码")
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        """Validate username: alphanumeric and underscore only."""
+        if not v.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("用户名只能包含字母、数字、下划线和连字符")
+        return v.strip()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        return validate_password_strength(v)
+
+
 class UserResponse(BaseResponseSchema):
     """Response schema for user information.
 

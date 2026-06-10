@@ -5,16 +5,18 @@ Feature-flagged: returns 503 when WeChat login is not configured.
 """
 import logging
 import secrets
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit_from_request
 from app.core.auth_cookies import set_auth_cookies
-from app.core.passwords import PASSWORD_STRENGTH_ERROR, validate_password_strength
 from app.core.permissions import get_role_permissions
 from app.core.security import (
     create_access_token,
@@ -28,14 +30,27 @@ from app.core.security import (
 from app.database import get_db
 from app.domains.auth import service as auth_service
 from app.models.user import User
-from app.schemas.auth import UserResponse
+from app.schemas.auth import (
+    UserResponse,
+    WeChatBindRequest,
+    WeChatQrResponse,
+    WeChatRegisterRequest,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth/wechat", tags=["wechat"])
 
 # In-memory state cache (short-lived, expires in 10 minutes)
-_state_cache: dict[str, datetime] = {}
+
+
+@dataclass(slots=True)
+class WeChatStateEntry:
+    issued_at: datetime
+    next_path: str
+
+
+_state_cache: dict[str, WeChatStateEntry] = {}
 
 WECHAT_QR_CONNECT_URL = "https://open.weixin.qq.com/connect/qrconnect"
 WECHAT_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token"
@@ -89,9 +104,64 @@ async def _create_wechat_auth_session(
 def _cleanup_expired_states() -> None:
     """Remove expired states from cache."""
     now = datetime.now(UTC)
-    expired = [k for k, v in _state_cache.items() if now - v > timedelta(minutes=10)]
+    expired = [
+        key
+        for key, entry in _state_cache.items()
+        if now - entry.issued_at > timedelta(minutes=10)
+    ]
     for k in expired:
         del _state_cache[k]
+
+
+def _normalize_next_path(raw_next: str | None) -> str:
+    """Allow only in-app relative paths for post-login redirects."""
+    if not raw_next:
+        return "/today"
+    if not raw_next.startswith("/") or raw_next.startswith("//"):
+        return "/today"
+
+    split = urlsplit(raw_next)
+    if split.scheme or split.netloc:
+        return "/today"
+
+    path = split.path or "/today"
+    return urlunsplit(("", "", path, split.query, ""))
+
+
+def _get_frontend_callback_url() -> str:
+    """Return the frontend callback landing URL for browser flows."""
+    return settings.wechat_frontend_callback_url or "http://localhost:3000/auth/wechat/callback"
+
+
+def _build_frontend_callback_redirect(
+    *,
+    status_value: str,
+    next_path: str | None = None,
+    reason: str | None = None,
+    temp_token: str | None = None,
+) -> str:
+    """Build the frontend callback URL with status query and optional fragment token."""
+    base = urlsplit(_get_frontend_callback_url())
+    query_items = [("status", status_value)]
+    if next_path:
+        query_items.append(("next", next_path))
+    if reason:
+        query_items.append(("reason", reason))
+    fragment = urlencode({"temp_token": temp_token}) if temp_token else ""
+    return urlunsplit(
+        (base.scheme, base.netloc, base.path, urlencode(query_items), fragment)
+    )
+
+
+def _redirect_to_frontend_error(reason: str) -> RedirectResponse:
+    """Redirect callback failures to the frontend error state."""
+    return RedirectResponse(
+        url=_build_frontend_callback_redirect(
+            status_value="error",
+            reason=reason,
+        ),
+        status_code=status.HTTP_302_FOUND,
+    )
 
 
 def _check_wechat_enabled() -> None:
@@ -108,8 +178,8 @@ def _check_wechat_enabled() -> None:
         )
 
 
-@router.get("/qr")
-async def get_wechat_qr_url():
+@router.get("/qr", response_model=WeChatQrResponse)
+async def get_wechat_qr_url(next: str | None = None):
     """Generate WeChat QR code authorization URL.
 
     Returns a URL for the user to scan with WeChat.
@@ -119,7 +189,10 @@ async def get_wechat_qr_url():
 
     _cleanup_expired_states()
     state = secrets.token_urlsafe(32)
-    _state_cache[state] = datetime.now(UTC)
+    _state_cache[state] = WeChatStateEntry(
+        issued_at=datetime.now(UTC),
+        next_path=_normalize_next_path(next),
+    )
 
     redirect_uri = settings.wechat_redirect_uri or "http://localhost:8000/auth/wechat/callback"
     qr_url = (
@@ -131,7 +204,7 @@ async def get_wechat_qr_url():
         f"&state={state}"
     )
 
-    return {"qr_url": qr_url, "state": state}
+    return WeChatQrResponse(qr_url=qr_url, state=state)
 
 
 @router.get("/callback")
@@ -152,12 +225,9 @@ async def wechat_callback(
 
     # Validate state
     _cleanup_expired_states()
-    if state not in _state_cache:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="无效的 state 参数或已过期",
-        )
-    del _state_cache[state]
+    state_entry = _state_cache.pop(state, None)
+    if state_entry is None:
+        return _redirect_to_frontend_error("state_expired")
 
     # Exchange code for token
     async with httpx.AsyncClient() as client:
@@ -173,30 +243,29 @@ async def wechat_callback(
 
     token_data = token_resp.json()
     if "errcode" in token_data:
-        logger.error(f"WeChat token exchange failed: {token_data}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"微信授权失败: {token_data.get('errmsg', '未知错误')}",
-        )
+        logger.error("WeChat token exchange failed: %s", token_data)
+        return _redirect_to_frontend_error("oauth_failed")
 
     openid = token_data.get("openid")
     if not openid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="无法获取微信 openid",
-        )
+        return _redirect_to_frontend_error("wechat_identity_missing")
 
     user = await auth_service.get_user_for_wechat_login(db, openid=openid)
 
     if user:
         # Already bound - login (set auth cookies)
         if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="用户已被禁用",
-            )
+            return _redirect_to_frontend_error("user_disabled")
 
-        user_resp = await _create_wechat_auth_session(user, request, response, db)
+        redirect_response = RedirectResponse(
+            url=_build_frontend_callback_redirect(
+                status_value="success",
+                next_path=state_entry.next_path,
+            ),
+            status_code=status.HTTP_302_FOUND,
+        )
+
+        await _create_wechat_auth_session(user, request, redirect_response, db)
 
         await log_audit_from_request(
             request,
@@ -209,7 +278,7 @@ async def wechat_callback(
             commit=True,
         )
 
-        return user_resp
+        return redirect_response
 
     # Not bound - return temporary token for binding
     temp_token = create_access_token(
@@ -217,17 +286,19 @@ async def wechat_callback(
         expires_delta=timedelta(minutes=10),
     )
 
-    return {
-        "temp_token": temp_token,
-        "message": "微信账号未绑定，请绑定现有账号或注册新账号",
-    }
+    return RedirectResponse(
+        url=_build_frontend_callback_redirect(
+            status_value="unbound",
+            next_path=state_entry.next_path,
+            temp_token=temp_token,
+        ),
+        status_code=status.HTTP_302_FOUND,
+    )
 
 
 @router.post("/bind", response_model=UserResponse)
 async def bind_wechat_account(
-    temp_token: str,
-    username: str,
-    password: str,
+    payload: WeChatBindRequest,
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -242,6 +313,10 @@ async def bind_wechat_account(
     _check_wechat_enabled()
 
     from app.core.security import decode_access_token, verify_password
+
+    temp_token = payload.temp_token
+    username = payload.username
+    password = payload.password
 
     payload = decode_access_token(temp_token)
     if not payload or not payload.get("temp") or not payload.get("wechat_openid"):
@@ -299,10 +374,7 @@ async def bind_wechat_account(
 
 @router.post("/register", response_model=UserResponse)
 async def register_with_wechat(
-    temp_token: str,
-    username: str,
-    email: str,
-    password: str,
+    payload: WeChatRegisterRequest,
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -319,6 +391,11 @@ async def register_with_wechat(
 
     from app.core.security import decode_access_token
 
+    temp_token = payload.temp_token
+    username = payload.username
+    email = payload.email
+    password = payload.password
+
     payload = decode_access_token(temp_token)
     if not payload or not payload.get("temp") or not payload.get("wechat_openid"):
         raise HTTPException(
@@ -333,14 +410,6 @@ async def register_with_wechat(
             status_code=status.HTTP_409_CONFLICT,
             detail="该微信账号已绑定其他用户",
         )
-
-    try:
-        validate_password_strength(password)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=PASSWORD_STRENGTH_ERROR,
-        ) from None
 
     try:
         new_user = await auth_service.register_wechat_user(

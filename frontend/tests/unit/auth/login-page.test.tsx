@@ -97,4 +97,40 @@ describe("LoginPage", () => {
     });
     expect(usernameInput.value).toBe("default");
   });
+
+  it("expands the WeChat panel and renders a QR code after loading", async () => {
+    server.use(
+      http.get("/api/v1/auth/wechat/qr", () =>
+        HttpResponse.json({
+          qr_url: "https://open.weixin.qq.com/connect/qrconnect?state=abc",
+          state: "abc",
+        }),
+      ),
+    );
+
+    renderWithApp(<LoginPage />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /wechat login/i }));
+
+    expect(await screen.findByText("Scan with WeChat")).toBeInTheDocument();
+    expect(screen.getByTitle("WeChat login QR")).toBeInTheDocument();
+  });
+
+  it("shows a disabled-state message when WeChat login is unavailable", async () => {
+    server.use(
+      http.get("/api/v1/auth/wechat/qr", () =>
+        HttpResponse.json({ detail: "微信登录未启用" }, { status: 503 }),
+      ),
+    );
+
+    renderWithApp(<LoginPage />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /wechat login/i }));
+
+    expect(
+      await screen.findByText("当前环境未启用微信登录"),
+    ).toBeInTheDocument();
+  });
 });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Form, Input, Button, App, Typography } from "antd";
 import { authApi } from "./api/auth";
+import WeChatLoginPanel from "./components/WeChatLoginPanel";
 import { useAuth } from "@/shared/contexts/AuthContext";
 
 const { Text } = Typography;
@@ -13,6 +14,7 @@ interface LoginFormValues {
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [showWeChatPanel, setShowWeChatPanel] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,20 +149,28 @@ export default function LoginPage() {
 
           <div style={{ marginTop: 16, textAlign: "center" }}>
             <Button
-              disabled
               size="large"
               block
+              onClick={() => setShowWeChatPanel((current) => !current)}
               style={{
                 borderRadius: 50,
                 background: "var(--color-surface-soft)",
                 borderColor: "var(--color-hairline)",
-                color: "var(--color-muted)",
+                color: "var(--color-ink)",
                 fontFamily: "var(--font-body)",
               }}
             >
-              WeChat Login (Coming Soon)
+              WeChat Login
             </Button>
           </div>
+          {showWeChatPanel ? (
+            <div style={{ marginTop: 16 }}>
+              <WeChatLoginPanel
+                nextPath={from}
+                onClose={() => setShowWeChatPanel(false)}
+              />
+            </div>
+          ) : null}
 
           <div className="login-form-footer">
             <Text className="login-footer-text">Don't have an account? </Text>

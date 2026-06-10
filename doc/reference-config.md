@@ -103,6 +103,7 @@
 | `WECHAT_APP_ID`        | 空      |              |
 | `WECHAT_APP_SECRET`    | 空      |              |
 | `WECHAT_REDIRECT_URI`  | 空      | 回调 URL     |
+| `WECHAT_FRONTEND_CALLBACK_URL` | `http://localhost:3000/auth/wechat/callback` | 前端微信回流展示页 |
 
 ## 数据保留
 

@@ -34,6 +34,11 @@ const LoginPage = React.lazy(() =>
 const RegisterPage = React.lazy(() =>
   import("@/features/auth").then((m) => ({ default: m.RegisterPage })),
 );
+const WeChatAuthCallbackPage = React.lazy(() =>
+  import("@/features/auth").then((m) => ({
+    default: m.WeChatAuthCallbackPage,
+  })),
+);
 const ProfilePage = React.lazy(() =>
   import("@/features/auth").then((m) => ({ default: m.ProfilePage })),
 );
@@ -287,6 +292,11 @@ function AppRoutes() {
         <BrowserRouter>
           <React.Suspense fallback={<PageLoader fullScreen />}>
             <Routes>
+              <Route
+                path="/auth/wechat/callback"
+                element={<WeChatAuthCallbackPage />}
+              />
+
               {/* Public routes */}
               <Route
                 path="/login"

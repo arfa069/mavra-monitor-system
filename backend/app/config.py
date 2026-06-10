@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     wechat_app_id: str | None = None
     wechat_app_secret: str | None = None
     wechat_redirect_uri: str | None = None
+    wechat_frontend_callback_url: str | None = None
 
     # Crawler worker settings
     crawler_worker_poll_interval_seconds: float = 5.0

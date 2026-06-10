@@ -3,11 +3,9 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import HTTPException
-from starlette.requests import Request
-from starlette.responses import Response
+from httpx import ASGITransport, AsyncClient
 
-from app.domains.auth import wechat_router
+from app.main import app
 
 pytestmark = pytest.mark.asyncio
 
@@ -30,28 +28,18 @@ async def test_register_with_wechat_rejects_weak_password(monkeypatch):
         register_spy,
     )
 
-    scope = {
-        "type": "http",
-        "method": "POST",
-        "path": "/auth/wechat/register",
-        "headers": [],
-        "query_string": b"",
-    }
-    request = Request(scope)
-    response = Response()
-    db = AsyncMock()
-
-    with pytest.raises(HTTPException) as exc_info:
-        await wechat_router.register_with_wechat(
-            temp_token="temp-token",
-            username="wechatuser",
-            email="wechat@example.com",
-            password="weakpass12",
-            request=request,
-            response=response,
-            db=db,
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/auth/wechat/register",
+            json={
+                "temp_token": "temp-token",
+                "username": "wechatuser",
+                "email": "wechat@example.com",
+                "password": "weakpass12",
+            },
         )
 
-    assert exc_info.value.status_code == 422
-    assert "10 位" in str(exc_info.value.detail)
+    assert response.status_code == 422
+    assert "10 位" in str(response.json()["detail"])
     register_spy.assert_not_awaited()
