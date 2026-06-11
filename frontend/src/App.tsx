@@ -34,6 +34,11 @@ const LoginPage = React.lazy(() =>
 const RegisterPage = React.lazy(() =>
   import("@/features/auth").then((m) => ({ default: m.RegisterPage })),
 );
+const WeChatAuthCallbackPage = React.lazy(() =>
+  import("@/features/auth").then((m) => ({
+    default: m.WeChatAuthCallbackPage,
+  })),
+);
 const ProfilePage = React.lazy(() =>
   import("@/features/auth").then((m) => ({ default: m.ProfilePage })),
 );
@@ -52,6 +57,9 @@ const ScheduleConfigPage = React.lazy(() =>
   })),
 );
 const SmartHomePage = React.lazy(() => import("@/features/smart-home"));
+const BlogAdminPage = React.lazy(() =>
+  import("@/features/blog").then((m) => ({ default: m.BlogAdminPage })),
+);
 
 function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
   return (
@@ -287,6 +295,11 @@ function AppRoutes() {
         <BrowserRouter>
           <React.Suspense fallback={<PageLoader fullScreen />}>
             <Routes>
+              <Route
+                path="/auth/wechat/callback"
+                element={<WeChatAuthCallbackPage />}
+              />
+
               {/* Public routes */}
               <Route
                 path="/login"
@@ -329,6 +342,14 @@ function AppRoutes() {
                   element={
                     <PermissionRoute permission="user:read">
                       <AdminAuditLogsPage />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/admin/blog"
+                  element={
+                    <PermissionRoute permission="blog:read_admin">
+                      <BlogAdminPage />
                     </PermissionRoute>
                   }
                 />

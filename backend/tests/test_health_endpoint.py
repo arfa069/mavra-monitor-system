@@ -8,6 +8,7 @@ from app.main import app
 @pytest.mark.anyio
 async def test_health_returns_only_status_field():
     """脱敏后 /health 只返回 status 字段，不再泄露 db/redis/scheduler 状态。"""
+    app.state.ready = True
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/health")
@@ -26,6 +27,7 @@ async def test_health_returns_only_status_field():
 @pytest.mark.anyio
 async def test_health_endpoint_is_public():
     """/health 不需要认证（保持容器/K8s 健康检查兼容）。"""
+    app.state.ready = True
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/health")

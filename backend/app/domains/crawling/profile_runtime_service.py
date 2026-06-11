@@ -19,36 +19,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crawler_paths import build_profile_dir
-from app.core.system_log import emit_system_log_detached
 from app.domains.crawling import profile_service
+from app.domains.crawling.profile_service import _emit_profile_event
 from app.domains.crawling.profile_pool import AVAILABLE, DISABLED, LOGIN_REQUIRED
 from app.domains.crawling.profile_utils import (
     assert_profile_not_leased,
 )
 from app.models.crawl_profile import CrawlProfile
 
-
-async def _emit_profile_event(
-    profile_key: str,
-    event_type: str,
-    *,
-    message: str,
-    severity: str = "info",
-    status: str = "success",
-    payload: dict | None = None,
-) -> None:
-    """Emit a system log event for a profile runtime operation."""
-    await emit_system_log_detached(
-        category="runtime",
-        event_type=event_type,
-        source="crawler",
-        severity=severity,
-        status=status,
-        message=message,
-        entity_type="crawl_profile",
-        entity_id=profile_key,
-        payload=payload,
-    )
 
 _BACKUP_MAGIC = b"PM_PROFILE_BACKUP_V1\n"
 _SALT_SIZE = 16

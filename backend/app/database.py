@@ -5,7 +5,7 @@ from app.config import settings
 
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.debug,
+    echo=settings.database_echo,
     pool_pre_ping=False,  # Disabled: causes cross-loop Future issues on Windows
     pool_size=10,
     max_overflow=20,

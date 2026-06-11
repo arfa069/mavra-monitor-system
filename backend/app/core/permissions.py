@@ -36,6 +36,9 @@ PERMISSIONS = {
     "smart_home:read": {"user", "admin", "super_admin"},
     "smart_home:control": {"user", "admin", "super_admin"},
     "smart_home:configure": {"admin", "super_admin"},
+    "blog:read_admin": {"admin", "super_admin"},
+    "blog:write": {"admin", "super_admin"},
+    "blog:publish": {"admin", "super_admin"},
 }
 
 

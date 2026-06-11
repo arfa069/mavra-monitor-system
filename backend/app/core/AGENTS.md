@@ -20,6 +20,7 @@
 
 - Browser main auth path uses HttpOnly cookies; `Authorization: Bearer` is fallback for scripts/API clients.
 - Unsafe methods require CSRF: `pm_csrf_token` cookie must match `X-CSRF-Token`.
+- Password writes must reuse the shared strong-password validator: minimum 10 characters with uppercase, lowercase, digit, and special character requirements.
 - New business permissions should prefer DB-backed `require_permission`; reserve `require_role` for operational boundaries.
 - Profile keys must reject empty/dot/path-traversal values.
 - Redact before persistence and before display.

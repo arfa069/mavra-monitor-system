@@ -141,4 +141,57 @@ test.describe("Authentication E2E", () => {
     expect(localStorageKeys.token).toBeNull();
     expect(localStorageKeys.user).toBeNull();
   });
+
+  test("supports WeChat success callback and navigates to the next path", async ({
+    page,
+    api,
+  }) => {
+    api.use("GET", "/api/v1/auth/me", () => ({
+      status: 200,
+      body: adminUser,
+    }));
+
+    await page.goto("/auth/wechat/callback?status=success&next=%2Fjobs");
+    await page.waitForURL("**/jobs");
+    await expect(page).toHaveURL(/.*\/jobs/);
+  });
+
+  test("supports WeChat unbound flow by binding an existing account", async ({
+    page,
+    api,
+  }) => {
+    api.use("GET", "/api/v1/auth/me", () => ({
+      status: 401,
+      body: { detail: "Not authenticated" },
+    }));
+    api.use("POST", "/api/v1/auth/wechat/bind", () => ({
+      status: 200,
+      body: adminUser,
+    }));
+
+    await page.goto(
+      "/auth/wechat/callback?status=unbound&next=%2Ftoday#temp_token=temp-1",
+    );
+    await page.getByLabel("Username").fill("default");
+    await page.getByLabel("Password").fill("Adminf8869!@");
+    await page.click('button:has-text("绑定已有账号")');
+
+    await page.waitForURL("**/today");
+    await expect(page).toHaveURL(/.*\/today/);
+  });
+
+  test("shows a callback error message and returns to /login", async ({
+    page,
+    api,
+  }) => {
+    api.use("GET", "/api/v1/auth/me", () => ({
+      status: 401,
+      body: { detail: "Not authenticated" },
+    }));
+
+    await page.goto("/auth/wechat/callback?status=error&reason=state_expired");
+    await expect(page.getByText("微信登录失败，请重新扫码")).toBeVisible();
+    await page.getByRole("button", { name: "返回登录页" }).click();
+    await expect(page).toHaveURL(/.*\/login/);
+  });
 });

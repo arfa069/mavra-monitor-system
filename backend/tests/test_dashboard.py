@@ -220,7 +220,7 @@ class TestDashboardService:
         assert redis.setex_calls == [
             (
                 "dashboard:kpi:user:3",
-                25,
+                DashboardService.USER_KPI_CACHE_TTL,
                 json.dumps(kpi.model_dump(), ensure_ascii=False),
             )
         ]

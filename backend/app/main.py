@@ -1,12 +1,6 @@
 """FastAPI application entry point."""
-import asyncio
 import logging
-import sys
 from contextlib import asynccontextmanager
-
-# Windows requires ProactorEventLoop for subprocess support (Playwright spawns browser drivers)
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 import redis.asyncio as redis
 from fastapi import FastAPI, Request
@@ -22,6 +16,8 @@ from app.domains.admin import router as admin_users_router
 from app.domains.alerts import router as alerts_router
 from app.domains.auth import router as auth_router
 from app.domains.auth.wechat_router import router as wechat_router
+from app.domains.blog import media_router as blog_media_router
+from app.domains.blog import router as blog_router
 from app.domains.config import router as config_router
 from app.domains.crawling import router as crawl_router
 from app.domains.crawling.profile_router import router as profile_router
@@ -106,6 +102,18 @@ async def _emit_scheduler_event(event_type: str, message: str) -> None:
     )
 
 
+async def publish_due_blog_posts_job() -> int:
+    """Publish scheduled blog posts whose publish time has arrived."""
+    from app.database import AsyncSessionLocal
+    from app.domains.blog.service import publish_due_posts
+
+    async with AsyncSessionLocal() as db:
+        published_count = await publish_due_posts(db)
+    if published_count:
+        logger.info("Published %d scheduled blog posts", published_count)
+    return published_count
+
+
 async def _emit_http_event(
     event_type: str,
     path: str,
@@ -155,6 +163,16 @@ async def _start_scheduler(app: FastAPI) -> None:
     app.state.product_cron_scheduler = product_cron_scheduler
     await product_cron_scheduler.sync_all()
 
+    scheduler.add_job(
+        publish_due_blog_posts_job,
+        "interval",
+        minutes=1,
+        id="blog_publish_due_posts",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+
     scheduler.start()
     logger.info("APScheduler started")
     await _emit_scheduler_event("scheduler.started", "APScheduler started")
@@ -191,6 +209,7 @@ _APPLICATION_ROUTERS = (
     jobs_router,
     auth_router,
     wechat_router,
+    blog_router,
     events_router,
     admin_users_router,
     admin_router,
@@ -209,6 +228,7 @@ def _include_application_routers(prefix: str = "") -> None:
 # Include legacy routes and v1 routes. The frontend dev proxy strips /api, so
 # /api/v1/... in the browser reaches /v1/... on the backend.
 _include_application_routers()
+app.include_router(blog_media_router)
 app.include_router(crawl_router, prefix="/products")
 _include_application_routers(prefix="/v1")
 app.include_router(crawl_router, prefix="/v1")

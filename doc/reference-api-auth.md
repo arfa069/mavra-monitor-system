@@ -122,10 +122,19 @@
 
 | 方法 | 端点                    | 说明                    |
 | ---- | ----------------------- | ----------------------- |
-| POST | `/auth/wechat/qr`       | 生成二维码 + state      |
-| GET  | `/auth/wechat/callback` | 微信回调（服务端用）    |
-| POST | `/auth/wechat/bind`     | 已登录用户绑定微信      |
+| GET  | `/auth/wechat/qr`       | 生成二维码 + state      |
+| GET  | `/auth/wechat/callback` | 微信回调后重定向前端    |
+| POST | `/auth/wechat/bind`     | 用临时 token 绑定已有账号 |
 | POST | `/auth/wechat/register` | 用微信 + 强密码创建账号 |
+
+补充约定：
+
+- `GET /auth/wechat/qr` 支持可选 `next` 参数，但只接受站内相对路径；非法值会回退到 `/today`。
+- `GET /auth/wechat/callback` 不再直接给浏览器返回最终登录 JSON。
+- 已绑定用户：后端写入认证 Cookie 后，302 跳转到 `/auth/wechat/callback?status=success&next=...`。
+- 未绑定用户：302 跳转到 `/auth/wechat/callback?status=unbound&next=...#temp_token=...`。
+- 错误场景：302 跳转到 `/auth/wechat/callback?status=error&reason=...`。
+- `temp_token` 只用于当前绑定/注册流程，不落盘，不写入 `localStorage` / `sessionStorage`，也不通过 query 传播。
 
 ---
 

@@ -18,6 +18,9 @@ export type Permission =
   | "rbac:manage"
   | "smart_home:read"
   | "smart_home:control"
-  | "smart_home:configure";
+  | "smart_home:configure"
+  | "blog:read_admin"
+  | "blog:write"
+  | "blog:publish";
 
 export type PermissionLevel = "manage" | "edit" | "read" | null;

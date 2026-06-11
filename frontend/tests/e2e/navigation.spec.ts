@@ -155,7 +155,10 @@ test.describe("Navigation and Permission E2E", () => {
     await page.waitForURL("**/schedule");
     await expect(page.locator("[data-page-transition]")).toBeVisible();
 
-    await page.locator(".ant-menu-item").filter({ hasText: /^Home$/ }).click();
+    await page
+      .locator(".ant-menu-item")
+      .filter({ hasText: /^Home$/ })
+      .click();
     await page.waitForURL("**/smart-home");
     await expect(page.locator("[data-page-transition]")).toBeVisible();
   });

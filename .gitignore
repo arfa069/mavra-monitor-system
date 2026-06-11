@@ -37,6 +37,7 @@ Thumbs.db
 TODOS.md
 plan/
 .superpowers/
+.dup-scan/
 docs/2026-05-13-resource-permission-impl.md
 docs/whimsical-growing-sutton.md
 
@@ -129,7 +130,13 @@ set_password.py
 backend/app/platforms/.boss_cookies.json
 backend/app/platforms/.51job_cookies.json
 /backend/logs
+/backend/uploads
 /profiles
+.npm-cache/
+frontend/.npm-cache/
+blog-frontend/.npm-cache/
+blog-frontend/.next/
+blog-frontend/node_modules/
 
 /.reasonix
 /.playwright-mcp

@@ -150,7 +150,7 @@ async def delete_product_cron_config(
 ):
     """Delete a per-platform cron config for product crawling."""
     try:
-        config = await service.delete_product_cron_config(
+        config = await service.get_product_cron_config_for_deletion(
             db, user_id=current_user.id, platform=platform
         )
     except service.InvalidPlatformError as exc:
@@ -168,7 +168,7 @@ async def delete_product_cron_config(
             logger.error("Failed to remove job from scheduler: %s", exc)
             raise _scheduler_error(exc) from exc
 
-    await service.remove_product_cron_config(db, config=config)
+    await service.delete_product_cron_config(db, config=config)
 
     await _log_product_cron_audit(
         db=db,

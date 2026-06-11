@@ -119,12 +119,6 @@ async def add_login_log(
     )
 
 
-async def delete_session_for_token(
-    db: AsyncSession, *, user_id: int, token: str
-) -> bool:
-    return await repository.delete_session_for_token(db, user_id=user_id, token=token)
-
-
 async def update_profile(
     db: AsyncSession, *, user: User, update_data: ProfileUpdate
 ) -> User:

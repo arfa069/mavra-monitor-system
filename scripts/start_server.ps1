@@ -1,6 +1,7 @@
 param(
     [switch]$BackendOnly,
     [switch]$NoCrawlerWorker,
+    [switch]$NoBlogFrontend,
     [string]$PythonExe = "C:\Users\arfac\AppData\Local\Programs\Python\Python314\python.exe",
     [int]$CrawlerConcurrency = 3
 )
@@ -11,6 +12,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $projectRoot "backend"
 $frontendDir = Join-Path $projectRoot "frontend"
+$blogFrontendDir = Join-Path $projectRoot "blog-frontend"
 $backendLogDir = Join-Path $backendDir "logs"
 $workerLog = Join-Path $backendLogDir "crawler-worker.log"
 
@@ -35,7 +37,7 @@ function Get-PortUsage {
 }
 
 function Close-ServiceWindows {
-    $keywords = @("uvicorn", "npm", "vite", "node", "python", "crawler")
+    $keywords = @("uvicorn", "npm", "vite", "next", "node", "python", "crawler")
     $toClose = @()
 
     $procs = Get-CimInstance Win32_Process | Where-Object {
@@ -99,6 +101,15 @@ if ($frontendPort) {
     }
 }
 
+$blogPort = Get-PortUsage -Port 3001
+if ($blogPort -and -not $NoBlogFrontend -and -not $BackendOnly) {
+    $portIssues += [PSCustomObject]@{
+        Port = 3001
+        Service = "Blog Frontend"
+        Info = $blogPort
+    }
+}
+
 $backendPort = Get-PortUsage -Port 8000
 if ($backendPort) {
     $portIssues += [PSCustomObject]@{
@@ -141,6 +152,9 @@ if ($portIssues -or $workerProcs) {
 }
 
 Write-Host "  [OK] Port 3000 (Frontend): Free" -ForegroundColor Green
+if (-not $NoBlogFrontend -and -not $BackendOnly) {
+    Write-Host "  [OK] Port 3001 (Blog):     Free" -ForegroundColor Green
+}
 Write-Host "  [OK] Port 8000 (Backend):  Free" -ForegroundColor Green
 Write-Host "  [OK] Crawler Worker:        Free" -ForegroundColor Green
 
@@ -167,8 +181,16 @@ if (-not $BackendOnly) {
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
     Write-Host "[Frontend] http://localhost:3000" -ForegroundColor Magenta
 
+    if (-not $NoBlogFrontend -and (Test-Path $blogFrontendDir)) {
+        Write-Host ""
+        Write-Host "[Blog] Starting..." -ForegroundColor Yellow
+        $blogCmd = "Set-Location `"$blogFrontendDir`"; npm run dev -- --port 3001"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", $blogCmd
+        Write-Host "[Blog] http://localhost:3001/blog" -ForegroundColor Yellow
+    }
+
     Write-Host ""
-    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
+    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker, -NoBlogFrontend to skip the public blog, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
 }
 
 Write-Host ""

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useSSE } from "@/shared/hooks/useSSE";
 import type { DashboardKPIResponse } from "../types";
 
 interface SSEState {
@@ -7,7 +8,8 @@ interface SSEState {
   error: string | null;
 }
 
-const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000, 30000];
+const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
+const SSE_URL = `${apiUrl}/dashboard/events`;
 
 export function useDashboardSSE(): SSEState {
   const [state, setState] = useState<SSEState>({
@@ -15,72 +17,31 @@ export function useDashboardSSE(): SSEState {
     connected: false,
     error: null,
   });
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectAttemptRef = useRef(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    function connect() {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-
-      const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
-      const es = new EventSource(`${apiUrl}/dashboard/events`, {
-        withCredentials: true,
-      });
-      eventSourceRef.current = es;
-
-      es.onopen = () => {
-        setState((prev) => ({ ...prev, connected: true, error: null }));
-        reconnectAttemptRef.current = 0;
-      };
-
-      es.onmessage = (event) => {
-        try {
-          const parsed = JSON.parse(event.data);
-          if (parsed.event === "kpi_update") {
-            const response: DashboardKPIResponse = {
-              user: parsed.data,
-              system: parsed.system || null,
-            };
-            setState((prev) => ({ ...prev, data: response }));
-          }
-        } catch {
-          // Ignore parse errors
+  useSSE(SSE_URL, {
+    onOpen: () =>
+      setState((prev) => ({ ...prev, connected: true, error: null })),
+    onMessage: (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (parsed.event === "kpi_update") {
+          const response: DashboardKPIResponse = {
+            user: parsed.data,
+            system: parsed.system || null,
+          };
+          setState((prev) => ({ ...prev, data: response }));
         }
-      };
-
-      es.onerror = () => {
-        setState((prev) => ({
-          ...prev,
-          connected: false,
-          error: "连接断开，正在重连...",
-        }));
-        es.close();
-
-        const delay =
-          RECONNECT_DELAYS[
-            Math.min(reconnectAttemptRef.current, RECONNECT_DELAYS.length - 1)
-          ];
-        reconnectAttemptRef.current += 1;
-
-        reconnectTimerRef.current = setTimeout(() => {
-          connect();
-        }, delay);
-      };
-    }
-
-    connect();
-    return () => {
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
+      } catch {
+        // Ignore parse errors
       }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-  }, []);
+    },
+    onError: () =>
+      setState((prev) => ({
+        ...prev,
+        connected: false,
+        error: "连接断开，正在重连...",
+      })),
+  });
 
   return state;
 }

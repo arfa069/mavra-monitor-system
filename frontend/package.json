@@ -19,6 +19,11 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
     "@tanstack/react-query": "^5.99.2",
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-link": "^3.26.0",
+    "@tiptap/extension-placeholder": "^3.26.0",
+    "@tiptap/react": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
     "antd": "^6.3.6",
     "axios": "^1.15.2",
     "cron-validator": "^1.4.0",
@@ -28,6 +33,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
+    "react-qr-code": "^2.2.0",
     "react-router-dom": "^7.14.2",
     "recharts": "^3.8.1"
   },

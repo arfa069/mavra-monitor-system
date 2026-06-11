@@ -58,9 +58,16 @@ class Settings(BaseSettings):
     # Smart home settings
     smart_home_secret_key: str = ""
 
+    # Blog settings
+    blog_media_root: str = "uploads/blog"
+    blog_media_public_prefix: str = "/blog-media"
+    blog_media_max_bytes: int = Field(default=8 * 1024 * 1024, ge=1)
+    blog_public_base_url: str = "http://localhost:3001"
+
     # App settings
     app_name: str = "Price Monitor"
     debug: bool = False
+    database_echo: bool = False
     allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     crawler_headless: bool = True
     product_crawl_concurrency: int = Field(default=1, ge=1)
@@ -84,6 +91,7 @@ class Settings(BaseSettings):
     wechat_app_id: str | None = None
     wechat_app_secret: str | None = None
     wechat_redirect_uri: str | None = None
+    wechat_frontend_callback_url: str | None = None
 
     # Crawler worker settings
     crawler_worker_poll_interval_seconds: float = 5.0

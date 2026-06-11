@@ -14,6 +14,7 @@ E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 5
 - Job search monitoring for Boss Zhipin, 51job, and Liepin
 - Dashboard with KPI cards, trend charts, salary/platform distributions, admin system health, and SSE KPI updates
 - Database-backed RBAC with dynamic role-permission matrix and resource-level permissions
+- Public SEO blog at `/blog` backed by a separate Next.js App Router app and admin writing tools in the console
 - RESTful API for product and alert management
 - Mobile-responsive UI with accessibility support (WCAG compliance)
 
@@ -35,6 +36,8 @@ cd backend && uvicorn app.main:app
 ```
 
 > **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Use `python -m uvicorn app.main:app` or `uvicorn app.main:app` instead (without `--reload`).
+>
+> `scripts/start_server.ps1` starts backend `8000`, Vite console `3000`, crawler worker, and the Next.js public blog `3001`. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
 
 ## Configuration
 
@@ -49,7 +52,17 @@ FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
 SMART_HOME_SECRET_KEY=...
 
 # Browser frontend origins allowed by CORS. Comma-separated or JSON list.
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
+
+# Public blog
+BLOG_PUBLIC_BASE_URL=http://localhost:3001
+BLOG_MEDIA_ROOT=uploads/blog
+BLOG_MEDIA_PUBLIC_PREFIX=/blog-media
+BLOG_MEDIA_MAX_BYTES=8388608
+# Optional Next.js blog runtime overrides.
+BLOG_API_BASE_URL=http://127.0.0.1:8000/v1
+BLOG_BACKEND_ORIGIN=http://127.0.0.1:8000
+NEXT_PUBLIC_BLOG_BASE_URL=http://localhost:3001
 
 # CDP mode — connect to an already-running browser (e.g. Edge/Chrome started with --remote-debugging-port=9222)
 # Used by product/JD flows that need a real browser session.
@@ -110,6 +123,14 @@ JD_COOKIE=...
 | GET              | /dashboard/events                                 | Dashboard KPI SSE stream                           | 是    |
 | GET              | /dashboard/trends                                 | Dashboard chart data (`type`, `days`)              | 是    |
 | GET              | /dashboard/alerts/recent                          | Recent alerts for admin dashboard                  | admin |
+| GET              | /blog/posts                                       | Public published blog posts                        | 否    |
+| GET              | /blog/posts/{slug}                                | Public published blog post detail                  | 否    |
+| GET              | /blog/categories                                  | Public blog categories                             | 否    |
+| GET              | /blog/tags                                        | Public blog tags                                   | 否    |
+| GET              | /blog-media/{file_name}                           | Public uploaded blog media                         | 否    |
+| GET/POST         | /blog/admin/posts                                 | List/Create blog posts for writers                 | admin |
+| GET/PATCH/DELETE | /blog/admin/posts/{post_id}                       | Manage draft, scheduled, published, archived posts | admin |
+| POST             | /blog/admin/uploads                               | Upload local blog images                           | admin |
 | GET/POST/DELETE  | /jobs/resumes                                     | List/Create/Delete resumes                         | 是    |
 | PATCH            | /jobs/resumes/{id}                                | Update a resume                                    | 是    |
 | GET              | /jobs/match-results                               | List match results                                 | 是    |
@@ -341,6 +362,19 @@ Product crawls still use the app-level crawl semaphore. Job crawls use database-
 ```
 
 Query parameters: `page` (default 1), `size` (default 15, max 100), `platform`, `active`, `keyword` (debounced search by title/URL).
+
+### Public Blog Deployment
+
+The public blog is a separate Next.js app in `blog-frontend/`. In production, keep the existing Vite console and route these paths through the reverse proxy:
+
+| Path | Target |
+| ---- | ------ |
+| `/blog` | Next.js blog frontend |
+| `/_next` | Next.js blog frontend static assets |
+| `/sitemap.xml` | Next.js blog frontend |
+| `/robots.txt` | Next.js blog frontend |
+| `/api` | FastAPI backend |
+| `/blog-media` | FastAPI backend local media responses |
 
 See `ARCHITECTURE.md` for detailed architecture.
 

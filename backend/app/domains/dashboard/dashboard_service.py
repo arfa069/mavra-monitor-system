@@ -50,16 +50,21 @@ class DashboardService:
 
     async def calculate_user_kpi(self, user_id: int) -> UserKPI:
         """Calculate personal KPI metrics for a user."""
-        cache_key = f"dashboard:kpi:user:{user_id}"
-        cached = await self._get_cached(cache_key)
-        if cached is not None:
-            return UserKPI.model_validate(cached)
-
-        kpi = await self._calculate_user_kpi_uncached(user_id)
-        await self._set_cached(
-            cache_key, kpi.model_dump(), self.USER_KPI_CACHE_TTL
+        return await self._cached_or_compute(
+            f"dashboard:kpi:user:{user_id}",
+            lambda: self._calculate_user_kpi_uncached(user_id),
+            UserKPI,
+            self.USER_KPI_CACHE_TTL,
         )
-        return kpi
+
+    async def _cached_or_compute(self, key: str, factory, schema_cls, ttl: int):
+        """Generic cache-or-compute: return cached model_validate(hit) or factory() result."""
+        cached = await self._get_cached(key)
+        if cached is not None:
+            return schema_cls.model_validate(cached)
+        result = await factory()
+        await self._set_cached(key, result.model_dump(), ttl)
+        return result
 
     async def _get_cached(self, key: str) -> Any | None:
         """Read and deserialize a JSON value from Redis."""
@@ -218,16 +223,12 @@ class DashboardService:
 
     async def calculate_system_kpi(self) -> SystemKPI:
         """Calculate system-level KPI metrics."""
-        cache_key = "dashboard:kpi:system"
-        cached = await self._get_cached(cache_key)
-        if cached is not None:
-            return SystemKPI.model_validate(cached)
-
-        kpi = await self._calculate_system_kpi_uncached()
-        await self._set_cached(
-            cache_key, kpi.model_dump(), self.SYSTEM_KPI_CACHE_TTL
+        return await self._cached_or_compute(
+            "dashboard:kpi:system",
+            self._calculate_system_kpi_uncached,
+            SystemKPI,
+            self.SYSTEM_KPI_CACHE_TTL,
         )
-        return kpi
 
     async def _calculate_system_kpi_uncached(self) -> SystemKPI:
         """Calculate system-level KPI metrics."""
@@ -761,13 +762,7 @@ class DashboardService:
         )
 
     async def _get_cached_trend(self, key: str, factory) -> TrendResponse:
-        cached = await self._get_cached(key)
-        if cached is not None:
-            return TrendResponse.model_validate(cached)
-
-        trend = await factory()
-        await self._set_cached(key, trend.model_dump(), self.TREND_CACHE_TTL)
-        return trend
+        return await self._cached_or_compute(key, factory, TrendResponse, self.TREND_CACHE_TTL)
 
     async def _get_platform_success_rates_uncached(self) -> TrendResponse:
         """Get success rate per platform."""

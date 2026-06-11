@@ -62,6 +62,18 @@ export const test = base.extend<Fixtures>({
       status: 401,
       body: { detail: "Refresh token expired" },
     }));
+    api.use("GET", "/api/v1/auth/wechat/qr", () => ({
+      body: {
+        qr_url: "https://open.weixin.qq.com/connect/qrconnect?state=test-state",
+        state: "test-state",
+      },
+    }));
+    api.use("POST", "/api/v1/auth/wechat/bind", () => ({
+      body: adminUser,
+    }));
+    api.use("POST", "/api/v1/auth/wechat/register", () => ({
+      body: adminUser,
+    }));
 
     // Dashboard
     api.use("GET", "/api/v1/dashboard/kpi", () => ({

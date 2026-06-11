@@ -2,6 +2,13 @@
 from app.models.alert import Alert
 from app.models.audit_log import UserAuditLog
 from app.models.base import Base
+from app.models.blog import (
+    BlogCategory,
+    BlogMedia,
+    BlogPost,
+    BlogTag,
+    blog_posts_tags,
+)
 from app.models.crawl_log import CrawlLog
 from app.models.crawl_profile import CrawlProfile
 from app.models.crawl_task import CrawlTaskRecord
@@ -23,6 +30,11 @@ from app.models.user import User
 
 __all__ = [
     "Base",
+    "BlogPost",
+    "BlogCategory",
+    "BlogTag",
+    "BlogMedia",
+    "blog_posts_tags",
     "User",
     "Product",
     "ProductPlatformCron",

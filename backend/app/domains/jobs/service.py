@@ -100,10 +100,6 @@ async def delete_job_config(
     return config, config_info
 
 
-async def remove_job_config(db: AsyncSession, *, config: JobSearchConfig) -> None:
-    await repository.delete_job_config(db, config=config)
-
-
 async def update_job_config_cron(
     db: AsyncSession,
     *,

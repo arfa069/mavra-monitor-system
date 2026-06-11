@@ -1,22 +1,12 @@
 import { List, Tag, Badge, Empty, Skeleton } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { formatDateTime } from "@/shared/utils/date";
 import type { RecentAlert } from "../types";
 
 interface RecentAlertsPanelProps {
   alerts: RecentAlert[] | undefined;
   loading: boolean;
-}
-
-function formatTime(iso: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  return date.toLocaleString("zh-CN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function RecentAlertsPanel({
@@ -104,7 +94,7 @@ export function RecentAlertsPanel({
                     marginLeft: "auto",
                   }}
                 >
-                  {formatTime(alert.created_at)}
+                  {formatDateTime(alert.created_at)}
                 </span>
               </div>
               <div
