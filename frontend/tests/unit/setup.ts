@@ -30,6 +30,10 @@ window.matchMedia = (query: string) => ({
   dispatchEvent: () => false,
 });
 
+const nativeGetComputedStyle = window.getComputedStyle.bind(window);
+window.getComputedStyle = ((element: Element, pseudoElt?: string | null) =>
+  pseudoElt ? nativeGetComputedStyle(element) : nativeGetComputedStyle(element)) as typeof window.getComputedStyle;
+
 class ResizeObserverStub {
   observe() {}
   unobserve() {}

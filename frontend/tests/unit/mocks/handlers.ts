@@ -18,6 +18,9 @@ export const testUser = {
     "job:read",
     "job:write",
     "smart_home:read",
+    "blog:read_admin",
+    "blog:write",
+    "blog:publish",
   ],
 };
 

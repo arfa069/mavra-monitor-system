@@ -22,6 +22,7 @@ import {
   LogoutOutlined,
   SettingOutlined,
   DashboardOutlined,
+  FileTextOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -106,6 +107,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       "/products",
       "/dashboard",
       "/smart-home",
+      "/admin/blog",
     ].find((p) => path.startsWith(p));
     if (prefix) return prefix;
     if (path.startsWith("/admin")) return path;
@@ -154,6 +156,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         icon: <HomeOutlined style={{ fontSize: 14 }} />,
         label: "Home",
       },
+      ...(hasPermission("blog:read_admin")
+        ? [
+            {
+              key: "/admin/blog",
+              icon: <FileTextOutlined style={{ fontSize: 14 }} />,
+              label: "Blog",
+            },
+          ]
+        : []),
       ...(hasPermission("user:read")
         ? [
             {

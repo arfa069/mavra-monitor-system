@@ -57,6 +57,9 @@ const ScheduleConfigPage = React.lazy(() =>
   })),
 );
 const SmartHomePage = React.lazy(() => import("@/features/smart-home"));
+const BlogAdminPage = React.lazy(() =>
+  import("@/features/blog").then((m) => ({ default: m.BlogAdminPage })),
+);
 
 function PageLoader({ fullScreen }: { fullScreen?: boolean }) {
   return (
@@ -339,6 +342,14 @@ function AppRoutes() {
                   element={
                     <PermissionRoute permission="user:read">
                       <AdminAuditLogsPage />
+                    </PermissionRoute>
+                  }
+                />
+                <Route
+                  path="/admin/blog"
+                  element={
+                    <PermissionRoute permission="blog:read_admin">
+                      <BlogAdminPage />
                     </PermissionRoute>
                   }
                 />

@@ -16,6 +16,9 @@ dependencies = [
     "beautifulsoup4>=4.12.3",
     "bcrypt>=4.0.0",
     "cryptography>=42.0.0",
+    "email-validator>=2.1.0",
+    "nh3>=0.2.17",
+    "python-jose[cryptography]>=3.3.0",
     "curl_cffi>=0.7.0",
     "cloakbrowser>=0.3.30",
     "playwright>=1.42.0",
@@ -55,8 +58,12 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-asyncio_default_test_loop_scope = "session"
+asyncio_default_fixture_loop_scope = "session"
+cache_dir = ".pytest_tmp_cache"
 addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore:.*asyncio.*:DeprecationWarning:pytest_asyncio\\.plugin",
+]
 
 [tool.coverage.run]
 source = ["app"]

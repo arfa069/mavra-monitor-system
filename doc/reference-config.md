@@ -13,7 +13,7 @@
 | `REDIS_URL`             | Redis 连接                   | `redis://localhost:6379/0`                                                                  |
 | `FEISHU_WEBHOOK_URL`    | 默认飞书 webhook             | `https://open.feishu.cn/open-apis/bot/v2/hook/xxx`                                          |
 | `SMART_HOME_SECRET_KEY` | Fernet key（32 字节 base64） | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| `ALLOWED_ORIGINS`       | CORS 来源                    | `http://localhost:3000,http://127.0.0.1:3000` 或 JSON list                                  |
+| `ALLOWED_ORIGINS`       | CORS 来源                    | `http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001` 或 JSON list |
 
 > `FEISHU_WEBHOOK_URL` 在 user 级 PATCH 后**会被覆盖**；`ALLOWED_ORIGINS` 必须在启动时存在。
 
@@ -128,6 +128,18 @@
 | `SMART_HOME_SECRET_KEY`          | —      | 必填；Fernet 32 字节 base64 |
 | `SMART_HOME_CONNECT_TIMEOUT`     | `10`   | 测连通性 timeout            |
 | `SMART_HOME_WEBSOCKET_RECONNECT` | `true` | SSE 断开自动重连            |
+
+## Public Blog
+
+| 变量                       | 默认                    | 说明                                      |
+| -------------------------- | ----------------------- | ----------------------------------------- |
+| `BLOG_PUBLIC_BASE_URL`     | `http://localhost:3001` | canonical、OG、JSON-LD 使用的公开站点根地址 |
+| `BLOG_MEDIA_ROOT`          | `uploads/blog`          | 后端本地图片存储目录，相对 backend 目录解析 |
+| `BLOG_MEDIA_PUBLIC_PREFIX` | `/blog-media`           | 公开媒体响应路径前缀                      |
+| `BLOG_MEDIA_MAX_BYTES`     | `8388608`               | 单文件上传上限，默认 8MB                  |
+| `BLOG_API_BASE_URL`        | `http://127.0.0.1:8000/v1` | Next.js 读取公开博客 API 的后端地址      |
+| `BLOG_BACKEND_ORIGIN`      | `http://127.0.0.1:8000` | Next.js 本地 `/blog-media/*` rewrite 目标 |
+| `NEXT_PUBLIC_BLOG_BASE_URL` | `http://localhost:3001` | Next.js 客户端公开 canonical base 覆盖值  |
 
 ## 系统
 
