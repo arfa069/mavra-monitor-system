@@ -158,3 +158,17 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 - Boss runtime JSONL logs live under `backend/logs/boss_cloak_adapter_<timestamp>.jsonl` and are gitignored.
 - GitNexus full-text index warning may appear; run `npx gitnexus analyze --force` if keyword search is degraded.
 - Smart home config lives under `/v1/smart-home/*`; do not store Home Assistant tokens without a real `SMART_HOME_SECRET_KEY`.
+
+## API CONTRACT & ORVAL WORKFLOW
+
+**CRITICAL RULE: NEVER MANUALLY WRITE AXIOS REQUESTS OR TYPESCRIPT API INTERFACES IN THE FRONTEND.**
+
+We use `Orval` for End-to-End Type Safety. When you need to add or modify an API feature, you MUST follow this exact sequence:
+
+1. **Backend First**: Modify the FastAPI routes and Pydantic schemas. 
+2. **Export OpenAPI**: Run the script to export the latest OpenAPI schema:
+   `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; python scripts/export_openapi.py"`
+3. **Generate Frontend Hooks**: Run the Orval generator:
+   `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run api:generate"`
+4. **Use Hooks in React**: In your React components, ONLY import and use the React Query hooks (e.g., `useGetProducts`) from `frontend/src/shared/api/generated/`. Do not write custom `axios.get/post` calls for business logic.
+5. **Git Commit**: Always include the modified backend files AND the newly generated frontend `generated` directory in your commit.

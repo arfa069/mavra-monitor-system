@@ -234,19 +234,20 @@ const api = axios.create({
 - `>= 400` — 从 `response.data.detail` 提取错误信息
 - `ECONNABORTED` / 无响应 — 超时提示（notification.warning）
 
-### 5.2 API 模块（api/\*.ts）
+### 5.2 API 模块与 Orval 自动生成
 
-每个域一个文件，导出命名函数：
+为了确保前后端完全的类型安全（End-to-End Type Safety），我们强制使用 `Orval` 自动生成 API Hooks 和类型，**禁止**手动编写 `axios.get/post` 调用代码。
 
-```ts
-export const productsApi = {
-  list: (params) => api.get<ProductListResponse>("/v1/products", { params }),
-  create: (data) => api.post<Product>("/v1/products", data),
-  // ...
-};
-```
+**API 自动生成工作流：**
 
-业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api`，各 API 模块写 `/v1/...`，经 Vite proxy 去掉 `/api` 后到达后端 `/v1/...`。直接访问后端时也支持 `/api/v1/...` 作为等价入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 不再作为前端主调用路径。
+1. 后端修改 FastAPI routes 和 Pydantic schemas。
+2. 在项目根目录运行 `python scripts/export_openapi.py` 导出 `openapi.json`。
+3. 在 `frontend/` 目录运行 `npm run api:generate` 生成代码。
+4. 在 React 组件中直接引入 `src/shared/api/generated/` 中的 React Query Hooks（例如 `useGetProducts`）。
+
+自动生成的 Hooks 通过自定义 Mutator (`src/shared/api/mutator.ts`) 桥接到全局 Axios 实例，自动继承现有的请求拦截器、CSRF 附加逻辑和 401 无感刷新机制。旧的手写模块逐步迁移到新模式。
+
+业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api`，经 Vite proxy 去掉 `/api` 后到达后端 `/v1/...`。直接访问后端时也支持 `/api/v1/...` 作为等价入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 不再作为前端主调用路径。
 
 **Vite 代理配置**（vite.config.ts）：
 

@@ -1,0 +1,1590 @@
+{
+  "results": {
+    "timestamp": "2026-06-11T02:35:18.406Z",
+    "url": "http://localhost:3000",
+    "branch": "unknown",
+    "pages": {
+      "/jobs": {
+        "ttfb": 9.199999988079071,
+        "fcp": 936,
+        "domInteractive": 14.100000023841858,
+        "domComplete": 698.5,
+        "fullLoad": 698.5,
+        "totalRequests": 40,
+        "totalBytes": 14433303,
+        "jsBytes": 14411535,
+        "cssBytes": 21468,
+        "byType": {
+          "script": 38,
+          "xmlhttprequest": 1,
+          "css": 1
+        },
+        "top10": [
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 300,
+            "duration": 570
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 516
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 488
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 300,
+            "duration": 448
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 448
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 429
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 319
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 92
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 92
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 90
+          }
+        ],
+        "jsFiles": [
+          {
+            "name": "client",
+            "type": "script",
+            "size": 300,
+            "duration": 65
+          },
+          {
+            "name": "main.tsx",
+            "type": "script",
+            "size": 4702,
+            "duration": 14
+          },
+          {
+            "name": "@react-refresh",
+            "type": "script",
+            "size": 300,
+            "duration": 9
+          },
+          {
+            "name": "react.js",
+            "type": "script",
+            "size": 63912,
+            "duration": 3
+          },
+          {
+            "name": "react-dom_client.js",
+            "type": "script",
+            "size": 1169,
+            "duration": 52
+          },
+          {
+            "name": "@tanstack_react-query.js",
+            "type": "script",
+            "size": 99404,
+            "duration": 53
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 516
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 67
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 488
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 300,
+            "duration": 570
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 319
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 300,
+            "duration": 448
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 448
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 429
+          },
+          {
+            "name": "framer-motion.js",
+            "type": "script",
+            "size": 497472,
+            "duration": 81
+          },
+          {
+            "name": "react-router-dom.js",
+            "type": "script",
+            "size": 395902,
+            "duration": 78
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 92
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 90
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 92
+          },
+          {
+            "name": "ref-CCyxXZ95.js",
+            "type": "script",
+            "size": 155168,
+            "duration": 31
+          },
+          {
+            "name": "useTheme.ts",
+            "type": "script",
+            "size": 6922,
+            "duration": 44
+          },
+          {
+            "name": "@ant-design_icons.js",
+            "type": "script",
+            "size": 2328135,
+            "duration": 48
+          },
+          {
+            "name": "PageTransition.tsx",
+            "type": "script",
+            "size": 8263,
+            "duration": 46
+          },
+          {
+            "name": "auth.ts",
+            "type": "script",
+            "size": 300,
+            "duration": 46
+          },
+          {
+            "name": "client.ts",
+            "type": "script",
+            "size": 14014,
+            "duration": 3
+          },
+          {
+            "name": "axios.js",
+            "type": "script",
+            "size": 107040,
+            "duration": 6
+          },
+          {
+            "name": "index.ts",
+            "type": "script",
+            "size": 300,
+            "duration": 7
+          },
+          {
+            "name": "LoginPage.tsx",
+            "type": "script",
+            "size": 49349,
+            "duration": 23
+          },
+          {
+            "name": "ProfilePage.tsx",
+            "type": "script",
+            "size": 26894,
+            "duration": 26
+          },
+          {
+            "name": "RegisterPage.tsx",
+            "type": "script",
+            "size": 53437,
+            "duration": 24
+          },
+          {
+            "name": "WeChatAuthCallbackPage.tsx",
+            "type": "script",
+            "size": 14276,
+            "duration": 28
+          },
+          {
+            "name": "WeChatLoginPanel.tsx",
+            "type": "script",
+            "size": 11637,
+            "duration": 16
+          },
+          {
+            "name": "passwordPolicy.ts",
+            "type": "script",
+            "size": 300,
+            "duration": 8
+          },
+          {
+            "name": "date.ts",
+            "type": "script",
+            "size": 300,
+            "duration": 10
+          },
+          {
+            "name": "useStaggerAnimation.ts",
+            "type": "script",
+            "size": 4378,
+            "duration": 14
+          },
+          {
+            "name": "wechatCallback.ts",
+            "type": "script",
+            "size": 300,
+            "duration": 5
+          },
+          {
+            "name": "WeChatAccountLinkPanel.tsx",
+            "type": "script",
+            "size": 16520,
+            "duration": 13
+          },
+          {
+            "name": "react-qr-code.js",
+            "type": "script",
+            "size": 79863,
+            "duration": 7
+          }
+        ],
+        "cssFiles": [
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 88
+          }
+        ]
+      },
+      "/dashboard": {
+        "ttfb": 4.699999988079071,
+        "fcp": 840,
+        "domInteractive": 325.5,
+        "domComplete": 626,
+        "fullLoad": 626,
+        "totalRequests": 40,
+        "totalBytes": 14799625,
+        "jsBytes": 14777857,
+        "cssBytes": 21468,
+        "byType": {
+          "script": 38,
+          "xmlhttprequest": 1,
+          "css": 1
+        },
+        "top10": [
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 197
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 197
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 172
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 171
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 170
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 168
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 167
+          },
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 75
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 53
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 52
+          }
+        ],
+        "jsFiles": [
+          {
+            "name": "client",
+            "type": "script",
+            "size": 205079,
+            "duration": 5
+          },
+          {
+            "name": "main.tsx",
+            "type": "script",
+            "size": 4702,
+            "duration": 9
+          },
+          {
+            "name": "@react-refresh",
+            "type": "script",
+            "size": 112194,
+            "duration": 10
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 3778,
+            "duration": 5
+          },
+          {
+            "name": "react-dom_client.js",
+            "type": "script",
+            "size": 1169,
+            "duration": 5
+          },
+          {
+            "name": "react.js",
+            "type": "script",
+            "size": 63912,
+            "duration": 5
+          },
+          {
+            "name": "@tanstack_react-query.js",
+            "type": "script",
+            "size": 99404,
+            "duration": 6
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 170
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 168
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 171
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 172
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 167
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 197
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 197
+          },
+          {
+            "name": "framer-motion.js",
+            "type": "script",
+            "size": 497472,
+            "duration": 46
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 51
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 52
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 53
+          },
+          {
+            "name": "react-router-dom.js",
+            "type": "script",
+            "size": 395902,
+            "duration": 51
+          },
+          {
+            "name": "ref-CCyxXZ95.js",
+            "type": "script",
+            "size": 155168,
+            "duration": 27
+          },
+          {
+            "name": "auth.ts",
+            "type": "script",
+            "size": 4732,
+            "duration": 3
+          },
+          {
+            "name": "PageTransition.tsx",
+            "type": "script",
+            "size": 8263,
+            "duration": 12
+          },
+          {
+            "name": "@ant-design_icons.js",
+            "type": "script",
+            "size": 2328135,
+            "duration": 20
+          },
+          {
+            "name": "useTheme.ts",
+            "type": "script",
+            "size": 6922,
+            "duration": 14
+          },
+          {
+            "name": "client.ts",
+            "type": "script",
+            "size": 14014,
+            "duration": 15
+          },
+          {
+            "name": "axios.js",
+            "type": "script",
+            "size": 107040,
+            "duration": 3
+          },
+          {
+            "name": "index.ts",
+            "type": "script",
+            "size": 1401,
+            "duration": 1
+          },
+          {
+            "name": "LoginPage.tsx",
+            "type": "script",
+            "size": 49349,
+            "duration": 2
+          },
+          {
+            "name": "ProfilePage.tsx",
+            "type": "script",
+            "size": 26894,
+            "duration": 2
+          },
+          {
+            "name": "RegisterPage.tsx",
+            "type": "script",
+            "size": 53437,
+            "duration": 3
+          },
+          {
+            "name": "WeChatAuthCallbackPage.tsx",
+            "type": "script",
+            "size": 14276,
+            "duration": 4
+          },
+          {
+            "name": "WeChatLoginPanel.tsx",
+            "type": "script",
+            "size": 11637,
+            "duration": 3
+          },
+          {
+            "name": "date.ts",
+            "type": "script",
+            "size": 1834,
+            "duration": 3
+          },
+          {
+            "name": "passwordPolicy.ts",
+            "type": "script",
+            "size": 2911,
+            "duration": 3
+          },
+          {
+            "name": "useStaggerAnimation.ts",
+            "type": "script",
+            "size": 4378,
+            "duration": 8
+          },
+          {
+            "name": "WeChatAccountLinkPanel.tsx",
+            "type": "script",
+            "size": 16520,
+            "duration": 2
+          },
+          {
+            "name": "wechatCallback.ts",
+            "type": "script",
+            "size": 2595,
+            "duration": 6
+          },
+          {
+            "name": "react-qr-code.js",
+            "type": "script",
+            "size": 79863,
+            "duration": 11
+          }
+        ],
+        "cssFiles": [
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 75
+          }
+        ]
+      },
+      "/products": {
+        "ttfb": 6.100000023841858,
+        "fcp": 864,
+        "domInteractive": 322.2000000476837,
+        "domComplete": 646,
+        "fullLoad": 646,
+        "totalRequests": 40,
+        "totalBytes": 14799625,
+        "jsBytes": 14777857,
+        "cssBytes": 21468,
+        "byType": {
+          "script": 38,
+          "xmlhttprequest": 1,
+          "css": 1
+        },
+        "top10": [
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 227
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 225
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 217
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 216
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 214
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 213
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 204
+          },
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 73
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 36
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 35
+          }
+        ],
+        "jsFiles": [
+          {
+            "name": "client",
+            "type": "script",
+            "size": 205079,
+            "duration": 11
+          },
+          {
+            "name": "main.tsx",
+            "type": "script",
+            "size": 4702,
+            "duration": 13
+          },
+          {
+            "name": "@react-refresh",
+            "type": "script",
+            "size": 112194,
+            "duration": 20
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 3778,
+            "duration": 11
+          },
+          {
+            "name": "react.js",
+            "type": "script",
+            "size": 63912,
+            "duration": 12
+          },
+          {
+            "name": "react-dom_client.js",
+            "type": "script",
+            "size": 1169,
+            "duration": 13
+          },
+          {
+            "name": "@tanstack_react-query.js",
+            "type": "script",
+            "size": 99404,
+            "duration": 14
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 214
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 216
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 217
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 213
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 204
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 227
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 225
+          },
+          {
+            "name": "framer-motion.js",
+            "type": "script",
+            "size": 497472,
+            "duration": 29
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 35
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 35
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 36
+          },
+          {
+            "name": "react-router-dom.js",
+            "type": "script",
+            "size": 395902,
+            "duration": 34
+          },
+          {
+            "name": "ref-CCyxXZ95.js",
+            "type": "script",
+            "size": 155168,
+            "duration": 5
+          },
+          {
+            "name": "auth.ts",
+            "type": "script",
+            "size": 4732,
+            "duration": 2
+          },
+          {
+            "name": "PageTransition.tsx",
+            "type": "script",
+            "size": 8263,
+            "duration": 7
+          },
+          {
+            "name": "@ant-design_icons.js",
+            "type": "script",
+            "size": 2328135,
+            "duration": 13
+          },
+          {
+            "name": "useTheme.ts",
+            "type": "script",
+            "size": 6922,
+            "duration": 9
+          },
+          {
+            "name": "client.ts",
+            "type": "script",
+            "size": 14014,
+            "duration": 9
+          },
+          {
+            "name": "axios.js",
+            "type": "script",
+            "size": 107040,
+            "duration": 1
+          },
+          {
+            "name": "index.ts",
+            "type": "script",
+            "size": 1401,
+            "duration": 1
+          },
+          {
+            "name": "LoginPage.tsx",
+            "type": "script",
+            "size": 49349,
+            "duration": 2
+          },
+          {
+            "name": "ProfilePage.tsx",
+            "type": "script",
+            "size": 26894,
+            "duration": 2
+          },
+          {
+            "name": "RegisterPage.tsx",
+            "type": "script",
+            "size": 53437,
+            "duration": 24
+          },
+          {
+            "name": "WeChatAuthCallbackPage.tsx",
+            "type": "script",
+            "size": 14276,
+            "duration": 11
+          },
+          {
+            "name": "WeChatLoginPanel.tsx",
+            "type": "script",
+            "size": 11637,
+            "duration": 8
+          },
+          {
+            "name": "date.ts",
+            "type": "script",
+            "size": 1834,
+            "duration": 8
+          },
+          {
+            "name": "passwordPolicy.ts",
+            "type": "script",
+            "size": 2911,
+            "duration": 8
+          },
+          {
+            "name": "useStaggerAnimation.ts",
+            "type": "script",
+            "size": 4378,
+            "duration": 13
+          },
+          {
+            "name": "WeChatAccountLinkPanel.tsx",
+            "type": "script",
+            "size": 16520,
+            "duration": 10
+          },
+          {
+            "name": "wechatCallback.ts",
+            "type": "script",
+            "size": 2595,
+            "duration": 10
+          },
+          {
+            "name": "react-qr-code.js",
+            "type": "script",
+            "size": 79863,
+            "duration": 6
+          }
+        ],
+        "cssFiles": [
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 73
+          }
+        ]
+      },
+      "/today": {
+        "ttfb": 2.5,
+        "fcp": 856,
+        "domInteractive": 323.89999997615814,
+        "domComplete": 641.6999999880791,
+        "fullLoad": 641.6999999880791,
+        "totalRequests": 40,
+        "totalBytes": 14799625,
+        "jsBytes": 14777857,
+        "cssBytes": 21468,
+        "byType": {
+          "script": 38,
+          "xmlhttprequest": 1,
+          "css": 1
+        },
+        "top10": [
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 210
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 208
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 193
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 192
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 190
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 189
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 188
+          },
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 75
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 55
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 54
+          }
+        ],
+        "jsFiles": [
+          {
+            "name": "client",
+            "type": "script",
+            "size": 205079,
+            "duration": 11
+          },
+          {
+            "name": "main.tsx",
+            "type": "script",
+            "size": 4702,
+            "duration": 12
+          },
+          {
+            "name": "@react-refresh",
+            "type": "script",
+            "size": 112194,
+            "duration": 13
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 3778,
+            "duration": 4
+          },
+          {
+            "name": "react.js",
+            "type": "script",
+            "size": 63912,
+            "duration": 4
+          },
+          {
+            "name": "react-dom_client.js",
+            "type": "script",
+            "size": 1169,
+            "duration": 6
+          },
+          {
+            "name": "@tanstack_react-query.js",
+            "type": "script",
+            "size": 99404,
+            "duration": 8
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 190
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 192
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 188
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 193
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 189
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 210
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 208
+          },
+          {
+            "name": "framer-motion.js",
+            "type": "script",
+            "size": 497472,
+            "duration": 53
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 54
+          },
+          {
+            "name": "react-router-dom.js",
+            "type": "script",
+            "size": 395902,
+            "duration": 52
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 54
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 55
+          },
+          {
+            "name": "ref-CCyxXZ95.js",
+            "type": "script",
+            "size": 155168,
+            "duration": 34
+          },
+          {
+            "name": "auth.ts",
+            "type": "script",
+            "size": 4732,
+            "duration": 1
+          },
+          {
+            "name": "PageTransition.tsx",
+            "type": "script",
+            "size": 8263,
+            "duration": 9
+          },
+          {
+            "name": "useTheme.ts",
+            "type": "script",
+            "size": 6922,
+            "duration": 11
+          },
+          {
+            "name": "@ant-design_icons.js",
+            "type": "script",
+            "size": 2328135,
+            "duration": 15
+          },
+          {
+            "name": "client.ts",
+            "type": "script",
+            "size": 14014,
+            "duration": 10
+          },
+          {
+            "name": "axios.js",
+            "type": "script",
+            "size": 107040,
+            "duration": 2
+          },
+          {
+            "name": "index.ts",
+            "type": "script",
+            "size": 1401,
+            "duration": 1
+          },
+          {
+            "name": "LoginPage.tsx",
+            "type": "script",
+            "size": 49349,
+            "duration": 4
+          },
+          {
+            "name": "ProfilePage.tsx",
+            "type": "script",
+            "size": 26894,
+            "duration": 4
+          },
+          {
+            "name": "RegisterPage.tsx",
+            "type": "script",
+            "size": 53437,
+            "duration": 5
+          },
+          {
+            "name": "WeChatAuthCallbackPage.tsx",
+            "type": "script",
+            "size": 14276,
+            "duration": 9
+          },
+          {
+            "name": "WeChatLoginPanel.tsx",
+            "type": "script",
+            "size": 11637,
+            "duration": 3
+          },
+          {
+            "name": "date.ts",
+            "type": "script",
+            "size": 1834,
+            "duration": 4
+          },
+          {
+            "name": "passwordPolicy.ts",
+            "type": "script",
+            "size": 2911,
+            "duration": 4
+          },
+          {
+            "name": "useStaggerAnimation.ts",
+            "type": "script",
+            "size": 4378,
+            "duration": 8
+          },
+          {
+            "name": "WeChatAccountLinkPanel.tsx",
+            "type": "script",
+            "size": 16520,
+            "duration": 5
+          },
+          {
+            "name": "wechatCallback.ts",
+            "type": "script",
+            "size": 2595,
+            "duration": 7
+          },
+          {
+            "name": "react-qr-code.js",
+            "type": "script",
+            "size": 79863,
+            "duration": 11
+          }
+        ],
+        "cssFiles": [
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 75
+          }
+        ]
+      },
+      "/smart-home": {
+        "ttfb": 1.5,
+        "fcp": 840,
+        "domInteractive": 323,
+        "domComplete": 629,
+        "fullLoad": 629,
+        "totalRequests": 40,
+        "totalBytes": 14799625,
+        "jsBytes": 14777857,
+        "cssBytes": 21468,
+        "byType": {
+          "script": 38,
+          "xmlhttprequest": 1,
+          "css": 1
+        },
+        "top10": [
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 197
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 194
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 182
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 3778,
+            "duration": 182
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 181
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 180
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 178
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 177
+          },
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 76
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 55
+          }
+        ],
+        "jsFiles": [
+          {
+            "name": "client",
+            "type": "script",
+            "size": 205079,
+            "duration": 7
+          },
+          {
+            "name": "main.tsx",
+            "type": "script",
+            "size": 4702,
+            "duration": 7
+          },
+          {
+            "name": "@react-refresh",
+            "type": "script",
+            "size": 112194,
+            "duration": 11
+          },
+          {
+            "name": "react.js",
+            "type": "script",
+            "size": 63912,
+            "duration": 6
+          },
+          {
+            "name": "react-dom_client.js",
+            "type": "script",
+            "size": 1169,
+            "duration": 7
+          },
+          {
+            "name": "@tanstack_react-query.js",
+            "type": "script",
+            "size": 99404,
+            "duration": 9
+          },
+          {
+            "name": "index.css",
+            "type": "script",
+            "size": 34498,
+            "duration": 180
+          },
+          {
+            "name": "App.tsx",
+            "type": "script",
+            "size": 48070,
+            "duration": 181
+          },
+          {
+            "name": "react_jsx-dev-runtime.js",
+            "type": "script",
+            "size": 29360,
+            "duration": 182
+          },
+          {
+            "name": "antd.js",
+            "type": "script",
+            "size": 9573967,
+            "duration": 178
+          },
+          {
+            "name": "env.mjs",
+            "type": "script",
+            "size": 3778,
+            "duration": 182
+          },
+          {
+            "name": "chunk-CYJPkc-J.js",
+            "type": "script",
+            "size": 7914,
+            "duration": 177
+          },
+          {
+            "name": "react-dom-iaMw4cp5.js",
+            "type": "script",
+            "size": 712695,
+            "duration": 197
+          },
+          {
+            "name": "react_jsx-runtime.js",
+            "type": "script",
+            "size": 29646,
+            "duration": 194
+          },
+          {
+            "name": "framer-motion.js",
+            "type": "script",
+            "size": 497472,
+            "duration": 28
+          },
+          {
+            "name": "react-router-dom.js",
+            "type": "script",
+            "size": 395902,
+            "duration": 52
+          },
+          {
+            "name": "AuthContext.tsx",
+            "type": "script",
+            "size": 10694,
+            "duration": 53
+          },
+          {
+            "name": "AppLayout.tsx",
+            "type": "script",
+            "size": 50502,
+            "duration": 55
+          },
+          {
+            "name": "ThemeProvider.tsx",
+            "type": "script",
+            "size": 7530,
+            "duration": 55
+          },
+          {
+            "name": "ref-CCyxXZ95.js",
+            "type": "script",
+            "size": 155168,
+            "duration": 31
+          },
+          {
+            "name": "auth.ts",
+            "type": "script",
+            "size": 4732,
+            "duration": 4
+          },
+          {
+            "name": "@ant-design_icons.js",
+            "type": "script",
+            "size": 2328135,
+            "duration": 16
+          },
+          {
+            "name": "PageTransition.tsx",
+            "type": "script",
+            "size": 8263,
+            "duration": 8
+          },
+          {
+            "name": "useTheme.ts",
+            "type": "script",
+            "size": 6922,
+            "duration": 9
+          },
+          {
+            "name": "client.ts",
+            "type": "script",
+            "size": 14014,
+            "duration": 8
+          },
+          {
+            "name": "axios.js",
+            "type": "script",
+            "size": 107040,
+            "duration": 3
+          },
+          {
+            "name": "index.ts",
+            "type": "script",
+            "size": 1401,
+            "duration": 1
+          },
+          {
+            "name": "LoginPage.tsx",
+            "type": "script",
+            "size": 49349,
+            "duration": 2
+          },
+          {
+            "name": "ProfilePage.tsx",
+            "type": "script",
+            "size": 26894,
+            "duration": 3
+          },
+          {
+            "name": "RegisterPage.tsx",
+            "type": "script",
+            "size": 53437,
+            "duration": 3
+          },
+          {
+            "name": "WeChatAuthCallbackPage.tsx",
+            "type": "script",
+            "size": 14276,
+            "duration": 4
+          },
+          {
+            "name": "WeChatLoginPanel.tsx",
+            "type": "script",
+            "size": 11637,
+            "duration": 2
+          },
+          {
+            "name": "date.ts",
+            "type": "script",
+            "size": 1834,
+            "duration": 2
+          },
+          {
+            "name": "passwordPolicy.ts",
+            "type": "script",
+            "size": 2911,
+            "duration": 2
+          },
+          {
+            "name": "useStaggerAnimation.ts",
+            "type": "script",
+            "size": 4378,
+            "duration": 3
+          },
+          {
+            "name": "WeChatAccountLinkPanel.tsx",
+            "type": "script",
+            "size": 16520,
+            "duration": 3
+          },
+          {
+            "name": "wechatCallback.ts",
+            "type": "script",
+            "size": 2595,
+            "duration": 4
+          },
+          {
+            "name": "react-qr-code.js",
+            "type": "script",
+            "size": 79863,
+            "duration": 2
+          }
+        ],
+        "cssFiles": [
+          {
+            "name": "JetBrainsMono-400.woff2",
+            "type": "css",
+            "size": 21468,
+            "duration": 76
+          }
+        ]
+      }
+    }
+  },
+  "baseline": null
+}

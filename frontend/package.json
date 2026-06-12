@@ -14,7 +14,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:frontend": "npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api:generate": "orval --config ./orval.config.ts"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
@@ -54,6 +55,7 @@
     "globals": "^17.5.0",
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
+    "orval": "^8.17.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",

@@ -283,6 +283,10 @@ curl -b cookies.txt http://localhost:8000/auth/me
 ## Development
 
 ```powershell
+# Export backend OpenAPI schema and generate frontend Orval API hooks
+python scripts/export_openapi.py
+cd frontend && npm run api:generate
+
 # Run linter
 cd backend && ruff check .
 

@@ -659,11 +659,14 @@ JOB_MATCH_PROVIDER=minimax
 MINIMAX_API_KEY=your_key
 ```
 
-## 12. 启动命令
+## 12. 常用命令
 
 ```bash
 # 开发环境（Windows 禁用 --reload）
 cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 导出 OpenAPI schema 供前端使用 (在根目录执行)
+python scripts/export_openapi.py
 
 # 数据库迁移
 cd backend && alembic upgrade head
