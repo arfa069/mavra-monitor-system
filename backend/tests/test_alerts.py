@@ -96,7 +96,7 @@ async def test_create_alert_success(mock_get_db, mock_current_user, mock_product
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/alerts",
+            "/api/v1/alerts",
             json={"product_id": 1, "threshold_percent": "5.00", "active": True},
         )
 
@@ -117,7 +117,7 @@ async def test_create_alert_product_not_found(mock_get_db, mock_current_user):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/alerts",
+            "/api/v1/alerts",
             json={"product_id": 999, "threshold_percent": "5.00", "active": True},
         )
 
@@ -137,7 +137,7 @@ async def test_list_alerts_success(mock_get_db, mock_current_user, mock_alert):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/alerts")
+        response = await client.get("/api/v1/alerts")
 
     assert response.status_code == 200
     data = response.json()
@@ -190,7 +190,7 @@ async def test_get_alert_success(mock_get_db, mock_current_user, mock_alert):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/alerts/1")
+        response = await client.get("/api/v1/alerts/1")
 
     assert response.status_code == 200
     data = response.json()
@@ -207,7 +207,7 @@ async def test_get_alert_not_found(mock_get_db, mock_current_user):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/alerts/999")
+        response = await client.get("/api/v1/alerts/999")
 
     assert response.status_code == 404
     assert "not found" in response.json().get("detail", "").lower()
@@ -226,7 +226,7 @@ async def test_update_alert_success(mock_get_db, mock_current_user, mock_alert):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/alerts/1",
+            "/api/v1/alerts/1",
             json={"threshold_percent": "10.00", "active": False},
         )
 
@@ -245,7 +245,7 @@ async def test_update_alert_not_found(mock_get_db, mock_current_user):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/alerts/999",
+            "/api/v1/alerts/999",
             json={"threshold_percent": "10.00"},
         )
 
@@ -264,7 +264,7 @@ async def test_delete_alert_success(mock_get_db, mock_current_user, mock_alert):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.delete("/alerts/1")
+        response = await client.delete("/api/v1/alerts/1")
 
     assert response.status_code == 200
     assert "deleted" in response.json().get("message", "").lower()
@@ -279,6 +279,6 @@ async def test_delete_alert_not_found(mock_get_db, mock_current_user):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.delete("/alerts/999")
+        response = await client.delete("/api/v1/alerts/999")
 
     assert response.status_code == 404

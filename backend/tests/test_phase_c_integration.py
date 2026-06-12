@@ -100,7 +100,7 @@ class TestProductCRUD:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products", json={
+                response = await client.post("/api/v1/products", json={
                     "platform": "jd",
                     "url": "https://item.jd.com/1000001.html",
                     "title": "Test Product",
@@ -142,7 +142,7 @@ class TestProductCRUD:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.patch("/products/1", json={
+                response = await client.patch("/api/v1/products/1", json={
                     "title": "New Title",
                     "active": False,
                 })
@@ -178,7 +178,7 @@ class TestProductCRUD:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.delete("/products/1")
+                response = await client.delete("/api/v1/products/1")
             assert response.status_code == 200
             assert "message" in response.json()
             print("[C-03c] PASS: Deleted product")
@@ -213,7 +213,7 @@ class TestServerSidePagination:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/products")
+                response = await client.get("/api/v1/products")
             assert response.status_code == 200
             data = response.json()
             assert data["page_size"] == 15, f"Expected 15, got {data['page_size']}"
@@ -318,7 +318,7 @@ class TestScheduleConfigRealReadWrite:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/config")
+                response = await client.get("/api/v1/config")
             assert response.status_code == 200
             data = response.json()
             assert data["data_retention_days"] == 365
@@ -359,7 +359,7 @@ class TestScheduleConfigRealReadWrite:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.patch("/config", json={
+                response = await client.patch("/api/v1/config", json={
                     "feishu_webhook_url": "https://new-webhook",
                 })
             assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
@@ -391,7 +391,7 @@ class TestSchedulerTriggerAndHotUpdate:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
                     response = await client.get(
-                        "/scheduler/status",
+                        "/api/v1/scheduler/status",
                         headers={"Authorization": "Bearer fake"},
                     )
                 # endpoint exists, returns 503 when scheduler not initialized
@@ -428,7 +428,7 @@ class TestManualCrawlRegression:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products/crawl/crawl-now")
+                response = await client.post("/api/v1/crawl/crawl-now")
             assert response.status_code == 200, f"Unexpected status: {response.status_code}"
             data = response.json()
             assert data["status"] == "pending"
@@ -587,7 +587,7 @@ class TestBatchCreateDeduplication:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 # 3个URL，其中2个重复
-                response = await client.post("/products/batch-create", json={
+                response = await client.post("/api/v1/products/batch-create", json={
                     "items": [
                         {"url": "https://item.jd.com/1.html", "platform": "jd"},
                         {"url": "https://item.jd.com/1.html", "platform": "jd"},  # 重复
@@ -624,7 +624,7 @@ class TestBatchCreateDeduplication:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products/batch-create", json={
+                response = await client.post("/api/v1/products/batch-create", json={
                     "items": [
                         {"url": "https://item.jd.com/1.html", "platform": "jd"},  # 已存在
                         {"url": "https://item.jd.com/2.html", "platform": "jd"},
@@ -678,7 +678,7 @@ class TestBatchPartialFailure:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products/batch-delete", json={
+                response = await client.post("/api/v1/products/batch-delete", json={
                     "ids": [1, 999]
                 })
             assert response.status_code == 200
@@ -733,7 +733,7 @@ class TestConfigMissingDefaults:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/config")
+                response = await client.get("/api/v1/config")
             assert response.status_code == 200
             data = response.json()
             assert data["id"] == 0  # default user
@@ -764,7 +764,7 @@ class TestConfigMissingDefaults:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.patch("/config", json={
+                response = await client.patch("/api/v1/config", json={
                     "data_retention_days": 180,
                 })
             assert response.status_code == 200

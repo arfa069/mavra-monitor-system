@@ -76,7 +76,7 @@ async def test_create_and_list_profile(mock_auth, mock_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         create_response = await client.post(
-            "/v1/crawl-profiles",
+            "/api/v1/crawl-profiles",
             json={"profile_key": "job-a", "platform_hint": "boss"},
         )
         # Since we mocked the DB but the service calls emit_system_log_detached,
@@ -85,7 +85,7 @@ async def test_create_and_list_profile(mock_auth, mock_db):
         # For a minimal TDD test we verify the endpoint is reachable.
         assert create_response.status_code in (201, 500)
 
-        list_response = await client.get("/v1/crawl-profiles")
+        list_response = await client.get("/api/v1/crawl-profiles")
         assert list_response.status_code == 200
         data = list_response.json()
         assert len(data) == 1
@@ -97,7 +97,7 @@ async def test_create_profile_rejects_path_traversal(mock_auth, mock_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/v1/crawl-profiles",
+            "/api/v1/crawl-profiles",
             json={"profile_key": "../bad"},
         )
     assert response.status_code == 422
@@ -123,7 +123,7 @@ async def test_release_stale_profile_rejects_active_lease(mock_auth, mock_db):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/v1/crawl-profiles/job-a/release-stale")
+        response = await client.post("/api/v1/crawl-profiles/job-a/release-stale")
 
     assert response.status_code == 409
 
@@ -149,7 +149,7 @@ async def test_mark_available_rejects_active_lease(mock_auth, mock_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/v1/crawl-profiles/job-a",
+            "/api/v1/crawl-profiles/job-a",
             json={"status": "available"},
         )
 
@@ -172,7 +172,7 @@ async def test_delete_profile_rejects_open_login_session(mock_auth, mock_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/v1/crawl-profiles/job-a")
+            response = await client.delete("/api/v1/crawl-profiles/job-a")
 
         assert response.status_code == 409
     finally:
@@ -197,7 +197,7 @@ async def test_rename_profile_rejects_open_login_session(mock_auth, mock_db):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/v1/crawl-profiles/job-a/rename",
+                "/api/v1/crawl-profiles/job-a/rename",
                 json={"profile_key": "job-b"},
             )
 
@@ -223,7 +223,7 @@ async def test_copy_profile_rejects_open_login_session(mock_auth, mock_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/v1/crawl-profiles/job-a/copy")
+            response = await client.post("/api/v1/crawl-profiles/job-a/copy")
 
         assert response.status_code == 409
     finally:
@@ -235,7 +235,7 @@ async def test_copy_profile_rejects_open_login_session(mock_auth, mock_db):
 async def test_runtime_capabilities_endpoint(mock_auth):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/v1/crawl-profiles/runtime-capabilities")
+        response = await client.get("/api/v1/crawl-profiles/runtime-capabilities")
 
     assert response.status_code == 200
     data = response.json()

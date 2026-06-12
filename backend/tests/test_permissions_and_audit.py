@@ -154,7 +154,7 @@ class TestAdminSelfPromotionPrevention:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={"username": "newadmin", "email": "new@example.com", "password": "123456", "role": "super_admin"},
             )
         assert response.status_code == 403
@@ -176,7 +176,7 @@ class TestAdminSelfPromotionPrevention:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/2",
+                "/api/v1/admin/users/2",
                 json={"role": "super_admin"},
             )
         assert response.status_code == 403
@@ -197,7 +197,7 @@ class TestAdminSelfPromotionPrevention:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/2",
+                "/api/v1/admin/users/2",
                 json={"is_active": False},
             )
         assert response.status_code == 403
@@ -221,7 +221,7 @@ class TestAdminCannotDeleteSuperAdmin:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/admin/users/2")
+            response = await client.delete("/api/v1/admin/users/2")
         assert response.status_code == 403
         assert "不能删除 super_admin" in response.json()["detail"]
 
@@ -238,7 +238,7 @@ class TestCrawlPermissionDeniedForAdmin:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/products/crawl/crawl-now")
+            response = await client.post("/api/v1/crawl/crawl-now")
         assert response.status_code == 403
 
     @pytest.mark.asyncio
@@ -250,7 +250,7 @@ class TestCrawlPermissionDeniedForAdmin:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/jobs/crawl-now")
+            response = await client.post("/api/v1/jobs/crawl-now")
         assert response.status_code == 403
 
 
@@ -267,7 +267,7 @@ class TestScheduleConfigPermissionDeniedForAdmin:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/products/cron-configs",
+                "/api/v1/products/cron-configs",
                 json={"platform": "taobao", "cron_expression": "0 9 * * *"},
             )
         assert response.status_code == 403
@@ -282,7 +282,7 @@ class TestScheduleConfigPermissionDeniedForAdmin:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/products/cron-configs/taobao",
+                "/api/v1/products/cron-configs/taobao",
                 json={"cron_expression": "0 10 * * *"},
             )
         assert response.status_code == 403
@@ -296,7 +296,7 @@ class TestWeChatDisabled:
         """GET /auth/wechat/qr should return 503 when feature flag is off."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/auth/wechat/qr")
+            response = await client.get("/api/v1/auth/wechat/qr")
         assert response.status_code == 503
         assert "未启用" in response.json()["detail"]
 
@@ -305,7 +305,7 @@ class TestWeChatDisabled:
         """GET /auth/wechat/callback should return 503 when feature flag is off."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/auth/wechat/callback?code=test&state=test")
+            response = await client.get("/api/v1/auth/wechat/callback?code=test&state=test")
         assert response.status_code == 503
 
 
@@ -321,7 +321,7 @@ class TestAuditLogEndpoint:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/audit-logs")
+            response = await client.get("/api/v1/admin/audit-logs")
         # 200 if no error from db, else still authenticated
         assert response.status_code in (200, 500)
 
@@ -334,7 +334,7 @@ class TestAuditLogEndpoint:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/audit-logs")
+            response = await client.get("/api/v1/admin/audit-logs")
         assert response.status_code == 403
 
 
@@ -351,7 +351,7 @@ class TestSuperAdminCanPerformAdminActions:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={"username": "newuser", "email": "new@example.com", "password": "123456", "role": "user"},
             )
         # Should not be 403 (may be 201 or other success/error)
@@ -367,7 +367,7 @@ class TestSuperAdminCanPerformAdminActions:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={"username": "newsuper", "email": "newsuper@example.com", "password": "123456", "role": "super_admin"},
             )
         assert response.status_code != 403

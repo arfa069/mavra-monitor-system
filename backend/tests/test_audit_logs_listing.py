@@ -92,7 +92,7 @@ async def test_audit_log_count_does_not_explode_via_cartesian_product():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/admin/audit-logs?page=1&page_size=20")
+        response = await client.get("/api/v1/admin/audit-logs?page=1&page_size=20")
 
     assert response.status_code == 200
     body = response.json()

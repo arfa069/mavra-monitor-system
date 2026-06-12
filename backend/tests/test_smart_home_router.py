@@ -69,7 +69,7 @@ async def test_get_config_requires_configure_permission(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/smart-home/config")
+            response = await client.get("/api/v1/smart-home/config")
     finally:
         _clear_overrides()
 
@@ -101,7 +101,7 @@ async def test_update_config_redacts_token_in_response(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.put(
-                "/v1/smart-home/config",
+                "/api/v1/smart-home/config",
                 json={
                     "base_url": "http://homeassistant.local:8123",
                     "token": "long-lived-token",
@@ -149,7 +149,7 @@ async def test_entities_filters_to_supported_domains(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/smart-home/entities")
+            response = await client.get("/api/v1/smart-home/entities")
     finally:
         _clear_overrides()
 
@@ -180,7 +180,7 @@ async def test_summary_returns_lightweight_home_signal(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/smart-home/summary")
+            response = await client.get("/api/v1/smart-home/summary")
     finally:
         _clear_overrides()
 
@@ -213,7 +213,7 @@ async def test_entities_reports_missing_secret_key(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/smart-home/entities")
+            response = await client.get("/api/v1/smart-home/entities")
     finally:
         _clear_overrides()
 
@@ -243,7 +243,7 @@ async def test_entities_reports_token_decrypt_failure(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/smart-home/entities")
+            response = await client.get("/api/v1/smart-home/entities")
     finally:
         _clear_overrides()
 
@@ -277,7 +277,7 @@ async def test_service_call_rejects_unsupported_service(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/v1/smart-home/entities/switch.kitchen/service",
+                "/api/v1/smart-home/entities/switch.kitchen/service",
                 json={"service": "delete_everything", "service_data": {}},
             )
     finally:

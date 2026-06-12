@@ -636,13 +636,13 @@ class TestDashboardAPI:
     @pytest.mark.asyncio
     async def test_get_dashboard_kpi_unauthorized(self, async_client):
         """Unauthenticated request returns 401."""
-        resp = await async_client.get("/dashboard/kpi")
+        resp = await async_client.get("/api/v1/dashboard/kpi")
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
     async def test_get_trends_unauthorized(self, async_client):
         """Unauthenticated trend request returns 401."""
-        resp = await async_client.get("/dashboard/trends?type=price&days=7")
+        resp = await async_client.get("/api/v1/dashboard/trends?type=price&days=7")
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
@@ -681,9 +681,9 @@ class TestDashboardAPI:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 responses = [
-                    await client.get("/dashboard/trends?type=price_change&days=3"),
-                    await client.get("/dashboard/trends?type=job_matches&days=3"),
-                    await client.get("/dashboard/trends?type=crawl_failures&days=3"),
+                    await client.get("/api/v1/dashboard/trends?type=price_change&days=3"),
+                    await client.get("/api/v1/dashboard/trends?type=job_matches&days=3"),
+                    await client.get("/api/v1/dashboard/trends?type=crawl_failures&days=3"),
                 ]
             assert [response.status_code for response in responses] == [200, 200, 200]
             assert [response.json() for response in responses] == [
@@ -726,7 +726,7 @@ class TestDashboardAPI:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                resp = await client.get("/dashboard/trends?type=crawl_failures&days=7")
+                resp = await client.get("/api/v1/dashboard/trends?type=crawl_failures&days=7")
             assert resp.status_code == 403
             service.get_crawl_failure_trends.assert_not_awaited()
         finally:
@@ -747,7 +747,7 @@ class TestDashboardAPI:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                resp = await client.get("/dashboard/alerts/recent")
+                resp = await client.get("/api/v1/dashboard/alerts/recent")
             assert resp.status_code == 403
         finally:
             app.dependency_overrides.clear()
@@ -772,7 +772,7 @@ class TestDashboardAPI:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                resp = await client.get("/dashboard/alerts/recent?limit=2")
+                resp = await client.get("/api/v1/dashboard/alerts/recent?limit=2")
             assert resp.status_code == 200
             data = resp.json()
             assert len(data) == 1
@@ -808,7 +808,7 @@ class TestDashboardAPI:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                resp = await client.get("/dashboard/alerts/recent?limit=2")
+                resp = await client.get("/api/v1/dashboard/alerts/recent?limit=2")
             assert resp.status_code == 200
             assert seen_limits == [2]
         finally:

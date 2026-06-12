@@ -56,7 +56,7 @@ async def test_public_blog_posts_do_not_require_auth(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/blog/posts")
+            response = await client.get("/api/v1/blog/posts")
     finally:
         _clear_overrides()
 
@@ -100,7 +100,7 @@ async def test_public_blog_post_detail_does_not_require_auth(monkeypatch):
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
-            response = await client.get("/v1/blog/posts/public-note")
+            response = await client.get("/api/v1/blog/posts/public-note")
     finally:
         _clear_overrides()
 
@@ -128,7 +128,7 @@ async def test_admin_blog_create_requires_write_permission(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/v1/blog/admin/posts",
+                "/api/v1/blog/admin/posts",
                 json={
                     "title": "First post",
                     "content_json": {"type": "doc", "content": []},
@@ -163,7 +163,7 @@ async def test_admin_blog_publish_requires_publish_permission(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/v1/blog/admin/posts",
+                "/api/v1/blog/admin/posts",
                 json={
                     "title": "Launch post",
                     "content_json": {"type": "doc", "content": []},
@@ -192,7 +192,7 @@ async def test_blog_upload_rejects_unsupported_content_type(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/v1/blog/admin/uploads",
+                "/api/v1/blog/admin/uploads",
                 files={"file": ("notes.txt", b"hello", "text/plain")},
             )
     finally:
@@ -221,7 +221,7 @@ async def test_blog_upload_rejects_too_large_files(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/v1/blog/admin/uploads",
+                "/api/v1/blog/admin/uploads",
                 files={"file": ("cover.png", b"x" * 10, "image/png")},
             )
     finally:

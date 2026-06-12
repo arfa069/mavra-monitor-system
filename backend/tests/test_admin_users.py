@@ -200,7 +200,7 @@ async def test_admin_list_users_returns_200(admin_user, mock_get_db):
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users")
+            response = await client.get("/api/v1/admin/users")
 
         assert response.status_code == 200
         data = response.json()
@@ -230,7 +230,7 @@ async def test_admin_list_users_with_search(admin_user, mock_get_db):
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users?search=searched")
+            response = await client.get("/api/v1/admin/users?search=searched")
 
         assert response.status_code == 200
         data = response.json()
@@ -247,7 +247,7 @@ async def test_non_admin_gets_403_on_list(mock_get_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users")
+            response = await client.get("/api/v1/admin/users")
 
         assert response.status_code == 403
     finally:
@@ -262,7 +262,7 @@ async def test_unauthenticated_gets_401_on_list(mock_get_db):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/admin/users")
+        response = await client.get("/api/v1/admin/users")
 
     assert response.status_code == 401
 
@@ -290,7 +290,7 @@ async def test_admin_create_user_returns_201(admin_user, mock_get_db):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={
                     "username": "newuser",
                     "email": "new@example.com",
@@ -325,7 +325,7 @@ async def test_create_duplicate_username_returns_400(admin_user, mock_get_db):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={
                     "username": "existinguser",
                     "email": "new@example.com",
@@ -353,7 +353,7 @@ async def test_admin_get_user_returns_200(admin_user, regular_user, mock_get_db)
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users/2")
+            response = await client.get("/api/v1/admin/users/2")
 
         assert response.status_code == 200
         data = response.json()
@@ -375,7 +375,7 @@ async def test_get_nonexistent_user_returns_404(admin_user, mock_get_db):
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users/999")
+            response = await client.get("/api/v1/admin/users/999")
 
         assert response.status_code == 404
     finally:
@@ -403,7 +403,7 @@ async def test_admin_update_user_returns_200(admin_user, regular_user, mock_get_
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/2",
+                "/api/v1/admin/users/2",
                 json={"username": "updateduser"},
             )
 
@@ -427,7 +427,7 @@ async def test_admin_soft_delete_user_via_patch_returns_200(admin_user, regular_
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/2",
+                "/api/v1/admin/users/2",
                 json={"is_active": False},
             )
 
@@ -454,7 +454,7 @@ async def test_admin_restore_user_via_patch_returns_200(admin_user, mock_get_db)
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/2",
+                "/api/v1/admin/users/2",
                 json={"is_active": True},
             )
 
@@ -480,7 +480,7 @@ async def test_admin_delete_user_returns_200(admin_user, regular_user, mock_get_
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/admin/users/2")
+            response = await client.delete("/api/v1/admin/users/2")
 
         assert response.status_code == 200
     finally:
@@ -495,7 +495,7 @@ async def test_admin_delete_self_returns_400(admin_user, mock_get_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/admin/users/1")  # admin_user.id == 1
+            response = await client.delete("/api/v1/admin/users/1")  # admin_user.id == 1
 
         assert response.status_code == 400
     finally:
@@ -514,7 +514,7 @@ async def test_delete_nonexistent_user_returns_404(admin_user, mock_get_db):
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/admin/users/999")
+            response = await client.delete("/api/v1/admin/users/999")
 
         assert response.status_code == 404
     finally:
@@ -533,7 +533,7 @@ async def test_non_admin_gets_403_on_create(mock_get_db):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 json={
                     "username": "hacker",
                     "email": "hacker@evil.com",
@@ -554,7 +554,7 @@ async def test_non_admin_gets_403_on_get_single(mock_get_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/admin/users/1")
+            response = await client.get("/api/v1/admin/users/1")
 
         assert response.status_code == 403
     finally:
@@ -570,7 +570,7 @@ async def test_non_admin_gets_403_on_update(mock_get_db):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/admin/users/1",
+                "/api/v1/admin/users/1",
                 json={"username": "hacked"},
             )
 
@@ -587,7 +587,7 @@ async def test_non_admin_gets_403_on_delete(mock_get_db):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/admin/users/1")
+            response = await client.delete("/api/v1/admin/users/1")
 
         assert response.status_code == 403
     finally:
@@ -611,7 +611,7 @@ async def test_admin_role_change_deletes_target_sessions(admin_user, regular_use
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.patch(
-                    "/admin/users/2",
+                    "/api/v1/admin/users/2",
                     json={"role": "admin"},
                 )
 
@@ -636,7 +636,7 @@ async def test_admin_disable_deletes_target_sessions(admin_user, regular_user, m
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.patch(
-                    "/admin/users/2",
+                    "/api/v1/admin/users/2",
                     json={"is_active": False},
                 )
 
@@ -660,7 +660,7 @@ async def test_admin_delete_deletes_target_sessions(admin_user, regular_user, mo
 
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.delete("/admin/users/2")
+                response = await client.delete("/api/v1/admin/users/2")
 
             assert response.status_code == 200
             mock_stage.assert_awaited_once()

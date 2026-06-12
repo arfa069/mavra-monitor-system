@@ -142,7 +142,7 @@ async def test_list_users_requires_user_read_permission():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/admin/users",
+                "/api/v1/admin/users",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 403
@@ -159,7 +159,7 @@ async def test_list_users_admin_allowed():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/admin/users",
+                "/api/v1/admin/users",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 200
@@ -176,7 +176,7 @@ async def test_delete_user_requires_user_delete_permission():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.delete(
-                "/admin/users/99999",
+                "/api/v1/admin/users/99999",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 404
@@ -193,7 +193,7 @@ async def test_delete_user_regular_user_forbidden():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.delete(
-                "/admin/users/99999",
+                "/api/v1/admin/users/99999",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 403
@@ -300,7 +300,7 @@ async def test_patch_resource_permission_updates_permission_value():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # grant
             await client.post(
-                "/admin/resource-permissions",
+                "/api/v1/admin/resource-permissions",
                 json={
                     "subject_id": 2,
                     "resource_type": "product",
@@ -311,14 +311,14 @@ async def test_patch_resource_permission_updates_permission_value():
             )
             # list
             list_resp = await client.get(
-                "/admin/resource-permissions?user_id=2&resource_type=product",
+                "/api/v1/admin/resource-permissions?user_id=2&resource_type=product",
                 headers={"Authorization": "Bearer fake"},
             )
             perm_id = list_resp.json()["items"][0]["id"]
 
             # patch
             patch_resp = await client.patch(
-                f"/admin/resource-permissions/{perm_id}",
+                f"/api/v1/admin/resource-permissions/{perm_id}",
                 json={"permission": "write"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -340,7 +340,7 @@ async def test_patch_resource_permission_not_found_returns_404():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/99999",
+                "/api/v1/admin/resource-permissions/99999",
                 json={"permission": "write"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -383,7 +383,7 @@ async def test_patch_resource_permission_conflict_returns_400():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/5",
+                "/api/v1/admin/resource-permissions/5",
                 json={"resource_id": "100"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -402,7 +402,7 @@ async def test_patch_resource_permission_requires_user_manage():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/1",
+                "/api/v1/admin/resource-permissions/1",
                 json={"permission": "write"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -420,7 +420,7 @@ async def test_patch_resource_permission_validates_resource_type():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/1",
+                "/api/v1/admin/resource-permissions/1",
                 json={"resource_type": "invalid_type"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -438,7 +438,7 @@ async def test_patch_resource_permission_validates_permission():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/1",
+                "/api/v1/admin/resource-permissions/1",
                 json={"permission": "invalid_action"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -476,7 +476,7 @@ async def test_patch_resource_permission_rejects_empty_resource_id():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/resource-permissions/1",
+                "/api/v1/admin/resource-permissions/1",
                 json={"resource_id": ""},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -528,7 +528,7 @@ async def test_patch_resource_permission_allows_star_resource_id():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             patch_resp = await client.patch(
-                "/admin/resource-permissions/5",
+                "/api/v1/admin/resource-permissions/5",
                 json={"resource_id": "*"},
                 headers={"Authorization": "Bearer fake"},
             )
@@ -549,7 +549,7 @@ async def test_get_role_permission_matrix_requires_rbac_read():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/admin/roles/permissions",
+                "/api/v1/admin/roles/permissions",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 403
@@ -566,7 +566,7 @@ async def test_get_role_permission_matrix_super_admin_allowed():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/admin/roles/permissions",
+                "/api/v1/admin/roles/permissions",
                 headers={"Authorization": "Bearer fake"},
             )
         # Should not be 403; may be 200 or 500 depending on DB mock
@@ -584,7 +584,7 @@ async def test_patch_role_permissions_requires_rbac_manage():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.patch(
-                "/admin/roles/user/permissions",
+                "/api/v1/admin/roles/user/permissions",
                 json={"permissions": ["crawl:execute"]},
                 headers={"Authorization": "Bearer fake"},
             )

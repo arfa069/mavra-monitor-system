@@ -66,7 +66,7 @@ async def test_get_config_returns_user_config():
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/config")
+            response = await client.get("/api/v1/config")
         assert response.status_code == 200
         data = response.json()
         assert data["feishu_webhook_url"] == "https://test"
@@ -98,7 +98,7 @@ async def test_create_product_rejects_invalid_url_no_scheme(mock_get_current_use
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # Test "not-a-url" - no scheme
             response = await client.post(
-                "/products",
+                "/api/v1/products",
                 json={"platform": "jd", "url": "not-a-url"},
             )
             assert response.status_code == 422
@@ -126,7 +126,7 @@ async def test_create_product_rejects_ftp_scheme(mock_get_current_user):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/products",
+                "/api/v1/products",
                 json={"platform": "jd", "url": "ftp://example.com/item"},
             )
             assert response.status_code == 422
@@ -153,7 +153,7 @@ async def test_update_product_rejects_empty_url(mock_get_current_user):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/products/1",
+                "/api/v1/products/1",
                 json={"url": ""},
             )
             assert response.status_code == 422
@@ -183,7 +183,7 @@ async def test_create_product_strips_whitespace(mock_get_current_user):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/products",
+                "/api/v1/products",
                 json={"platform": "jd", "url": "  https://item.jd.com/123  "},
             )
             assert response.status_code == 200
@@ -312,7 +312,7 @@ async def test_scheduler_status_returns_503_when_not_started():
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/scheduler/status",
+                    "/api/v1/scheduler/status",
                     headers={"Authorization": "Bearer fake"},
                 )
         assert response.status_code == 503

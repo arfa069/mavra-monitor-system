@@ -60,7 +60,7 @@ async def test_list_resumes_returns_items(mock_get_current_user):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/jobs/resumes")
+            response = await client.get("/api/v1/jobs/resumes")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -95,7 +95,7 @@ async def test_create_resume_returns_created_entity(mock_get_current_user):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/jobs/resumes",
+                "/api/v1/jobs/resumes",
                 json={"name": "Resume B", "resume_text": "Frontend engineer"},
             )
         assert response.status_code == 201
@@ -136,7 +136,7 @@ async def test_trigger_match_analysis_enqueues_durable_task(mock_get_current_use
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/jobs/match-results/analyze",
+                    "/api/v1/jobs/match-results/analyze",
                     json={"resume_id": 1, "job_ids": [10]},
                 )
             assert response.status_code == 200
@@ -179,7 +179,7 @@ async def test_trigger_match_analysis_returns_completed_when_all_up_to_date(mock
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/jobs/match-results/analyze",
+                    "/api/v1/jobs/match-results/analyze",
                     json={"resume_id": 1, "job_ids": [10]},
                 )
             assert response.status_code == 200
@@ -221,7 +221,7 @@ async def test_analyze_async_enqueues_durable_task(mock_get_current_user):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/jobs/match-results/analyze-async",
+                    "/api/v1/jobs/match-results/analyze-async",
                     json={"resume_id": 1, "job_ids": [10]},
                 )
             assert response.status_code == 200
@@ -264,7 +264,7 @@ async def test_analyze_async_returns_completed_when_all_up_to_date(mock_get_curr
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/jobs/match-results/analyze-async",
+                    "/api/v1/jobs/match-results/analyze-async",
                     json={"resume_id": 1, "job_ids": [10]},
                 )
             assert response.status_code == 200
@@ -295,7 +295,7 @@ async def test_get_task_status_returns_task_state_from_crawl_tasks(mock_get_curr
         mock_get.return_value = mock_record
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/jobs/tasks/xyz789")
+            response = await client.get("/api/v1/jobs/tasks/xyz789")
         assert response.status_code == 200
         data = response.json()
         assert data["task_id"] == "xyz789"
@@ -314,7 +314,7 @@ async def test_get_task_status_returns_404_for_missing_task(mock_get_current_use
         mock_get.return_value = None
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/jobs/tasks/nonexistent")
+            response = await client.get("/api/v1/jobs/tasks/nonexistent")
         assert response.status_code == 404
         data = response.json()
         assert data["status"] == "error"
@@ -331,7 +331,7 @@ async def test_get_task_status_returns_404_for_non_match_task(mock_get_current_u
         mock_get.return_value = mock_record
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/jobs/tasks/job-task")
+            response = await client.get("/api/v1/jobs/tasks/job-task")
         assert response.status_code == 404
         data = response.json()
         assert data["status"] == "error"

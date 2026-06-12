@@ -24,7 +24,7 @@ async def e2e_login(client: httpx.AsyncClient) -> bool:
     access token manually and set it as a request header.
     """
     resp = await client.post(
-        "/auth/login",
+        "/api/v1/auth/login",
         json={"username": "default123", "password": "123456"},
     )
     if resp.status_code != 200:
@@ -47,7 +47,7 @@ async def test_e2e_crawl_now_endpoint():
         await e2e_login(client)
 
         try:
-            resp = await client.post("/v1/crawl/crawl-now")
+            resp = await client.post("/api/v1/crawl/crawl-now")
         except httpx.ConnectError:
             pytest.skip(f"Backend not reachable at {BASE_URL}")
 
@@ -60,13 +60,13 @@ async def test_e2e_crawl_now_endpoint():
             assert "task_id" in data
             task_id = data["task_id"]
 
-            status_resp = await client.get(f"/v1/crawl/status/{task_id}")
+            status_resp = await client.get(f"/api/v1/crawl/status/{task_id}")
             assert status_resp.status_code == 200
             status_data = status_resp.json()
             assert status_data["task_id"] == task_id
             assert status_data["status"] in ("pending", "running", "completed", "failed")
 
-            result_resp = await client.get(f"/v1/crawl/result/{task_id}")
+            result_resp = await client.get(f"/api/v1/crawl/result/{task_id}")
             assert result_resp.status_code in (200, 202)
             result_data = result_resp.json()
             assert "status" in result_data
@@ -107,7 +107,7 @@ async def test_e2e_crawl_logs_endpoint():
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=10) as client:
         await e2e_login(client)
         try:
-            resp = await client.get("/v1/crawl/logs")
+            resp = await client.get("/api/v1/crawl/logs")
         except httpx.ConnectError:
             pytest.skip(f"Backend not reachable at {BASE_URL}")
 

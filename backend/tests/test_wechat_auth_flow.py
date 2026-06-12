@@ -67,7 +67,7 @@ async def test_wechat_qr_preserves_safe_next(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/auth/wechat/qr", params={"next": "/jobs"})
+        response = await client.get("/api/v1/auth/wechat/qr", params={"next": "/jobs"})
 
     assert response.status_code == 200
     data = response.json()
@@ -84,7 +84,7 @@ async def test_wechat_qr_rejects_external_next(monkeypatch):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/wechat/qr",
+            "/api/v1/auth/wechat/qr",
             params={"next": "https://evil.example/callback"},
         )
 
@@ -151,7 +151,7 @@ async def test_wechat_bind_accepts_json_body(monkeypatch, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/wechat/bind",
+            "/api/v1/auth/wechat/bind",
             json={
                 "temp_token": "temp-token",
                 "username": "bound-user",
@@ -212,7 +212,7 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/wechat/callback?code=valid-code&state=state-1",
+            "/api/v1/auth/wechat/callback?code=valid-code&state=state-1",
             follow_redirects=False,
         )
 
@@ -251,7 +251,7 @@ async def test_wechat_callback_redirects_unbound_user_with_fragment(
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/wechat/callback?code=valid-code&state=state-2",
+            "/api/v1/auth/wechat/callback?code=valid-code&state=state-2",
             follow_redirects=False,
         )
 
@@ -273,7 +273,7 @@ async def test_wechat_callback_redirects_state_error(monkeypatch):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/wechat/callback?code=bad&state=missing",
+            "/api/v1/auth/wechat/callback?code=bad&state=missing",
             follow_redirects=False,
         )
 

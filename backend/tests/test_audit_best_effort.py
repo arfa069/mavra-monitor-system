@@ -101,7 +101,7 @@ async def test_delete_product_audit_success_path_calls_log_audit():
     with patch("app.domains.products.router.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/products/11")
+            response = await client.delete("/api/v1/products/11")
 
     assert response.status_code == 200
     assert response.json()["message"] == "Product deleted"
@@ -135,7 +135,7 @@ async def test_delete_product_audit_failure_does_not_break_business_success():
     with patch("app.domains.products.router.log_audit", new=AsyncMock(return_value=None)):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/products/22")
+            response = await client.delete("/api/v1/products/22")
 
     assert response.status_code == 200
     assert response.json()["message"] == "Product deleted"
@@ -169,7 +169,7 @@ async def test_create_job_config_audit_success_path_calls_log_audit():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/jobs/configs",
+                "/api/v1/jobs/configs",
                 json={
                     "name": "My Config",
                     "url": "https://www.zhipin.com/job_detail/?query=python",
@@ -206,7 +206,7 @@ async def test_update_job_config_audit_failure_does_not_break_business_success()
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.patch(
-                "/jobs/configs/202",
+                "/api/v1/jobs/configs/202",
                 json={"name": "After Update"},
             )
 
@@ -234,7 +234,7 @@ async def test_delete_job_config_audit_success_path_calls_log_audit():
     with patch("app.core.audit.log_audit", new=AsyncMock(return_value=MagicMock())) as mock_log_audit:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.delete("/jobs/configs/303")
+            response = await client.delete("/api/v1/jobs/configs/303")
 
     assert response.status_code == 200
     assert response.json()["message"] == "Config deleted"
@@ -278,7 +278,7 @@ async def test_login_audit_failure_does_not_break_business_success():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/auth/login",
+                "/api/v1/auth/login",
                 json={"username": "loginuser", "password": "password123"},
             )
 
@@ -325,7 +325,7 @@ async def test_logout_audit_failure_does_not_break_business_success():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/auth/logout",
+                "/api/v1/auth/logout",
                 cookies={
                     "pm_access_token": token,
                     "pm_refresh_token": "test-refresh-token",

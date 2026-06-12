@@ -61,7 +61,7 @@ async def test_register_success_returns_201(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": test_user["username"],
                 "email": test_user["email"],
@@ -90,7 +90,7 @@ async def test_register_duplicate_username_returns_400(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": test_user["username"],
                 "email": "new@example.com",
@@ -115,7 +115,7 @@ async def test_register_duplicate_email_returns_400(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": "different_user",
                 "email": test_user["email"],
@@ -133,7 +133,7 @@ async def test_register_password_too_short_returns_422(mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": "testuser",
                 "email": "test@example.com",
@@ -154,7 +154,7 @@ async def test_register_password_missing_special_character_returns_422(mock_get_
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": "testuser",
                 "email": "test@example.com",
@@ -173,7 +173,7 @@ async def test_register_username_too_short_returns_422(mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/register",
+            "/api/v1/auth/register",
             json={
                 "username": "ab",  # Too short (< 3 chars expected)
                 "email": "test@example.com",
@@ -217,7 +217,7 @@ async def test_login_success_returns_200_and_cookies(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "username": test_user["username"],
                 "password": test_user["password"],
@@ -250,7 +250,7 @@ async def test_login_user_not_found_returns_401(mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "username": "nonexistent",
                 "password": "password123",
@@ -282,7 +282,7 @@ async def test_login_wrong_password_returns_401(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "username": test_user["username"],
                 "password": "wrong_password",
@@ -309,7 +309,7 @@ async def test_login_account_locked_after_5_failures(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/login",
+            "/api/v1/auth/login",
             json={
                 "username": test_user["username"],
                 "password": "any_password",
@@ -370,7 +370,7 @@ async def test_refresh_success_returns_200_and_new_cookies(test_user, mock_get_d
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/refresh",
+            "/api/v1/auth/refresh",
             cookies={
                 "pm_refresh_token": old_refresh,
                 "pm_csrf_token": "csrf-value",
@@ -397,7 +397,7 @@ async def test_refresh_without_cookie_returns_401():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/refresh",
+            "/api/v1/auth/refresh",
             cookies={"pm_csrf_token": "csrf-value"},
             headers={"X-CSRF-Token": "csrf-value"},
         )
@@ -414,7 +414,7 @@ async def test_refresh_invalid_token_returns_401(mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/refresh",
+            "/api/v1/auth/refresh",
             cookies={
                 "pm_refresh_token": "invalid-token",
                 "pm_csrf_token": "csrf-value",
@@ -464,7 +464,7 @@ async def test_logout_success(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/logout",
+            "/api/v1/auth/logout",
             cookies={
                 "pm_access_token": token,
                 "pm_refresh_token": "test-refresh-token",
@@ -484,7 +484,7 @@ async def test_logout_without_cookies_returns_401():
     """POST /auth/logout without cookies returns 401."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/auth/logout")
+        response = await client.post("/api/v1/auth/logout")
 
     assert response.status_code in [401, 403]
 
@@ -533,7 +533,7 @@ async def test_me_with_valid_token_returns_user_info(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={"pm_access_token": token},
         )
 
@@ -548,7 +548,7 @@ async def test_me_without_cookie_returns_401():
     """GET /auth/me without pm_access_token cookie returns 401."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/auth/me")
+        response = await client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
 
@@ -574,7 +574,7 @@ async def test_me_with_expired_token_returns_401(mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={"pm_access_token": expired_token},
         )
 
@@ -633,7 +633,7 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -698,7 +698,7 @@ async def test_update_me_with_duplicate_username_returns_400(test_user, mock_get
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -760,7 +760,7 @@ async def test_update_me_with_duplicate_email_returns_400(test_user, mock_get_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -817,7 +817,7 @@ async def test_update_me_with_same_username_returns_200(test_user, mock_get_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
-            "/auth/me",
+            "/api/v1/auth/me",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -871,7 +871,7 @@ async def test_change_password_with_wrong_old_password_returns_400(test_user, mo
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -935,7 +935,7 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             cookies={
                 "pm_access_token": token,
                 "pm_refresh_token": "test-refresh-token",
@@ -963,7 +963,7 @@ async def test_change_password_without_cookie_returns_401():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             json={
                 "old_password": "OldPassword1!",
                 "new_password": "NewSecurePass1!",
@@ -1010,7 +1010,7 @@ async def test_change_password_with_weak_new_password_returns_422(test_user, moc
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             cookies={
                 "pm_access_token": token,
                 "pm_csrf_token": "csrf-value",
@@ -1075,7 +1075,7 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             cookies={
                 "pm_access_token": token,
                 "pm_refresh_token": "test-refresh-token",
@@ -1136,7 +1136,7 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/me/password",
+            "/api/v1/auth/me/password",
             cookies={
                 "pm_access_token": token,
                 "pm_refresh_token": "test-refresh-token",
@@ -1165,9 +1165,9 @@ async def test_auth_endpoints_exist():
     from app.main import app
 
     routes = [route.path for route in app.routes]
-    auth_routes = [r for r in routes if r.startswith("/auth")]
+    auth_routes = [r for r in routes if r.startswith("/api/v1/auth")]
 
     # At minimum, these routes should be registered
-    expected_routes = ["/auth/register", "/auth/login", "/auth/logout", "/auth/me", "/auth/refresh"]
+    expected_routes = ["/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/me", "/api/v1/auth/refresh"]
     for route in expected_routes:
         assert route in auth_routes, f"Route {route} not found in app routes"

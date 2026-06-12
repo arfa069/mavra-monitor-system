@@ -31,7 +31,7 @@ async def test_register_with_wechat_rejects_weak_password(monkeypatch):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
-            "/auth/wechat/register",
+            "/api/v1/auth/wechat/register",
             json={
                 "temp_token": "temp-token",
                 "username": "wechatuser",

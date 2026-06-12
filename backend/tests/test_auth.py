@@ -33,7 +33,7 @@ class TestRegister:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/register",
+                    "/api/v1/auth/register",
                     json={
                         "username": "testuser",
                         "email": "test@example.com",
@@ -68,7 +68,7 @@ class TestRegister:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/register",
+                    "/api/v1/auth/register",
                     json={
                         "username": "testuser",
                         "email": "test@example.com",
@@ -97,7 +97,7 @@ class TestRegister:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/register",
+                    "/api/v1/auth/register",
                     json={
                         "username": "testuser",
                         "email": "test@example.com",
@@ -115,7 +115,7 @@ class TestRegister:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/auth/register",
+                "/api/v1/auth/register",
                 json={"username": "testuser", "email": "test@example.com", "password": "123"},
             )
         assert response.status_code == 422
@@ -162,7 +162,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "testuser", "password": "password123"},
                 )
             assert response.status_code == 200
@@ -206,7 +206,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "testuser", "password": "wrongpassword"},
                 )
             assert response.status_code == 401
@@ -230,7 +230,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "nonexistent", "password": "password123"},
                 )
             assert response.status_code == 401
@@ -261,7 +261,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "testuser", "password": "password123"},
                 )
             assert response.status_code == 401
@@ -294,7 +294,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "testuser", "password": "password123"},
                 )
             assert response.status_code == 401
@@ -337,7 +337,7 @@ class TestLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/login",
+                    "/api/v1/auth/login",
                     json={"username": "testuser", "password": "password123"},
                 )
             assert response.status_code == 200
@@ -401,7 +401,7 @@ class TestRefresh:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/refresh",
+                    "/api/v1/auth/refresh",
                     cookies={
                         "pm_refresh_token": old_refresh_token,
                         "pm_csrf_token": "csrf-value",
@@ -428,7 +428,7 @@ class TestRefresh:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/auth/refresh",
+                "/api/v1/auth/refresh",
                 cookies={"pm_csrf_token": "csrf-value"},
                 headers={"X-CSRF-Token": "csrf-value"},
             )
@@ -450,7 +450,7 @@ class TestRefresh:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/refresh",
+                    "/api/v1/auth/refresh",
                     cookies={
                         "pm_refresh_token": "invalid-token",
                         "pm_csrf_token": "csrf-value",
@@ -514,7 +514,7 @@ class TestGetMe:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/auth/me",
+                    "/api/v1/auth/me",
                     cookies={"pm_access_token": token},
                 )
             assert response.status_code == 200
@@ -529,7 +529,7 @@ class TestGetMe:
         """Test get current user without token returns 401."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/auth/me")
+            response = await client.get("/api/v1/auth/me")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -538,7 +538,7 @@ class TestGetMe:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get(
-                "/auth/me",
+                "/api/v1/auth/me",
                 cookies={"pm_access_token": "invalid_token"},
             )
         assert response.status_code == 401
@@ -592,7 +592,7 @@ class TestGetMe:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/auth/me",
+                    "/api/v1/auth/me",
                     cookies={"pm_access_token": token},
                 )
             assert response.status_code == 200
@@ -622,7 +622,7 @@ class TestGetMe:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/auth/me",
+                    "/api/v1/auth/me",
                     cookies={"pm_access_token": token},
                 )
             assert response.status_code == 401
@@ -658,7 +658,7 @@ class TestGetMe:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/auth/me",
+                    "/api/v1/auth/me",
                     cookies={"pm_access_token": token},
                 )
             assert response.status_code == 401
@@ -716,7 +716,7 @@ class TestLogout:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/logout",
+                    "/api/v1/auth/logout",
                     cookies={
                         "pm_access_token": token,
                         "pm_refresh_token": "test-refresh-token",
@@ -780,7 +780,7 @@ class TestLogout:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/auth/logout",
+                    "/api/v1/auth/logout",
                     cookies={
                         "pm_access_token": token,
                         "pm_refresh_token": "test-refresh-token",
@@ -811,7 +811,7 @@ class TestLogout:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.get(
-                    "/auth/me",
+                    "/api/v1/auth/me",
                     cookies={"pm_access_token": token},
                 )
             assert response.status_code == 401

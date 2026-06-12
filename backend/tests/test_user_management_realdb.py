@@ -28,7 +28,7 @@ async def run_in_session(fn):
 async def get_admin_token():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/auth/login", json={
+        response = await client.post("/api/v1/auth/login", json={
             "username": "admin",
             "password": "adminpassword"
         })
@@ -46,7 +46,7 @@ class TestUserManagementRealDb:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 headers={"Authorization": f"Bearer {admin_token}"},
                 json={
                     "username": test_username,
@@ -83,7 +83,7 @@ class TestUserManagementRealDb:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             create_resp = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 headers={"Authorization": f"Bearer {admin_token}"},
                 json={
                     "username": test_username,
@@ -95,7 +95,7 @@ class TestUserManagementRealDb:
             user_id = create_resp.json()["id"]
 
             delete_resp = await client.delete(
-                f"/admin/users/{user_id}",
+                f"/api/v1/admin/users/{user_id}",
                 headers={"Authorization": f"Bearer {admin_token}"}
             )
 
@@ -118,7 +118,7 @@ class TestUserManagementRealDb:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             create_resp = await client.post(
-                "/admin/users",
+                "/api/v1/admin/users",
                 headers={"Authorization": f"Bearer {admin_token}"},
                 json={
                     "username": test_username,
@@ -130,12 +130,12 @@ class TestUserManagementRealDb:
             user_id = create_resp.json()["id"]
 
             await client.delete(
-                f"/admin/users/{user_id}",
+                f"/api/v1/admin/users/{user_id}",
                 headers={"Authorization": f"Bearer {admin_token}"}
             )
 
             restore_resp = await client.patch(
-                f"/admin/users/{user_id}",
+                f"/api/v1/admin/users/{user_id}",
                 headers={"Authorization": f"Bearer {admin_token}"},
                 json={"is_active": True}
             )

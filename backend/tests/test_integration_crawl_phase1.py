@@ -59,7 +59,7 @@ class TestCrawlNowEndpoint:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products/crawl/crawl-now")
+                response = await client.post("/api/v1/crawl/crawl-now")
 
             assert response.status_code == 200
             data = response.json()
@@ -90,7 +90,7 @@ class TestCrawlStatusEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get("/products/crawl/status/nonexistent")
+                    response = await client.get("/api/v1/crawl/status/nonexistent")
 
                 assert response.status_code == 404
             finally:
@@ -118,7 +118,7 @@ class TestCrawlStatusEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/products/crawl/status/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/status/{record.task_id}")
 
                 assert response.status_code == 200
                 data = response.json()
@@ -154,7 +154,7 @@ class TestCrawlStatusEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/products/crawl/status/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/status/{record.task_id}")
 
                 assert response.status_code == 200
                 data = response.json()
@@ -187,7 +187,7 @@ class TestCrawlStatusEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/v1/crawl/status/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/status/{record.task_id}")
 
                 assert response.status_code == 200
                 data = response.json()
@@ -208,7 +208,7 @@ class TestCrawlResultEndpoint:
         """Unknown task_id returns 404."""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products/crawl/result/nonexistent")
+            response = await client.get("/api/v1/crawl/result/nonexistent")
 
         assert response.status_code == 404
 
@@ -234,7 +234,7 @@ class TestCrawlResultEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/result/{record.task_id}")
 
                 assert response.status_code == 202
                 data = response.json()
@@ -273,7 +273,7 @@ class TestCrawlResultEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/result/{record.task_id}")
 
                 assert response.status_code == 200
                 data = response.json()
@@ -307,7 +307,7 @@ class TestCrawlResultEndpoint:
             try:
                 transport = ASGITransport(app=app)
                 async with AsyncClient(transport=transport, base_url="http://test") as client:
-                    response = await client.get(f"/products/crawl/result/{record.task_id}")
+                    response = await client.get(f"/api/v1/crawl/result/{record.task_id}")
 
                 assert response.status_code == 500
                 data = response.json()

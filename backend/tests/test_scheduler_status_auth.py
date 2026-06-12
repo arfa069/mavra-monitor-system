@@ -27,7 +27,7 @@ async def test_scheduler_status_unauthenticated_returns_401():
     """匿名访问 /scheduler/status 应被拒绝（之前是任何人都能看）。"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/scheduler/status")
+        resp = await client.get("/api/v1/scheduler/status")
     assert resp.status_code in (401, 403)
 
 
@@ -41,7 +41,7 @@ async def test_scheduler_status_regular_user_forbidden():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/scheduler/status",
+                "/api/v1/scheduler/status",
                 headers={"Authorization": "Bearer fake"},
             )
         assert resp.status_code == 403
@@ -59,7 +59,7 @@ async def test_scheduler_status_admin_allowed():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get(
-                "/scheduler/status",
+                "/api/v1/scheduler/status",
                 headers={"Authorization": "Bearer fake"},
             )
         # 无论 scheduler 是 running 还是 not_started，admin 都能拿到响应

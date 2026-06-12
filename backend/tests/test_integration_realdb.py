@@ -53,7 +53,7 @@ class TestConfigApiRealDb:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/config")
+            response = await client.get("/api/v1/config")
 
         assert response.status_code == 200
         data = response.json()
@@ -67,7 +67,7 @@ class TestConfigApiRealDb:
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.patch("/config", json={"data_retention_days": new_days})
+            response = await client.patch("/api/v1/config", json={"data_retention_days": new_days})
 
         assert response.status_code == 200
         data = response.json()
@@ -101,7 +101,7 @@ class TestProductCrudApiRealDb:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # 创建
-            create_resp = await client.post("/products", json={
+            create_resp = await client.post("/api/v1/products", json={
                 "platform": "jd",
                 "url": test_url,
                 "title": "集成测试商品",
@@ -147,7 +147,7 @@ class TestProductCrudApiRealDb:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 # 创建
-                create_resp = await client.post("/products", json={
+                create_resp = await client.post("/api/v1/products", json={
                     "platform": "jd",
                     "url": test_url,
                     "title": "原始标题",
@@ -155,7 +155,7 @@ class TestProductCrudApiRealDb:
                 product_id = create_resp.json()["id"]
 
                 # 更新
-                response = await client.patch(f"/products/{product_id}", json={
+                response = await client.patch(f"/api/v1/products/{product_id}", json={
                     "title": "更新后的标题",
                 })
 
@@ -182,7 +182,7 @@ class TestProductCrudApiRealDb:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 # 创建
-                create_resp = await client.post("/products", json={
+                create_resp = await client.post("/api/v1/products", json={
                     "platform": "jd",
                     "url": test_url,
                     "title": "待删除商品",
@@ -190,7 +190,7 @@ class TestProductCrudApiRealDb:
                 product_id = create_resp.json()["id"]
 
                 # 删除
-                response = await client.delete(f"/products/{product_id}")
+                response = await client.delete(f"/api/v1/products/{product_id}")
 
             assert response.status_code == 200
             assert "message" in response.json()
@@ -225,7 +225,7 @@ class TestPaginationApiRealDb:
         """默认每页 15 条"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products")
+            response = await client.get("/api/v1/products")
 
         assert response.status_code == 200
         data = response.json()
@@ -283,7 +283,7 @@ class TestBatchOperationsRealDb:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.post("/products/batch-create", json={"items": items})
+                response = await client.post("/api/v1/products/batch-create", json={"items": items})
 
             assert response.status_code == 200
             results = response.json()
