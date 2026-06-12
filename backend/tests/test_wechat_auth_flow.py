@@ -280,3 +280,26 @@ async def test_wechat_callback_redirects_state_error(monkeypatch):
     assert response.status_code == 302
     assert "status=error" in response.headers["location"]
     assert "reason=state_expired" in response.headers["location"]
+
+
+@pytest.mark.asyncio
+async def test_wechat_qr_uses_canonical_backend_callback_by_default(
+    monkeypatch,
+):
+    from urllib.parse import parse_qs, urlparse
+
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_login_enabled", True)
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_id", "test-app")
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_secret", "test-secret")
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_redirect_uri", None)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/auth/wechat/qr")
+
+    assert response.status_code == 200
+    query = parse_qs(urlparse(response.json()["qr_url"]).query)
+    assert query["redirect_uri"] == [
+        "http://localhost:8000/api/v1/auth/wechat/callback"
+    ]
+

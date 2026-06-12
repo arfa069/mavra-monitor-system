@@ -209,16 +209,13 @@ def test_can_view_event_applies_platform_and_admin_rules():
 
 
 def test_event_center_paths_are_excluded_from_platform_http_logging():
-    """Event Center should not log its own auth failures as platform noise."""
     from app.main import _is_event_center_path
 
-    assert _is_event_center_path("/events")
-    assert _is_event_center_path("/events/stream")
-    assert _is_event_center_path("/v1/events")
-    assert _is_event_center_path("/v1/events/stream")
     assert _is_event_center_path("/api/v1/events")
     assert _is_event_center_path("/api/v1/events/stream")
-    assert not _is_event_center_path("/v1/jobs")
+    assert not _is_event_center_path("/events")
+    assert not _is_event_center_path("/v1/events")
+    assert not _is_event_center_path("/api/v1/jobs")
 
 
 @pytest.mark.asyncio
@@ -273,7 +270,7 @@ async def test_events_endpoint_returns_paginated_items():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/events?page=1&page_size=20")
+        response = await client.get("/api/v1/events?page=1&page_size=20")
 
     assert response.status_code == 200
     data = response.json()
@@ -300,7 +297,7 @@ async def test_regular_user_cannot_request_platform_kind():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/events?kind=platform")
+        response = await client.get("/api/v1/events?kind=platform")
 
     assert response.status_code == 200
     assert response.json()["items"] == []

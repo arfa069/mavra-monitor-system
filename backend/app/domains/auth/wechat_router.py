@@ -194,7 +194,10 @@ async def get_wechat_qr_url(next: str | None = None):
         next_path=_normalize_next_path(next),
     )
 
-    redirect_uri = settings.wechat_redirect_uri or "http://localhost:8000/auth/wechat/callback"
+    redirect_uri = (
+        settings.wechat_redirect_uri
+        or "http://localhost:8000/api/v1/auth/wechat/callback"
+    )
     qr_url = (
         f"{WECHAT_QR_CONNECT_URL}"
         f"?appid={settings.wechat_app_id}"

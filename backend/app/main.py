@@ -31,12 +31,12 @@ from app.domains.smart_home import router as smart_home_router
 logger = logging.getLogger(__name__)
 
 
+API_PREFIX = "/api/v1"
+
+
 def _is_event_center_path(path: str) -> bool:
-    return path == "/events" or path.startswith((
-        "/events/",
-        "/v1/events",
-        "/api/v1/events",
-    ))
+    event_prefix = f"{API_PREFIX}/events"
+    return path == event_prefix or path.startswith(f"{event_prefix}/")
 
 
 async def recover_crawler_runtime_state() -> None:
@@ -220,31 +220,23 @@ _APPLICATION_ROUTERS = (
 )
 
 
-def _include_application_routers(prefix: str = "") -> None:
+def _include_application_routers() -> None:
     for router in _APPLICATION_ROUTERS:
-        app.include_router(router, prefix=prefix)
+        app.include_router(router, prefix=API_PREFIX)
 
 
-# Include legacy routes and v1 routes. The frontend dev proxy strips /api, so
-# /api/v1/... in the browser reaches /v1/... on the backend.
 _include_application_routers()
+app.include_router(crawl_router, prefix=API_PREFIX)
 app.include_router(blog_media_router)
-app.include_router(crawl_router, prefix="/products")
-_include_application_routers(prefix="/v1")
-app.include_router(crawl_router, prefix="/v1")
-_include_application_routers(prefix="/api/v1")
-app.include_router(crawl_router, prefix="/api/v1")
 
 
-@app.get("/v1")
-@app.get("/api/v1")
+@app.get(API_PREFIX)
 async def api_root():
-    """Public API root for clients/probes that open the API base URL."""
     return {
         "name": settings.app_name,
         "status": "ok",
         "docs": "/docs",
-        "prefixes": ["/v1", "/api/v1"],
+        "prefixes": [API_PREFIX],
     }
 
 
