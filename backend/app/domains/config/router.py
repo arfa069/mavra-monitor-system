@@ -35,8 +35,8 @@ async def create_or_update_config(
     db: AsyncSession = Depends(get_db),
 ):
     """Create or update user configuration."""
-    user = await config_service.create_or_update_config(db, data=config_data)
-    await invalidate_user_config_cache()
+    user = await config_service.create_or_update_config(db, user_id=current_user.id, data=config_data)
+    await invalidate_user_config_cache(current_user.id)
 
     return user
 
@@ -47,7 +47,7 @@ async def get_config(
     db: AsyncSession = Depends(get_db),
 ):
     """Get current user configuration, or return defaults if not set."""
-    return await config_service.get_or_create_default_user(db)
+    return await config_service.get_user_config(db, user_id=current_user.id)
 
 
 @router.patch("", response_model=UserConfigResponse)
@@ -57,7 +57,7 @@ async def update_config_partial(
     db: AsyncSession = Depends(get_db),
 ):
     """Partial update user configuration (create if not exists)."""
-    user = await config_service.update_config_partial(db, data=config_data)
-    await invalidate_user_config_cache()
+    user = await config_service.update_config_partial(db, user_id=current_user.id, data=config_data)
+    await invalidate_user_config_cache(current_user.id)
 
     return user

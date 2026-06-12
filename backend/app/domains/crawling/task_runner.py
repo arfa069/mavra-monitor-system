@@ -140,7 +140,7 @@ class CrawlTaskRunner:
         from app.domains.crawling import service as crawling_service
 
         products = await crawling_service.get_active_products(
-            user_id=task.user_id or 1, platform=platform
+            user_id=task.user_id, platform=platform
         )
         return await self._run_product_crawl(task, products, f"platform {platform}")
 
@@ -148,6 +148,5 @@ class CrawlTaskRunner:
         """Run product crawl for all platforms via OpenCLI (no profile needed)."""
         from app.domains.crawling import service as crawling_service
 
-        user_id = task.user_id or 1
-        products = await crawling_service.get_active_products(user_id=user_id)
+        products = await crawling_service.get_active_products(user_id=task.user_id)
         return await self._run_product_crawl(task, products, "all platforms")

@@ -13,6 +13,11 @@ async def get_default_user(db: AsyncSession) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
 async def add_user(db: AsyncSession, *, user: User) -> User:
     added = db.add(user)
     if isawaitable(added):

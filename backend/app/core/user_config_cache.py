@@ -19,26 +19,31 @@ from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
-CACHE_KEY = "user:config:1"
+def get_cache_key(user_id: int) -> str:
+    """Return the Redis cache key for a specific user ID."""
+    return f"user:config:{user_id}"
+
 CACHE_TTL_SECONDS = 300  # 5 minutes
 
 _fetch_lock = asyncio.Lock()
 
 
-async def get_cached_user_config(db=None) -> dict[str, Any] | None:
+async def get_cached_user_config(user_id: int, db=None) -> dict[str, Any] | None:
     """Return user config dict from cache, or fetch from DB and cache it.
 
     Args:
+        user_id: The ID of the user whose configuration is retrieved.
         db: Optional existing async DB session. If None, a new session is created.
 
     Returns:
         Dict with user config fields, or None if user not found.
     """
     redis_client = await get_redis()
+    cache_key = get_cache_key(user_id)
 
     # 1. Try cache
     try:
-        cached = await redis_client.get(CACHE_KEY)
+        cached = await redis_client.get(cache_key)
         if cached:
             return json.loads(cached)
     except (redis.RedisError, json.JSONDecodeError):
@@ -48,7 +53,7 @@ async def get_cached_user_config(db=None) -> dict[str, Any] | None:
     async with _fetch_lock:
         # Double-check: another coroutine may have cached while we waited
         try:
-            cached = await redis_client.get(CACHE_KEY)
+            cached = await redis_client.get(cache_key)
             if cached:
                 return json.loads(cached)
         except (redis.RedisError, json.JSONDecodeError):
@@ -56,15 +61,15 @@ async def get_cached_user_config(db=None) -> dict[str, Any] | None:
 
         # 3. Still cache miss — fetch from DB
         if db is not None:
-            return await _fetch_and_cache(db, redis_client)
+            return await _fetch_and_cache(user_id, db, redis_client)
 
         async with AsyncSessionLocal() as db:
-            return await _fetch_and_cache(db, redis_client)
+            return await _fetch_and_cache(user_id, db, redis_client)
 
 
-async def _fetch_and_cache(db, redis_client: redis.Redis) -> dict[str, Any] | None:
+async def _fetch_and_cache(user_id: int, db, redis_client: redis.Redis) -> dict[str, Any] | None:
     """Query DB for user config and write to Redis."""
-    result = await db.execute(select(User).where(User.id == 1))
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
     if user is None:
@@ -79,18 +84,20 @@ async def _fetch_and_cache(db, redis_client: redis.Redis) -> dict[str, Any] | No
         "is_active": user.is_active,
     }
 
+    cache_key = get_cache_key(user_id)
     try:
-        await redis_client.setex(CACHE_KEY, CACHE_TTL_SECONDS, json.dumps(config))
+        await redis_client.setex(cache_key, CACHE_TTL_SECONDS, json.dumps(config))
     except (redis.RedisError, TypeError):
         logger.exception("Redis cache write failed")
 
     return config
 
 
-async def invalidate_user_config_cache() -> None:
-    """Clear the user config cache. Call after any config update."""
+async def invalidate_user_config_cache(user_id: int) -> None:
+    """Clear the user config cache for a specific user ID. Call after any config update."""
     redis_client = await get_redis()
+    cache_key = get_cache_key(user_id)
     try:
-        await redis_client.delete(CACHE_KEY)
+        await redis_client.delete(cache_key)
     except redis.RedisError:
         logger.exception("Redis cache invalidate failed")

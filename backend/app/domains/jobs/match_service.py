@@ -156,7 +156,7 @@ async def _execute_match_analysis(
         await progress_callback(task)
 
     # 3. Get user for notifications (cached)
-    user = await get_cached_user_config(db)
+    user = await get_cached_user_config(user_id=resume.user_id, db=db)
 
     provider = get_llm_provider()
     notify_jobs = []  # 高分职位，汇总后发一条飞书
@@ -357,7 +357,7 @@ async def analyze_resume_vs_jobs(
 
     async with AsyncSessionLocal() as db:
         resume = await db.get(UserResume, resume_id)
-        if not resume or resume.user_id != 1:
+        if not resume:
             return {
                 "processed": 0,
                 "created": 0,
@@ -369,7 +369,7 @@ async def analyze_resume_vs_jobs(
         query = (
             select(Job)
             .join(JobSearchConfig, Job.search_config_id == JobSearchConfig.id)
-            .where(JobSearchConfig.user_id == 1)
+            .where(JobSearchConfig.user_id == resume.user_id)
         )
         if job_ids:
             query = query.where(Job.id.in_(list(job_ids)))
@@ -385,7 +385,7 @@ async def analyze_resume_vs_jobs(
                 "items": [],
             }
 
-        user = await get_cached_user_config(db)
+        user = await get_cached_user_config(user_id=resume.user_id, db=db)
         webhook_url = user.get("feishu_webhook_url") if user else None
 
         provider = get_llm_provider()

@@ -26,19 +26,26 @@ async def get_or_create_default_user(db: AsyncSession) -> User:
     )
 
 
+async def get_user_config(db: AsyncSession, *, user_id: int) -> User:
+    user = await repository.get_user_by_id(db, user_id)
+    if user is None:
+        raise ValueError("User not found")
+    return user
+
+
 async def create_or_update_config(
-    db: AsyncSession, *, data: UserConfigCreate
+    db: AsyncSession, *, user_id: int, data: UserConfigCreate
 ) -> User:
-    user = await get_or_create_default_user(db)
+    user = await get_user_config(db, user_id=user_id)
     user.feishu_webhook_url = data.feishu_webhook_url
     user.data_retention_days = data.data_retention_days
     return await repository.save_user(db, user=user)
 
 
 async def update_config_partial(
-    db: AsyncSession, *, data: UserConfigUpdate
+    db: AsyncSession, *, user_id: int, data: UserConfigUpdate
 ) -> User:
-    user = await get_or_create_default_user(db)
+    user = await get_user_config(db, user_id=user_id)
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)

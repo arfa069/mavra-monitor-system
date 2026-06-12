@@ -12,7 +12,7 @@ async def send_new_job_notification(
     total_scraped: int,
 ) -> dict:
     """Send Feishu notification for newly discovered jobs."""
-    user = await get_cached_user_config()
+    user = await get_cached_user_config(user_id=config.user_id)
 
     if not user or not user.get("feishu_webhook_url"):
         return {"status": "skipped", "reason": "no_webhook"}
