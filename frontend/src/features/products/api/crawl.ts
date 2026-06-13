@@ -39,18 +39,18 @@ export interface CrawlResultResponse {
 }
 
 export const crawlApi = {
-  crawlNow: () => api.post<CrawlNowResponse>("/v1/crawl/crawl-now"),
+  crawlNow: () => api.post<CrawlNowResponse>("/crawl/crawl-now"),
 
   getStatus: (taskId: string) =>
-    api.get<CrawlStatusResponse>(`/v1/crawl/status/${taskId}`),
+    api.get<CrawlStatusResponse>(`/crawl/status/${taskId}`),
 
   getResult: (taskId: string) =>
-    api.get<CrawlResultResponse>(`/v1/crawl/result/${taskId}`),
+    api.get<CrawlResultResponse>(`/crawl/result/${taskId}`),
 
   getLogs: (params?: {
     product_id?: number;
     status?: string;
     hours?: number;
     limit?: number;
-  }) => api.get<CrawlLog[]>("/v1/crawl/logs", { params }),
+  }) => api.get<CrawlLog[]>("/crawl/logs", { params }),
 };

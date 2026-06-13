@@ -1,11 +1,12 @@
 import api from "@/shared/api/client";
+import { apiUrl } from "@/shared/api/base";
 import type { EventCenterListResponse, EventCenterQuery } from "../types";
 
 export const eventsApi = {
   listEvents: async (
     params: EventCenterQuery,
   ): Promise<EventCenterListResponse> => {
-    const response = await api.get<EventCenterListResponse>("/v1/events", {
+    const response = await api.get<EventCenterListResponse>("/events", {
       params,
     });
     return response.data;
@@ -21,6 +22,7 @@ export const eventsApi = {
       searchParams.set(key, String(value));
     });
 
-    return `/api/v1/events/stream?${searchParams.toString()}`;
+    const query = searchParams.toString();
+    return apiUrl(`/events/stream${query ? `?${query}` : ""}`);
   },
 };

@@ -8,8 +8,9 @@ interface SSEState {
   error: string | null;
 }
 
-const apiUrl = import.meta.env.VITE_API_URL || "/api/v1";
-const SSE_URL = `${apiUrl}/dashboard/events`;
+import { apiUrl } from "@/shared/api/base";
+
+const SSE_URL = apiUrl("/dashboard/events");
 
 export function useDashboardSSE(): SSEState {
   const [state, setState] = useState<SSEState>({

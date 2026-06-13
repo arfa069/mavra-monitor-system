@@ -1,9 +1,15 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import api, { formatApiError } from "@/shared/api/client";
+import { API_BASE_URL, apiUrl } from "@/shared/api/base";
 import { server } from "../mocks/server";
 
 describe("shared API client", () => {
+  it("owns the canonical API prefix in one place", () => {
+    expect(API_BASE_URL).toBe("/api/v1");
+    expect(apiUrl("/events/stream")).toBe("/api/v1/events/stream");
+  });
+
   it("formats string and validation-list errors", () => {
     expect(
       formatApiError(
@@ -28,7 +34,7 @@ describe("shared API client", () => {
       }),
     );
 
-    await api.patch("/v1/config", { data_retention_days: 30 });
+    await api.patch("/config", { data_retention_days: 30 });
   });
 
   it("queues concurrent 401 requests and calls refresh only once", async () => {
@@ -58,8 +64,8 @@ describe("shared API client", () => {
     );
 
     const [res1, res2] = await Promise.all([
-      api.get("/v1/protected-1"),
-      api.get("/v1/protected-2"),
+      api.get("/protected-1"),
+      api.get("/protected-2"),
     ]);
 
     expect(res1.data).toEqual({ data: "p1-success" });

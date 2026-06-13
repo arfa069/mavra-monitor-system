@@ -75,4 +75,18 @@ test.describe("API Mock Firewall", () => {
 
     expect(res).toEqual({ ok: true });
   });
+
+  test("records LEGACY and rejects v1 calls", async ({ page }) => {
+    const api = new ApiMock();
+    await api.install(page);
+    await page.goto("/");
+
+    const status = await page.evaluate(async () => {
+      const response = await fetch("/v1/products");
+      return response.status;
+    });
+
+    expect(status).toBe(501);
+    expect(api.getViolations()).toContain("LEGACY GET /v1/products");
+  });
 });

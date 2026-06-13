@@ -71,6 +71,8 @@ describe("useSmartHomeSSE Hook", () => {
     expect(EventSourceStub.instances.length).toBe(1);
 
     const esInstance = EventSourceStub.instances[0];
+    expect(esInstance.url).toBe("/api/v1/smart-home/entities/stream");
+    expect(esInstance.options).toEqual({ withCredentials: true });
 
     const mockEntity = {
       entity_id: "light.living_room",

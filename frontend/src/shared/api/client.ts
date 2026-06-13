@@ -10,10 +10,17 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-const API_BASE_URL = "/api";
+import { API_BASE_URL } from "./base";
+
 const API_TIMEOUT_MS = 300_000; // 5 minutes
 
 const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: API_TIMEOUT_MS,
+  withCredentials: true,
+});
+
+const refreshApi = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
   withCredentials: true,
@@ -131,7 +138,7 @@ api.interceptors.response.use(
       refreshState.isRefreshing = true;
 
       try {
-        await axios.post("/api/v1/auth/refresh", {}, { withCredentials: true });
+        await refreshApi.post("/auth/refresh");
         // Retry all queued original requests
         refreshState.failedQueue.forEach(({ resolve, reject, config }) => {
           api(config).then(resolve).catch(reject);

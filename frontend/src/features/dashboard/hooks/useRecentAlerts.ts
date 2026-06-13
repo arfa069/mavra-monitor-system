@@ -29,7 +29,7 @@ export function useRecentAlerts(limit = 10): AlertsState {
       setState((prev) => ({ ...prev, loading: true, error: null }));
       try {
         const response = await api.get<RecentAlert[]>(
-          "/v1/dashboard/alerts/recent",
+          "/dashboard/alerts/recent",
           { params: { limit } },
         );
         if (!cancelled) {

@@ -57,24 +57,24 @@ export const adminApi = {
     search?: string;
     role?: string;
   }): Promise<UserListResponse> => {
-    const response = await api.get<UserListResponse>("/v1/admin/users", {
+    const response = await api.get<UserListResponse>("/admin/users", {
       params,
     });
     return response.data;
   },
 
   createUser: async (data: UserCreate): Promise<User> => {
-    const response = await api.post<User>("/v1/admin/users", data);
+    const response = await api.post<User>("/admin/users", data);
     return response.data;
   },
 
   updateUser: async (id: number, data: UserUpdate): Promise<User> => {
-    const response = await api.patch<User>(`/v1/admin/users/${id}`, data);
+    const response = await api.patch<User>(`/admin/users/${id}`, data);
     return response.data;
   },
 
   deleteUser: async (id: number): Promise<void> => {
-    await api.delete(`/v1/admin/users/${id}`);
+    await api.delete(`/admin/users/${id}`);
   },
 
   getAuditLogs: async (params: {
@@ -84,7 +84,7 @@ export const adminApi = {
     action?: string;
   }): Promise<AuditLogListResponse> => {
     const response = await api.get<AuditLogListResponse>(
-      "/v1/admin/audit-logs",
+      "/admin/audit-logs",
       {
         params,
       },
@@ -99,7 +99,7 @@ export const adminApi = {
     page_size?: number;
   }): Promise<ResourcePermissionListResponse> => {
     const response = await api.get<ResourcePermissionListResponse>(
-      "/v1/admin/resource-permissions",
+      "/admin/resource-permissions",
       { params },
     );
     return response.data;
@@ -109,14 +109,14 @@ export const adminApi = {
     grant: ResourcePermissionGrant,
   ): Promise<{ granted: number }> => {
     const response = await api.post<{ granted: number }>(
-      "/v1/admin/resource-permissions",
+      "/admin/resource-permissions",
       grant,
     );
     return response.data;
   },
 
   revokeResourcePermission: async (id: number): Promise<void> => {
-    await api.delete(`/v1/admin/resource-permissions/${id}`);
+    await api.delete(`/admin/resource-permissions/${id}`);
   },
 
   updateResourcePermission: async (
@@ -124,7 +124,7 @@ export const adminApi = {
     data: ResourcePermissionUpdate,
   ): Promise<ResourcePermission> => {
     const response = await api.patch<ResourcePermission>(
-      `/v1/admin/resource-permissions/${id}`,
+      `/admin/resource-permissions/${id}`,
       data,
     );
     return response.data;
@@ -132,7 +132,7 @@ export const adminApi = {
 
   getRolePermissionMatrix: async (): Promise<RolePermissionMatrix> => {
     const response = await api.get<RolePermissionMatrix>(
-      "/v1/admin/roles/permissions",
+      "/admin/roles/permissions",
     );
     return response.data;
   },
@@ -142,7 +142,7 @@ export const adminApi = {
     data: RolePermissionUpdate,
   ): Promise<RolePermissionInfo> => {
     const response = await api.patch<RolePermissionInfo>(
-      `/v1/admin/roles/${role}/permissions`,
+      `/admin/roles/${role}/permissions`,
       data,
     );
     return response.data;

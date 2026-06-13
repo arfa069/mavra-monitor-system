@@ -57,7 +57,7 @@ export function useTodayData(): TodayDataState {
         todayLoadPromise ??= (async () => {
           const [kpiResult, productsResult, matchesResult, summaryResult] =
             await Promise.allSettled([
-              api.get<DashboardKPIResponse>("/v1/dashboard/kpi"),
+              api.get<DashboardKPIResponse>("/dashboard/kpi"),
               productsApi.list({ active: true, page: 1, size: 5 }),
               jobsApi.getMatchResults({ page: 1, page_size: 5 }),
               smartHomeApi.getSummary(),

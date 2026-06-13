@@ -1,4 +1,5 @@
 import api from "@/shared/api/client";
+import { apiUrl } from "@/shared/api/base";
 import type {
   SmartHomeConfig,
   SmartHomeConfigUpdate,
@@ -8,22 +9,22 @@ import type {
 } from "../types";
 
 export const smartHomeApi = {
-  getConfig: () => api.get<SmartHomeConfig>("/v1/smart-home/config"),
+  getConfig: () => api.get<SmartHomeConfig>("/smart-home/config"),
   updateConfig: (data: SmartHomeConfigUpdate) =>
-    api.put<SmartHomeConfig>("/v1/smart-home/config", data),
+    api.put<SmartHomeConfig>("/smart-home/config", data),
   testConfig: (data: Partial<SmartHomeConfigUpdate>) =>
     api.post<{
       ok: boolean;
       message: string;
       home_assistant_version: string | null;
-    }>("/v1/smart-home/config/test", data),
+    }>("/smart-home/config/test", data),
   listEntities: () =>
-    api.get<SmartHomeEntityListResponse>("/v1/smart-home/entities"),
-  getSummary: () => api.get<SmartHomeSummary>("/v1/smart-home/summary"),
+    api.get<SmartHomeEntityListResponse>("/smart-home/entities"),
+  getSummary: () => api.get<SmartHomeSummary>("/smart-home/summary"),
   callService: (entityId: string, data: SmartHomeServiceRequest) =>
     api.post(
-      `/v1/smart-home/entities/${encodeURIComponent(entityId)}/service`,
+      `/smart-home/entities/${encodeURIComponent(entityId)}/service`,
       data,
     ),
-  buildStreamUrl: () => "/api/v1/smart-home/entities/stream",
+  buildStreamUrl: () => apiUrl("/smart-home/entities/stream"),
 };

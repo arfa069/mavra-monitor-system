@@ -69,6 +69,8 @@ describe("useDashboardSSE Hook", () => {
 
     const esInstance = EventSourceStub.instances[0];
     expect(esInstance).toBeDefined();
+    expect(esInstance.url).toBe("/api/v1/dashboard/events");
+    expect(esInstance.options).toEqual({ withCredentials: true });
 
     // Trigger onopen
     act(() => {

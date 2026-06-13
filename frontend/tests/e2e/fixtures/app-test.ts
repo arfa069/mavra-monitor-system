@@ -105,7 +105,6 @@ export const test = base.extend<Fixtures>({
     }));
     api.use("GET", "/api/v1/dashboard/alerts/recent", () => ({ body: [] }));
     api.use("GET", "/api/v1/dashboard/events", () => ({ body: [] }));
-    api.use("GET", "/v1/dashboard/events", () => ({ body: [] }));
 
     // Realtime events & Smart Home SSE
     api.use("GET", "/api/v1/events/stream", () => ({ status: 200, body: {} }));

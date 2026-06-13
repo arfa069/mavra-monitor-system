@@ -3,14 +3,14 @@ import type { Alert, AlertCreateRequest, AlertUpdateRequest } from "../types";
 
 export const alertsApi = {
   list: (params?: { product_id?: number; active?: boolean }) =>
-    api.get<Alert[]>("/v1/alerts", { params }),
+    api.get<Alert[]>("/alerts", { params }),
 
-  get: (id: number) => api.get<Alert>(`/v1/alerts/${id}`),
+  get: (id: number) => api.get<Alert>(`/alerts/${id}`),
 
-  create: (data: AlertCreateRequest) => api.post<Alert>("/v1/alerts", data),
+  create: (data: AlertCreateRequest) => api.post<Alert>("/alerts", data),
 
   update: (id: number, data: AlertUpdateRequest) =>
-    api.patch<Alert>(`/v1/alerts/${id}`, data),
+    api.patch<Alert>(`/alerts/${id}`, data),
 
-  delete: (id: number) => api.delete(`/v1/alerts/${id}`),
+  delete: (id: number) => api.delete(`/alerts/${id}`),
 };

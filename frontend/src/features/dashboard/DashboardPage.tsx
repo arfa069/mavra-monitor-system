@@ -57,7 +57,7 @@ export default function DashboardPage() {
     const fetchInitial = async () => {
       try {
         const response =
-          await api.get<DashboardKPIResponse>("/v1/dashboard/kpi");
+          await api.get<DashboardKPIResponse>("/dashboard/kpi");
         setInitialData(response.data);
       } catch {
         // Silently fail — SSE will provide data eventually

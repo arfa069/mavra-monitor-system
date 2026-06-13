@@ -48,32 +48,32 @@ export interface JobCrawlFinalResult {
 
 export const jobsApi = {
   getConfigs: (active?: boolean) =>
-    api.get<JobSearchConfig[]>("/v1/jobs/configs", {
+    api.get<JobSearchConfig[]>("/jobs/configs", {
       params: active !== undefined ? { active } : undefined,
     }),
 
-  getConfig: (id: number) => api.get<JobSearchConfig>(`/v1/jobs/configs/${id}`),
+  getConfig: (id: number) => api.get<JobSearchConfig>(`/jobs/configs/${id}`),
 
   createConfig: (data: JobSearchConfigCreate) =>
-    api.post<JobSearchConfig>("/v1/jobs/configs", data),
+    api.post<JobSearchConfig>("/jobs/configs", data),
 
   updateConfig: (id: number, data: JobSearchConfigUpdate) =>
-    api.patch<JobSearchConfig>(`/v1/jobs/configs/${id}`, data),
+    api.patch<JobSearchConfig>(`/jobs/configs/${id}`, data),
 
-  deleteConfig: (id: number) => api.delete(`/v1/jobs/configs/${id}`),
+  deleteConfig: (id: number) => api.delete(`/jobs/configs/${id}`),
 
   updateConfigCron: (id: number, data: JobConfigCronUpdate) =>
-    api.patch<JobSearchConfig>(`/v1/jobs/configs/${id}/cron`, data),
+    api.patch<JobSearchConfig>(`/jobs/configs/${id}/cron`, data),
 
-  getResumes: () => api.get("/v1/jobs/resumes"),
+  getResumes: () => api.get("/jobs/resumes"),
 
   createResume: (data: { name: string; resume_text: string }) =>
-    api.post("/v1/jobs/resumes", data),
+    api.post("/jobs/resumes", data),
 
   updateResume: (id: number, data: { name?: string; resume_text?: string }) =>
-    api.patch(`/v1/jobs/resumes/${id}`, data),
+    api.patch(`/jobs/resumes/${id}`, data),
 
-  deleteResume: (id: number) => api.delete(`/v1/jobs/resumes/${id}`),
+  deleteResume: (id: number) => api.delete(`/jobs/resumes/${id}`),
 
   getMatchResults: (params?: {
     resume_id?: number;
@@ -81,14 +81,14 @@ export const jobsApi = {
     recommendation?: string;
     page?: number;
     page_size?: number;
-  }) => api.get("/v1/jobs/match-results", { params }),
+  }) => api.get("/jobs/match-results", { params }),
 
   triggerMatch: (data: { resume_id: number; job_ids?: number[] | null }) =>
-    api.post("/v1/jobs/match-results/analyze", data),
+    api.post("/jobs/match-results/analyze", data),
 
   getJobConfigSchedules: () =>
     api.get<{ configs: (JobConfigScheduleInfo & { config_id: number })[] }>(
-      "/v1/jobs/scheduler/job-configs",
+      "/jobs/scheduler/job-configs",
     ),
 
   getJobs: (params?: {
@@ -103,84 +103,84 @@ export const jobsApi = {
     sort_order?: string;
     page?: number;
     page_size?: number;
-  }) => api.get<JobListResponse>("/v1/jobs", { params }),
+  }) => api.get<JobListResponse>("/jobs", { params }),
 
-  getJob: (jobId: string) => api.get<Job>(`/v1/jobs/${jobId}`),
+  getJob: (jobId: string) => api.get<Job>(`/jobs/${jobId}`),
 
   crawlAll: () =>
     api.post<{ status: string; task_id: string; message: string }>(
-      "/v1/jobs/crawl-now",
+      "/jobs/crawl-now",
       undefined,
       { timeout: 10000 },
     ),
 
   crawlSingle: (configId: number) =>
     api.post<{ status: string; task_id: string; message: string }>(
-      `/v1/jobs/crawl-now/${configId}`,
+      `/jobs/crawl-now/${configId}`,
       undefined,
       { timeout: 10000 },
     ),
 
   getCrawlStatus: (taskId: string) =>
-    api.get<JobCrawlStatus>(`/v1/jobs/crawl/status/${taskId}`),
+    api.get<JobCrawlStatus>(`/jobs/crawl/status/${taskId}`),
 
   getCrawlResult: (taskId: string) =>
-    api.get<JobCrawlFinalResult>(`/v1/jobs/crawl/result/${taskId}`),
+    api.get<JobCrawlFinalResult>(`/jobs/crawl/result/${taskId}`),
 
   getCrawlLogs: (params?: {
     search_config_id?: number;
     status?: string;
     hours?: number;
     limit?: number;
-  }) => api.get<JobCrawlLog[]>("/v1/jobs/crawl-logs", { params }),
+  }) => api.get<JobCrawlLog[]>("/jobs/crawl-logs", { params }),
 
-  getProfiles: () => api.get<CrawlProfile[]>("/v1/crawl-profiles"),
+  getProfiles: () => api.get<CrawlProfile[]>("/crawl-profiles"),
 
   getProfileRuntimeCapabilities: () =>
     api.get<CrawlProfileRuntimeCapabilities>(
-      "/v1/crawl-profiles/runtime-capabilities",
+      "/crawl-profiles/runtime-capabilities",
     ),
 
   createProfile: (data: CrawlProfileCreate) =>
-    api.post<CrawlProfile>("/v1/crawl-profiles", data),
+    api.post<CrawlProfile>("/crawl-profiles", data),
 
   updateProfile: (profileKey: string, data: CrawlProfileUpdate) =>
-    api.patch<CrawlProfile>(`/v1/crawl-profiles/${profileKey}`, data),
+    api.patch<CrawlProfile>(`/crawl-profiles/${profileKey}`, data),
 
   renameProfile: (profileKey: string, newProfileKey: string) =>
-    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/rename`, {
+    api.post<CrawlProfile>(`/crawl-profiles/${profileKey}/rename`, {
       profile_key: newProfileKey,
     }),
 
   copyProfile: (profileKey: string) =>
-    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/copy`),
+    api.post<CrawlProfile>(`/crawl-profiles/${profileKey}/copy`),
 
   deleteProfile: (profileKey: string) =>
-    api.delete(`/v1/crawl-profiles/${profileKey}`),
+    api.delete(`/crawl-profiles/${profileKey}`),
 
   releaseStaleProfile: (profileKey: string) =>
-    api.post<CrawlProfile>(`/v1/crawl-profiles/${profileKey}/release-stale`),
+    api.post<CrawlProfile>(`/crawl-profiles/${profileKey}/release-stale`),
 
   openProfileLoginSession: (profileKey: string, data: { platform: string }) =>
     api.post<CrawlProfileLoginSession>(
-      `/v1/crawl-profiles/${profileKey}/login-session`,
+      `/crawl-profiles/${profileKey}/login-session`,
       data,
     ),
 
   closeProfileLoginSession: (profileKey: string) =>
     api.post<CrawlProfileLoginSession>(
-      `/v1/crawl-profiles/${profileKey}/login-session/close`,
+      `/crawl-profiles/${profileKey}/login-session/close`,
     ),
 
   testProfile: (profileKey: string, data: { platform: string }) =>
     api.post<CrawlProfileTestResult>(
-      `/v1/crawl-profiles/${profileKey}/test`,
+      `/crawl-profiles/${profileKey}/test`,
       data,
     ),
 
   exportProfileBackup: (profileKey: string, password: string) =>
     api.post<Blob>(
-      `/v1/crawl-profiles/${profileKey}/export`,
+      `/crawl-profiles/${profileKey}/export`,
       { password },
       { responseType: "blob" },
     ),
@@ -196,7 +196,7 @@ export const jobsApi = {
     form.append("password", password);
     form.append("force", String(force));
     return api.post<{ profile_key: string; imported: boolean }>(
-      `/v1/crawl-profiles/${profileKey}/import`,
+      `/crawl-profiles/${profileKey}/import`,
       form,
     );
   },

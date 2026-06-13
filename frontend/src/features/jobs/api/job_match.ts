@@ -9,24 +9,24 @@ import type {
 } from "../types";
 
 export const jobMatchApi = {
-  listResumes: () => api.get<UserResume[]>("/v1/jobs/resumes"),
+  listResumes: () => api.get<UserResume[]>("/jobs/resumes"),
   createResume: (data: UserResumeCreateRequest) =>
-    api.post<UserResume>("/v1/jobs/resumes", data),
+    api.post<UserResume>("/jobs/resumes", data),
   updateResume: (id: number, data: UserResumeUpdateRequest) =>
-    api.patch<UserResume>(`/v1/jobs/resumes/${id}`, data),
-  deleteResume: (id: number) => api.delete(`/v1/jobs/resumes/${id}`),
+    api.patch<UserResume>(`/jobs/resumes/${id}`, data),
+  deleteResume: (id: number) => api.delete(`/jobs/resumes/${id}`),
   listMatchResults: (params?: {
     resume_id?: number;
     job_id?: number;
     recommendation?: string;
     page?: number;
     page_size?: number;
-  }) => api.get<MatchResultListResponse>("/v1/jobs/match-results", { params }),
+  }) => api.get<MatchResultListResponse>("/jobs/match-results", { params }),
   triggerMatch: (data: MatchAnalyzeRequest) =>
-    api.post<MatchAnalyzeResponse>("/v1/jobs/match-results/analyze", data),
+    api.post<MatchAnalyzeResponse>("/jobs/match-results/analyze", data),
   triggerMatchAsync: (data: MatchAnalyzeRequest) =>
     api.post<{ status: string; task_id: string | null; total: number }>(
-      "/v1/jobs/match-results/analyze-async",
+      "/jobs/match-results/analyze-async",
       data,
     ),
   getMatchTaskStatus: (taskId: string) =>
@@ -37,5 +37,5 @@ export const jobMatchApi = {
       success: number;
       errors: number;
       reason?: string;
-    }>(`/v1/jobs/tasks/${taskId}`),
+    }>(`/jobs/tasks/${taskId}`),
 };

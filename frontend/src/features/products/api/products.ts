@@ -22,68 +22,68 @@ export const productsApi = {
     keyword?: string;
     page?: number;
     size?: number;
-  }) => api.get<ProductListResponse>("/v1/products", { params }),
+  }) => api.get<ProductListResponse>("/products", { params }),
 
-  get: (id: number) => api.get<Product>(`/v1/products/${id}`),
+  get: (id: number) => api.get<Product>(`/products/${id}`),
 
   create: (data: ProductCreateRequest) =>
-    api.post<Product>("/v1/products", data),
+    api.post<Product>("/products", data),
 
   update: (id: number, data: ProductUpdateRequest) =>
-    api.patch<Product>(`/v1/products/${id}`, data),
+    api.patch<Product>(`/products/${id}`, data),
 
-  delete: (id: number) => api.delete(`/v1/products/${id}`),
+  delete: (id: number) => api.delete(`/products/${id}`),
 
   batchCreate: (items: BatchCreateItem[]) =>
-    api.post<BatchOperationResult[]>("/v1/products/batch-create", { items }),
+    api.post<BatchOperationResult[]>("/products/batch-create", { items }),
 
   batchDelete: (ids: number[]) =>
-    api.post<BatchOperationResult[]>("/v1/products/batch-delete", { ids }),
+    api.post<BatchOperationResult[]>("/products/batch-delete", { ids }),
 
   batchUpdate: (ids: number[], active?: boolean) =>
-    api.post<BatchOperationResult[]>("/v1/products/batch-update", {
+    api.post<BatchOperationResult[]>("/products/batch-update", {
       ids,
       active,
     }),
 
   history: (id: number, days = 30, limit = 100) =>
-    api.get<PriceHistoryRecord[]>(`/v1/products/${id}/history`, {
+    api.get<PriceHistoryRecord[]>(`/products/${id}/history`, {
       params: { days, limit },
     }),
 
   // Per-platform cron configs
   getCronConfigs: () =>
-    api.get<ProductPlatformCron[]>("/v1/products/cron-configs"),
+    api.get<ProductPlatformCron[]>("/products/cron-configs"),
 
   createCronConfig: (data: ProductPlatformCronCreate) =>
-    api.post<ProductPlatformCron>("/v1/products/cron-configs", data),
+    api.post<ProductPlatformCron>("/products/cron-configs", data),
 
   updateCronConfig: (platform: string, data: ProductPlatformCronUpdate) =>
     api.patch<ProductPlatformCron>(
-      `/v1/products/cron-configs/${platform}`,
+      `/products/cron-configs/${platform}`,
       data,
     ),
 
   deleteCronConfig: (platform: string) =>
-    api.delete(`/v1/products/cron-configs/${platform}`),
+    api.delete(`/products/cron-configs/${platform}`),
 
   getCronSchedules: () =>
     api.get<{ platforms: Record<string, ProductPlatformCronSchedule> }>(
-      "/v1/products/cron-schedules",
+      "/products/cron-schedules",
     ),
 
   getProfileBindings: () =>
-    api.get<ProductPlatformProfileBinding[]>("/v1/products/profile-bindings"),
+    api.get<ProductPlatformProfileBinding[]>("/products/profile-bindings"),
 
   updateProfileBinding: (
     platform: string,
     data: ProductPlatformProfileBindingUpdate,
   ) =>
     api.put<ProductPlatformProfileBinding>(
-      `/v1/products/profile-bindings/${platform}`,
+      `/products/profile-bindings/${platform}`,
       data,
     ),
 
   deleteProfileBinding: (platform: string) =>
-    api.delete(`/v1/products/profile-bindings/${platform}`),
+    api.delete(`/products/profile-bindings/${platform}`),
 };

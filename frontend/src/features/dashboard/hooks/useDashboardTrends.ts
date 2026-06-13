@@ -36,7 +36,7 @@ export function useDashboardTrends(
         error: null,
       }));
       try {
-        const response = await api.get<TrendResponse>("/v1/dashboard/trends", {
+        const response = await api.get<TrendResponse>("/dashboard/trends", {
           params: { type, days },
         });
         if (!cancelled) {

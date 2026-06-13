@@ -15,27 +15,27 @@ export const blogApi = {
     status?: BlogPostStatus;
     page?: number;
     size?: number;
-  }) => api.get<BlogPostListResponse>("/v1/blog/admin/posts", { params }),
+  }) => api.get<BlogPostListResponse>("/blog/admin/posts", { params }),
 
-  getAdminPost: (id: number) => api.get<BlogPost>(`/v1/blog/admin/posts/${id}`),
+  getAdminPost: (id: number) => api.get<BlogPost>(`/blog/admin/posts/${id}`),
 
   createPost: (data: BlogPostPayload) =>
-    api.post<BlogPost>("/v1/blog/admin/posts", data),
+    api.post<BlogPost>("/blog/admin/posts", data),
 
   updatePost: (id: number, data: Partial<BlogPostPayload>) =>
-    api.patch<BlogPost>(`/v1/blog/admin/posts/${id}`, data),
+    api.patch<BlogPost>(`/blog/admin/posts/${id}`, data),
 
-  deletePost: (id: number) => api.delete(`/v1/blog/admin/posts/${id}`),
+  deletePost: (id: number) => api.delete(`/blog/admin/posts/${id}`),
 
   uploadMedia: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    return api.post<BlogMedia>("/v1/blog/admin/uploads", formData, {
+    return api.post<BlogMedia>("/blog/admin/uploads", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
-  listCategories: () => api.get<BlogCategory[]>("/v1/blog/categories"),
+  listCategories: () => api.get<BlogCategory[]>("/blog/categories"),
 
-  listTags: () => api.get<BlogTag[]>("/v1/blog/tags"),
+  listTags: () => api.get<BlogTag[]>("/blog/tags"),
 };

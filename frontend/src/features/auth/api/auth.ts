@@ -31,28 +31,28 @@ export interface WeChatRegisterRequest {
 }
 
 export const authApi = {
-  login: (data: LoginRequest) => api.post<User>("/v1/auth/login", data),
+  login: (data: LoginRequest) => api.post<User>("/auth/login", data),
 
   register: (data: RegisterRequest) =>
-    api.post<User>("/v1/auth/register", data),
+    api.post<User>("/auth/register", data),
 
   getWeChatQr: (nextPath?: string) =>
-    api.get<WeChatQrResponse>("/v1/auth/wechat/qr", {
+    api.get<WeChatQrResponse>("/auth/wechat/qr", {
       params: nextPath ? { next: nextPath } : undefined,
     }),
 
   bindWeChat: (data: WeChatBindRequest) =>
-    api.post<User>("/v1/auth/wechat/bind", data),
+    api.post<User>("/auth/wechat/bind", data),
 
   registerWithWeChat: (data: WeChatRegisterRequest) =>
-    api.post<User>("/v1/auth/wechat/register", data),
+    api.post<User>("/auth/wechat/register", data),
 
-  logout: () => api.post("/v1/auth/logout"),
+  logout: () => api.post("/auth/logout"),
 
-  getMe: () => api.get<User>("/v1/auth/me"),
+  getMe: () => api.get<User>("/auth/me"),
 
   updateProfile: async (data: { username?: string; email?: string }) => {
-    const response = await api.patch<User>("/v1/auth/me", data);
+    const response = await api.patch<User>("/auth/me", data);
     return response;
   },
 
@@ -60,7 +60,7 @@ export const authApi = {
     old_password: string;
     new_password: string;
   }) => {
-    const response = await api.post("/v1/auth/me/password", data);
+    const response = await api.post("/auth/me/password", data);
     return response;
   },
 
@@ -68,7 +68,7 @@ export const authApi = {
     feishu_webhook_url?: string;
     data_retention_days?: number;
   }) => {
-    const response = await api.patch("/v1/auth/me/config", data);
+    const response = await api.patch("/auth/me/config", data);
     return response;
   },
 };
