@@ -164,6 +164,14 @@ export const test = base.extend<Fixtures>({
     api.use("GET", "/api/v1/smart-home/config", () => ({
       body: { url: "", token_configured: false },
     }));
+    api.use("GET", "/api/v1/smart-home/summary", () => ({
+      body: {
+        configured: true,
+        connected: true,
+        active_count: 1,
+        unavailable_count: 0,
+      },
+    }));
     api.use("GET", "/api/v1/smart-home/entities", () => ({ body: [] }));
     api.use("GET", "/api/v1/admin/users", () => ({
       body: { items: [], total: 0 },
