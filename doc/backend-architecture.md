@@ -265,32 +265,32 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 兼容前缀            | v1 前缀                                            | 路由文件                             | 说明                                                                            |
-| ------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
-| `/auth`             | `/v1/auth`, `/api/v1/auth`                         | `domains/auth/router.py`             | 注册/登录/登出/当前用户                                                         |
-| `/config`           | `/v1/config`, `/api/v1/config`                     | `domains/config/router.py`           | 用户配置（飞书 Webhook、数据保留期）                                            |
-| `/products`         | `/v1/products`, `/api/v1/products`                 | `domains/products/router.py`         | 商品 CRUD + 批量操作                                                            |
-| `/alerts`           | `/v1/alerts`, `/api/v1/alerts`                     | `domains/alerts/router.py`           | 告警管理                                                                        |
-| `/products/crawl`   | `/v1/crawl`, `/api/v1/crawl`                       | `domains/crawling/router.py`         | 商品爬取触发 + 日志查询 + worker 观测                                           |
-| `/crawl-profiles`   | `/v1/crawl-profiles`, `/api/v1/crawl-profiles`     | `domains/crawling/profile_router.py` | profile 列表/创建/改名/复制/删除/状态更新/登录浏览器/测试/导入导出/过期租约释放 |
-| `/jobs`             | `/v1/jobs`, `/api/v1/jobs`                         | `domains/jobs/router.py`             | 职位搜索配置 + 爬取 + 匹配分析                                                  |
-| `/admin`            | `/v1/admin`, `/api/v1/admin`                       | `domains/admin/router.py`            | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin）                            |
-| `/events`           | `/v1/events`, `/api/v1/events`                     | `domains/events/router.py`           | 事件中心列表和 SSE                                                              |
-| `/dashboard`        | `/v1/dashboard`, `/api/v1/dashboard`               | `domains/dashboard/router.py`        | Dashboard KPI / 趋势 / SSE                                                      |
-| `/smart-home`       | `/v1/smart-home`, `/api/v1/smart-home`             | `domains/smart_home/router.py`       | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE                      |
-| `/scheduler/status` | `/v1/scheduler/status`, `/api/v1/scheduler/status` | `domains/scheduling/router.py`       | APScheduler 状态（admin/super_admin）                                           |
+| 规范前缀 | 路由文件 | 说明 |
+| --- | --- | --- |
+| `/api/v1/auth` | `domains/auth/router.py` | 注册/登录/登出/当前用户 |
+| `/api/v1/config` | `domains/config/router.py` | 用户配置（飞书 Webhook、数据保留期） |
+| `/api/v1/products` | `domains/products/router.py` | 商品 CRUD + 批量操作 |
+| `/api/v1/alerts` | `domains/alerts/router.py` | 告警管理 |
+| `/api/v1/crawl` | `domains/crawling/router.py` | 商品爬取触发 + 日志查询 + worker 观测 |
+| `/api/v1/crawl-profiles` | `domains/crawling/profile_router.py` | profile 列表/创建/改名/复制/删除/状态更新/登录浏览器/测试/导入导出/过期租约释放 |
+| `/api/v1/jobs` | `domains/jobs/router.py` | 职位搜索配置 + 爬取 + 匹配分析 |
+| `/api/v1/admin` | `domains/admin/router.py` | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
+| `/api/v1/events` | `domains/events/router.py` | 事件中心列表和 SSE |
+| `/api/v1/dashboard` | `domains/dashboard/router.py` | Dashboard KPI / 趋势 / SSE |
+| `/api/v1/smart-home` | `domains/smart_home/router.py` | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE |
+| `/api/v1/scheduler/status` | `domains/scheduling/router.py` | APScheduler 状态（admin/super_admin） |
 
-`main.py` 同时注册旧路径、`/v1` 和 `/api/v1`。前端开发环境中 Vite 代理会去掉浏览器 URL 的 `/api` 前缀，因此浏览器请求 `/api/v1/...` 到达后端时对应 `/v1/...`。
+`main.py` 仅注册单一路由前缀 `/api/v1`。开发和生产环境的反向代理保持 `/api/v1` 前缀不作任何重写，使前端可以直接访问该规范路径。
 
 ### 6.2 认证系统
 
-- `POST /auth/register` — 用户注册
-- `POST /auth/register`、`POST /auth/me/password` 与微信注册绑定密码统一执行强密码校验：至少 10 位，且必须同时包含大写字母、小写字母、数字和特殊字符
-- `POST /auth/login` — 用户登录（设置 HttpOnly Cookie：pm_access_token / pm_refresh_token / pm_csrf_token）
-- `POST /auth/refresh` — 刷新 access token（通过 pm_refresh_token Cookie）
-- `POST /auth/logout` — 登出（清除 Cookie + 删除 session）
-- `GET /auth/me` — 获取当前用户信息
-- `GET /auth/sessions` — 获取当前用户活跃会话列表
+- `POST /api/v1/auth/register` — 用户注册
+- `POST /api/v1/auth/register`、`POST /api/v1/auth/me/password` 与微信注册绑定密码统一执行强密码校验：至少 10 位，且必须同时包含大写字母、小写字母、数字和特殊字符
+- `POST /api/v1/auth/login` — 用户登录（设置 HttpOnly Cookie：pm_access_token / pm_refresh_token / pm_csrf_token）
+- `POST /api/v1/auth/refresh` — 刷新 access token（通过 pm_refresh_token Cookie）
+- `POST /api/v1/auth/logout` — 登出（清除 Cookie + 删除 session）
+- `GET /api/v1/auth/me` — 获取当前用户信息
+- `GET /api/v1/auth/sessions` — 获取当前用户活跃会话列表
 - 密码 bcrypt 加密，登录失败锁定（5次失败锁定15分钟，Redis 持久化，重启不丢失）
 - 注册与改密的密码强度失败返回 422；微信注册绑定密码也走同一后端校验逻辑
 - 前端 AuthContext 状态管理，路由守卫（PublicRoute/ProtectedRoute）

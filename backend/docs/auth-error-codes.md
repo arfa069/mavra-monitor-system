@@ -39,7 +39,7 @@
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "existing_user", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
@@ -73,7 +73,7 @@ curl -X POST http://localhost:8000/auth/register \
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "password": "wrong_password"}'
 ```
@@ -91,7 +91,7 @@ curl -X POST http://localhost:8000/auth/login \
 **请求示例：**
 
 ```bash
-curl -X GET http://localhost:8000/auth/me
+curl -X GET http://localhost:8000/api/v1/auth/me
 ```
 
 **响应示例：**
@@ -121,7 +121,7 @@ curl -X GET http://localhost:8000/auth/me
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/refresh
+curl -X POST http://localhost:8000/api/v1/auth/refresh
 ```
 
 **响应示例：**
@@ -167,7 +167,7 @@ curl -X POST http://localhost:8000/auth/refresh
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "ab", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
@@ -186,7 +186,7 @@ curl -X POST http://localhost:8000/auth/register \
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "email": "invalid_email", "password": "SecurePass1!"}'
 ```
@@ -204,7 +204,7 @@ curl -X POST http://localhost:8000/auth/register \
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "email": "test@example.com", "password": "weakpass12"}'
 ```
@@ -235,7 +235,7 @@ curl -X POST http://localhost:8000/auth/register \
 **请求示例：**
 
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "password": "wrong_password"}'
 ```

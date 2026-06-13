@@ -217,7 +217,7 @@ interface AuthContextType {
 
 ```ts
 const api = axios.create({
-  baseURL: "/api", // Vite 代理到后端；业务模块使用 /v1/... 路径
+  baseURL: API_BASE_URL, // 业务模块统一使用相对路径，baseURL 来自 @/shared/api/base
   timeout: 300000, // 5 分钟超时（爬取操作耗时长）
   withCredentials: true,
 });
@@ -225,7 +225,7 @@ const api = axios.create({
 
 **请求拦截器**：Axios 自动携带凭据（`withCredentials: true`），不安全方法（POST/PATCH/PUT/DELETE）自动注入 `X-CSRF-Token` 请求头（从 `pm_csrf_token` Cookie 读取）。
 
-**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。并发 401 期间只有第一个请求触发 refresh，其余请求进入 `failedQueue` 并保存各自的 Axios config；刷新成功后按原请求逐个重试。排队请求入队前标记 `_retry`，避免刷新风暴。失败后重定向到 /login。排除 `/v1/auth/login` 和 `/v1/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
+**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。并发 401 期间只有第一个请求触发 refresh，其余请求进入 `failedQueue` 并保存各自 the Axios config；刷新成功后按原请求逐个重试。排队请求入队前标记 `_retry`，避免刷新风暴。失败后重定向到 /login。排除 `/auth/login` 和 `/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
 
 **响应拦截器**：
 
@@ -247,7 +247,7 @@ const api = axios.create({
 
 自动生成的 Hooks 通过自定义 Mutator (`src/shared/api/mutator.ts`) 桥接到全局 Axios 实例，自动继承现有的请求拦截器、CSRF 附加逻辑和 401 无感刷新机制。旧的手写模块逐步迁移到新模式。
 
-业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api`，经 Vite proxy 去掉 `/api` 后到达后端 `/v1/...`。直接访问后端时也支持 `/api/v1/...` 作为等价入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 不再作为前端主调用路径。
+业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api/v1`（包含子应用）。开发和生产环境的反向代理直接转发 `/api/v1/...`，不作任何路径前缀重写。直接访问后端时只支持 `/api/v1/...` 作为主入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 被移除。
 
 **Vite 代理配置**（vite.config.ts）：
 
@@ -256,7 +256,7 @@ server: {
   proxy: {
     '/api': {
       target: 'http://127.0.0.1:8000',
-      rewrite: (path) => path.replace(/^\/api/, ''),  // 去掉 /api 前缀
+      changeOrigin: true,
     },
   },
 }

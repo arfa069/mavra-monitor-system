@@ -174,7 +174,7 @@ JD_COOKIE=...
 ### 注册
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "email": "test@example.com", "password": "SecurePass1!"}'
 ```
@@ -201,7 +201,7 @@ curl -X POST http://localhost:8000/auth/register \
 ### 登录
 
 ```bash
-curl -X POST http://localhost:8000/auth/login \
+curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "password": "123456"}'
 ```
@@ -227,11 +227,11 @@ curl -X POST http://localhost:8000/auth/login \
 浏览器端由 Axios 自动携带 Cookie。curl 验证可使用 cookie jar：
 
 ```bash
-curl -c cookies.txt -X POST http://localhost:8000/auth/login \
+curl -c cookies.txt -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "testuser", "password": "123456"}'
 
-curl -b cookies.txt http://localhost:8000/auth/me
+curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 ```
 
 对 `POST` / `PATCH` / `PUT` / `DELETE` 等不安全方法，还需要把 `pm_csrf_token` Cookie 值作为 `X-CSRF-Token` 请求头发送。`POST /auth/refresh` 只依赖 HttpOnly refresh Cookie，不要求 CSRF header。
