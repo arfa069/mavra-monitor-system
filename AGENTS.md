@@ -72,7 +72,7 @@ mavra-monitor-system/
 
 | 任务 (Task)            | 位置 (Location)                                                                                           | 备注 (Notes)                                                                                         |
 | ---------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 后端路由/生命周期管理   | `backend/app/main.py`, `backend/app/domains/*/router.py`                                                  | 遗留路由、`/v1` 和 `/api/v1` 被挂载在一起                                                            |
+| 后端路由/生命周期管理   | `backend/app/main.py`, `backend/app/domains/*/router.py`                                                  | 业务路由仅挂载于 `/api/v1`；根路径和 `/v1` legacy 路径返回 `404`                                      |
 | 商品爬取               | `backend/app/domains/crawling`, `backend/app/platforms`                                                   | 使用 Playwright/CDP/对浏览器配置敏感                                                                 |
 | 职位爬取               | `backend/app/domains/jobs`, `backend/app/platforms`                                                       | Boss 使用 CloakBrowser cookie 刷新 + `curl_cffi`；猎聘支持 Chromium 浏览器配置 cookie 加载            |
 | 智能家居               | `backend/app/domains/smart_home`, `backend/app/models/smart_home.py`, `backend/app/schemas/smart_home.py` | Home Assistant 配置, 实体控制, SSE 扇出, 加密 token 存储                                             |

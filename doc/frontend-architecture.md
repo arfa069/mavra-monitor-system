@@ -291,7 +291,7 @@ server: {
 **核心功能：**
 
 - 搜索配置 CRUD + `profile_key` 选择 + 手动触发爬取
-- Profile 管理：调用 `/v1/crawl-profiles` 管理 `available/login_required/disabled` 状态、过期 lease、登录浏览器、测试、导入/导出，以及安全的 rename/copy/delete
+- Profile 管理：调用 `/api/v1/crawl-profiles` 管理 `available/login_required/disabled` 状态、过期 lease、登录浏览器、测试、导入/导出，以及安全的 rename/copy/delete
 - 职位列表：关键词/公司在客户端筛选，分页
 - 匹配分数展示：`MatchResultList` 中取最高分
 - 详情抽屉（JobDrawer）：展示职位完整信息

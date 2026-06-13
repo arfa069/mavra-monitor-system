@@ -43,7 +43,7 @@
 
 ## 端点 → 权限映射
 
-除 `/health` 外，前端主调用路径使用 `/api/v1/*`。后端在迁移期仍保留 legacy 路由兼容层；权限语义以 `/api/v1` 主路径为准。
+除 `/health` 等基础设施端点外，业务 API 仅使用 `/api/v1/*`。后端不保留根路径或 `/v1/*` legacy 路由兼容层。
 
 ### 认证 (`app.domains.auth.router`)
 
