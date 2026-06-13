@@ -137,7 +137,7 @@
 | `BLOG_MEDIA_ROOT`          | `uploads/blog`          | 后端本地图片存储目录，相对 backend 目录解析 |
 | `BLOG_MEDIA_PUBLIC_PREFIX` | `/blog-media`           | 公开媒体响应路径前缀                      |
 | `BLOG_MEDIA_MAX_BYTES`     | `8388608`               | 单文件上传上限，默认 8MB                  |
-| `BLOG_API_BASE_URL`        | `http://127.0.0.1:8000/v1` | Next.js 读取公开博客 API 的后端地址      |
+| `BLOG_API_BASE_URL`        | `http://127.0.0.1:8000/api/v1` | Next.js 读取公开博客 API 的后端地址      |
 | `BLOG_BACKEND_ORIGIN`      | `http://127.0.0.1:8000` | Next.js 本地 `/blog-media/*` rewrite 目标 |
 | `NEXT_PUBLIC_BLOG_BASE_URL` | `http://localhost:3001` | Next.js 客户端公开 canonical base 覆盖值  |
 
