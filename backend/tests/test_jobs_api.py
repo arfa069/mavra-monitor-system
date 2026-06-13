@@ -75,7 +75,7 @@ async def test_list_jobs_returns_paginated_response(mock_get_current_user):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/jobs?page=2&page_size=10")
+            response = await client.get("/api/v1/jobs?page=2&page_size=10")
 
         assert response.status_code == 200
         data = response.json()

@@ -243,7 +243,7 @@ class TestServerSidePagination:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/products?page=1&size=10")
+                response = await client.get("/api/v1/products?page=1&size=10")
             assert response.status_code == 200
             data = response.json()
             assert data["page_size"] == 10
@@ -272,7 +272,7 @@ class TestServerSidePagination:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/products?platform=jd&active=true&keyword=test&page=1&size=15")
+                response = await client.get("/api/v1/products?platform=jd&active=true&keyword=test&page=1&size=15")
             assert response.status_code == 200
             data = response.json()
             assert data["total"] == 5
@@ -510,7 +510,7 @@ class TestPageOutOfRange:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/products?page=999")
+                response = await client.get("/api/v1/products?page=999")
             assert response.status_code == 200, f"Expected 200, got {response.status_code}"
             data = response.json()
             assert data["items"] == [], f"Expected empty items, got {data['items']}"
@@ -550,7 +550,7 @@ class TestFilterNoResults:
         try:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/products?keyword=nonexistent123456")
+                response = await client.get("/api/v1/products?keyword=nonexistent123456")
             assert response.status_code == 200
             data = response.json()
             assert data["items"] == []

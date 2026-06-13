@@ -218,7 +218,7 @@ async def test_products_list_returns_pagination_metadata(mock_get_current_user):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products?page=2&size=15")
+            response = await client.get("/api/v1/products?page=2&size=15")
         assert response.status_code == 200
         data = response.json()
         assert data["page"] == 2
@@ -251,7 +251,7 @@ async def test_products_list_page_out_of_range_returns_empty_items(mock_get_curr
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products?page=100")
+            response = await client.get("/api/v1/products?page=100")
         assert response.status_code == 200
         data = response.json()
         assert data["items"] == []
@@ -284,7 +284,7 @@ async def test_products_list_first_page_has_no_prev(mock_get_current_user):
     try:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products?page=1&size=15")
+            response = await client.get("/api/v1/products?page=1&size=15")
         data = response.json()
         assert data["page"] == 1
         assert data["has_prev"] is False

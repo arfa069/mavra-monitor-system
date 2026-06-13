@@ -155,7 +155,7 @@ async def test_list_alerts_with_product_filter(mock_get_db, mock_current_user, m
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/alerts?product_id=1")
+        response = await client.get("/api/v1/alerts?product_id=1")
 
     assert response.status_code == 200
     data = response.json()
@@ -171,7 +171,7 @@ async def test_list_alerts_with_active_filter(mock_get_db, mock_current_user, mo
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/alerts?active=true")
+        response = await client.get("/api/v1/alerts?active=true")
 
     assert response.status_code == 200
     data = response.json()

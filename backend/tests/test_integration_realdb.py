@@ -238,7 +238,7 @@ class TestPaginationApiRealDb:
         """显式 size 参数"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products?page=1&size=5")
+            response = await client.get("/api/v1/products?page=1&size=5")
 
         assert response.status_code == 200
         data = response.json()
@@ -251,7 +251,7 @@ class TestPaginationApiRealDb:
         """页码超出范围返回空列表"""
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/products?page=99999")
+            response = await client.get("/api/v1/products?page=99999")
 
         assert response.status_code == 200
         data = response.json()
