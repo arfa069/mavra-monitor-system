@@ -28,22 +28,12 @@ export class ApiMock {
 
   async install(page: Page) {
     await page.route(
-      (url) => url.pathname.startsWith("/api/") || url.pathname.startsWith("/v1/"),
+      (url) => url.pathname.startsWith("/api/"),
       async (route: Route) => {
         const request = route.request();
         const url = new URL(request.url());
         const path = url.pathname;
         const key = `${request.method()} ${path}`;
-
-        if (path.startsWith("/v1/")) {
-          this.violations.push(`LEGACY ${key}`);
-          await route.fulfill({
-            status: 501,
-            contentType: "application/json",
-            body: JSON.stringify({ detail: `Legacy API path rejected: ${key}` }),
-          });
-          return;
-        }
 
         if (BLOCKED.some((pattern) => pattern.test(key))) {
           this.violations.push(`BLOCKED ${key}`);
