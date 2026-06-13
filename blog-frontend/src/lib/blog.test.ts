@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildArticleJsonLd, canonicalUrl } from "./blog";
+import { apiBaseUrl, buildArticleJsonLd, canonicalUrl } from "./blog";
 
 describe("blog SEO helpers", () => {
   it("builds canonical URLs against the public base URL", () => {
@@ -29,5 +29,20 @@ describe("blog SEO helpers", () => {
     expect(jsonLd.headline).toBe("First SEO title");
     expect(jsonLd.datePublished).toBe("2026-06-10T00:00:00Z");
     expect(jsonLd.image).toEqual(["http://localhost:3001/blog-media/cover.webp"]);
+  });
+
+  it("defaults the backend API base to the canonical prefix", () => {
+    const previous = process.env.BLOG_API_BASE_URL;
+    delete process.env.BLOG_API_BASE_URL;
+
+    try {
+      expect(apiBaseUrl()).toBe("http://127.0.0.1:8000/api/v1");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.BLOG_API_BASE_URL;
+      } else {
+        process.env.BLOG_API_BASE_URL = previous;
+      }
+    }
   });
 });

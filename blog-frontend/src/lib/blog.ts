@@ -41,7 +41,7 @@ export interface BlogPostListResponse {
 }
 
 const DEFAULT_PUBLIC_BASE_URL = "http://localhost:3001";
-const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/v1";
+const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 
 export function publicBaseUrl(): string {
   return (

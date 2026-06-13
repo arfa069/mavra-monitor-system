@@ -60,7 +60,7 @@ BLOG_MEDIA_ROOT=uploads/blog
 BLOG_MEDIA_PUBLIC_PREFIX=/blog-media
 BLOG_MEDIA_MAX_BYTES=8388608
 # Optional Next.js blog runtime overrides.
-BLOG_API_BASE_URL=http://127.0.0.1:8000/v1
+BLOG_API_BASE_URL=http://127.0.0.1:8000/api/v1
 BLOG_BACKEND_ORIGIN=http://127.0.0.1:8000
 NEXT_PUBLIC_BLOG_BASE_URL=http://localhost:3001
 
