@@ -38,6 +38,15 @@ from app.schemas.job_match import (
     UserResumeUpdate,
 )
 
+from app.schemas.runtime_api import (
+    MessageResponse,
+    TaskQueuedResponse,
+    TaskProgressResponse,
+    TaskErrorResponse,
+    MatchTaskQueuedResponse,
+)
+from app.schemas.scheduling import JobConfigSchedulesResponse
+
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 def _serialize_match_result(item: MatchResult) -> MatchResultResponse:
@@ -200,8 +209,7 @@ async def update_resume(
     except job_service.UserResumeNotFoundError:
         raise HTTPException(status_code=404, detail="Resume not found")
 
-@router.delete("/resumes/{resume_id}")
-
+@router.delete("/resumes/{resume_id}", response_model=MessageResponse)
 async def delete_resume(
 
     resume_id: int,
@@ -266,7 +274,7 @@ async def list_match_results(
 
     )
 
-@router.post("/match-results/analyze")
+@router.post("/match-results/analyze", response_model=MatchTaskQueuedResponse)
 async def trigger_match_analysis(
     data: MatchAnalyzeRequest,
     current_user: User = Depends(get_current_user),
@@ -329,7 +337,7 @@ async def trigger_match_analysis(
         "total": result["total"],
     })
 
-@router.post("/match-results/analyze-async")
+@router.post("/match-results/analyze-async", response_model=MatchTaskQueuedResponse)
 async def trigger_match_analysis_async(
     data: MatchAnalyzeRequest,
     current_user: User = Depends(get_current_user),
@@ -391,7 +399,11 @@ async def trigger_match_analysis_async(
         "total": result["total"],
     })
 
-@router.get("/tasks/{task_id}")
+@router.get(
+    "/tasks/{task_id}",
+    response_model=TaskProgressResponse,
+    responses={404: {"model": TaskErrorResponse}},
+)
 async def get_match_analysis_task_status(
     task_id: str,
     current_user: User = Depends(get_current_user),
@@ -511,8 +523,7 @@ async def update_config(
 
     return config
 
-@router.delete("/configs/{config_id}")
-
+@router.delete("/configs/{config_id}", response_model=MessageResponse)
 async def delete_config(
 
     config_id: int,
@@ -673,8 +684,7 @@ async def get_job(
 
 # ── Crawl Triggers ───────────────────────────────────────────────
 
-@router.post("/crawl-now")
-
+@router.post("/crawl-now", response_model=TaskQueuedResponse)
 async def crawl_now(
 
     current_user: User = Depends(require_permission("crawl:execute")),
@@ -695,8 +705,7 @@ async def crawl_now(
 
     })
 
-@router.post("/crawl-now/{config_id}")
-
+@router.post("/crawl-now/{config_id}", response_model=TaskQueuedResponse)
 async def crawl_single(
 
     config_id: int,
@@ -729,7 +738,11 @@ async def crawl_single(
 
     })
 
-@router.get("/crawl/status/{task_id}")
+@router.get(
+    "/crawl/status/{task_id}",
+    response_model=TaskProgressResponse,
+    responses={404: {"model": TaskErrorResponse}},
+)
 async def get_job_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
     """Get the status of a job crawl task from persistent store."""
     from app.domains.crawling.task_store import get_crawl_task_record
@@ -754,7 +767,15 @@ async def get_job_crawl_status(task_id: str, db: AsyncSession = Depends(get_db))
         "details": record.details_json,
     })
 
-@router.get("/crawl/result/{task_id}")
+@router.get(
+    "/crawl/result/{task_id}",
+    response_model=TaskProgressResponse,
+    responses={
+        202: {"model": TaskProgressResponse},
+        404: {"model": TaskErrorResponse},
+        500: {"model": TaskErrorResponse},
+    },
+)
 async def get_job_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
     """Get the final result of a completed job crawl task."""
     from app.domains.crawling.task_store import get_crawl_task_record
@@ -875,8 +896,7 @@ async def update_config_cron(
 
     return config
 
-@router.get("/scheduler/job-configs")
-
+@router.get("/scheduler/job-configs", response_model=JobConfigSchedulesResponse)
 async def get_job_config_schedules(
 
     request: Request,

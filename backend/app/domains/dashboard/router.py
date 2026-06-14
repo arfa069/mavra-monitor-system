@@ -46,7 +46,16 @@ async def get_dashboard_kpi(
     return DashboardKPIResponse(user=user_kpi, system=system_kpi)
 
 
-@router.get("/events")
+@router.get(
+    "/events",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Server-sent event stream",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+        }
+    },
+)
 async def stream_dashboard_events(
     request: Request,
     current_user: User = Depends(get_current_user_cookie),

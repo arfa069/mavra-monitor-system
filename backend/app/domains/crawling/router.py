@@ -10,6 +10,13 @@ from app.database import get_db
 from app.domains.crawling import service as crawling_service
 from app.models.user import User
 from app.schemas.crawl_log import CrawlLogResponse
+from app.schemas.runtime_api import (
+    TaskQueuedResponse,
+    TaskProgressResponse,
+    TaskErrorResponse,
+    CrawlerWorkerResponse,
+    CleanupResultResponse,
+)
 
 router = APIRouter(prefix="/crawl", tags=["products-crawl"])
 
@@ -39,7 +46,14 @@ async def get_crawl_logs(
     )
 
 
-@router.post("/crawl-now")
+@router.post(
+    "/crawl-now",
+    response_model=TaskQueuedResponse,
+    responses={
+        409: {"model": TaskQueuedResponse},
+        500: {"model": TaskQueuedResponse},
+    },
+)
 async def crawl_now(
     current_user: User = Depends(require_permission("crawl:execute")),
 ):
@@ -67,7 +81,11 @@ async def crawl_now(
     })
 
 
-@router.get("/status/{task_id}")
+@router.get(
+    "/status/{task_id}",
+    response_model=TaskProgressResponse,
+    responses={404: {"model": TaskErrorResponse}},
+)
 async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
     """Get the status of a crawl task from persistent store."""
     from app.domains.crawling.task_store import get_crawl_task_record
@@ -92,7 +110,15 @@ async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
     })
 
 
-@router.get("/result/{task_id}")
+@router.get(
+    "/result/{task_id}",
+    response_model=TaskProgressResponse,
+    responses={
+        202: {"model": TaskProgressResponse},
+        404: {"model": TaskErrorResponse},
+        500: {"model": TaskErrorResponse},
+    },
+)
 async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
     """Get the final result of a completed crawl task from persistent store."""
     from app.domains.crawling.task_store import get_crawl_task_record
@@ -141,7 +167,7 @@ async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
     })
 
 
-@router.get("/workers")
+@router.get("/workers", response_model=list[CrawlerWorkerResponse])
 async def list_crawler_workers(
     current_user: User = Depends(require_permission("crawl:execute")),
     db: AsyncSession = Depends(get_db),
@@ -171,7 +197,7 @@ async def list_crawler_workers(
     ]
 
 
-@router.post("/cleanup")
+@router.post("/cleanup", response_model=CleanupResultResponse)
 async def cleanup_old_data(
     retention_days: int = Query(default=365, ge=1, le=3650),
     current_user: User = Depends(require_permission("crawl:execute")),

@@ -18,12 +18,14 @@ from app.schemas.admin import (
     AuditLogResponse,
     PermissionResponse,
     ResourcePermissionGrant,
+    ResourcePermissionGrantResponse,
     ResourcePermissionListResponse,
     ResourcePermissionResponse,
     ResourcePermissionUpdate,
     RolePermissionMatrixResponse,
     RolePermissionResponse,
     RolePermissionUpdate,
+    RolePermissionUpdateResponse,
     UserCreate,
 )
 from app.schemas.auth import MessageResponse
@@ -250,7 +252,11 @@ async def list_audit_logs(
 
 # ── Resource Permission Endpoints ────────────────────────────────
 
-@admin_router.post("/resource-permissions", status_code=status.HTTP_201_CREATED)
+@admin_router.post(
+    "/resource-permissions",
+    response_model=ResourcePermissionGrantResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def grant_resource_permission(
     grant: ResourcePermissionGrant,
     request: Request,
@@ -321,7 +327,11 @@ async def list_resource_permissions(
     )
 
 
-@admin_router.delete("/resource-permissions/{permission_id}")
+@admin_router.delete(
+    "/resource-permissions/{permission_id}",
+    response_model=MessageResponse,
+    responses={404: {"model": MessageResponse}},
+)
 async def revoke_resource_permission(
     permission_id: int,
     request: Request,
@@ -431,7 +441,10 @@ async def get_role_permission_matrix(
     )
 
 
-@admin_router.patch("/roles/{role_name}/permissions")
+@admin_router.patch(
+    "/roles/{role_name}/permissions",
+    response_model=RolePermissionUpdateResponse,
+)
 async def update_role_permissions(
     role_name: str,
     update_data: RolePermissionUpdate,

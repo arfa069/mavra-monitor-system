@@ -6,11 +6,16 @@ from fastapi.responses import JSONResponse
 from app.core.security import require_role
 from app.domains.jobs.scheduler import JobConfigScheduler
 from app.domains.products.scheduler import ProductCronScheduler
+from app.schemas.scheduling import SchedulerStatusResponse
 
 router = APIRouter(tags=["scheduler"])
 
 
-@router.get("/scheduler/status")
+@router.get(
+    "/scheduler/status",
+    response_model=SchedulerStatusResponse,
+    responses={503: {"model": SchedulerStatusResponse}},
+)
 async def get_scheduler_status(
     request: Request,
     current_user=Depends(require_role("admin", "super_admin")),

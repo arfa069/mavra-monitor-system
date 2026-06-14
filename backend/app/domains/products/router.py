@@ -32,6 +32,9 @@ from app.schemas.product import (
 router = APIRouter(prefix="/products", tags=["products"])
 logger = logging.getLogger("app.domains.products")
 
+from app.schemas.runtime_api import MessageResponse
+from app.schemas.scheduling import ProductCronSchedulesResponse
+
 
 def _scheduler(request: Request) -> ProductCronScheduler | None:
     return getattr(request.app.state, "product_cron_scheduler", None)
@@ -141,7 +144,7 @@ async def create_product_cron_config(
     return config
 
 
-@router.delete("/cron-configs/{platform}")
+@router.delete("/cron-configs/{platform}", response_model=MessageResponse)
 async def delete_product_cron_config(
     platform: str,
     request: Request,
@@ -233,7 +236,7 @@ async def update_product_cron_config(
     return config
 
 
-@router.get("/cron-schedules")
+@router.get("/cron-schedules", response_model=ProductCronSchedulesResponse)
 async def get_product_cron_schedules(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -284,7 +287,7 @@ async def upsert_product_profile_binding(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.delete("/profile-bindings/{platform}")
+@router.delete("/profile-bindings/{platform}", response_model=MessageResponse)
 async def delete_product_profile_binding(
     platform: str,
     current_user: User = Depends(get_current_user),
@@ -347,7 +350,7 @@ async def update_product(
     return product
 
 
-@router.delete("/{product_id}")
+@router.delete("/{product_id}", response_model=MessageResponse)
 async def delete_product(
     product_id: int,
     request: Request,

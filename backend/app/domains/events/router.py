@@ -92,7 +92,16 @@ async def list_events(
     return EventCenterListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.get("/stream")
+@router.get(
+    "/stream",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Server-sent event stream",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+        }
+    },
+)
 async def stream_events(
     request: Request,
     current_user: User = Depends(get_current_user_cookie),

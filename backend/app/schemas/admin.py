@@ -125,3 +125,12 @@ class RolePermissionMatrixResponse(BaseModel):
 class RolePermissionUpdate(BaseModel):
     """Schema for updating a role's permissions."""
     permissions: list[str] = Field(default_factory=list)
+
+
+class ResourcePermissionGrantResponse(BaseModel):
+    granted: int
+
+
+class RolePermissionUpdateResponse(BaseModel):
+    role: str
+    permissions: list[str]

@@ -210,7 +210,15 @@ async def get_wechat_qr_url(next: str | None = None):
     return WeChatQrResponse(qr_url=qr_url, state=state)
 
 
-@router.get("/callback")
+@router.get(
+    "/callback",
+    response_class=RedirectResponse,
+    responses={
+        302: {
+            "description": "Redirects to frontend WeChat callback page with tokens",
+        }
+    },
+)
 async def wechat_callback(
     code: str,
     state: str,

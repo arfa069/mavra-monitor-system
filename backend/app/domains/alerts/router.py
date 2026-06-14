@@ -8,6 +8,7 @@ from app.database import get_db
 from app.domains.alerts import service as alert_service
 from app.models.user import User
 from app.schemas.alert import AlertCreate, AlertResponse, AlertUpdate
+from app.schemas.runtime_api import MessageResponse
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -71,7 +72,7 @@ async def update_alert(
         raise HTTPException(status_code=404, detail="Alert not found")
 
 
-@router.delete("/{alert_id}")
+@router.delete("/{alert_id}", response_model=MessageResponse)
 async def delete_alert(
     alert_id: int,
     db: AsyncSession = Depends(get_db),

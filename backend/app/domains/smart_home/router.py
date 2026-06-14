@@ -173,7 +173,16 @@ async def call_service(
     )
 
 
-@router.get("/entities/stream")
+@router.get(
+    "/entities/stream",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "description": "Server-sent event stream",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+        }
+    },
+)
 async def stream_entities(
     request: Request,
     current_user: User = Depends(require_permission("smart_home:read")),

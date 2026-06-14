@@ -431,7 +431,8 @@ async def test_open_login_sessions_use_isolated_threads_for_sync_cloakbrowser(mo
         for key in profiles:
             profile_runtime_service._sessions.pop(key, None)
             profile_runtime_service._profile_locks.pop(key, None)
-        loop.set_default_executor(old_executor)
+        if old_executor is not None:
+            loop.set_default_executor(old_executor)
         default_executor.shutdown(wait=True, cancel_futures=True)
 
 

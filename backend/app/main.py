@@ -28,6 +28,7 @@ from app.domains.jobs import router as jobs_router
 from app.domains.products import router as products_router
 from app.domains.scheduling import router as scheduling_router
 from app.domains.smart_home import router as smart_home_router
+from app.schemas.runtime_api import ServiceInfoResponse, HealthResponse
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +233,7 @@ app.include_router(crawl_router, prefix=API_PREFIX)
 app.include_router(blog_media_router)
 
 
-@app.get(API_PREFIX)
+@app.get(API_PREFIX, response_model=ServiceInfoResponse)
 async def api_root():
     return {
         "name": settings.app_name,
@@ -309,7 +310,11 @@ async def platform_event_logging_middleware(request: Request, call_next):
 
     return response
 
-@app.get("/health")
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    responses={503: {"model": HealthResponse}},
+)
 async def health_check():
     """Lightweight liveness probe — reads an in-memory flag set during startup.
 
@@ -325,7 +330,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/health/detailed")
+@app.get("/health/detailed", response_model=HealthResponse)
 async def health_check_detailed():
     """Deep readiness probe — verifies DB and Redis connectivity.
 

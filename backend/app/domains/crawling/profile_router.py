@@ -217,7 +217,26 @@ async def test_profile(
         _raise_profile_http(exc)
 
 
-@router.post("/{profile_key}/export")
+@router.post(
+    "/{profile_key}/export",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Encrypted crawl profile backup",
+            "content": {
+                "application/octet-stream": {
+                    "schema": {"type": "string", "format": "binary"}
+                }
+            },
+            "headers": {
+                "Content-Disposition": {
+                    "schema": {"type": "string"},
+                    "description": "Attachment filename",
+                }
+            },
+        }
+    },
+)
 async def export_profile_backup(
     profile_key: str,
     data: CrawlProfileBackupExportRequest,

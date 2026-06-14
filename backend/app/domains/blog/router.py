@@ -174,7 +174,7 @@ async def upload_blog_media(
         raise HTTPException(status_code=413, detail="Blog media file is too large") from exc
 
 
-@media_router.get("/{file_name:path}")
+@media_router.get("/{file_name:path}", response_class=FileResponse)
 async def get_blog_media(file_name: str):
     try:
         path = service.resolve_media_path(file_name)
