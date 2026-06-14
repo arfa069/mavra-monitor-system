@@ -98,7 +98,7 @@ export function BlogAdminPage() {
     },
   });
 
-  const posts: BlogPostListItem[] = (postsQuery.data as unknown as BlogPostListItem[]) ?? [];
+  const posts: BlogPostListItem[] = postsQuery.data ?? [];
   const categories: BlogCategory[] = taxonomyQuery.data?.categories ?? [];
   const tags: BlogTag[] = taxonomyQuery.data?.tags ?? [];
 
@@ -113,7 +113,7 @@ export function BlogAdminPage() {
   const openEditPost = useCallback(async (postId: number) => {
     try {
       const response = await blogApi.getAdminPost(postId);
-      const post = response as unknown as BlogPost;
+      const post = response;
       setEditingPost(post);
       setEditorValue({
         html: post.content_html || "<p></p>",

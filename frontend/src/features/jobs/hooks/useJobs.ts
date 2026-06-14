@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jobMatchApi } from "../api/job_match";
 import { jobsApi } from "../api/jobs";
-import { exportProfileBackup, importProfileBackup } from "../api/profileBackup";
+import { exportProfileBackup } from "../api/profileBackupExport";
 import type {
   JobCrawlLog,
   JobSearchConfigUpdate,
@@ -399,7 +399,7 @@ export const useImportProfileBackup = () => {
       file: File;
       password: string;
       force: boolean;
-    }) => importProfileBackup(profileKey, file, password, force),
+    }) => jobsApi.importProfileBackup(profileKey, file, password, force),
     onSuccess: () => qc.invalidateQueries({ queryKey: jobQueryKeys.profiles }),
   });
 };

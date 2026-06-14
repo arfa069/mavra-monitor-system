@@ -47,8 +47,7 @@ export default function WeChatAuthCallbackPage() {
         if (cancelled) {
           return;
         }
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-        login(response as any);
+        login(response);
         navigate(callbackState.next, { replace: true });
       })
       .catch(() => {

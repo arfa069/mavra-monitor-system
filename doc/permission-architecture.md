@@ -123,7 +123,7 @@
 | `PUT /api/v1/smart-home/config`                 | `smart_home:configure` |
 | `POST /api/v1/smart-home/config/test`           | `smart_home:configure` |
 | `GET /api/v1/smart-home/entities`               | `smart_home:read`      |
-| `POST /api/v1/smart-home/entities/{id}/service` | `smart_home:control`   |
+| `POST /api/v1/smart-home/services/call`         | `smart_home:control`   |
 | `GET /api/v1/smart-home/entities/stream`        | `smart_home:read`      |
 
 ### 系统 (`main.py` / `app.domains.scheduling.router`)

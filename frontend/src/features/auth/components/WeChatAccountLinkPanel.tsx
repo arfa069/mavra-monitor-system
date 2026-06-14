@@ -29,8 +29,7 @@ export default function WeChatAccountLinkPanel({
   const { message } = App.useApp();
 
   const handleBound = async (user: Awaited<ReturnType<typeof authApi.bindWeChat>>) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    login(user as any);
+    login(user);
     navigate(nextPath, { replace: true });
   };
 

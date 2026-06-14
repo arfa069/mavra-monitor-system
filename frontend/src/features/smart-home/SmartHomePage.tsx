@@ -84,9 +84,9 @@ export default function SmartHomePage() {
     setLoading(true);
     try {
       const response = await smartHomeApi.listEntities();
-      setEntities(response.items as unknown as SmartHomeEntity[]);
+      setEntities(response.items);
       setConnected(response.connected);
-      setLastError(response.last_error as unknown as string | null);
+      setLastError(response.last_error);
     } catch (error) {
       setConnected(false);
       setLastError(formatApiError(error, "Failed to load smart home entities"));
@@ -99,7 +99,7 @@ export default function SmartHomePage() {
     if (!canConfigure) return;
     try {
       const response = await smartHomeApi.getConfig();
-      setConfig(response as unknown as SmartHomeConfig);
+      setConfig(response);
       form.setFieldsValue({
         base_url: response.base_url,
         enabled: response.enabled,
@@ -180,7 +180,7 @@ export default function SmartHomePage() {
         token: values.token || null,
         enabled: values.enabled,
       });
-      setConfig(response as unknown as SmartHomeConfig);
+      setConfig(response);
       setConfigOpen(false);
       message.success("Smart home config saved");
       void loadEntities();

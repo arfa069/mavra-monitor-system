@@ -4762,6 +4762,12 @@
       },
       "SmartHomeServiceRequest": {
         "properties": {
+          "entity_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Entity Id",
+            "type": "string"
+          },
           "service": {
             "maxLength": 100,
             "minLength": 1,
@@ -4775,6 +4781,7 @@
           }
         },
         "required": [
+          "entity_id",
           "service"
         ],
         "title": "SmartHomeServiceRequest",
@@ -11399,20 +11406,9 @@
         ]
       }
     },
-    "/api/v1/smart-home/entities/{entity_id}/service": {
+    "/api/v1/smart-home/services/call": {
       "post": {
         "operationId": "smart_home_call_service",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "entity_id",
-            "required": true,
-            "schema": {
-              "title": "Entity Id",
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {

@@ -244,7 +244,7 @@
 | GET / PUT | `/smart-home/config`                       | `smart_home:configure` | base_url + Fernet 加密 token                |
 | POST      | `/smart-home/config/test`                  | `smart_home:configure` | 测连通性                                    |
 | GET       | `/smart-home/entities`                     | `smart_home:read`      | 列实体                                      |
-| POST      | `/smart-home/entities/{entity_id}/service` | `smart_home:control`   | 调 service，body `{domain, service, data?}` |
+| POST      | `/smart-home/services/call`                | `smart_home:control`   | 调 service，body `{entity_id, service, service_data}` |
 | GET       | `/smart-home/entities/stream`              | `smart_home:read`      | SSE                                         |
 
 ---

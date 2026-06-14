@@ -116,7 +116,7 @@ JD_COOKIE=...
 | GET/PUT          | /smart-home/config                                | Get or update Home Assistant connection config     | 是    |
 | POST             | /smart-home/config/test                           | Test Home Assistant connection                     | 是    |
 | GET              | /smart-home/entities                              | List Home Assistant entities                       | 是    |
-| POST             | /smart-home/entities/{entity_id}/service          | Call a Home Assistant entity service               | 是    |
+| POST             | /smart-home/services/call                          | Call a Home Assistant entity service               | 是    |
 | GET              | /smart-home/entities/stream                       | SSE stream for live Home Assistant state           | 是    |
 | GET              | /scheduler/status                                 | Scheduler status (both product and job crawl)      | 是    |
 | GET              | /dashboard/kpi                                    | User KPI and admin system KPI                      | 是    |
@@ -283,12 +283,13 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 ## Development
 
 ```powershell
-# Export backend OpenAPI schema and generate frontend Orval API hooks
+# Export backend OpenAPI schema and generate the frontend Orval client
 python scripts/export_openapi.py
 cd frontend && npm run api:generate
 
-# Check API contract drift & frontend direct Axios/api usage
+# Check API contract drift, checker tests, and direct Axios/api usage
 python scripts/check_api_contract.py
+python -m pytest scripts/tests/test_check_frontend_api_usage.py -q
 cd frontend && npm run api:check-usage
 
 # Run linter
@@ -304,6 +305,11 @@ cd backend && coverage report
 # Start frontend
 cd frontend && npm run dev
 ```
+
+普通 HTTP 请求使用 `frontend/src/shared/api/generated/` 中的生成函数、hooks
+或 query options。业务 wrapper 只负责轮询、缓存失效和 UI 数据映射。浏览器
+最终请求 `/api/v1/...`，Vite 与生产反向代理原样转发该路径；仅 profile
+backup blob 导出保留手写 Axios 适配器。
 
 ## Architecture
 

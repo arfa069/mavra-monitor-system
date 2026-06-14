@@ -52,7 +52,7 @@ export default function MatchResultList() {
     setTaskProgress(null);
 
     try {
-      const result = (await triggerMatch.mutateAsync({ resume_id: resumeId })) as unknown as { task_id: string | null; total: number };
+      const result = await triggerMatch.mutateAsync({ resume_id: resumeId });
       const { task_id, total } = result;
 
       if (!task_id || total === 0) {
@@ -73,7 +73,10 @@ export default function MatchResultList() {
           // 跳过旧任务的回调
           if (currentTaskId.current !== task_id) return;
 
-          setTaskProgress({ total: s.total, success: s.success });
+          setTaskProgress({
+            total: s.total ?? 0,
+            success: s.success ?? 0,
+          });
           refetch();
 
           if (s.status === "completed" || s.status === "failed") {
@@ -82,7 +85,7 @@ export default function MatchResultList() {
             pollRef.current = undefined;
             if (s.status === "completed") {
               message.success({
-                content: `Match analysis completed for ${s.total} jobs.`,
+                content: `Match analysis completed for ${s.total ?? 0} jobs.`,
                 duration: 10,
               });
               setTimeout(() => setTaskProgress(null), 10000);

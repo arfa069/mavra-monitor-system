@@ -32,8 +32,7 @@ export default function LoginPage() {
         username: values.username,
         password: values.password,
       });
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      login(response as any);
+      login(response);
       message.success(`Welcome back, ${response.username}!`);
       navigate(from, { replace: true });
     } catch {

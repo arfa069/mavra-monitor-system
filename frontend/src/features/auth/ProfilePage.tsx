@@ -24,8 +24,7 @@ export default function ProfilePage() {
     try {
       await authApi.updateProfile(values);
       const me = await authApi.getMe();
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      login(me as any);
+      login(me);
       message.success("Profile updated successfully");
     } catch (error: unknown) {
       message.error(formatApiError(error, "Update failed"));

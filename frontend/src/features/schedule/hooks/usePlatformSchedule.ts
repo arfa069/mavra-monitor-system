@@ -25,8 +25,20 @@ export function usePlatformSchedule(message: {
         productsApi.getCronSchedules(),
       ]);
       const configs = configsRes;
-      setConfigs(configs as unknown as ProductPlatformCron[]);
-      setSchedules(schedulesRes.platforms as unknown as Record<string, ProductPlatformCronSchedule>);
+      setConfigs(configs);
+      setSchedules(
+        Object.fromEntries(
+          Object.entries(schedulesRes.platforms ?? {}).map(
+            ([platform, schedule]) => [
+              platform,
+              {
+                cron_expression: schedule.cron_expression ?? null,
+                next_run_at: schedule.next_run_at ?? null,
+              },
+            ],
+          ),
+        ),
+      );
       const inputs: Record<string, string> = {};
       configs.forEach((configItem) => {
         inputs[configItem.platform] = configItem.cron_expression || "";

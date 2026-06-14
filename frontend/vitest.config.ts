@@ -11,6 +11,7 @@ export default mergeConfig(
       clearMocks: true,
       restoreMocks: true,
       mockReset: true,
+      fileParallelism: false,
       testTimeout: 30000,
       exclude: ["node_modules", "dist", "tests/e2e/**"],
       coverage: {

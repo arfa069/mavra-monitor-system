@@ -60,7 +60,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; power
 
 调用栈：
 
-- 前端 `POST /api/v1/smart-home/entities/light.living_room/service`，body `{ "domain": "light", "service": "turn_on" }`
+- 前端 `POST /api/v1/smart-home/services/call`，body `{ "entity_id": "light.living_room", "service": "turn_on", "service_data": {} }`
 - 后端 `app/domains/smart_home/router.py` → `HomeAssistantClient.call_service()` → HA WebSocket / REST
 - 权限检查：`smart_home:control`
 

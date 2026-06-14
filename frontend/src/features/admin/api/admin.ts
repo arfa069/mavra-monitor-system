@@ -20,78 +20,40 @@ import type {
   AuditLogResponse as AuditLog,
   AuditLogListResponse,
   AdminUserListResponse as UserListResponse,
+  AdminListUsersParams,
+  AdminListAuditLogsParams,
+  AdminListResourcePermissionsParams,
 } from "@/shared/api/generated/models";
+import { encodePathSegment } from "@/shared/api/path";
 
 export type { AuditLog, AuditLogListResponse, UserListResponse, UserCreate, UserUpdate };
 
 export const adminApi = {
-  listUsers: (params: {
-    page?: number;
-    page_size?: number;
-    search?: string;
-    role?: string;
-  }) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminListUsers(params as any) as any;
-  },
+  listUsers: (params: AdminListUsersParams) => adminListUsers(params),
 
-  createUser: (data: UserCreate) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminCreateUser(data) as any;
-  },
+  createUser: (data: UserCreate) => adminCreateUser(data),
 
-  updateUser: (id: number, data: UserUpdate) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminUpdateUser(id, data as any) as any;
-  },
+  updateUser: (id: number, data: UserUpdate) => adminUpdateUser(id, data),
 
-  deleteUser: (id: number) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminDeleteUser(id) as any;
-  },
+  deleteUser: (id: number) => adminDeleteUser(id),
 
-  getAuditLogs: (params: {
-    page?: number;
-    page_size?: number;
-    actor_user_id?: number;
-    action?: string;
-  }) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminListAuditLogs(params as any) as any;
-  },
+  getAuditLogs: (params: AdminListAuditLogsParams) =>
+    adminListAuditLogs(params),
 
-  listResourcePermissions: (params: {
-    user_id?: number;
-    resource_type?: string;
-    page?: number;
-    page_size?: number;
-  }) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminListResourcePermissions(params as any) as any;
-  },
+  listResourcePermissions: (params: AdminListResourcePermissionsParams) =>
+    adminListResourcePermissions(params),
 
-  grantResourcePermission: (grant: ResourcePermissionGrant) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminGrantResourcePermission(grant) as any;
-  },
+  grantResourcePermission: (grant: ResourcePermissionGrant) =>
+    adminGrantResourcePermission(grant),
 
-  revokeResourcePermission: (id: number) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminRevokeResourcePermission(id) as any;
-  },
+  revokeResourcePermission: (id: number) =>
+    adminRevokeResourcePermission(id),
 
-  updateResourcePermission: (id: number, data: ResourcePermissionUpdate) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminUpdateResourcePermission(id, data) as any;
-  },
+  updateResourcePermission: (id: number, data: ResourcePermissionUpdate) =>
+    adminUpdateResourcePermission(id, data),
 
-  getRolePermissionMatrix: () => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminGetRolePermissionMatrix() as any;
-  },
+  getRolePermissionMatrix: () => adminGetRolePermissionMatrix(),
 
-  updateRolePermissions: (role: string, data: RolePermissionUpdate) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return adminUpdateRolePermissions(role, data) as any;
-  },
+  updateRolePermissions: (role: string, data: RolePermissionUpdate) =>
+    adminUpdateRolePermissions(encodePathSegment(role), data),
 };

@@ -13,14 +13,14 @@ FRONTEND_SRC = PROJECT_ROOT / "frontend" / "src"
 API_CALL_ALLOWLIST = {
     Path("shared/api/client.ts"),
     Path("shared/api/mutator.ts"),
-    Path("features/jobs/api/profileBackup.ts"),
+    Path("features/jobs/api/profileBackupExport.ts"),
 }
 
 # Allow list for files importing from 'axios'
 AXIOS_IMPORT_ALLOWLIST = {
     Path("shared/api/client.ts"),
     Path("shared/api/mutator.ts"),
-    Path("features/jobs/api/profileBackup.ts"),
+    Path("features/jobs/api/profileBackupExport.ts"),
 }
 
 # Regex to check for direct api calls
@@ -28,6 +28,10 @@ API_CALL_RE = re.compile(r"\bapi\.(get|post|put|patch|delete)\s*\(")
 
 # Regex to check for imports from 'axios'
 AXIOS_IMPORT_RE = re.compile(r'\bimport\s+.*\s+from\s+["\']axios["\']')
+SHARED_API_CLIENT_IMPORT_RE = re.compile(
+    r'\bimport\s+(?!type\b|\{)[^;]*\s+from\s+["\'][^"\']*shared/api/client["\']'
+)
+TYPE_ESCAPE_RE = re.compile(r"\bas\s+(?:any|unknown\s+as)\b")
 
 
 def check_file(file_path: Path, relative_path: Path) -> list[str]:
@@ -46,13 +50,31 @@ def check_file(file_path: Path, relative_path: Path) -> list[str]:
                 )
 
     # Check for axios imports
-    # Note: we check if the relative path starts with 'shared/api/' as well
-    is_shared_api = relative_path.parts[:2] == ("shared", "api")
-    if not is_shared_api and relative_path not in AXIOS_IMPORT_ALLOWLIST:
+    if relative_path not in AXIOS_IMPORT_ALLOWLIST:
         for i, line in enumerate(content.splitlines(), 1):
             if AXIOS_IMPORT_RE.search(line):
                 errors.append(
                     f"Forbidden axios import in {relative_path}:{i} -> {line.strip()}"
+                )
+
+    if relative_path not in API_CALL_ALLOWLIST:
+        for i, line in enumerate(content.splitlines(), 1):
+            if SHARED_API_CLIENT_IMPORT_RE.search(line):
+                errors.append(
+                    "Forbidden shared API client import in "
+                    f"{relative_path}:{i} -> {line.strip()}"
+                )
+
+    is_feature_transport = (
+        len(relative_path.parts) >= 4
+        and relative_path.parts[0] == "features"
+        and relative_path.parts[2] in {"api", "hooks"}
+    )
+    if is_feature_transport:
+        for i, line in enumerate(content.splitlines(), 1):
+            if TYPE_ESCAPE_RE.search(line):
+                errors.append(
+                    f"Forbidden type escape in {relative_path}:{i} -> {line.strip()}"
                 )
 
     return errors
@@ -76,7 +98,7 @@ def main() -> None:
         print("API usage validation failed with the following errors:")
         for error in errors:
             print(f"  - {error}")
-        print("\nPlease use the generated Orval hooks instead of direct API calls.")
+        print("\nPlease use the generated Orval client instead of direct API calls.")
         sys.exit(1)
 
     print("API usage validation passed successfully.")

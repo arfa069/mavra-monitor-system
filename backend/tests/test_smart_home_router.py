@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from importlib import import_module
 from types import SimpleNamespace
 
 import pytest
@@ -255,6 +256,75 @@ async def test_entities_reports_token_decrypt_failure(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_service_call_accepts_entity_id_with_slash_in_request_body(monkeypatch):
+    app.dependency_overrides[get_db] = _db_override
+    _override_user("user")
+    received: dict[str, object] = {}
+
+    async def allow_permission(db, role_name, permission):
+        return True
+
+    async def call_entity_service(db, entity_id, service, service_data):
+        received.update(
+            entity_id=entity_id,
+            service=service,
+            service_data=service_data,
+        )
+
+    async def log_audit(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
+    monkeypatch.setattr(
+        "app.domains.smart_home.service.call_entity_service", call_entity_service
+    )
+    router_module = import_module("app.domains.smart_home.router")
+    monkeypatch.setattr(router_module, "log_audit_from_request", log_audit)
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/smart-home/services/call",
+                json={
+                    "entity_id": "light.office/main",
+                    "service": "turn_on",
+                    "service_data": {"brightness": 50},
+                },
+            )
+    finally:
+        _clear_overrides()
+
+    assert response.status_code == 200
+    assert response.json()["entity_id"] == "light.office/main"
+    assert received == {
+        "entity_id": "light.office/main",
+        "service": "turn_on",
+        "service_data": {"brightness": 50},
+    }
+
+
+@pytest.mark.asyncio
+async def test_legacy_entity_service_path_is_not_registered():
+    app.dependency_overrides[get_db] = _db_override
+    _override_user("user")
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.post(
+                "/api/v1/smart-home/entities/light.office/service",
+                json={"service": "turn_on", "service_data": {}},
+            )
+    finally:
+        _clear_overrides()
+
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_service_call_rejects_unsupported_service(monkeypatch):
     app.dependency_overrides[get_db] = _db_override
     _override_user("user")
@@ -277,8 +347,12 @@ async def test_service_call_rejects_unsupported_service(monkeypatch):
             transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             response = await client.post(
-                "/api/v1/smart-home/entities/switch.kitchen/service",
-                json={"service": "delete_everything", "service_data": {}},
+                "/api/v1/smart-home/services/call",
+                json={
+                    "entity_id": "switch.kitchen",
+                    "service": "delete_everything",
+                    "service_data": {},
+                },
             )
     finally:
         _clear_overrides()

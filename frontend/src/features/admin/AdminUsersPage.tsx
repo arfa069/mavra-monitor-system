@@ -26,6 +26,7 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import { adminApi, type UserCreate, type UserUpdate } from "./api/admin";
+import type { AdminUserResponse } from "@/shared/api/generated/models";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import {
@@ -64,6 +65,17 @@ type UserFormValues = {
 type FormValidationError = {
   errorFields?: unknown[];
 };
+
+function normalizeAdminUser(user: AdminUserResponse): User {
+  const role =
+    user.role === "admin" || user.role === "super_admin" ? user.role : "user";
+
+  return {
+    ...user,
+    role,
+    permissions: [],
+  };
+}
 
 function getAdminErrorMessage(error: unknown, fallback: string) {
   const detail = (error as AdminApiError).response?.data?.detail;
@@ -113,7 +125,7 @@ export default function AdminUsersPage() {
         search,
         role: roleFilter,
       });
-      setUsers(response.items);
+      setUsers(response.items.map(normalizeAdminUser));
       setTotal(response.total);
     } catch (error: unknown) {
       message.error(getAdminErrorMessage(error, "Failed to fetch user list"));
@@ -715,12 +727,12 @@ function GrantPermissionModal({
 
   const handleSubmit = async () => {
     if (!resourceIds.length || !permission) return;
-    const result = (await grant.mutateAsync({
+    const result = await grant.mutateAsync({
       subject_id: userId,
       resource_type: resourceType,
       resource_ids: resourceIds,
       permission,
-    })) as unknown as { granted: number };
+    });
     message.success(`Granted ${result.granted} permissions`);
     setRawResourceIds("");
     setPermission(undefined);

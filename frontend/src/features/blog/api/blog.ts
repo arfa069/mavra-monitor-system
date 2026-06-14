@@ -9,33 +9,51 @@ import {
   blogListTags,
 } from "@/shared/api/generated/blog/blog";
 import type {
+  BlogListAdminPostsParams,
   BlogPostCreate,
+  BlogPostListItem as GeneratedBlogPostListItem,
+  BlogPostResponse,
   BlogPostUpdate,
-  BlogListAdminPostsStatus,
 } from "@/shared/api/generated/models";
+import type { BlogPost, BlogPostListItem } from "../types";
+
+function normalizeBlogPostListItem(
+  post: GeneratedBlogPostListItem,
+): BlogPostListItem {
+  return {
+    ...post,
+    tags: post.tags ?? [],
+  };
+}
+
+function normalizeBlogPost(post: BlogPostResponse): BlogPost {
+  return {
+    ...post,
+    tags: post.tags ?? [],
+  };
+}
 
 export const blogApi = {
-  listAdminPosts: (params: {
-    keyword?: string;
-    status?: BlogListAdminPostsStatus;
-    page?: number;
-    size?: number;
-  }) => {
-    return blogListAdminPosts(params);
+  listAdminPosts: async (params?: BlogListAdminPostsParams) => {
+    const response = await blogListAdminPosts(params);
+    return {
+      ...response,
+      items: response.items.map(normalizeBlogPostListItem),
+    };
   },
 
-  getAdminPost: (id: number) => blogGetAdminPost(id),
+  getAdminPost: async (id: number) =>
+    normalizeBlogPost(await blogGetAdminPost(id)),
 
-  createPost: (data: BlogPostCreate) => blogCreateAdminPost(data),
+  createPost: async (data: BlogPostCreate) =>
+    normalizeBlogPost(await blogCreateAdminPost(data)),
 
-  updatePost: (id: number, data: BlogPostUpdate) => blogUpdateAdminPost(id, data),
+  updatePost: async (id: number, data: BlogPostUpdate) =>
+    normalizeBlogPost(await blogUpdateAdminPost(id, data)),
 
   deletePost: (id: number) => blogDeleteAdminPost(id),
 
-  uploadMedia: (file: File) => {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    return blogUploadBlogMedia({ file } as any);
-  },
+  uploadMedia: (file: File) => blogUploadBlogMedia({ file }),
 
   listCategories: () => blogListCategories(),
 

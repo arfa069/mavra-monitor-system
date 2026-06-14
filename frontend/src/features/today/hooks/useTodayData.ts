@@ -3,9 +3,8 @@ import { dashboardGetDashboardKpi } from "@/shared/api/generated/dashboard/dashb
 import { productsApi } from "@/features/products/api/products";
 import { jobsApi } from "@/features/jobs/api/jobs";
 import { smartHomeApi } from "@/features/smart-home/api/smartHome";
-import type { SmartHomeSummary } from "@/features/smart-home/types";
+import type { SmartHomeSummaryResponse } from "@/shared/api/generated/models";
 import { buildTodayBrief } from "../todayBrief";
-import type { MatchResultListResponse } from "@/features/jobs/types";
 import type { TodayBrief, TodaySourceData } from "../types";
 
 interface TodayDataState {
@@ -29,7 +28,7 @@ const DEFAULT_KPI = {
 let todayLoadPromise: Promise<TodayLoadResult> | null = null;
 
 function buildHomeSignal(
-  summary: SmartHomeSummary | null,
+  summary: SmartHomeSummaryResponse | null,
 ): TodaySourceData["home"] {
   return {
     configured: Boolean(summary?.configured),
@@ -76,19 +75,19 @@ export function useTodayData(): TodayDataState {
               : [];
           const matchResponse =
             matchesResult.status === "fulfilled"
-              ? (matchesResult.value as MatchResultListResponse)
+              ? matchesResult.value
               : null;
           const jobMatches =
             matchResponse?.items.map((match) => ({
               id: match.id,
               score: match.match_score,
-              title: match.job_title,
-              company: match.job_company,
-              location: match.job_location,
+              title: match.job_title ?? null,
+              company: match.job_company ?? null,
+              location: match.job_location ?? null,
             })) ?? [];
           const summary =
             summaryResult.status === "fulfilled"
-              ? (summaryResult.value as unknown as SmartHomeSummary)
+              ? summaryResult.value
               : null;
 
           return {

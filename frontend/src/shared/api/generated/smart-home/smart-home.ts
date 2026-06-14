@@ -357,14 +357,13 @@ export function useSmartHomeListEntities<TData = Awaited<ReturnType<typeof smart
  * @summary Call Service
  */
 export const smartHomeCallService = (
-    entityId: string,
     smartHomeServiceRequest: BodyType<SmartHomeServiceRequest>,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
 
 
       return customInstance<SmartHomeServiceResponse>(
-      {url: `/api/v1/smart-home/entities/${entityId}/service`, method: 'POST',
+      {url: `/api/v1/smart-home/services/call`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: smartHomeServiceRequest, signal
     },
@@ -374,8 +373,8 @@ export const smartHomeCallService = (
 
 
 export const getSmartHomeCallServiceMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{data: BodyType<SmartHomeServiceRequest>}, TContext> => {
 
 const mutationKey = ['smartHomeCallService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -387,10 +386,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof smartHomeCallService>>, {entityId: string;data: BodyType<SmartHomeServiceRequest>}> = (props) => {
-          const {entityId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof smartHomeCallService>>, {data: BodyType<SmartHomeServiceRequest>}> = (props) => {
+          const {data} = props ?? {};
 
-          return  smartHomeCallService(entityId,data,requestOptions)
+          return  smartHomeCallService(data,requestOptions)
         }
 
 
@@ -408,11 +407,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Call Service
  */
 export const useSmartHomeCallService = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof smartHomeCallService>>,
         TError,
-        {entityId: string;data: BodyType<SmartHomeServiceRequest>},
+        {data: BodyType<SmartHomeServiceRequest>},
         TContext
       > => {
       return useMutation(getSmartHomeCallServiceMutationOptions(options), queryClient);

@@ -3,7 +3,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (10669 symbols, 19300 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (10672 symbols, 19289 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -132,7 +132,7 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 - 使用感知时区的 UTC 时间戳：`datetime.now(timezone.utc)`。
 - 使用 `Decimal` 比较价格。
 - 浏览器身份验证采用 Cookie 优先策略 (`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`)；脚本可以使用 Bearer 作为备用方案。
-- 前端 API 模块使用 `/api/v1`；Vite 代理在请求后端之前会剥离 `/api` 前缀。
+- 前端 API 模块使用 `/api/v1`；Vite 代理将浏览器请求的 `/api/v1/...` 原样转发给后端，不重写路径。
 - 运行时配置：`ALLOWED_ORIGINS` CONTROLS CORS 跨域源 (逗号分隔或 JSON 列表)，`CRAWLER_HEADLESS=false` 会在本地调试时以可见窗口形式打开 Playwright/配置浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制了单个 worker 任务内的商品爬取并发量 (默认/最小为 `1`)。
 - 在保存 Home Assistant token 之前必须设置 `SMART_HOME_SECRET_KEY`；智能家居路由使用 `smart_home:read`, `smart_home:control` 和 `smart_home:configure` 权限。
 
@@ -152,24 +152,25 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
 1. **后端优先 (Backend First)**：修改 FastAPI 路由和 Pydantic 模式 (schemas)。
 2. **导出 OpenAPI (Export OpenAPI)**：运行脚本导出最新的 OpenAPI 架构：
    `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; python scripts/export_openapi.py"`
-3. **生成前端 Hooks (Generate Frontend Hooks)**：运行 Orval 生成器：
+3. **生成前端客户端 (Generate Frontend Client)**：运行 Orval 生成器：
    `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run api:generate"`
 4. **运行静态校验 (Run Verification)**：
    - 校验 API 契约漂移：在根目录运行 `python scripts/check_api_contract.py`
    - 校验前端 Axios/api 直接调用限制：在 `frontend/` 目录运行 `npm run api:check-usage`
-5. **在 React 中使用 Hooks (Use Hooks in React)**：在 React 组件中，**仅**能从 `frontend/src/shared/api/generated/` 中导入和使用 React Query hooks (例如：`useGetProducts`)。对于业务逻辑，绝对不要编写自定义的 `axios.get/post` 调用。
+5. **使用生成客户端 (Use Generated Client)**：普通 HTTP 请求使用 `frontend/src/shared/api/generated/` 中的生成函数、React Query hooks 或 query options。业务 wrapper 可以保留轮询、缓存失效和 UI 数据映射，但不得重新手写 Axios 请求或用 `any`/`unknown` 断言覆盖生成类型。
 6. **Git 提交 (Git Commit)**：提交时必须同时包含修改的后端文件**以及**新生成的前端 `generated` 目录。
 
 ### URL 所有权规则 (URL Ownership Rule)
 - FastAPI 和 OpenAPI 暴露规范的 `/api/v1` 路径。
 - 生成的 API URLs 包含 `/api/v1`。
-- Mutator 中的 `customInstance` 必须在调用共享 Axios 客户端之前截断且仅截断一次 `/api/v1` 前缀。
+- Mutator 中的 `customInstance` 必须在调用共享 Axios 客户端之前截断且仅截断一次 `/api/v1` 前缀，以避免与 Axios `baseURL=/api/v1` 重复；浏览器最终请求仍是完整的 `/api/v1/...`。
 - 共享 Axios 客户端是唯一拥有浏览器请求 `baseURL`（即 `/api/v1`）的地方。
+- Vite 和生产反向代理必须原样转发 `/api/v1/...`，不得剥离 `/api` 或 `/api/v1`。
 - 任何生成的非规范 URL（不以 `/api/v1/` 开头且不是规范路径）都必须直接抛出异常，防止无声请求至错误路径。
 
 ### 特殊传输协议策略 (Special Transport Policy)
 以下特殊接口不在生成的 Orval 客户端中处理，必须保留独立的定制传输适配器/手写客户端：
 - **EventSource / SSE**：`/api/v1/events/stream`, `/api/v1/dashboard/events`, `/api/v1/smart-home/entities/stream`（走手写的 SSE 适配器）
-- **二进制下载 (Blob Export)**：`/api/v1/crawl-profiles/{profile_key}/export`（走手写的 Axios 实例）
+- **二进制下载 (Blob Export)**：`/api/v1/crawl-profiles/{profile_key}/export`（仅 `frontend/src/features/jobs/api/profileBackupExport.ts` 使用手写 Axios；profile 导入使用 Orval）
 - **OAuth 302 重定向**：`/api/v1/auth/wechat/callback`
 - **公共资源或非规范路径**：`/health`, `/health/detailed`, `/blog-media/{file_name}`

@@ -64,6 +64,7 @@ class SmartHomeSummaryResponse(BaseModel):
 
 
 class SmartHomeServiceRequest(BaseModel):
+    entity_id: str = Field(min_length=1, max_length=255)
     service: str = Field(min_length=1, max_length=100)
     service_data: dict[str, Any] = Field(default_factory=dict)
 

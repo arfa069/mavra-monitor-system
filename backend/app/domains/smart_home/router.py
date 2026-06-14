@@ -141,9 +141,8 @@ async def get_summary(
         raise _http_error(exc) from exc
 
 
-@router.post("/entities/{entity_id}/service", response_model=SmartHomeServiceResponse)
+@router.post("/services/call", response_model=SmartHomeServiceResponse)
 async def call_service(
-    entity_id: str,
     data: SmartHomeServiceRequest,
     request: Request,
     current_user: User = Depends(require_permission("smart_home:control")),
@@ -152,7 +151,7 @@ async def call_service(
     try:
         await service.call_entity_service(
             db,
-            entity_id=entity_id,
+            entity_id=data.entity_id,
             service=data.service,
             service_data=data.service_data,
         )
@@ -165,11 +164,14 @@ async def call_service(
         actor_user_id=current_user.id,
         target_type="smart_home_entity",
         target_id=None,
-        details={"entity_id": entity_id, "service": data.service},
+        details={"entity_id": data.entity_id, "service": data.service},
         commit=True,
     )
     return SmartHomeServiceResponse(
-        ok=True, entity_id=entity_id, service=data.service, message="Service call sent"
+        ok=True,
+        entity_id=data.entity_id,
+        service=data.service,
+        message="Service call sent",
     )
 
 

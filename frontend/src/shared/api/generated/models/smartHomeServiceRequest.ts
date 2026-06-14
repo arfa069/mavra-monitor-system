@@ -9,6 +9,11 @@ import type { SmartHomeServiceRequestServiceData } from './smartHomeServiceReque
 export interface SmartHomeServiceRequest {
   /**
      * @minLength 1
+     * @maxLength 255
+     */
+  entity_id: string;
+  /**
+     * @minLength 1
      * @maxLength 100
      */
   service: string;

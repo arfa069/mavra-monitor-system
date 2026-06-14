@@ -15,7 +15,7 @@ const BLOCKED = [
   /^POST \/api\/v1\/crawl-profiles\/[^/]+\/test$/,
   /^POST \/api\/v1\/jobs\/match-results\/(?:analyze|analyze-async)$/,
   /^POST \/api\/v1\/smart-home\/config\/test$/,
-  /^POST \/api\/v1\/smart-home\/entities\/[^/]+\/service$/,
+  /^POST \/api\/v1\/smart-home\/services\/call$/,
 ];
 
 export class ApiMock {

@@ -5,7 +5,7 @@ import { formatApiError } from "@/shared/api/client";
 import { useThemeContext } from "@/shared/components/ThemeProvider";
 import { configApi } from "./api/config";
 import { applyUserConfig } from "./userConfigState";
-import type { MotionSpeed, UserConfig } from "./types";
+import type { MotionSpeed } from "./types";
 import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 
@@ -25,7 +25,7 @@ export default function SettingsPage() {
     try {
       const response = await configApi.update(values);
       if (user) {
-        login(applyUserConfig(user, response as unknown as UserConfig));
+        login(applyUserConfig(user, response));
       }
       message.success("Settings saved");
     } catch (error: unknown) {

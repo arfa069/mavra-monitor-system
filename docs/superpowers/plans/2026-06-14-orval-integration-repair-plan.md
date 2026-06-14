@@ -19,18 +19,18 @@
 - Modify: `frontend/src/features/smart-home/api/smartHome.ts`
 - Test: `frontend/tests/unit/smart-home/smart-home-api.test.ts`
 
-- [ ] Add a failing backend test that posts `light.office/main` to
+- [x] Add a failing backend test that posts `light.office/main` to
   `/api/v1/smart-home/services/call` and verifies the service receives the
   unchanged entity ID.
-- [ ] Run the targeted pytest and confirm the route is missing.
-- [ ] Add `entity_id` to `SmartHomeServiceRequest` and move the route to
+- [x] Run the targeted pytest and confirm the route is missing.
+- [x] Add `entity_id` to `SmartHomeServiceRequest` and move the route to
   `/services/call`.
-- [ ] Run the targeted pytest and confirm it passes.
-- [ ] Export OpenAPI and regenerate Orval.
-- [ ] Add a failing frontend test asserting the generated call uses
+- [x] Run the targeted pytest and confirm it passes.
+- [x] Export OpenAPI and regenerate Orval.
+- [x] Add a failing frontend test asserting the generated call uses
   `/smart-home/services/call` and places `light.office/main` in JSON data.
-- [ ] Update the feature adapter to compose the generated request body.
-- [ ] Run the frontend test and confirm it passes.
+- [x] Update the feature adapter to compose the generated request body.
+- [x] Run the frontend test and confirm it passes.
 
 ### Task 2: Safe dynamic path segments and profile import
 
@@ -42,14 +42,14 @@
   `frontend/src/features/jobs/api/profileBackupExport.ts`
 - Modify: `frontend/src/features/jobs/hooks/useJobs.ts`
 
-- [ ] Add failing unit tests for encoding `profile name#1` exactly once.
-- [ ] Implement `encodePathSegment(value)` as `encodeURIComponent(value)`.
-- [ ] Pass crawl-profile keys and other generated string path arguments through
+- [x] Add failing unit tests for encoding `profile name#1` exactly once.
+- [x] Implement `encodePathSegment(value)` as `encodeURIComponent(value)`.
+- [x] Pass crawl-profile keys and other generated string path arguments through
   the helper at feature boundaries.
-- [ ] Replace hand-written multipart import with
+- [x] Replace hand-written multipart import with
   `crawlProfilesImportProfileBackup`.
-- [ ] Keep only blob export in `profileBackupExport.ts`.
-- [ ] Run jobs and shared API unit tests.
+- [x] Keep only blob export in `profileBackupExport.ts`.
+- [x] Run jobs and shared API unit tests.
 
 ### Task 3: Remove reviewed type escapes
 
@@ -66,13 +66,13 @@
 - Modify: affected auth, smart-home, schedule, settings, and today files only
   where the reviewed assertion is unnecessary.
 
-- [ ] Add or update type-level/unit coverage for affected adapters.
-- [ ] Replace local duplicate response interfaces with generated model aliases
+- [x] Add or update type-level/unit coverage for affected adapters.
+- [x] Replace local duplicate response interfaces with generated model aliases
   where shapes match.
-- [ ] Remove unused synchronous match analysis and return
+- [x] Remove unused synchronous match analysis and return
   `MatchTaskQueuedResponse` from the async path.
-- [ ] Remove `as any` and `as unknown as` from feature API/hook files.
-- [ ] Run TypeScript build and focused unit tests after each domain.
+- [x] Remove `as any` and `as unknown as` from feature API/hook files.
+- [x] Run TypeScript build and focused unit tests after each domain.
 
 ### Task 4: Enforcement and documentation
 
@@ -85,25 +85,24 @@
 - Modify: `doc/frontend-architecture.md`
 - Modify: `docs/orval_api_contract_integration_report.md`
 
-- [ ] Add failing checker tests proving a new `shared/api/*.ts` Axios import is
+- [x] Add failing checker tests proving a new `shared/api/*.ts` Axios import is
   rejected and the blob export adapter is allowed.
-- [ ] Remove the directory-wide Axios exemption and use exact allowlists.
-- [ ] Reject type escapes in feature API/hook files.
-- [ ] Correct Vite proxy ownership and generated-hooks wording.
-- [ ] Record actual hand-written transports and verification counts.
+- [x] Remove the directory-wide Axios exemption and use exact allowlists.
+- [x] Reject type escapes in feature API/hook files.
+- [x] Correct Vite proxy ownership and generated-hooks wording.
+- [x] Record actual hand-written transports and verification counts.
 
 ### Task 5: Full verification
 
 **Files:**
 - Verify only; no new production behavior.
 
-- [ ] Run `python scripts/check_api_contract.py`.
-- [ ] Run backend Ruff and the API/OpenAPI test selection.
-- [ ] Run frontend API usage check, lint, unit tests, and build.
-- [ ] Run mock-only Playwright E2E.
-- [ ] Run blog tests and build.
-- [ ] Confirm `git status` contains only intended source/document changes and
+- [x] Run `python scripts/check_api_contract.py`.
+- [x] Run backend Ruff and the API/OpenAPI test selection.
+- [x] Run frontend API usage check, lint, unit tests, and build.
+- [x] Run mock-only Playwright E2E.
+- [x] Run blog tests and build.
+- [x] Confirm `git status` contains only intended source/document changes and
   generated artifacts are deterministic.
-- [ ] Run GitNexus `detect_changes` against `main`.
-- [ ] Perform a separate code-review pass and resolve blocking findings.
-
+- [x] Run GitNexus `detect_changes` against `main`.
+- [x] Perform a separate code-review pass and resolve blocking findings.

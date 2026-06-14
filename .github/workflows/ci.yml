@@ -136,6 +136,10 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      - name: Test API usage checker
+        run: poetry run pytest ../scripts/tests/test_check_frontend_api_usage.py -q
+        working-directory: backend
+
       - name: Verify generated API artifacts
         run: poetry run python ../scripts/check_api_contract.py
         working-directory: backend

@@ -5,12 +5,7 @@ import {
   jobsUpdateConfig,
   jobsDeleteConfig,
   jobsUpdateConfigCron,
-  jobsListResumes,
-  jobsCreateResume,
-  jobsUpdateResume,
-  jobsDeleteResume,
   jobsListMatchResults,
-  jobsTriggerMatchAnalysis,
   jobsGetJobConfigSchedules,
   jobsListJobs,
   jobsGetJob,
@@ -32,7 +27,9 @@ import {
   crawlProfilesOpenLoginSession,
   crawlProfilesCloseLoginSession,
   crawlProfilesTestProfile,
+  crawlProfilesImportProfileBackup,
 } from "@/shared/api/generated/crawl-profiles/crawl-profiles";
+import { encodePathSegment } from "@/shared/api/path";
 import type {
   JobSearchConfigCreate,
   JobSearchConfigUpdate,
@@ -45,121 +42,146 @@ import type {
   CrawlProfileUpdate,
   CrawlProfileLoginSessionRequest,
   CrawlProfileTestRequest,
-  MatchAnalyzeRequest,
+  JobCrawlLogResponse,
+  JobSearchConfigResponse,
+  TaskProgressResponse,
+  TaskQueuedResponse,
 } from "@/shared/api/generated/models";
 import type {
-  CrawlProfile,
-  CrawlProfileLoginSession,
-  CrawlProfileRuntimeCapabilities,
-  CrawlProfileTestResult,
-  Job,
   JobConfigScheduleInfo,
   JobCrawlLog,
-  JobListResponse,
   JobSearchConfig,
-  UserResume,
 } from "../types";
+
+function normalizeJobConfig(
+  config: JobSearchConfigResponse,
+): JobSearchConfig {
+  return {
+    ...config,
+    platform: config.platform ?? "boss",
+  };
+}
+
+function normalizeJobCrawlLog(log: JobCrawlLogResponse): JobCrawlLog {
+  return {
+    ...log,
+    error_message: log.error_message ?? null,
+    new_jobs_count: log.new_jobs_count ?? null,
+    total_jobs_count: log.total_jobs_count ?? null,
+  };
+}
+
+async function requireQueuedTask(
+  request: Promise<TaskQueuedResponse>,
+): Promise<TaskQueuedResponse & { task_id: string }> {
+  const response = await request;
+  if (!response.task_id) {
+    throw new Error(response.reason || "Job crawl did not return a task ID");
+  }
+  return { ...response, task_id: response.task_id };
+}
 
 export const jobsApi = {
   getConfigs: (active?: boolean) => {
     const params: JobsListConfigsParams = active !== undefined ? { active } : {};
-    return jobsListConfigs(params) as unknown as Promise<JobSearchConfig[]>;
+    return jobsListConfigs(params).then((configs) =>
+      configs.map(normalizeJobConfig),
+    );
   },
 
-  getConfig: (id: number) => jobsGetConfig(id) as unknown as Promise<JobSearchConfig>,
+  getConfig: (id: number) => jobsGetConfig(id).then(normalizeJobConfig),
 
-  createConfig: (data: JobSearchConfigCreate) => jobsCreateConfig(data) as unknown as Promise<JobSearchConfig>,
+  createConfig: (data: JobSearchConfigCreate) =>
+    jobsCreateConfig(data).then(normalizeJobConfig),
 
-  updateConfig: (id: number, data: JobSearchConfigUpdate) => jobsUpdateConfig(id, data) as unknown as Promise<JobSearchConfig>,
+  updateConfig: (id: number, data: JobSearchConfigUpdate) =>
+    jobsUpdateConfig(id, data).then(normalizeJobConfig),
 
-  deleteConfig: (id: number) => jobsDeleteConfig(id) as unknown as Promise<void>,
+  deleteConfig: (id: number) => jobsDeleteConfig(id),
 
-  updateConfigCron: (id: number, data: JobConfigCronUpdate) => jobsUpdateConfigCron(id, data) as unknown as Promise<JobSearchConfig>,
+  updateConfigCron: (id: number, data: JobConfigCronUpdate) =>
+    jobsUpdateConfigCron(id, data).then(normalizeJobConfig),
 
-  getResumes: () => jobsListResumes() as unknown as Promise<UserResume[]>,
+  getMatchResults: (params?: JobsListMatchResultsParams) =>
+    jobsListMatchResults(params),
 
-  createResume: (data: { name: string; resume_text: string }) =>
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    jobsCreateResume(data as any) as unknown as Promise<UserResume>,
+  getJobConfigSchedules: () =>
+    jobsGetJobConfigSchedules().then((response) => ({
+      configs: (response.configs ?? []).map(
+        (item): JobConfigScheduleInfo & { config_id: number } => ({
+          config_id: item.config_id,
+          cron_expression: item.cron_expression ?? null,
+          next_run_at: item.next_run_at ?? null,
+        }),
+      ),
+    })),
 
-  updateResume: (id: number, data: { name?: string; resume_text?: string }) =>
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    jobsUpdateResume(id, data as any) as unknown as Promise<UserResume>,
+  getJobs: (params?: JobsListJobsParams) => jobsListJobs(params),
 
-  deleteResume: (id: number) => jobsDeleteResume(id) as unknown as Promise<void>,
+  getJob: (jobId: string) => jobsGetJob(encodePathSegment(jobId)),
 
-  getMatchResults: (params?: JobsListMatchResultsParams) => jobsListMatchResults(params) as unknown as Promise<unknown>,
+  crawlAll: () => requireQueuedTask(jobsCrawlNow()),
 
-  triggerMatch: (data: MatchAnalyzeRequest) => jobsTriggerMatchAnalysis(data) as unknown as Promise<unknown>,
+  crawlSingle: (configId: number) =>
+    requireQueuedTask(jobsCrawlSingle(configId)),
 
-  getJobConfigSchedules: () => jobsGetJobConfigSchedules() as unknown as Promise<{ configs: (JobConfigScheduleInfo & { config_id: number })[] }>,
+  getCrawlStatus: (taskId: string): Promise<TaskProgressResponse> =>
+    jobsGetJobCrawlStatus(encodePathSegment(taskId)),
 
-  getJobs: (params?: JobsListJobsParams) => jobsListJobs(params) as unknown as Promise<JobListResponse>,
+  getCrawlResult: (taskId: string): Promise<TaskProgressResponse> =>
+    jobsGetJobCrawlResult(encodePathSegment(taskId)),
 
-  getJob: (jobId: string) => jobsGetJob(jobId) as unknown as Promise<Job>,
+  getCrawlLogs: (params?: JobsGetJobCrawlLogsParams) =>
+    jobsGetJobCrawlLogs(params).then((logs) =>
+      logs.map(normalizeJobCrawlLog),
+    ),
 
-  crawlAll: () => jobsCrawlNow() as unknown as Promise<{ status: string; task_id: string; message: string }>,
+  getProfiles: () => crawlProfilesListProfiles(),
 
-  crawlSingle: (configId: number) => jobsCrawlSingle(configId) as unknown as Promise<{ status: string; task_id: string; message: string }>,
+  getProfileRuntimeCapabilities: () =>
+    crawlProfilesGetRuntimeCapabilities(),
 
-  getCrawlStatus: (taskId: string) => jobsGetJobCrawlStatus(taskId) as unknown as Promise<JobCrawlStatus>,
+  createProfile: (data: CrawlProfileCreate) =>
+    crawlProfilesCreateProfile(data),
 
-  getCrawlResult: (taskId: string) => jobsGetJobCrawlResult(taskId) as unknown as Promise<JobCrawlFinalResult>,
-
-  getCrawlLogs: (params?: JobsGetJobCrawlLogsParams) => jobsGetJobCrawlLogs(params) as unknown as Promise<JobCrawlLog[]>,
-
-  getProfiles: () => crawlProfilesListProfiles() as unknown as Promise<CrawlProfile[]>,
-
-  getProfileRuntimeCapabilities: () => crawlProfilesGetRuntimeCapabilities() as unknown as Promise<CrawlProfileRuntimeCapabilities>,
-
-  createProfile: (data: CrawlProfileCreate) => crawlProfilesCreateProfile(data) as unknown as Promise<CrawlProfile>,
-
-  updateProfile: (profileKey: string, data: CrawlProfileUpdate) => crawlProfilesUpdateProfile(profileKey, data) as unknown as Promise<CrawlProfile>,
+  updateProfile: (profileKey: string, data: CrawlProfileUpdate) =>
+    crawlProfilesUpdateProfile(encodePathSegment(profileKey), data),
 
   renameProfile: (profileKey: string, newProfileKey: string) =>
-    crawlProfilesRenameProfile(profileKey, { profile_key: newProfileKey }) as unknown as Promise<CrawlProfile>,
+    crawlProfilesRenameProfile(encodePathSegment(profileKey), {
+      profile_key: newProfileKey,
+    }),
 
-  copyProfile: (profileKey: string) => crawlProfilesCopyProfile(profileKey) as unknown as Promise<CrawlProfile>,
+  copyProfile: (profileKey: string) =>
+    crawlProfilesCopyProfile(encodePathSegment(profileKey)),
 
-  deleteProfile: (profileKey: string) => crawlProfilesDeleteProfile(profileKey) as unknown as Promise<void>,
+  deleteProfile: (profileKey: string) =>
+    crawlProfilesDeleteProfile(encodePathSegment(profileKey)),
 
-  releaseStaleProfile: (profileKey: string) => crawlProfilesReleaseStaleProfile(profileKey) as unknown as Promise<CrawlProfile>,
+  releaseStaleProfile: (profileKey: string) =>
+    crawlProfilesReleaseStaleProfile(encodePathSegment(profileKey)),
 
   openProfileLoginSession: (profileKey: string, data: CrawlProfileLoginSessionRequest) =>
-    crawlProfilesOpenLoginSession(profileKey, data) as unknown as Promise<CrawlProfileLoginSession>,
+    crawlProfilesOpenLoginSession(encodePathSegment(profileKey), data),
 
-  closeProfileLoginSession: (profileKey: string) => crawlProfilesCloseLoginSession(profileKey) as unknown as Promise<CrawlProfileLoginSession>,
+  closeProfileLoginSession: (profileKey: string) =>
+    crawlProfilesCloseLoginSession(encodePathSegment(profileKey)),
 
   testProfile: (profileKey: string, data: CrawlProfileTestRequest) =>
-    crawlProfilesTestProfile(profileKey, data) as unknown as Promise<CrawlProfileTestResult>,
+    crawlProfilesTestProfile(encodePathSegment(profileKey), data),
+
+  importProfileBackup: (
+    profileKey: string,
+    file: File,
+    password: string,
+    force: boolean,
+  ) =>
+    crawlProfilesImportProfileBackup(encodePathSegment(profileKey), {
+      file,
+      password,
+      force,
+    }),
 };
 
-export interface JobCrawlStatus {
-  task_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  total: number;
-  success: number;
-  errors: number;
-  reason?: string | null;
-  worker_id?: string | null;
-  heartbeat_at?: string | null;
-  lease_until?: string | null;
-  started_at?: string | null;
-  finished_at?: string | null;
-  details?: Array<Record<string, unknown>> | null;
-}
-
-export interface JobCrawlFinalResult {
-  status: string;
-  task_id: string;
-  total: number;
-  success: number;
-  errors: number;
-  reason?: string | null;
-  details?: Array<Record<string, unknown>> | null;
-  worker_id?: string | null;
-  heartbeat_at?: string | null;
-  lease_until?: string | null;
-  started_at?: string | null;
-  finished_at?: string | null;
-}
+export type JobCrawlStatus = TaskProgressResponse;
+export type JobCrawlFinalResult = TaskProgressResponse;

@@ -185,41 +185,15 @@ export interface UserResumeUpdateRequest {
   resume_text?: string;
 }
 
-export interface MatchResultWithJob {
-  id: number;
-  user_id: number;
-  resume_id: number;
-  job_id: number;
-  match_score: number;
-  match_reason: string | null;
-  apply_recommendation: string | null;
-  llm_model_used: string | null;
-  created_at: string;
-  updated_at: string;
-  job_title: string | null;
-  job_company: string | null;
-  job_salary: string | null;
-  job_location: string | null;
-  job_url: string | null;
-  job_description: string | null;
-}
-
-export interface MatchResultListResponse {
-  items: MatchResultWithJob[];
-  total: number;
-  page: number;
-  page_size: number;
-}
+export type MatchResultWithJob = MatchResultResponse;
+export type MatchResultListResponse = GeneratedMatchResultListResponse;
 
 export interface MatchAnalyzeRequest {
   resume_id: number;
   job_ids?: number[] | null;
 }
 
-export interface MatchAnalyzeResponse {
-  processed: number;
-  created: number;
-  updated: number;
-  skipped: number;
-  items: MatchResultWithJob[];
-}
+import type {
+  MatchResultListResponse as GeneratedMatchResultListResponse,
+  MatchResultResponse,
+} from "@/shared/api/generated/models";

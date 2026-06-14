@@ -161,7 +161,13 @@ export const useCrawlLogs = (params?: {
 }) =>
   useQuery<CrawlLog[]>({
     queryKey: productQueryKeys.crawlLogs(params),
-    queryFn: () => crawlApi.getLogs(params) as unknown as CrawlLog[],
+    queryFn: async () => {
+      const logs = await crawlApi.getLogs(params);
+      return logs.map((log) => ({
+        ...log,
+        price: log.price === null ? null : Number(log.price),
+      }));
+    },
     refetchInterval: 60_000,
   });
 

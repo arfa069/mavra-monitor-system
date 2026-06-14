@@ -49,6 +49,39 @@ test.describe("API Mock Firewall", () => {
     );
   });
 
+  test("blocks the canonical smart home service endpoint", async ({ page }) => {
+    const api = new ApiMock();
+    api.use("GET", "/api/v1/auth/me", () => ({
+      status: 401,
+      body: { detail: "unauthorized" },
+    }));
+    await api.install(page);
+
+    await page.goto("/");
+
+    const failed = await page.evaluate(async () => {
+      try {
+        await fetch("/api/v1/smart-home/services/call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entity_id: "light.office/main",
+            service: "turn_on",
+            service_data: {},
+          }),
+        });
+        return false;
+      } catch {
+        return true;
+      }
+    });
+
+    expect(failed).toBe(true);
+    expect(api.getViolations()).toContain(
+      "BLOCKED POST /api/v1/smart-home/services/call",
+    );
+  });
+
   test("fulfills registered safe routes", async ({ page }) => {
     const api = new ApiMock();
     api.use("GET", "/api/v1/auth/me", () => ({
