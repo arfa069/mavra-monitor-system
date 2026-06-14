@@ -5,7 +5,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (10713 symbols, 19411 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (10670 symbols, 19369 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -46,80 +46,91 @@ This project is indexed by GitNexus as **mavra-monitor-system** (10713 symbols, 
 
 <!-- gitnexus:end -->
 
-# 执行任何命令前必读⚠️
+## 项目快照
 
-在运行任何 shell / test / lint 命令之前，**必须**先查看本文件第 3 节的"常用命令"，
-确认正确的执行方式。默认不在 PATH 中的工具，必须通过 `powershell.exe` 调用。
+Mavra 做价格监控（淘宝/京东/亚马逊）、职位监控（Boss/51job/猎聘）和
+Home Assistant 智能家居控制。后端是 FastAPI + PostgreSQL/Redis +
+Playwright/curl_cffi；前端是 React/Vite/TypeScript/Ant Design。
+业务 API 只使用 `/api/v1`，根路径和 `/v1` 业务别名应返回 404。主应用首页是
+`/today`。
 
-## 1.始终加载Karpathy编码准则⚠️
+## 文件定位
 
-Always load the `karpathy-guidelines` skill when coding.
+| 领域 | 文件 |
+| --- | --- |
+| 后端应用/路由 | `backend/app/main.py`, `backend/app/domains/*/router.py` |
+| 爬取/Profile 运行期 | `backend/app/domains/crawling/*`, `backend/app/platforms/*`, `backend/app/workers/crawler.py` |
+| 职位功能 | `backend/app/domains/jobs/*`, `frontend/src/features/jobs/*` |
+| 智能家居 | `backend/app/domains/smart_home/*`, `backend/app/schemas/smart_home.py`, `frontend/src/features/smart-home/*` |
+| 认证/RBAC | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `frontend/src/shared/contexts/AuthContext.tsx`, `doc/permission-architecture.md` |
+| 前端壳/API | `frontend/src/App.tsx`, `frontend/src/shared/api/*`, `frontend/src/shared/api/generated/*` |
+| 文档 | `doc/` 放当前架构/教程/参考；`docs/` 放计划和阶段报告 |
 
-## 2.项目概览
+做 UI 前先读 `doc/DESIGN.md`。只有明确需要手动 UI/爬取验证时，才使用
+`backend/tests/manual_verification_checklist.md`。
 
-淘宝、京东、亚马逊价格监控系统 + Boss/51job/猎聘职位搜索监控 + Home Assistant 智能家居控制。商品页面通过 Playwright 抓取；职位平台优先通过 `curl_cffi`/HTTP API 抓取，记录价格/职位历史，降价或新职位时通过飞书 Webhook 发送通知。
+## 常用命令
 
-**技术栈**：Python 3.11+ · FastAPI · PostgreSQL (async SQLAlchemy) · Redis · Playwright · 飞书 Webhook
-**前端**：React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）
+在 Windows PowerShell 运行。优先使用 `python -m pytest`，不要裸跑 `pytest`，
+避免走到 Anaconda shim。
 
-## 3.常用命令
+```powershell
+# 后端
+cd C:/Users/arfac/Documents/mavra-monitor-system/backend
+python -m ruff check .
+python -m pytest
 
-### 安装依赖
+# 前端
+cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
+npm run lint
+npm run test:unit
+npm run build
+npm run test:e2e
 
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pip install -e ."
+# 博客前端
+cd C:/Users/arfac/Documents/mavra-monitor-system/blog-frontend
+npm test
+npm run build
+```
 
-### 运行数据库迁移
+`scripts/start_server.ps1` 会清理端口并启动后端、前端和 crawler worker。它只用于
+明确需要本地全栈运行的场景，不是默认验证命令。
 
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; alembic upgrade head"
+## 工作规则
 
-### 启动前端服务器和后端服务器 **前端端口3000，后端8000**
+- 改代码前遵循项目 skill 流程；适用时加载 `karpathy-guidelines`。
+- 没有实际命令或浏览器证据，不要声称完成或通过。
+- 除非用户明确要求 live 验证，不要运行真实爬取、Profile 登录/测试/导入/导出、worker、职位匹配或 Home Assistant 控制。
+- 不要手动编辑 `profiles/{key}`，也不要在同一 profile 上并行跑两个会话。
+- Windows 上不要用 `uvicorn --reload`，它会破坏 Playwright 子进程。
+- 不要在日志、事件或报告中泄露 cookie、token、webhook 等密钥。
+- 时间使用感知时区 UTC：`datetime.now(timezone.utc)`；价格使用 `Decimal`。
+- 认证是 Cookie 优先：`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`；脚本可用 Bearer 兜底。
+- 保存 Home Assistant token 前必须配置 `SMART_HOME_SECRET_KEY`。
 
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
+## API 契约与 Orval
 
-### 运行测试
+后端 OpenAPI 是唯一 API 契约。普通 JSON 前端请求必须使用 Orval 生成代码。
 
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest"
+1. 修改 FastAPI route/schema/`response_model` 和后端测试。
+2. 运行 `python scripts/export_openapi.py`。
+3. 运行 `cd frontend; npm run api:generate`。
+4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、轮询、缓存失效或 UI 映射，但不能手写 Axios。
+5. 运行 `python scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
+6. 同一提交必须包含后端改动、`frontend/openapi.json`、生成客户端、前端适配和测试。
 
-### 代码检查
+URL 所有权：
 
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check ."
+- OpenAPI/Orval 保留规范 `/api/v1/...` 路径。
+- `frontend/src/shared/api/mutator.ts` 只截断一次 `/api/v1`。
+- `frontend/src/shared/api/client.ts` 是唯一拥有 `baseURL=/api/v1` 的地方。
+- Vite 和生产反代必须原样转发 `/api/v1/...`。
 
-## 4.后端架构
+只有这些传输可以绕过普通 Orval JSON 客户端：
 
-→ 详见 doc/backend-architecture.md
-→ 权限架构详见 doc/permission-architecture.md
+- SSE/EventSource 流。
+- Blob 导出：`frontend/src/features/jobs/api/profileBackupExport.ts`。
+- OAuth 302 callback。
+- 非业务资源：`/health`, `/health/detailed`, `/blog-media/{file_name}`。
 
-## 5.前端架构
-
-→ 详见 doc/frontend-architecture.md
-
-## 6.关键约定
-
-- user_id 硬编码为 1（单用户系统）已添加多用户认证，原有 user_id=1 硬编码仍适用于商品/职位爬取
-- 系统的测试用户: default 密码:Adminf8869!@
-- 所有时间戳字段使用 UTC 时区（`datetime.now(timezone.utc)`）
-- 价格比较使用 Decimal 避免浮点误差
-- LLM provider 通过 `LLMProviderFactory` 切换，支持 Anthropic/OpenAI/Ollama
-- smart-home 使用 `SMART_HOME_SECRET_KEY` 加密 Home Assistant token；空密钥不能用于真实环境保存配置。
-
-## 7.本地开发及验证流程
-
-- 默认闭环：改动 → 检查/构建 → 重启服务 → 真实验证 → 报告证据。
-- 命令执行前先看第 3 节，Windows 下优先使用 `powershell.exe -Command "..."`。
-- 后端改动：运行相关 `pytest`；影响共享逻辑/权限/调度/爬虫/模型时运行完整 `pytest` 和 `ruff check .`。
-- 前端改动：运行相关检查；提交前默认运行 `npm run lint` 和 `npm run build`。
-- 涉及 UI/路由/弹窗/下拉/表单/权限/爬取触发时，必须启动前后端并用浏览器真实验证。
-- 涉及商品/JD 爬虫登录态时，必须确认 Edge CDP 可用：`http://127.0.0.1:9222/json/version` 返回 `webSocketDebuggerUrl`。
-- Boss 职位爬取默认走 `BossCloakExperimentalAdapter`，不再走 Edge CDP；验证前确认用户已在项目根 `profiles/default/` 对应 CloakBrowser profile 登录 Boss（旧路径 `~/.cloakbrowser/profiles/boss-test` 已废弃）。
-- Boss 真实运行日志写入 `backend/logs/boss_cloak_adapter_<timestamp>.jsonl`（已 gitignore）；排查风控、耗时和详情完整性时先看该文件。
-- 运行配置：`ALLOWED_ORIGINS` 控制 CORS 来源（逗号分隔或 JSON list），`CRAWLER_HEADLESS=false` 可在本地显示 Playwright/profile 浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制单个商品爬取任务内的并发 fan-out（默认/最小值 `1`），`SMART_HOME_SECRET_KEY` 用于加密 Home Assistant token。
-- Liepin 职位爬取在 Windows 环境下支持自动解密并加载 Chromium 配置文件目录中的 Cookie（防详情页 Challenge 验证拦截）；详情爬取已加入 5-10 秒的随机延迟防反爬。
-- 京东/淘宝等商品强反爬流程仍默认用已登录的 Edge CDP 专用浏览器验证。
-- 无法执行的验证必须说明原因；未实际执行的检查不得声称通过。
-
-## 8. Design System
-
-- 未经用户明确批准，不得偏离设计系统。
-- 在做任何视觉或 UI 决策前，必须先阅读 `DESIGN.md`。
-- 字体、颜色、间距、组件风格和整体美学方向均以 `DESIGN.md` 为准。
-- 进行 UI 审查或 QA 时，必须指出任何不符合 `DESIGN.md` 的实现。
+红线：不要手改 `frontend/src/shared/api/generated/`；不要在 feature 层新增`api.get/post/put/patch/delete`；不要用 `as any` 或 `as unknown as` 掩盖类型漂移，应修 schema 或写显式 normalizer。

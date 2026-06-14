@@ -3,7 +3,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (10713 symbols, 19411 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (10670 symbols, 19369 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -98,14 +98,12 @@ npm run build
 
 - 改代码前遵循项目 skill 流程；适用时加载 `karpathy-guidelines`。
 - 没有实际命令或浏览器证据，不要声称完成或通过。
-- 除非用户明确要求 live 验证，不要运行真实爬取、Profile 登录/测试/导入/导出、
-  worker、职位匹配或 Home Assistant 控制。
+- 除非用户明确要求 live 验证，不要运行真实爬取、Profile 登录/测试/导入/导出、worker、职位匹配或 Home Assistant 控制。
 - 不要手动编辑 `profiles/{key}`，也不要在同一 profile 上并行跑两个会话。
 - Windows 上不要用 `uvicorn --reload`，它会破坏 Playwright 子进程。
 - 不要在日志、事件或报告中泄露 cookie、token、webhook 等密钥。
 - 时间使用感知时区 UTC：`datetime.now(timezone.utc)`；价格使用 `Decimal`。
-- 认证是 Cookie 优先：`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`；
-  脚本可用 Bearer 兜底。
+- 认证是 Cookie 优先：`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`；脚本可用 Bearer 兜底。
 - 保存 Home Assistant token 前必须配置 `SMART_HOME_SECRET_KEY`。
 
 ## API 契约与 Orval
@@ -115,10 +113,8 @@ npm run build
 1. 修改 FastAPI route/schema/`response_model` 和后端测试。
 2. 运行 `python scripts/export_openapi.py`。
 3. 运行 `cd frontend; npm run api:generate`。
-4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、
-   轮询、缓存失效或 UI 映射，但不能手写 Axios。
-5. 运行 `python scripts/check_api_contract.py` 和
-   `cd frontend; npm run api:check-usage`。
+4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、轮询、缓存失效或 UI 映射，但不能手写 Axios。
+5. 运行 `python scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
 6. 同一提交必须包含后端改动、`frontend/openapi.json`、生成客户端、前端适配和测试。
 
 URL 所有权：
@@ -135,6 +131,4 @@ URL 所有权：
 - OAuth 302 callback。
 - 非业务资源：`/health`, `/health/detailed`, `/blog-media/{file_name}`。
 
-红线：不要手改 `frontend/src/shared/api/generated/`；不要在 feature 层新增
-`api.get/post/put/patch/delete`；不要用 `as any` 或 `as unknown as` 掩盖类型漂移，
-应修 schema 或写显式 normalizer。
+红线：不要手改 `frontend/src/shared/api/generated/`；不要在 feature 层新增`api.get/post/put/patch/delete`；不要用 `as any` 或 `as unknown as` 掩盖类型漂移，应修 schema 或写显式 normalizer。
