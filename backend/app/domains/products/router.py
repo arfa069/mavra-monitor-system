@@ -28,12 +28,12 @@ from app.schemas.product import (
     ProductResponse,
     ProductUpdate,
 )
+from app.schemas.runtime_api import MessageResponse
+from app.schemas.scheduling import ProductCronSchedulesResponse
 
 router = APIRouter(prefix="/products", tags=["products"])
 logger = logging.getLogger("app.domains.products")
 
-from app.schemas.runtime_api import MessageResponse
-from app.schemas.scheduling import ProductCronSchedulesResponse
 
 
 def _scheduler(request: Request) -> ProductCronScheduler | None:

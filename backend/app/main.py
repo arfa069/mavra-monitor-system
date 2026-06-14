@@ -28,7 +28,7 @@ from app.domains.jobs import router as jobs_router
 from app.domains.products import router as products_router
 from app.domains.scheduling import router as scheduling_router
 from app.domains.smart_home import router as smart_home_router
-from app.schemas.runtime_api import ServiceInfoResponse, HealthResponse
+from app.schemas.runtime_api import HealthResponse, ServiceInfoResponse
 
 logger = logging.getLogger(__name__)
 

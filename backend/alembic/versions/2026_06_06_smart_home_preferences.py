@@ -7,7 +7,6 @@ Create Date: 2026-06-06
 
 from collections.abc import Sequence
 
-
 revision: str = "2026_06_06_smart_home_preferences"
 down_revision: str | None = "2026_06_03_add_smart_home"
 branch_labels: str | Sequence[str] | None = None

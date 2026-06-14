@@ -1,7 +1,6 @@
 """OpenAPI contract regression tests."""
 
 from fastapi.routing import APIRoute
-import pytest
 
 from app.main import API_PREFIX, app
 

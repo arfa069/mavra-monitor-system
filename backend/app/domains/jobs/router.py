@@ -37,13 +37,12 @@ from app.schemas.job_match import (
     UserResumeResponse,
     UserResumeUpdate,
 )
-
 from app.schemas.runtime_api import (
-    MessageResponse,
-    TaskQueuedResponse,
-    TaskProgressResponse,
-    TaskErrorResponse,
     MatchTaskQueuedResponse,
+    MessageResponse,
+    TaskErrorResponse,
+    TaskProgressResponse,
+    TaskQueuedResponse,
 )
 from app.schemas.scheduling import JobConfigSchedulesResponse
 

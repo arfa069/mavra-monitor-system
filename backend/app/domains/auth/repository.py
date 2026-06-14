@@ -2,15 +2,14 @@
 
 from inspect import isawaitable
 
-from app.core.tokens import hash_token
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tokens import hash_token
 from app.domains.admin.repository import (
-    add_user,
-    get_active_user_by_email,
-    get_active_user_by_username,
+    add_user,  # noqa: F401
+    get_active_user_by_email,  # noqa: F401
+    get_active_user_by_username,  # noqa: F401
 )
 from app.models.login_log import LoginLog
 from app.models.session import Session

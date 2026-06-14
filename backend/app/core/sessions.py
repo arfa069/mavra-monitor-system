@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from app.core.tokens import hash_token
-
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.tokens import hash_token
 
 # ── Legacy session helper (auto-commit, token-hash based) ───────────────────
 

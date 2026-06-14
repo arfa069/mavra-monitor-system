@@ -20,13 +20,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crawler_paths import build_profile_dir
 from app.domains.crawling import profile_service
-from app.domains.crawling.profile_service import _emit_profile_event
 from app.domains.crawling.profile_pool import AVAILABLE, DISABLED, LOGIN_REQUIRED
+from app.domains.crawling.profile_service import _emit_profile_event
 from app.domains.crawling.profile_utils import (
     assert_profile_not_leased,
 )
 from app.models.crawl_profile import CrawlProfile
-
 
 _BACKUP_MAGIC = b"PM_PROFILE_BACKUP_V1\n"
 _SALT_SIZE = 16
