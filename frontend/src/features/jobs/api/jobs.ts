@@ -1,4 +1,3 @@
-import api from "@/shared/api/client";
 import {
   jobsListConfigs,
   jobsGetConfig,
@@ -89,9 +88,9 @@ export const jobsApi = {
 
   deleteResume: (id: number) => jobsDeleteResume(id) as unknown as Promise<void>,
 
-  getMatchResults: (params?: JobsListMatchResultsParams) => jobsListMatchResults(params) as unknown as Promise<any>,
+  getMatchResults: (params?: JobsListMatchResultsParams) => jobsListMatchResults(params) as unknown as Promise<unknown>,
 
-  triggerMatch: (data: MatchAnalyzeRequest) => jobsTriggerMatchAnalysis(data) as unknown as Promise<any>,
+  triggerMatch: (data: MatchAnalyzeRequest) => jobsTriggerMatchAnalysis(data) as unknown as Promise<unknown>,
 
   getJobConfigSchedules: () => jobsGetJobConfigSchedules() as unknown as Promise<{ configs: (JobConfigScheduleInfo & { config_id: number })[] }>,
 
@@ -133,29 +132,6 @@ export const jobsApi = {
 
   testProfile: (profileKey: string, data: CrawlProfileTestRequest) =>
     crawlProfilesTestProfile(profileKey, data) as unknown as Promise<CrawlProfileTestResult>,
-
-  exportProfileBackup: (profileKey: string, password: string) =>
-    api.post<Blob>(
-      `/crawl-profiles/${profileKey}/export`,
-      { password },
-      { responseType: "blob" },
-    ),
-
-  importProfileBackup: (
-    profileKey: string,
-    file: File,
-    password: string,
-    force: boolean,
-  ) => {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("password", password);
-    form.append("force", String(force));
-    return api.post<{ profile_key: string; imported: boolean }>(
-      `/crawl-profiles/${profileKey}/import`,
-      form,
-    );
-  },
 };
 
 export interface JobCrawlStatus {

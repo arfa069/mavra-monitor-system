@@ -24,7 +24,7 @@ export function useJobConfigSchedule(message: {
       ]);
       setList(configs);
       const scheduleMap: Record<number, JobConfigScheduleInfo> = {};
-      schedulesRes.configs.forEach((item: any) => {
+      schedulesRes.configs.forEach((item) => {
         scheduleMap[item.config_id] = item;
       });
       setSchedules(scheduleMap);

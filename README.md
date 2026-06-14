@@ -287,6 +287,10 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 python scripts/export_openapi.py
 cd frontend && npm run api:generate
 
+# Check API contract drift & frontend direct Axios/api usage
+python scripts/check_api_contract.py
+cd frontend && npm run api:check-usage
+
 # Run linter
 cd backend && ruff check .
 

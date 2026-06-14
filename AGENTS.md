@@ -154,5 +154,22 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/fronte
    `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; python scripts/export_openapi.py"`
 3. **生成前端 Hooks (Generate Frontend Hooks)**：运行 Orval 生成器：
    `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run api:generate"`
-4. **在 React 中使用 Hooks (Use Hooks in React)**：在 React 组件中，**仅**能从 `frontend/src/shared/api/generated/` 中导入和使用 React Query hooks (例如：`useGetProducts`)。对于业务逻辑，绝对不要编写自定义的 `axios.get/post` 调用。
-5. **Git 提交 (Git Commit)**：提交时必须同时包含修改的后端文件**以及**新生成的前端 `generated` 目录。
+4. **运行静态校验 (Run Verification)**：
+   - 校验 API 契约漂移：在根目录运行 `python scripts/check_api_contract.py`
+   - 校验前端 Axios/api 直接调用限制：在 `frontend/` 目录运行 `npm run api:check-usage`
+5. **在 React 中使用 Hooks (Use Hooks in React)**：在 React 组件中，**仅**能从 `frontend/src/shared/api/generated/` 中导入和使用 React Query hooks (例如：`useGetProducts`)。对于业务逻辑，绝对不要编写自定义的 `axios.get/post` 调用。
+6. **Git 提交 (Git Commit)**：提交时必须同时包含修改的后端文件**以及**新生成的前端 `generated` 目录。
+
+### URL 所有权规则 (URL Ownership Rule)
+- FastAPI 和 OpenAPI 暴露规范的 `/api/v1` 路径。
+- 生成的 API URLs 包含 `/api/v1`。
+- Mutator 中的 `customInstance` 必须在调用共享 Axios 客户端之前截断且仅截断一次 `/api/v1` 前缀。
+- 共享 Axios 客户端是唯一拥有浏览器请求 `baseURL`（即 `/api/v1`）的地方。
+- 任何生成的非规范 URL（不以 `/api/v1/` 开头且不是规范路径）都必须直接抛出异常，防止无声请求至错误路径。
+
+### 特殊传输协议策略 (Special Transport Policy)
+以下特殊接口不在生成的 Orval 客户端中处理，必须保留独立的定制传输适配器/手写客户端：
+- **EventSource / SSE**：`/api/v1/events/stream`, `/api/v1/dashboard/events`, `/api/v1/smart-home/entities/stream`（走手写的 SSE 适配器）
+- **二进制下载 (Blob Export)**：`/api/v1/crawl-profiles/{profile_key}/export`（走手写的 Axios 实例）
+- **OAuth 302 重定向**：`/api/v1/auth/wechat/callback`
+- **公共资源或非规范路径**：`/health`, `/health/detailed`, `/blog-media/{file_name}`

@@ -236,16 +236,31 @@ const api = axios.create({
 
 ### 5.2 API 模块与 Orval 自动生成
 
-为了确保前后端完全的类型安全（End-to-End Type Safety），我们强制使用 `Orval` 自动生成 API Hooks 和类型，**禁止**手动编写 `axios.get/post` 调用代码。
+为了确保前后端完全的类型安全（End-to-End Type Safety），我们强制使用 `Orval` 自动生成 API Hooks 和类型，**禁止**手动编写 `axios.get/post` 调用代码（特殊例外见下文）。
 
 **API 自动生成工作流：**
 
 1. 后端修改 FastAPI routes 和 Pydantic schemas。
 2. 在项目根目录运行 `python scripts/export_openapi.py` 导出 `openapi.json`。
 3. 在 `frontend/` 目录运行 `npm run api:generate` 生成代码。
-4. 在 React 组件中直接引入 `src/shared/api/generated/` 中的 React Query Hooks（例如 `useGetProducts`）。
+4. 运行契约和使用规范检查：
+   - 在根目录运行 `python scripts/check_api_contract.py` 确保生成物与 openapi 契约无漂移。
+   - 在 `frontend/` 目录运行 `npm run api:check-usage` 确保业务代码中无非法的手写 Axios/api 直接调用。
+5. 在 React 组件中直接引入 `src/shared/api/generated/` 中的 React Query Hooks（例如 `useGetProducts`）。
 
-自动生成的 Hooks 通过自定义 Mutator (`src/shared/api/mutator.ts`) 桥接到全局 Axios 实例，自动继承现有的请求拦截器、CSRF 附加逻辑和 401 无感刷新机制。旧的手写模块逐步迁移到新模式。
+自动生成的 Hooks 通过自定义 Mutator (`src/shared/api/mutator.ts`) 桥接到全局 Axios 实例，自动继承现有的请求拦截器、CSRF 附加逻辑和 401 无感刷新机制。
+
+**URL 与所有权规则：**
+- 生成的 endpoints 中会包含 `/api/v1`。
+- 自定义 Mutator `customInstance` 在接收到配置后，会截断且仅截断一次 `/api/v1` 前缀，以配合 baseURL。
+- 非规范路径（不以 `/api/v1` 开头）一律抛出错误，防止非预期调用。
+
+**特殊传输协议策略 (Special Transports)：**
+以下操作由于传输通道、生命周期或二进制数据流的特殊性，需继续使用手写或专用的传输适配器，不受 Orval 控制：
+- **EventSource (SSE 实时流)**：走独立 SSE 适配器（`/api/v1/events/stream`, `/api/v1/dashboard/events`, `/api/v1/smart-home/entities/stream`）。
+- **二进制备份下载 (Blob Export)**：`/api/v1/crawl-profiles/{profile_key}/export`（使用独立的 Axios 实例，位于 `frontend/src/features/jobs/api/profileBackup.ts` 中）。
+- **WeChat OAuth 回调 302**：`/api/v1/auth/wechat/callback`。
+- **公共资源与探针**：`/health`, `/health/detailed`, `/blog-media/{file_name}`。
 
 业务 API 统一走 `/api/v1`。Axios `baseURL` 保持 `/api/v1`（包含子应用）。开发和生产环境的反向代理直接转发 `/api/v1/...`，不作任何路径前缀重写。直接访问后端时只支持 `/api/v1/...` 作为主入口。商品爬取的前端新路径为 `/api/v1/crawl/*`，旧后端兼容路径 `/products/crawl/*` 被移除。
 
