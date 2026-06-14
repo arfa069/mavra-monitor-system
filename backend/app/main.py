@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.config import settings
+from app.core.openapi import generate_operation_id
 from app.core.security import decode_access_token
 from app.core.system_log import emit_system_log_detached
 from app.database import engine
@@ -191,6 +192,7 @@ app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,
     lifespan=lifespan,
+    generate_unique_id_function=generate_operation_id,
 )
 
 # CORS middleware - restrict origins in production
