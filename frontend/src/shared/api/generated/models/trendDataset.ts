@@ -10,6 +10,6 @@ import type { TrendDataPoint } from './trendDataPoint';
  * Dataset for a trend chart.
  */
 export interface TrendDataset {
-  label: string;
   data: TrendDataPoint[];
+  label: string;
 }

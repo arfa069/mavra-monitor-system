@@ -7,15 +7,15 @@
 import type { CrawlProfileResponseStatus } from './crawlProfileResponseStatus';
 
 export interface CrawlProfileResponse {
-  profile_key: string;
-  profile_dir: string;
-  status: CrawlProfileResponseStatus;
-  platform_hint: string | null;
+  created_at: string;
+  last_error: string | null;
+  last_used_at: string | null;
   lease_owner: string | null;
   lease_task_id: string | null;
   lease_until: string | null;
-  last_used_at: string | null;
-  last_error: string | null;
-  created_at: string;
+  platform_hint: string | null;
+  profile_dir: string;
+  profile_key: string;
+  status: CrawlProfileResponseStatus;
   updated_at: string;
 }

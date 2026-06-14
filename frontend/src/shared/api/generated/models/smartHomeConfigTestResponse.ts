@@ -6,7 +6,7 @@
  */
 
 export interface SmartHomeConfigTestResponse {
-  ok: boolean;
-  message: string;
   home_assistant_version?: string | null;
+  message: string;
+  ok: boolean;
 }

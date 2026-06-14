@@ -9,12 +9,12 @@
  * Schema for creating user configuration.
  */
 export interface UserConfigCreate {
-  /** Feishu webhook URL for notifications */
-  feishu_webhook_url?: string;
   /**
      * Data retention period in days
      * @minimum 1
      * @maximum 3650
      */
   data_retention_days?: number;
+  /** Feishu webhook URL for notifications */
+  feishu_webhook_url?: string;
 }

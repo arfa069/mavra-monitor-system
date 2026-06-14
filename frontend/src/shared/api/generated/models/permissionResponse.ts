@@ -9,6 +9,6 @@
  * Schema for a permission entry.
  */
 export interface PermissionResponse {
-  name: string;
   description?: string | null;
+  name: string;
 }

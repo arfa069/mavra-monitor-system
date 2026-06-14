@@ -11,6 +11,6 @@ import type { UserKPI } from './userKPI';
  * Combined KPI response for dashboard.
  */
 export interface DashboardKPIResponse {
-  user: UserKPI;
   system?: SystemKPI | null;
+  user: UserKPI;
 }

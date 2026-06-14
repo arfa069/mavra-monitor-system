@@ -9,13 +9,6 @@
  * Request schema for registering an account from a WeChat callback.
  */
 export interface WeChatRegisterRequest {
-  temp_token: string;
-  /**
-     * 用户名
-     * @minLength 3
-     * @maxLength 50
-     */
-  username: string;
   /** 邮箱 */
   email: string;
   /**
@@ -23,4 +16,11 @@ export interface WeChatRegisterRequest {
      * @maxLength 100
      */
   password: string;
+  temp_token: string;
+  /**
+     * 用户名
+     * @minLength 3
+     * @maxLength 50
+     */
+  username: string;
 }

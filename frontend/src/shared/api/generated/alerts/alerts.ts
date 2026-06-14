@@ -27,8 +27,9 @@ import type {
   AlertCreate,
   AlertResponse,
   AlertUpdate,
-  HTTPValidationError,
-  ListAlertsApiV1AlertsGetParams
+  AlertsListAlertsParams,
+  AppSchemasRuntimeApiMessageResponse,
+  HTTPValidationError
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -39,211 +40,89 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type createAlertApiV1AlertsPostResponse201 = {
-  data: AlertResponse
-  status: 201
-}
-
-export type createAlertApiV1AlertsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createAlertApiV1AlertsPostResponseSuccess = (createAlertApiV1AlertsPostResponse201) & {
-  headers: Headers;
-};
-export type createAlertApiV1AlertsPostResponseError = (createAlertApiV1AlertsPostResponse422) & {
-  headers: Headers;
-};
-
-export type createAlertApiV1AlertsPostResponse = (createAlertApiV1AlertsPostResponseSuccess | createAlertApiV1AlertsPostResponseError)
-
-export const getCreateAlertApiV1AlertsPostUrl = () => {
-
-
-
-
-  return `/api/v1/alerts`
-}
-
-/**
- * Create a new price alert.
- * @summary Create Alert
- */
-export const createAlertApiV1AlertsPost = async (alertCreate: AlertCreate, options?: RequestInit): Promise<createAlertApiV1AlertsPostResponse> => {
-
-  return customInstance<createAlertApiV1AlertsPostResponse>(getCreateAlertApiV1AlertsPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(alertCreate)
-  }
-);}
-
-
-
-
-export const getCreateAlertApiV1AlertsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>, TError,{data: BodyType<AlertCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>, TError,{data: BodyType<AlertCreate>}, TContext> => {
-
-const mutationKey = ['createAlertApiV1AlertsPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>, {data: BodyType<AlertCreate>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createAlertApiV1AlertsPost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateAlertApiV1AlertsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>>
-    export type CreateAlertApiV1AlertsPostMutationBody = BodyType<AlertCreate>
-    export type CreateAlertApiV1AlertsPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Create Alert
- */
-export const useCreateAlertApiV1AlertsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>, TError,{data: BodyType<AlertCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createAlertApiV1AlertsPost>>,
-        TError,
-        {data: BodyType<AlertCreate>},
-        TContext
-      > => {
-      return useMutation(getCreateAlertApiV1AlertsPostMutationOptions(options), queryClient);
-    }
-    export type listAlertsApiV1AlertsGetResponse200 = {
-  data: AlertResponse[]
-  status: 200
-}
-
-export type listAlertsApiV1AlertsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listAlertsApiV1AlertsGetResponseSuccess = (listAlertsApiV1AlertsGetResponse200) & {
-  headers: Headers;
-};
-export type listAlertsApiV1AlertsGetResponseError = (listAlertsApiV1AlertsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listAlertsApiV1AlertsGetResponse = (listAlertsApiV1AlertsGetResponseSuccess | listAlertsApiV1AlertsGetResponseError)
-
-export const getListAlertsApiV1AlertsGetUrl = (params?: ListAlertsApiV1AlertsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/alerts?${stringifiedParams}` : `/api/v1/alerts`
-}
-
 /**
  * List all alerts.
  * @summary List Alerts
  */
-export const listAlertsApiV1AlertsGet = async (params?: ListAlertsApiV1AlertsGetParams, options?: RequestInit): Promise<listAlertsApiV1AlertsGetResponse> => {
-
-  return customInstance<listAlertsApiV1AlertsGetResponse>(getListAlertsApiV1AlertsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const alertsListAlerts = (
+    params?: AlertsListAlertsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<AlertResponse[]>(
+      {url: `/api/v1/alerts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListAlertsApiV1AlertsGetQueryKey = (params?: ListAlertsApiV1AlertsGetParams,) => {
+export const getAlertsListAlertsQueryKey = (params?: AlertsListAlertsParams,) => {
     return [
     `/api/v1/alerts`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAlertsApiV1AlertsGetQueryOptions = <TData = Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListAlertsApiV1AlertsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getAlertsListAlertsQueryOptions = <TData = Awaited<ReturnType<typeof alertsListAlerts>>, TError = ErrorType<HTTPValidationError>>(params?: AlertsListAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAlertsApiV1AlertsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getAlertsListAlertsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>> = ({ signal }) => listAlertsApiV1AlertsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof alertsListAlerts>>> = ({ signal }) => alertsListAlerts(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListAlertsApiV1AlertsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>>
-export type ListAlertsApiV1AlertsGetQueryError = ErrorType<HTTPValidationError>
+export type AlertsListAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof alertsListAlerts>>>
+export type AlertsListAlertsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListAlertsApiV1AlertsGet<TData = Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListAlertsApiV1AlertsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData>> & Pick<
+export function useAlertsListAlerts<TData = Awaited<ReturnType<typeof alertsListAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  AlertsListAlertsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>,
+          Awaited<ReturnType<typeof alertsListAlerts>>,
           TError,
-          Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>
+          Awaited<ReturnType<typeof alertsListAlerts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListAlertsApiV1AlertsGet<TData = Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAlertsApiV1AlertsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData>> & Pick<
+export function useAlertsListAlerts<TData = Awaited<ReturnType<typeof alertsListAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: AlertsListAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>,
+          Awaited<ReturnType<typeof alertsListAlerts>>,
           TError,
-          Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>
+          Awaited<ReturnType<typeof alertsListAlerts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListAlertsApiV1AlertsGet<TData = Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAlertsApiV1AlertsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useAlertsListAlerts<TData = Awaited<ReturnType<typeof alertsListAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: AlertsListAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Alerts
  */
 
-export function useListAlertsApiV1AlertsGet<TData = Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAlertsApiV1AlertsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAlertsApiV1AlertsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useAlertsListAlerts<TData = Awaited<ReturnType<typeof alertsListAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: AlertsListAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsListAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListAlertsApiV1AlertsGetQueryOptions(params,options)
+  const queryOptions = getAlertsListAlertsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -255,115 +134,214 @@ export function useListAlertsApiV1AlertsGet<TData = Awaited<ReturnType<typeof li
 
 
 
-export type getAlertApiV1AlertsAlertIdGetResponse200 = {
-  data: AlertResponse
-  status: 200
-}
-
-export type getAlertApiV1AlertsAlertIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getAlertApiV1AlertsAlertIdGetResponseSuccess = (getAlertApiV1AlertsAlertIdGetResponse200) & {
-  headers: Headers;
-};
-export type getAlertApiV1AlertsAlertIdGetResponseError = (getAlertApiV1AlertsAlertIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getAlertApiV1AlertsAlertIdGetResponse = (getAlertApiV1AlertsAlertIdGetResponseSuccess | getAlertApiV1AlertsAlertIdGetResponseError)
-
-export const getGetAlertApiV1AlertsAlertIdGetUrl = (alertId: number,) => {
-
-
-
-
-  return `/api/v1/alerts/${alertId}`
-}
-
 /**
+ * Create a new price alert.
+ * @summary Create Alert
+ */
+export const alertsCreateAlert = (
+    alertCreate: BodyType<AlertCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<AlertResponse>(
+      {url: `/api/v1/alerts`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: alertCreate, signal
+    },
+      options);
+    }
+
+
+
+export const getAlertsCreateAlertMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsCreateAlert>>, TError,{data: BodyType<AlertCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof alertsCreateAlert>>, TError,{data: BodyType<AlertCreate>}, TContext> => {
+
+const mutationKey = ['alertsCreateAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof alertsCreateAlert>>, {data: BodyType<AlertCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  alertsCreateAlert(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AlertsCreateAlertMutationResult = NonNullable<Awaited<ReturnType<typeof alertsCreateAlert>>>
+    export type AlertsCreateAlertMutationBody = BodyType<AlertCreate>
+    export type AlertsCreateAlertMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Create Alert
+ */
+export const useAlertsCreateAlert = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsCreateAlert>>, TError,{data: BodyType<AlertCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof alertsCreateAlert>>,
+        TError,
+        {data: BodyType<AlertCreate>},
+        TContext
+      > => {
+      return useMutation(getAlertsCreateAlertMutationOptions(options), queryClient);
+    }
+    /**
+ * Delete an alert.
+ * @summary Delete Alert
+ */
+export const alertsDeleteAlert = (
+    alertId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/alerts/${alertId}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+export const getAlertsDeleteAlertMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsDeleteAlert>>, TError,{alertId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof alertsDeleteAlert>>, TError,{alertId: number}, TContext> => {
+
+const mutationKey = ['alertsDeleteAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof alertsDeleteAlert>>, {alertId: number}> = (props) => {
+          const {alertId} = props ?? {};
+
+          return  alertsDeleteAlert(alertId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AlertsDeleteAlertMutationResult = NonNullable<Awaited<ReturnType<typeof alertsDeleteAlert>>>
+
+    export type AlertsDeleteAlertMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Delete Alert
+ */
+export const useAlertsDeleteAlert = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsDeleteAlert>>, TError,{alertId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof alertsDeleteAlert>>,
+        TError,
+        {alertId: number},
+        TContext
+      > => {
+      return useMutation(getAlertsDeleteAlertMutationOptions(options), queryClient);
+    }
+    /**
  * Get alert details.
  * @summary Get Alert
  */
-export const getAlertApiV1AlertsAlertIdGet = async (alertId: number, options?: RequestInit): Promise<getAlertApiV1AlertsAlertIdGetResponse> => {
-
-  return customInstance<getAlertApiV1AlertsAlertIdGetResponse>(getGetAlertApiV1AlertsAlertIdGetUrl(alertId),
-  {
-    ...options,
-    method: 'GET'
+export const alertsGetAlert = (
+    alertId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<AlertResponse>(
+      {url: `/api/v1/alerts/${alertId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetAlertApiV1AlertsAlertIdGetQueryKey = (alertId: number,) => {
+export const getAlertsGetAlertQueryKey = (alertId: number,) => {
     return [
     `/api/v1/alerts/${alertId}`
     ] as const;
     }
 
 
-export const getGetAlertApiV1AlertsAlertIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError = ErrorType<HTTPValidationError>>(alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getAlertsGetAlertQueryOptions = <TData = Awaited<ReturnType<typeof alertsGetAlert>>, TError = ErrorType<HTTPValidationError>>(alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAlertApiV1AlertsAlertIdGetQueryKey(alertId);
+  const queryKey =  queryOptions?.queryKey ?? getAlertsGetAlertQueryKey(alertId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>> = ({ signal }) => getAlertApiV1AlertsAlertIdGet(alertId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof alertsGetAlert>>> = ({ signal }) => alertsGetAlert(alertId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: alertId !== null && alertId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: alertId !== null && alertId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetAlertApiV1AlertsAlertIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>>
-export type GetAlertApiV1AlertsAlertIdGetQueryError = ErrorType<HTTPValidationError>
+export type AlertsGetAlertQueryResult = NonNullable<Awaited<ReturnType<typeof alertsGetAlert>>>
+export type AlertsGetAlertQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetAlertApiV1AlertsAlertIdGet<TData = Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError = ErrorType<HTTPValidationError>>(
- alertId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData>> & Pick<
+export function useAlertsGetAlert<TData = Awaited<ReturnType<typeof alertsGetAlert>>, TError = ErrorType<HTTPValidationError>>(
+ alertId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>,
+          Awaited<ReturnType<typeof alertsGetAlert>>,
           TError,
-          Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>
+          Awaited<ReturnType<typeof alertsGetAlert>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAlertApiV1AlertsAlertIdGet<TData = Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError = ErrorType<HTTPValidationError>>(
- alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData>> & Pick<
+export function useAlertsGetAlert<TData = Awaited<ReturnType<typeof alertsGetAlert>>, TError = ErrorType<HTTPValidationError>>(
+ alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>,
+          Awaited<ReturnType<typeof alertsGetAlert>>,
           TError,
-          Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>
+          Awaited<ReturnType<typeof alertsGetAlert>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAlertApiV1AlertsAlertIdGet<TData = Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError = ErrorType<HTTPValidationError>>(
- alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useAlertsGetAlert<TData = Awaited<ReturnType<typeof alertsGetAlert>>, TError = ErrorType<HTTPValidationError>>(
+ alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Alert
  */
 
-export function useGetAlertApiV1AlertsAlertIdGet<TData = Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError = ErrorType<HTTPValidationError>>(
- alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertApiV1AlertsAlertIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useAlertsGetAlert<TData = Awaited<ReturnType<typeof alertsGetAlert>>, TError = ErrorType<HTTPValidationError>>(
+ alertId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof alertsGetAlert>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAlertApiV1AlertsAlertIdGetQueryOptions(alertId,options)
+  const queryOptions = getAlertsGetAlertQueryOptions(alertId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -375,57 +353,32 @@ export function useGetAlertApiV1AlertsAlertIdGet<TData = Awaited<ReturnType<type
 
 
 
-export type updateAlertApiV1AlertsAlertIdPatchResponse200 = {
-  data: AlertResponse
-  status: 200
-}
-
-export type updateAlertApiV1AlertsAlertIdPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateAlertApiV1AlertsAlertIdPatchResponseSuccess = (updateAlertApiV1AlertsAlertIdPatchResponse200) & {
-  headers: Headers;
-};
-export type updateAlertApiV1AlertsAlertIdPatchResponseError = (updateAlertApiV1AlertsAlertIdPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateAlertApiV1AlertsAlertIdPatchResponse = (updateAlertApiV1AlertsAlertIdPatchResponseSuccess | updateAlertApiV1AlertsAlertIdPatchResponseError)
-
-export const getUpdateAlertApiV1AlertsAlertIdPatchUrl = (alertId: number,) => {
-
-
-
-
-  return `/api/v1/alerts/${alertId}`
-}
-
 /**
  * Update an alert.
  * @summary Update Alert
  */
-export const updateAlertApiV1AlertsAlertIdPatch = async (alertId: number,
-    alertUpdate: AlertUpdate, options?: RequestInit): Promise<updateAlertApiV1AlertsAlertIdPatchResponse> => {
-
-  return customInstance<updateAlertApiV1AlertsAlertIdPatchResponse>(getUpdateAlertApiV1AlertsAlertIdPatchUrl(alertId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(alertUpdate)
-  }
-);}
+export const alertsUpdateAlert = (
+    alertId: number,
+    alertUpdate: BodyType<AlertUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<AlertResponse>(
+      {url: `/api/v1/alerts/${alertId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: alertUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateAlertApiV1AlertsAlertIdPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext> => {
 
-const mutationKey = ['updateAlertApiV1AlertsAlertIdPatch'];
+export const getAlertsUpdateAlertMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsUpdateAlert>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof alertsUpdateAlert>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext> => {
+
+const mutationKey = ['alertsUpdateAlert'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -435,10 +388,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>, {alertId: number;data: BodyType<AlertUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof alertsUpdateAlert>>, {alertId: number;data: BodyType<AlertUpdate>}> = (props) => {
           const {alertId,data} = props ?? {};
 
-          return  updateAlertApiV1AlertsAlertIdPatch(alertId,data,requestOptions)
+          return  alertsUpdateAlert(alertId,data,requestOptions)
         }
 
 
@@ -448,109 +401,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateAlertApiV1AlertsAlertIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>>
-    export type UpdateAlertApiV1AlertsAlertIdPatchMutationBody = BodyType<AlertUpdate>
-    export type UpdateAlertApiV1AlertsAlertIdPatchMutationError = ErrorType<HTTPValidationError>
+    export type AlertsUpdateAlertMutationResult = NonNullable<Awaited<ReturnType<typeof alertsUpdateAlert>>>
+    export type AlertsUpdateAlertMutationBody = BodyType<AlertUpdate>
+    export type AlertsUpdateAlertMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Alert
  */
-export const useUpdateAlertApiV1AlertsAlertIdPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useAlertsUpdateAlert = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof alertsUpdateAlert>>, TError,{alertId: number;data: BodyType<AlertUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateAlertApiV1AlertsAlertIdPatch>>,
+        Awaited<ReturnType<typeof alertsUpdateAlert>>,
         TError,
         {alertId: number;data: BodyType<AlertUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateAlertApiV1AlertsAlertIdPatchMutationOptions(options), queryClient);
-    }
-    export type deleteAlertApiV1AlertsAlertIdDeleteResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type deleteAlertApiV1AlertsAlertIdDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteAlertApiV1AlertsAlertIdDeleteResponseSuccess = (deleteAlertApiV1AlertsAlertIdDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteAlertApiV1AlertsAlertIdDeleteResponseError = (deleteAlertApiV1AlertsAlertIdDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteAlertApiV1AlertsAlertIdDeleteResponse = (deleteAlertApiV1AlertsAlertIdDeleteResponseSuccess | deleteAlertApiV1AlertsAlertIdDeleteResponseError)
-
-export const getDeleteAlertApiV1AlertsAlertIdDeleteUrl = (alertId: number,) => {
-
-
-
-
-  return `/api/v1/alerts/${alertId}`
-}
-
-/**
- * Delete an alert.
- * @summary Delete Alert
- */
-export const deleteAlertApiV1AlertsAlertIdDelete = async (alertId: number, options?: RequestInit): Promise<deleteAlertApiV1AlertsAlertIdDeleteResponse> => {
-
-  return customInstance<deleteAlertApiV1AlertsAlertIdDeleteResponse>(getDeleteAlertApiV1AlertsAlertIdDeleteUrl(alertId),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-export const getDeleteAlertApiV1AlertsAlertIdDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>, TError,{alertId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>, TError,{alertId: number}, TContext> => {
-
-const mutationKey = ['deleteAlertApiV1AlertsAlertIdDelete'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>, {alertId: number}> = (props) => {
-          const {alertId} = props ?? {};
-
-          return  deleteAlertApiV1AlertsAlertIdDelete(alertId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteAlertApiV1AlertsAlertIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>>
-
-    export type DeleteAlertApiV1AlertsAlertIdDeleteMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Delete Alert
- */
-export const useDeleteAlertApiV1AlertsAlertIdDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>, TError,{alertId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteAlertApiV1AlertsAlertIdDelete>>,
-        TError,
-        {alertId: number},
-        TContext
-      > => {
-      return useMutation(getDeleteAlertApiV1AlertsAlertIdDeleteMutationOptions(options), queryClient);
+      return useMutation(getAlertsUpdateAlertMutationOptions(options), queryClient);
     }

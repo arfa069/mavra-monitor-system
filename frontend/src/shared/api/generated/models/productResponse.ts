@@ -9,12 +9,12 @@
  * Schema for product response.
  */
 export interface ProductResponse {
-  id: number;
-  user_id: number;
-  platform: string;
-  url: string;
-  title: string | null;
   active: boolean;
   created_at: string;
+  id: number;
+  platform: string;
+  title: string | null;
   updated_at: string;
+  url: string;
+  user_id: number;
 }

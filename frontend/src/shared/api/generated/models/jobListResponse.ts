@@ -11,7 +11,7 @@ import type { JobResponse } from './jobResponse';
  */
 export interface JobListResponse {
   items: JobResponse[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

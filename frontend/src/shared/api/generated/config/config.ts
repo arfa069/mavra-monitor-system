@@ -38,108 +38,88 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getConfigApiV1ConfigGetResponse200 = {
-  data: UserConfigResponse
-  status: 200
-}
-
-export type getConfigApiV1ConfigGetResponseSuccess = (getConfigApiV1ConfigGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getConfigApiV1ConfigGetResponse = (getConfigApiV1ConfigGetResponseSuccess)
-
-export const getGetConfigApiV1ConfigGetUrl = () => {
-
-
-
-
-  return `/api/v1/config`
-}
-
 /**
  * Get current user configuration, or return defaults if not set.
  * @summary Get Config
  */
-export const getConfigApiV1ConfigGet = async ( options?: RequestInit): Promise<getConfigApiV1ConfigGetResponse> => {
+export const configGetConfig = (
 
-  return customInstance<getConfigApiV1ConfigGetResponse>(getGetConfigApiV1ConfigGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<UserConfigResponse>(
+      {url: `/api/v1/config`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetConfigApiV1ConfigGetQueryKey = () => {
+export const getConfigGetConfigQueryKey = () => {
     return [
     `/api/v1/config`
     ] as const;
     }
 
 
-export const getGetConfigApiV1ConfigGetQueryOptions = <TData = Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getConfigGetConfigQueryOptions = <TData = Awaited<ReturnType<typeof configGetConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetConfigApiV1ConfigGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getConfigGetConfigQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>> = ({ signal }) => getConfigApiV1ConfigGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof configGetConfig>>> = ({ signal }) => configGetConfig(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetConfigApiV1ConfigGetQueryResult = NonNullable<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>>
-export type GetConfigApiV1ConfigGetQueryError = ErrorType<unknown>
+export type ConfigGetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof configGetConfig>>>
+export type ConfigGetConfigQueryError = ErrorType<unknown>
 
 
-export function useGetConfigApiV1ConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData>> & Pick<
+export function useConfigGetConfig<TData = Awaited<ReturnType<typeof configGetConfig>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>,
+          Awaited<ReturnType<typeof configGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>
+          Awaited<ReturnType<typeof configGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1ConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData>> & Pick<
+export function useConfigGetConfig<TData = Awaited<ReturnType<typeof configGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>,
+          Awaited<ReturnType<typeof configGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>
+          Awaited<ReturnType<typeof configGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1ConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useConfigGetConfig<TData = Awaited<ReturnType<typeof configGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Config
  */
 
-export function useGetConfigApiV1ConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1ConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useConfigGetConfig<TData = Awaited<ReturnType<typeof configGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof configGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetConfigApiV1ConfigGetQueryOptions(options)
+  const queryOptions = getConfigGetConfigQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -151,145 +131,31 @@ export function useGetConfigApiV1ConfigGet<TData = Awaited<ReturnType<typeof get
 
 
 
-export type createOrUpdateConfigApiV1ConfigPostResponse200 = {
-  data: UserConfigResponse
-  status: 200
-}
-
-export type createOrUpdateConfigApiV1ConfigPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createOrUpdateConfigApiV1ConfigPostResponseSuccess = (createOrUpdateConfigApiV1ConfigPostResponse200) & {
-  headers: Headers;
-};
-export type createOrUpdateConfigApiV1ConfigPostResponseError = (createOrUpdateConfigApiV1ConfigPostResponse422) & {
-  headers: Headers;
-};
-
-export type createOrUpdateConfigApiV1ConfigPostResponse = (createOrUpdateConfigApiV1ConfigPostResponseSuccess | createOrUpdateConfigApiV1ConfigPostResponseError)
-
-export const getCreateOrUpdateConfigApiV1ConfigPostUrl = () => {
-
-
-
-
-  return `/api/v1/config`
-}
-
-/**
- * Create or update user configuration.
- * @summary Create Or Update Config
- */
-export const createOrUpdateConfigApiV1ConfigPost = async (userConfigCreate: UserConfigCreate, options?: RequestInit): Promise<createOrUpdateConfigApiV1ConfigPostResponse> => {
-
-  return customInstance<createOrUpdateConfigApiV1ConfigPostResponse>(getCreateOrUpdateConfigApiV1ConfigPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userConfigCreate)
-  }
-);}
-
-
-
-
-export const getCreateOrUpdateConfigApiV1ConfigPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>, TError,{data: BodyType<UserConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>, TError,{data: BodyType<UserConfigCreate>}, TContext> => {
-
-const mutationKey = ['createOrUpdateConfigApiV1ConfigPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>, {data: BodyType<UserConfigCreate>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createOrUpdateConfigApiV1ConfigPost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateOrUpdateConfigApiV1ConfigPostMutationResult = NonNullable<Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>>
-    export type CreateOrUpdateConfigApiV1ConfigPostMutationBody = BodyType<UserConfigCreate>
-    export type CreateOrUpdateConfigApiV1ConfigPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Create Or Update Config
- */
-export const useCreateOrUpdateConfigApiV1ConfigPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>, TError,{data: BodyType<UserConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createOrUpdateConfigApiV1ConfigPost>>,
-        TError,
-        {data: BodyType<UserConfigCreate>},
-        TContext
-      > => {
-      return useMutation(getCreateOrUpdateConfigApiV1ConfigPostMutationOptions(options), queryClient);
-    }
-    export type updateConfigPartialApiV1ConfigPatchResponse200 = {
-  data: UserConfigResponse
-  status: 200
-}
-
-export type updateConfigPartialApiV1ConfigPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateConfigPartialApiV1ConfigPatchResponseSuccess = (updateConfigPartialApiV1ConfigPatchResponse200) & {
-  headers: Headers;
-};
-export type updateConfigPartialApiV1ConfigPatchResponseError = (updateConfigPartialApiV1ConfigPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateConfigPartialApiV1ConfigPatchResponse = (updateConfigPartialApiV1ConfigPatchResponseSuccess | updateConfigPartialApiV1ConfigPatchResponseError)
-
-export const getUpdateConfigPartialApiV1ConfigPatchUrl = () => {
-
-
-
-
-  return `/api/v1/config`
-}
-
 /**
  * Partial update user configuration (create if not exists).
  * @summary Update Config Partial
  */
-export const updateConfigPartialApiV1ConfigPatch = async (userConfigUpdate: UserConfigUpdate, options?: RequestInit): Promise<updateConfigPartialApiV1ConfigPatchResponse> => {
-
-  return customInstance<updateConfigPartialApiV1ConfigPatchResponse>(getUpdateConfigPartialApiV1ConfigPatchUrl(),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userConfigUpdate)
-  }
-);}
+export const configUpdateConfigPartial = (
+    userConfigUpdate: BodyType<UserConfigUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<UserConfigResponse>(
+      {url: `/api/v1/config`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: userConfigUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateConfigPartialApiV1ConfigPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>, TError,{data: BodyType<UserConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>, TError,{data: BodyType<UserConfigUpdate>}, TContext> => {
 
-const mutationKey = ['updateConfigPartialApiV1ConfigPatch'];
+export const getConfigUpdateConfigPartialMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configUpdateConfigPartial>>, TError,{data: BodyType<UserConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof configUpdateConfigPartial>>, TError,{data: BodyType<UserConfigUpdate>}, TContext> => {
+
+const mutationKey = ['configUpdateConfigPartial'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -299,10 +165,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>, {data: BodyType<UserConfigUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof configUpdateConfigPartial>>, {data: BodyType<UserConfigUpdate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  updateConfigPartialApiV1ConfigPatch(data,requestOptions)
+          return  configUpdateConfigPartial(data,requestOptions)
         }
 
 
@@ -312,20 +178,84 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateConfigPartialApiV1ConfigPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>>
-    export type UpdateConfigPartialApiV1ConfigPatchMutationBody = BodyType<UserConfigUpdate>
-    export type UpdateConfigPartialApiV1ConfigPatchMutationError = ErrorType<HTTPValidationError>
+    export type ConfigUpdateConfigPartialMutationResult = NonNullable<Awaited<ReturnType<typeof configUpdateConfigPartial>>>
+    export type ConfigUpdateConfigPartialMutationBody = BodyType<UserConfigUpdate>
+    export type ConfigUpdateConfigPartialMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Config Partial
  */
-export const useUpdateConfigPartialApiV1ConfigPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>, TError,{data: BodyType<UserConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useConfigUpdateConfigPartial = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configUpdateConfigPartial>>, TError,{data: BodyType<UserConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateConfigPartialApiV1ConfigPatch>>,
+        Awaited<ReturnType<typeof configUpdateConfigPartial>>,
         TError,
         {data: BodyType<UserConfigUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateConfigPartialApiV1ConfigPatchMutationOptions(options), queryClient);
+      return useMutation(getConfigUpdateConfigPartialMutationOptions(options), queryClient);
+    }
+    /**
+ * Create or update user configuration.
+ * @summary Create Or Update Config
+ */
+export const configCreateOrUpdateConfig = (
+    userConfigCreate: BodyType<UserConfigCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<UserConfigResponse>(
+      {url: `/api/v1/config`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userConfigCreate, signal
+    },
+      options);
+    }
+
+
+
+export const getConfigCreateOrUpdateConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configCreateOrUpdateConfig>>, TError,{data: BodyType<UserConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof configCreateOrUpdateConfig>>, TError,{data: BodyType<UserConfigCreate>}, TContext> => {
+
+const mutationKey = ['configCreateOrUpdateConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof configCreateOrUpdateConfig>>, {data: BodyType<UserConfigCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  configCreateOrUpdateConfig(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfigCreateOrUpdateConfigMutationResult = NonNullable<Awaited<ReturnType<typeof configCreateOrUpdateConfig>>>
+    export type ConfigCreateOrUpdateConfigMutationBody = BodyType<UserConfigCreate>
+    export type ConfigCreateOrUpdateConfigMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Create Or Update Config
+ */
+export const useConfigCreateOrUpdateConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configCreateOrUpdateConfig>>, TError,{data: BodyType<UserConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof configCreateOrUpdateConfig>>,
+        TError,
+        {data: BodyType<UserConfigCreate>},
+        TContext
+      > => {
+      return useMutation(getConfigCreateOrUpdateConfigMutationOptions(options), queryClient);
     }

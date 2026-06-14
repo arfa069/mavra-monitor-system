@@ -8,26 +8,26 @@ import type { BlogPostCreateContentJson } from './blogPostCreateContentJson';
 import type { BlogPostCreateStatus } from './blogPostCreateStatus';
 
 export interface BlogPostCreate {
+  canonical_url?: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  /** @maxLength 500000 */
+  content_html?: string;
+  content_json?: BlogPostCreateContentJson;
+  cover_media_id?: number | null;
+  cover_url?: string | null;
+  excerpt?: string | null;
+  og_image_url?: string | null;
+  published_at?: string | null;
+  seo_description?: string | null;
+  seo_title?: string | null;
+  slug?: string | null;
+  status?: BlogPostCreateStatus;
+  tag_ids?: number[];
+  tag_names?: string[];
   /**
      * @minLength 1
      * @maxLength 255
      */
   title: string;
-  slug?: string | null;
-  excerpt?: string | null;
-  content_json?: BlogPostCreateContentJson;
-  /** @maxLength 500000 */
-  content_html?: string;
-  status?: BlogPostCreateStatus;
-  category_id?: number | null;
-  category_name?: string | null;
-  tag_ids?: number[];
-  tag_names?: string[];
-  cover_url?: string | null;
-  cover_media_id?: number | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  canonical_url?: string | null;
-  og_image_url?: string | null;
-  published_at?: string | null;
 }

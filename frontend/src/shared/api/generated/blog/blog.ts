@@ -25,16 +25,16 @@ import type {
 
 import type {
   BlogCategoryResponse,
+  BlogListAdminPostsParams,
+  BlogListPublicPostsParams,
   BlogMediaResponse,
   BlogPostCreate,
   BlogPostListResponse,
   BlogPostResponse,
   BlogPostUpdate,
   BlogTagResponse,
-  BodyUploadBlogMediaApiV1BlogAdminUploadsPost,
-  HTTPValidationError,
-  ListAdminPostsApiV1BlogAdminPostsGetParams,
-  ListPublicPostsApiV1BlogPostsGetParams
+  BodyBlogUploadBlogMedia,
+  HTTPValidationError
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -45,590 +45,88 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type listPublicPostsApiV1BlogPostsGetResponse200 = {
-  data: BlogPostListResponse
-  status: 200
-}
-
-export type listPublicPostsApiV1BlogPostsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listPublicPostsApiV1BlogPostsGetResponseSuccess = (listPublicPostsApiV1BlogPostsGetResponse200) & {
-  headers: Headers;
-};
-export type listPublicPostsApiV1BlogPostsGetResponseError = (listPublicPostsApiV1BlogPostsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listPublicPostsApiV1BlogPostsGetResponse = (listPublicPostsApiV1BlogPostsGetResponseSuccess | listPublicPostsApiV1BlogPostsGetResponseError)
-
-export const getListPublicPostsApiV1BlogPostsGetUrl = (params?: ListPublicPostsApiV1BlogPostsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/blog/posts?${stringifiedParams}` : `/api/v1/blog/posts`
-}
-
-/**
- * @summary List Public Posts
- */
-export const listPublicPostsApiV1BlogPostsGet = async (params?: ListPublicPostsApiV1BlogPostsGetParams, options?: RequestInit): Promise<listPublicPostsApiV1BlogPostsGetResponse> => {
-
-  return customInstance<listPublicPostsApiV1BlogPostsGetResponse>(getListPublicPostsApiV1BlogPostsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListPublicPostsApiV1BlogPostsGetQueryKey = (params?: ListPublicPostsApiV1BlogPostsGetParams,) => {
-    return [
-    `/api/v1/blog/posts`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListPublicPostsApiV1BlogPostsGetQueryOptions = <TData = Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListPublicPostsApiV1BlogPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListPublicPostsApiV1BlogPostsGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>> = ({ signal }) => listPublicPostsApiV1BlogPostsGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListPublicPostsApiV1BlogPostsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>>
-export type ListPublicPostsApiV1BlogPostsGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useListPublicPostsApiV1BlogPostsGet<TData = Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListPublicPostsApiV1BlogPostsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPublicPostsApiV1BlogPostsGet<TData = Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListPublicPostsApiV1BlogPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListPublicPostsApiV1BlogPostsGet<TData = Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListPublicPostsApiV1BlogPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List Public Posts
- */
-
-export function useListPublicPostsApiV1BlogPostsGet<TData = Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListPublicPostsApiV1BlogPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listPublicPostsApiV1BlogPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListPublicPostsApiV1BlogPostsGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getPublicPostApiV1BlogPostsSlugGetResponse200 = {
-  data: BlogPostResponse
-  status: 200
-}
-
-export type getPublicPostApiV1BlogPostsSlugGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getPublicPostApiV1BlogPostsSlugGetResponseSuccess = (getPublicPostApiV1BlogPostsSlugGetResponse200) & {
-  headers: Headers;
-};
-export type getPublicPostApiV1BlogPostsSlugGetResponseError = (getPublicPostApiV1BlogPostsSlugGetResponse422) & {
-  headers: Headers;
-};
-
-export type getPublicPostApiV1BlogPostsSlugGetResponse = (getPublicPostApiV1BlogPostsSlugGetResponseSuccess | getPublicPostApiV1BlogPostsSlugGetResponseError)
-
-export const getGetPublicPostApiV1BlogPostsSlugGetUrl = (slug: string,) => {
-
-
-
-
-  return `/api/v1/blog/posts/${slug}`
-}
-
-/**
- * @summary Get Public Post
- */
-export const getPublicPostApiV1BlogPostsSlugGet = async (slug: string, options?: RequestInit): Promise<getPublicPostApiV1BlogPostsSlugGetResponse> => {
-
-  return customInstance<getPublicPostApiV1BlogPostsSlugGetResponse>(getGetPublicPostApiV1BlogPostsSlugGetUrl(slug),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetPublicPostApiV1BlogPostsSlugGetQueryKey = (slug: string,) => {
-    return [
-    `/api/v1/blog/posts/${slug}`
-    ] as const;
-    }
-
-
-export const getGetPublicPostApiV1BlogPostsSlugGetQueryOptions = <TData = Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError = ErrorType<HTTPValidationError>>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetPublicPostApiV1BlogPostsSlugGetQueryKey(slug);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>> = ({ signal }) => getPublicPostApiV1BlogPostsSlugGet(slug, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetPublicPostApiV1BlogPostsSlugGetQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>>
-export type GetPublicPostApiV1BlogPostsSlugGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetPublicPostApiV1BlogPostsSlugGet<TData = Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError = ErrorType<HTTPValidationError>>(
- slug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>,
-          TError,
-          Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPublicPostApiV1BlogPostsSlugGet<TData = Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError = ErrorType<HTTPValidationError>>(
- slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>,
-          TError,
-          Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPublicPostApiV1BlogPostsSlugGet<TData = Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError = ErrorType<HTTPValidationError>>(
- slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Public Post
- */
-
-export function useGetPublicPostApiV1BlogPostsSlugGet<TData = Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError = ErrorType<HTTPValidationError>>(
- slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicPostApiV1BlogPostsSlugGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetPublicPostApiV1BlogPostsSlugGetQueryOptions(slug,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type listCategoriesApiV1BlogCategoriesGetResponse200 = {
-  data: BlogCategoryResponse[]
-  status: 200
-}
-
-export type listCategoriesApiV1BlogCategoriesGetResponseSuccess = (listCategoriesApiV1BlogCategoriesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listCategoriesApiV1BlogCategoriesGetResponse = (listCategoriesApiV1BlogCategoriesGetResponseSuccess)
-
-export const getListCategoriesApiV1BlogCategoriesGetUrl = () => {
-
-
-
-
-  return `/api/v1/blog/categories`
-}
-
-/**
- * @summary List Categories
- */
-export const listCategoriesApiV1BlogCategoriesGet = async ( options?: RequestInit): Promise<listCategoriesApiV1BlogCategoriesGetResponse> => {
-
-  return customInstance<listCategoriesApiV1BlogCategoriesGetResponse>(getListCategoriesApiV1BlogCategoriesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListCategoriesApiV1BlogCategoriesGetQueryKey = () => {
-    return [
-    `/api/v1/blog/categories`
-    ] as const;
-    }
-
-
-export const getListCategoriesApiV1BlogCategoriesGetQueryOptions = <TData = Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListCategoriesApiV1BlogCategoriesGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>> = ({ signal }) => listCategoriesApiV1BlogCategoriesGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListCategoriesApiV1BlogCategoriesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>>
-export type ListCategoriesApiV1BlogCategoriesGetQueryError = ErrorType<unknown>
-
-
-export function useListCategoriesApiV1BlogCategoriesGet<TData = Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>,
-          TError,
-          Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListCategoriesApiV1BlogCategoriesGet<TData = Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>,
-          TError,
-          Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListCategoriesApiV1BlogCategoriesGet<TData = Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List Categories
- */
-
-export function useListCategoriesApiV1BlogCategoriesGet<TData = Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCategoriesApiV1BlogCategoriesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListCategoriesApiV1BlogCategoriesGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type listTagsApiV1BlogTagsGetResponse200 = {
-  data: BlogTagResponse[]
-  status: 200
-}
-
-export type listTagsApiV1BlogTagsGetResponseSuccess = (listTagsApiV1BlogTagsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listTagsApiV1BlogTagsGetResponse = (listTagsApiV1BlogTagsGetResponseSuccess)
-
-export const getListTagsApiV1BlogTagsGetUrl = () => {
-
-
-
-
-  return `/api/v1/blog/tags`
-}
-
-/**
- * @summary List Tags
- */
-export const listTagsApiV1BlogTagsGet = async ( options?: RequestInit): Promise<listTagsApiV1BlogTagsGetResponse> => {
-
-  return customInstance<listTagsApiV1BlogTagsGetResponse>(getListTagsApiV1BlogTagsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListTagsApiV1BlogTagsGetQueryKey = () => {
-    return [
-    `/api/v1/blog/tags`
-    ] as const;
-    }
-
-
-export const getListTagsApiV1BlogTagsGetQueryOptions = <TData = Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListTagsApiV1BlogTagsGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>> = ({ signal }) => listTagsApiV1BlogTagsGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListTagsApiV1BlogTagsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>>
-export type ListTagsApiV1BlogTagsGetQueryError = ErrorType<unknown>
-
-
-export function useListTagsApiV1BlogTagsGet<TData = Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListTagsApiV1BlogTagsGet<TData = Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListTagsApiV1BlogTagsGet<TData = Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List Tags
- */
-
-export function useListTagsApiV1BlogTagsGet<TData = Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listTagsApiV1BlogTagsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListTagsApiV1BlogTagsGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type listAdminPostsApiV1BlogAdminPostsGetResponse200 = {
-  data: BlogPostListResponse
-  status: 200
-}
-
-export type listAdminPostsApiV1BlogAdminPostsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listAdminPostsApiV1BlogAdminPostsGetResponseSuccess = (listAdminPostsApiV1BlogAdminPostsGetResponse200) & {
-  headers: Headers;
-};
-export type listAdminPostsApiV1BlogAdminPostsGetResponseError = (listAdminPostsApiV1BlogAdminPostsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listAdminPostsApiV1BlogAdminPostsGetResponse = (listAdminPostsApiV1BlogAdminPostsGetResponseSuccess | listAdminPostsApiV1BlogAdminPostsGetResponseError)
-
-export const getListAdminPostsApiV1BlogAdminPostsGetUrl = (params?: ListAdminPostsApiV1BlogAdminPostsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/blog/admin/posts?${stringifiedParams}` : `/api/v1/blog/admin/posts`
-}
-
 /**
  * @summary List Admin Posts
  */
-export const listAdminPostsApiV1BlogAdminPostsGet = async (params?: ListAdminPostsApiV1BlogAdminPostsGetParams, options?: RequestInit): Promise<listAdminPostsApiV1BlogAdminPostsGetResponse> => {
-
-  return customInstance<listAdminPostsApiV1BlogAdminPostsGetResponse>(getListAdminPostsApiV1BlogAdminPostsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const blogListAdminPosts = (
+    params?: BlogListAdminPostsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<BlogPostListResponse>(
+      {url: `/api/v1/blog/admin/posts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListAdminPostsApiV1BlogAdminPostsGetQueryKey = (params?: ListAdminPostsApiV1BlogAdminPostsGetParams,) => {
+export const getBlogListAdminPostsQueryKey = (params?: BlogListAdminPostsParams,) => {
     return [
     `/api/v1/blog/admin/posts`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAdminPostsApiV1BlogAdminPostsGetQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListAdminPostsApiV1BlogAdminPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getBlogListAdminPostsQueryOptions = <TData = Awaited<ReturnType<typeof blogListAdminPosts>>, TError = ErrorType<HTTPValidationError>>(params?: BlogListAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAdminPostsApiV1BlogAdminPostsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getBlogListAdminPostsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>> = ({ signal }) => listAdminPostsApiV1BlogAdminPostsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogListAdminPosts>>> = ({ signal }) => blogListAdminPosts(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListAdminPostsApiV1BlogAdminPostsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>>
-export type ListAdminPostsApiV1BlogAdminPostsGetQueryError = ErrorType<HTTPValidationError>
+export type BlogListAdminPostsQueryResult = NonNullable<Awaited<ReturnType<typeof blogListAdminPosts>>>
+export type BlogListAdminPostsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListAdminPostsApiV1BlogAdminPostsGet<TData = Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListAdminPostsApiV1BlogAdminPostsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData>> & Pick<
+export function useBlogListAdminPosts<TData = Awaited<ReturnType<typeof blogListAdminPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  BlogListAdminPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>,
+          Awaited<ReturnType<typeof blogListAdminPosts>>,
           TError,
-          Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>
+          Awaited<ReturnType<typeof blogListAdminPosts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListAdminPostsApiV1BlogAdminPostsGet<TData = Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAdminPostsApiV1BlogAdminPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData>> & Pick<
+export function useBlogListAdminPosts<TData = Awaited<ReturnType<typeof blogListAdminPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>,
+          Awaited<ReturnType<typeof blogListAdminPosts>>,
           TError,
-          Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>
+          Awaited<ReturnType<typeof blogListAdminPosts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListAdminPostsApiV1BlogAdminPostsGet<TData = Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAdminPostsApiV1BlogAdminPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useBlogListAdminPosts<TData = Awaited<ReturnType<typeof blogListAdminPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Admin Posts
  */
 
-export function useListAdminPostsApiV1BlogAdminPostsGet<TData = Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListAdminPostsApiV1BlogAdminPostsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAdminPostsApiV1BlogAdminPostsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useBlogListAdminPosts<TData = Awaited<ReturnType<typeof blogListAdminPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListAdminPostsApiV1BlogAdminPostsGetQueryOptions(params,options)
+  const queryOptions = getBlogListAdminPostsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -640,55 +138,30 @@ export function useListAdminPostsApiV1BlogAdminPostsGet<TData = Awaited<ReturnTy
 
 
 
-export type createAdminPostApiV1BlogAdminPostsPostResponse201 = {
-  data: BlogPostResponse
-  status: 201
-}
-
-export type createAdminPostApiV1BlogAdminPostsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createAdminPostApiV1BlogAdminPostsPostResponseSuccess = (createAdminPostApiV1BlogAdminPostsPostResponse201) & {
-  headers: Headers;
-};
-export type createAdminPostApiV1BlogAdminPostsPostResponseError = (createAdminPostApiV1BlogAdminPostsPostResponse422) & {
-  headers: Headers;
-};
-
-export type createAdminPostApiV1BlogAdminPostsPostResponse = (createAdminPostApiV1BlogAdminPostsPostResponseSuccess | createAdminPostApiV1BlogAdminPostsPostResponseError)
-
-export const getCreateAdminPostApiV1BlogAdminPostsPostUrl = () => {
-
-
-
-
-  return `/api/v1/blog/admin/posts`
-}
-
 /**
  * @summary Create Admin Post
  */
-export const createAdminPostApiV1BlogAdminPostsPost = async (blogPostCreate: BlogPostCreate, options?: RequestInit): Promise<createAdminPostApiV1BlogAdminPostsPostResponse> => {
-
-  return customInstance<createAdminPostApiV1BlogAdminPostsPostResponse>(getCreateAdminPostApiV1BlogAdminPostsPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(blogPostCreate)
-  }
-);}
+export const blogCreateAdminPost = (
+    blogPostCreate: BodyType<BlogPostCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<BlogPostResponse>(
+      {url: `/api/v1/blog/admin/posts`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: blogPostCreate, signal
+    },
+      options);
+    }
 
 
-export const getCreateAdminPostApiV1BlogAdminPostsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext> => {
 
-const mutationKey = ['createAdminPostApiV1BlogAdminPostsPost'];
+export const getBlogCreateAdminPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogCreateAdminPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof blogCreateAdminPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext> => {
+
+const mutationKey = ['blogCreateAdminPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -698,10 +171,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>, {data: BodyType<BlogPostCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blogCreateAdminPost>>, {data: BodyType<BlogPostCreate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createAdminPostApiV1BlogAdminPostsPost(data,requestOptions)
+          return  blogCreateAdminPost(data,requestOptions)
         }
 
 
@@ -711,131 +184,165 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateAdminPostApiV1BlogAdminPostsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>>
-    export type CreateAdminPostApiV1BlogAdminPostsPostMutationBody = BodyType<BlogPostCreate>
-    export type CreateAdminPostApiV1BlogAdminPostsPostMutationError = ErrorType<HTTPValidationError>
+    export type BlogCreateAdminPostMutationResult = NonNullable<Awaited<ReturnType<typeof blogCreateAdminPost>>>
+    export type BlogCreateAdminPostMutationBody = BodyType<BlogPostCreate>
+    export type BlogCreateAdminPostMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Create Admin Post
  */
-export const useCreateAdminPostApiV1BlogAdminPostsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useBlogCreateAdminPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogCreateAdminPost>>, TError,{data: BodyType<BlogPostCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createAdminPostApiV1BlogAdminPostsPost>>,
+        Awaited<ReturnType<typeof blogCreateAdminPost>>,
         TError,
         {data: BodyType<BlogPostCreate>},
         TContext
       > => {
-      return useMutation(getCreateAdminPostApiV1BlogAdminPostsPostMutationOptions(options), queryClient);
+      return useMutation(getBlogCreateAdminPostMutationOptions(options), queryClient);
     }
-    export type getAdminPostApiV1BlogAdminPostsPostIdGetResponse200 = {
-  data: BlogPostResponse
-  status: 200
-}
+    /**
+ * @summary Delete Admin Post
+ */
+export const blogDeleteAdminPost = (
+    postId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-export type getAdminPostApiV1BlogAdminPostsPostIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
 
-export type getAdminPostApiV1BlogAdminPostsPostIdGetResponseSuccess = (getAdminPostApiV1BlogAdminPostsPostIdGetResponse200) & {
-  headers: Headers;
-};
-export type getAdminPostApiV1BlogAdminPostsPostIdGetResponseError = (getAdminPostApiV1BlogAdminPostsPostIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getAdminPostApiV1BlogAdminPostsPostIdGetResponse = (getAdminPostApiV1BlogAdminPostsPostIdGetResponseSuccess | getAdminPostApiV1BlogAdminPostsPostIdGetResponseError)
-
-export const getGetAdminPostApiV1BlogAdminPostsPostIdGetUrl = (postId: number,) => {
+      return customInstance<void>(
+      {url: `/api/v1/blog/admin/posts/${postId}`, method: 'DELETE', signal
+    },
+      options);
+    }
 
 
 
+export const getBlogDeleteAdminPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogDeleteAdminPost>>, TError,{postId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof blogDeleteAdminPost>>, TError,{postId: number}, TContext> => {
 
-  return `/api/v1/blog/admin/posts/${postId}`
-}
+const mutationKey = ['blogDeleteAdminPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blogDeleteAdminPost>>, {postId: number}> = (props) => {
+          const {postId} = props ?? {};
+
+          return  blogDeleteAdminPost(postId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlogDeleteAdminPostMutationResult = NonNullable<Awaited<ReturnType<typeof blogDeleteAdminPost>>>
+
+    export type BlogDeleteAdminPostMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Delete Admin Post
+ */
+export const useBlogDeleteAdminPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogDeleteAdminPost>>, TError,{postId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof blogDeleteAdminPost>>,
+        TError,
+        {postId: number},
+        TContext
+      > => {
+      return useMutation(getBlogDeleteAdminPostMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Get Admin Post
  */
-export const getAdminPostApiV1BlogAdminPostsPostIdGet = async (postId: number, options?: RequestInit): Promise<getAdminPostApiV1BlogAdminPostsPostIdGetResponse> => {
-
-  return customInstance<getAdminPostApiV1BlogAdminPostsPostIdGetResponse>(getGetAdminPostApiV1BlogAdminPostsPostIdGetUrl(postId),
-  {
-    ...options,
-    method: 'GET'
+export const blogGetAdminPost = (
+    postId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<BlogPostResponse>(
+      {url: `/api/v1/blog/admin/posts/${postId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetAdminPostApiV1BlogAdminPostsPostIdGetQueryKey = (postId: number,) => {
+export const getBlogGetAdminPostQueryKey = (postId: number,) => {
     return [
     `/api/v1/blog/admin/posts/${postId}`
     ] as const;
     }
 
 
-export const getGetAdminPostApiV1BlogAdminPostsPostIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError = ErrorType<HTTPValidationError>>(postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getBlogGetAdminPostQueryOptions = <TData = Awaited<ReturnType<typeof blogGetAdminPost>>, TError = ErrorType<HTTPValidationError>>(postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAdminPostApiV1BlogAdminPostsPostIdGetQueryKey(postId);
+  const queryKey =  queryOptions?.queryKey ?? getBlogGetAdminPostQueryKey(postId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>> = ({ signal }) => getAdminPostApiV1BlogAdminPostsPostIdGet(postId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogGetAdminPost>>> = ({ signal }) => blogGetAdminPost(postId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: postId !== null && postId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetAdminPostApiV1BlogAdminPostsPostIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>>
-export type GetAdminPostApiV1BlogAdminPostsPostIdGetQueryError = ErrorType<HTTPValidationError>
+export type BlogGetAdminPostQueryResult = NonNullable<Awaited<ReturnType<typeof blogGetAdminPost>>>
+export type BlogGetAdminPostQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetAdminPostApiV1BlogAdminPostsPostIdGet<TData = Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError = ErrorType<HTTPValidationError>>(
- postId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData>> & Pick<
+export function useBlogGetAdminPost<TData = Awaited<ReturnType<typeof blogGetAdminPost>>, TError = ErrorType<HTTPValidationError>>(
+ postId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>,
+          Awaited<ReturnType<typeof blogGetAdminPost>>,
           TError,
-          Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>
+          Awaited<ReturnType<typeof blogGetAdminPost>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminPostApiV1BlogAdminPostsPostIdGet<TData = Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError = ErrorType<HTTPValidationError>>(
- postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData>> & Pick<
+export function useBlogGetAdminPost<TData = Awaited<ReturnType<typeof blogGetAdminPost>>, TError = ErrorType<HTTPValidationError>>(
+ postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>,
+          Awaited<ReturnType<typeof blogGetAdminPost>>,
           TError,
-          Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>
+          Awaited<ReturnType<typeof blogGetAdminPost>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAdminPostApiV1BlogAdminPostsPostIdGet<TData = Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError = ErrorType<HTTPValidationError>>(
- postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useBlogGetAdminPost<TData = Awaited<ReturnType<typeof blogGetAdminPost>>, TError = ErrorType<HTTPValidationError>>(
+ postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Admin Post
  */
 
-export function useGetAdminPostApiV1BlogAdminPostsPostIdGet<TData = Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError = ErrorType<HTTPValidationError>>(
- postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostApiV1BlogAdminPostsPostIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useBlogGetAdminPost<TData = Awaited<ReturnType<typeof blogGetAdminPost>>, TError = ErrorType<HTTPValidationError>>(
+ postId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetAdminPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAdminPostApiV1BlogAdminPostsPostIdGetQueryOptions(postId,options)
+  const queryOptions = getBlogGetAdminPostQueryOptions(postId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -847,56 +354,31 @@ export function useGetAdminPostApiV1BlogAdminPostsPostIdGet<TData = Awaited<Retu
 
 
 
-export type updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse200 = {
-  data: BlogPostResponse
-  status: 200
-}
-
-export type updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateAdminPostApiV1BlogAdminPostsPostIdPatchResponseSuccess = (updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse200) & {
-  headers: Headers;
-};
-export type updateAdminPostApiV1BlogAdminPostsPostIdPatchResponseError = (updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse = (updateAdminPostApiV1BlogAdminPostsPostIdPatchResponseSuccess | updateAdminPostApiV1BlogAdminPostsPostIdPatchResponseError)
-
-export const getUpdateAdminPostApiV1BlogAdminPostsPostIdPatchUrl = (postId: number,) => {
-
-
-
-
-  return `/api/v1/blog/admin/posts/${postId}`
-}
-
 /**
  * @summary Update Admin Post
  */
-export const updateAdminPostApiV1BlogAdminPostsPostIdPatch = async (postId: number,
-    blogPostUpdate: BlogPostUpdate, options?: RequestInit): Promise<updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse> => {
-
-  return customInstance<updateAdminPostApiV1BlogAdminPostsPostIdPatchResponse>(getUpdateAdminPostApiV1BlogAdminPostsPostIdPatchUrl(postId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(blogPostUpdate)
-  }
-);}
+export const blogUpdateAdminPost = (
+    postId: number,
+    blogPostUpdate: BodyType<BlogPostUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<BlogPostResponse>(
+      {url: `/api/v1/blog/admin/posts/${postId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: blogPostUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateAdminPostApiV1BlogAdminPostsPostIdPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext> => {
 
-const mutationKey = ['updateAdminPostApiV1BlogAdminPostsPostIdPatch'];
+export const getBlogUpdateAdminPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogUpdateAdminPost>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof blogUpdateAdminPost>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext> => {
+
+const mutationKey = ['blogUpdateAdminPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -906,10 +388,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>, {postId: number;data: BodyType<BlogPostUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blogUpdateAdminPost>>, {postId: number;data: BodyType<BlogPostUpdate>}> = (props) => {
           const {postId,data} = props ?? {};
 
-          return  updateAdminPostApiV1BlogAdminPostsPostIdPatch(postId,data,requestOptions)
+          return  blogUpdateAdminPost(postId,data,requestOptions)
         }
 
 
@@ -919,162 +401,49 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateAdminPostApiV1BlogAdminPostsPostIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>>
-    export type UpdateAdminPostApiV1BlogAdminPostsPostIdPatchMutationBody = BodyType<BlogPostUpdate>
-    export type UpdateAdminPostApiV1BlogAdminPostsPostIdPatchMutationError = ErrorType<HTTPValidationError>
+    export type BlogUpdateAdminPostMutationResult = NonNullable<Awaited<ReturnType<typeof blogUpdateAdminPost>>>
+    export type BlogUpdateAdminPostMutationBody = BodyType<BlogPostUpdate>
+    export type BlogUpdateAdminPostMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Admin Post
  */
-export const useUpdateAdminPostApiV1BlogAdminPostsPostIdPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useBlogUpdateAdminPost = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogUpdateAdminPost>>, TError,{postId: number;data: BodyType<BlogPostUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateAdminPostApiV1BlogAdminPostsPostIdPatch>>,
+        Awaited<ReturnType<typeof blogUpdateAdminPost>>,
         TError,
         {postId: number;data: BodyType<BlogPostUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateAdminPostApiV1BlogAdminPostsPostIdPatchMutationOptions(options), queryClient);
+      return useMutation(getBlogUpdateAdminPostMutationOptions(options), queryClient);
     }
-    export type deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse204 = {
-  data: void
-  status: 204
-}
-
-export type deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponseSuccess = (deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse204) & {
-  headers: Headers;
-};
-export type deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponseError = (deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse = (deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponseSuccess | deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponseError)
-
-export const getDeleteAdminPostApiV1BlogAdminPostsPostIdDeleteUrl = (postId: number,) => {
-
-
-
-
-  return `/api/v1/blog/admin/posts/${postId}`
-}
-
-/**
- * @summary Delete Admin Post
- */
-export const deleteAdminPostApiV1BlogAdminPostsPostIdDelete = async (postId: number, options?: RequestInit): Promise<deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse> => {
-
-  return customInstance<deleteAdminPostApiV1BlogAdminPostsPostIdDeleteResponse>(getDeleteAdminPostApiV1BlogAdminPostsPostIdDeleteUrl(postId),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-export const getDeleteAdminPostApiV1BlogAdminPostsPostIdDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>, TError,{postId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>, TError,{postId: number}, TContext> => {
-
-const mutationKey = ['deleteAdminPostApiV1BlogAdminPostsPostIdDelete'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>, {postId: number}> = (props) => {
-          const {postId} = props ?? {};
-
-          return  deleteAdminPostApiV1BlogAdminPostsPostIdDelete(postId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteAdminPostApiV1BlogAdminPostsPostIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>>
-
-    export type DeleteAdminPostApiV1BlogAdminPostsPostIdDeleteMutationError = ErrorType<HTTPValidationError>
-
     /**
- * @summary Delete Admin Post
- */
-export const useDeleteAdminPostApiV1BlogAdminPostsPostIdDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>, TError,{postId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteAdminPostApiV1BlogAdminPostsPostIdDelete>>,
-        TError,
-        {postId: number},
-        TContext
-      > => {
-      return useMutation(getDeleteAdminPostApiV1BlogAdminPostsPostIdDeleteMutationOptions(options), queryClient);
-    }
-    export type uploadBlogMediaApiV1BlogAdminUploadsPostResponse201 = {
-  data: BlogMediaResponse
-  status: 201
-}
-
-export type uploadBlogMediaApiV1BlogAdminUploadsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type uploadBlogMediaApiV1BlogAdminUploadsPostResponseSuccess = (uploadBlogMediaApiV1BlogAdminUploadsPostResponse201) & {
-  headers: Headers;
-};
-export type uploadBlogMediaApiV1BlogAdminUploadsPostResponseError = (uploadBlogMediaApiV1BlogAdminUploadsPostResponse422) & {
-  headers: Headers;
-};
-
-export type uploadBlogMediaApiV1BlogAdminUploadsPostResponse = (uploadBlogMediaApiV1BlogAdminUploadsPostResponseSuccess | uploadBlogMediaApiV1BlogAdminUploadsPostResponseError)
-
-export const getUploadBlogMediaApiV1BlogAdminUploadsPostUrl = () => {
-
-
-
-
-  return `/api/v1/blog/admin/uploads`
-}
-
-/**
  * @summary Upload Blog Media
  */
-export const uploadBlogMediaApiV1BlogAdminUploadsPost = async (bodyUploadBlogMediaApiV1BlogAdminUploadsPost: BodyUploadBlogMediaApiV1BlogAdminUploadsPost, options?: RequestInit): Promise<uploadBlogMediaApiV1BlogAdminUploadsPostResponse> => {
-    const formData = new FormData();
-formData.append(`file`, bodyUploadBlogMediaApiV1BlogAdminUploadsPost.file);
+export const blogUploadBlogMedia = (
+    bodyBlogUploadBlogMedia: BodyType<BodyBlogUploadBlogMedia>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<uploadBlogMediaApiV1BlogAdminUploadsPostResponse>(getUploadBlogMediaApiV1BlogAdminUploadsPostUrl(),
-  {
-    ...options,
-    method: 'POST'
-    ,
-    body: formData
-  }
-);}
+      const formData = new FormData();
+formData.append(`file`, bodyBlogUploadBlogMedia.file);
+
+      return customInstance<BlogMediaResponse>(
+      {url: `/api/v1/blog/admin/uploads`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData, signal
+    },
+      options);
+    }
 
 
 
+export const getBlogUploadBlogMediaMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogUploadBlogMedia>>, TError,{data: BodyType<BodyBlogUploadBlogMedia>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof blogUploadBlogMedia>>, TError,{data: BodyType<BodyBlogUploadBlogMedia>}, TContext> => {
 
-export const getUploadBlogMediaApiV1BlogAdminUploadsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>, TError,{data: BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>, TError,{data: BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>}, TContext> => {
-
-const mutationKey = ['uploadBlogMediaApiV1BlogAdminUploadsPost'];
+const mutationKey = ['blogUploadBlogMedia'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1084,10 +453,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>, {data: BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blogUploadBlogMedia>>, {data: BodyType<BodyBlogUploadBlogMedia>}> = (props) => {
           const {data} = props ?? {};
 
-          return  uploadBlogMediaApiV1BlogAdminUploadsPost(data,requestOptions)
+          return  blogUploadBlogMedia(data,requestOptions)
         }
 
 
@@ -1097,20 +466,389 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UploadBlogMediaApiV1BlogAdminUploadsPostMutationResult = NonNullable<Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>>
-    export type UploadBlogMediaApiV1BlogAdminUploadsPostMutationBody = BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>
-    export type UploadBlogMediaApiV1BlogAdminUploadsPostMutationError = ErrorType<HTTPValidationError>
+    export type BlogUploadBlogMediaMutationResult = NonNullable<Awaited<ReturnType<typeof blogUploadBlogMedia>>>
+    export type BlogUploadBlogMediaMutationBody = BodyType<BodyBlogUploadBlogMedia>
+    export type BlogUploadBlogMediaMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Upload Blog Media
  */
-export const useUploadBlogMediaApiV1BlogAdminUploadsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>, TError,{data: BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useBlogUploadBlogMedia = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blogUploadBlogMedia>>, TError,{data: BodyType<BodyBlogUploadBlogMedia>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof uploadBlogMediaApiV1BlogAdminUploadsPost>>,
+        Awaited<ReturnType<typeof blogUploadBlogMedia>>,
         TError,
-        {data: BodyType<BodyUploadBlogMediaApiV1BlogAdminUploadsPost>},
+        {data: BodyType<BodyBlogUploadBlogMedia>},
         TContext
       > => {
-      return useMutation(getUploadBlogMediaApiV1BlogAdminUploadsPostMutationOptions(options), queryClient);
+      return useMutation(getBlogUploadBlogMediaMutationOptions(options), queryClient);
     }
+    /**
+ * @summary List Categories
+ */
+export const blogListCategories = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BlogCategoryResponse[]>(
+      {url: `/api/v1/blog/categories`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getBlogListCategoriesQueryKey = () => {
+    return [
+    `/api/v1/blog/categories`
+    ] as const;
+    }
+
+
+export const getBlogListCategoriesQueryOptions = <TData = Awaited<ReturnType<typeof blogListCategories>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBlogListCategoriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogListCategories>>> = ({ signal }) => blogListCategories(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BlogListCategoriesQueryResult = NonNullable<Awaited<ReturnType<typeof blogListCategories>>>
+export type BlogListCategoriesQueryError = ErrorType<unknown>
+
+
+export function useBlogListCategories<TData = Awaited<ReturnType<typeof blogListCategories>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListCategories>>,
+          TError,
+          Awaited<ReturnType<typeof blogListCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListCategories<TData = Awaited<ReturnType<typeof blogListCategories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListCategories>>,
+          TError,
+          Awaited<ReturnType<typeof blogListCategories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListCategories<TData = Awaited<ReturnType<typeof blogListCategories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Categories
+ */
+
+export function useBlogListCategories<TData = Awaited<ReturnType<typeof blogListCategories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListCategories>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBlogListCategoriesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * @summary List Public Posts
+ */
+export const blogListPublicPosts = (
+    params?: BlogListPublicPostsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BlogPostListResponse>(
+      {url: `/api/v1/blog/posts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getBlogListPublicPostsQueryKey = (params?: BlogListPublicPostsParams,) => {
+    return [
+    `/api/v1/blog/posts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getBlogListPublicPostsQueryOptions = <TData = Awaited<ReturnType<typeof blogListPublicPosts>>, TError = ErrorType<HTTPValidationError>>(params?: BlogListPublicPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBlogListPublicPostsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogListPublicPosts>>> = ({ signal }) => blogListPublicPosts(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BlogListPublicPostsQueryResult = NonNullable<Awaited<ReturnType<typeof blogListPublicPosts>>>
+export type BlogListPublicPostsQueryError = ErrorType<HTTPValidationError>
+
+
+export function useBlogListPublicPosts<TData = Awaited<ReturnType<typeof blogListPublicPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  BlogListPublicPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListPublicPosts>>,
+          TError,
+          Awaited<ReturnType<typeof blogListPublicPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListPublicPosts<TData = Awaited<ReturnType<typeof blogListPublicPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListPublicPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListPublicPosts>>,
+          TError,
+          Awaited<ReturnType<typeof blogListPublicPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListPublicPosts<TData = Awaited<ReturnType<typeof blogListPublicPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListPublicPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Public Posts
+ */
+
+export function useBlogListPublicPosts<TData = Awaited<ReturnType<typeof blogListPublicPosts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: BlogListPublicPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListPublicPosts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBlogListPublicPostsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * @summary Get Public Post
+ */
+export const blogGetPublicPost = (
+    slug: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BlogPostResponse>(
+      {url: `/api/v1/blog/posts/${slug}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getBlogGetPublicPostQueryKey = (slug: string,) => {
+    return [
+    `/api/v1/blog/posts/${slug}`
+    ] as const;
+    }
+
+
+export const getBlogGetPublicPostQueryOptions = <TData = Awaited<ReturnType<typeof blogGetPublicPost>>, TError = ErrorType<HTTPValidationError>>(slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBlogGetPublicPostQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogGetPublicPost>>> = ({ signal }) => blogGetPublicPost(slug, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BlogGetPublicPostQueryResult = NonNullable<Awaited<ReturnType<typeof blogGetPublicPost>>>
+export type BlogGetPublicPostQueryError = ErrorType<HTTPValidationError>
+
+
+export function useBlogGetPublicPost<TData = Awaited<ReturnType<typeof blogGetPublicPost>>, TError = ErrorType<HTTPValidationError>>(
+ slug: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogGetPublicPost>>,
+          TError,
+          Awaited<ReturnType<typeof blogGetPublicPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogGetPublicPost<TData = Awaited<ReturnType<typeof blogGetPublicPost>>, TError = ErrorType<HTTPValidationError>>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogGetPublicPost>>,
+          TError,
+          Awaited<ReturnType<typeof blogGetPublicPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogGetPublicPost<TData = Awaited<ReturnType<typeof blogGetPublicPost>>, TError = ErrorType<HTTPValidationError>>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Public Post
+ */
+
+export function useBlogGetPublicPost<TData = Awaited<ReturnType<typeof blogGetPublicPost>>, TError = ErrorType<HTTPValidationError>>(
+ slug: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogGetPublicPost>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBlogGetPublicPostQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * @summary List Tags
+ */
+export const blogListTags = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BlogTagResponse[]>(
+      {url: `/api/v1/blog/tags`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getBlogListTagsQueryKey = () => {
+    return [
+    `/api/v1/blog/tags`
+    ] as const;
+    }
+
+
+export const getBlogListTagsQueryOptions = <TData = Awaited<ReturnType<typeof blogListTags>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getBlogListTagsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof blogListTags>>> = ({ signal }) => blogListTags(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type BlogListTagsQueryResult = NonNullable<Awaited<ReturnType<typeof blogListTags>>>
+export type BlogListTagsQueryError = ErrorType<unknown>
+
+
+export function useBlogListTags<TData = Awaited<ReturnType<typeof blogListTags>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListTags>>,
+          TError,
+          Awaited<ReturnType<typeof blogListTags>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListTags<TData = Awaited<ReturnType<typeof blogListTags>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof blogListTags>>,
+          TError,
+          Awaited<ReturnType<typeof blogListTags>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useBlogListTags<TData = Awaited<ReturnType<typeof blogListTags>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Tags
+ */
+
+export function useBlogListTags<TData = Awaited<ReturnType<typeof blogListTags>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof blogListTags>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getBlogListTagsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+

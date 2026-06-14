@@ -10,24 +10,24 @@ import type { JobResponsePlatform } from './jobResponsePlatform';
  * Schema for job response.
  */
 export interface JobResponse {
-  id: number;
-  job_id: string;
-  search_config_id: number;
-  platform: JobResponsePlatform;
-  title: string | null;
+  address: string | null;
+  apply_recommendation?: string | null;
   company: string | null;
   company_id: string | null;
-  salary: string | null;
-  salary_min: number | null;
-  salary_max: number | null;
-  location: string | null;
-  experience: string | null;
-  education: string | null;
   description: string | null;
-  address: string | null;
-  url: string | null;
+  education: string | null;
+  experience: string | null;
   first_seen_at: string;
-  last_updated_at: string;
+  id: number;
   is_active: boolean;
-  apply_recommendation?: string | null;
+  job_id: string;
+  last_updated_at: string;
+  location: string | null;
+  platform: JobResponsePlatform;
+  salary: string | null;
+  salary_max: number | null;
+  salary_min: number | null;
+  search_config_id: number;
+  title: string | null;
+  url: string | null;
 }

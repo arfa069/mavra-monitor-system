@@ -9,7 +9,7 @@
  * Schema for password change.
  */
 export interface PasswordChange {
-  old_password: string;
   /** @maxLength 100 */
   new_password: string;
+  old_password: string;
 }

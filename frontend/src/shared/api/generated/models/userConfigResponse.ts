@@ -9,10 +9,10 @@
  * Schema for user configuration response.
  */
 export interface UserConfigResponse {
-  id: number;
-  username: string;
-  feishu_webhook_url?: string | null;
-  data_retention_days?: number;
   created_at?: string | null;
+  data_retention_days?: number;
+  feishu_webhook_url?: string | null;
+  id: number;
   updated_at?: string | null;
+  username: string;
 }

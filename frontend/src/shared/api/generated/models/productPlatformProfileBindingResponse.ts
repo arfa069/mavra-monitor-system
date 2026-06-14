@@ -9,10 +9,10 @@
  * Product platform to crawl profile binding.
  */
 export interface ProductPlatformProfileBindingResponse {
+  created_at?: string | null;
   platform: string;
   profile_key?: string | null;
-  profile_status?: string | null;
   profile_last_error?: string | null;
-  created_at?: string | null;
+  profile_status?: string | null;
   updated_at?: string | null;
 }

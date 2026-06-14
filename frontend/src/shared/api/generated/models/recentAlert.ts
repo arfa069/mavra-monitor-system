@@ -9,12 +9,12 @@
  * Recent alert item for the dashboard.
  */
 export interface RecentAlert {
-  id: number;
-  product_id: number | null;
-  alert_type: string;
-  message: string;
   active: boolean;
+  alert_type: string;
   created_at: string | null;
-  product_title?: string | null;
+  id: number;
+  message: string;
   platform?: string | null;
+  product_id: number | null;
+  product_title?: string | null;
 }

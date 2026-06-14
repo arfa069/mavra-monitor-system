@@ -6,20 +6,20 @@
  */
 
 export interface MatchResultResponse {
-  id: number;
-  user_id: number;
-  resume_id: number;
-  job_id: number;
-  match_score: number;
-  match_reason: string | null;
   apply_recommendation: string | null;
-  llm_model_used: string | null;
   created_at: string;
-  updated_at: string;
-  job_title?: string | null;
+  id: number;
   job_company?: string | null;
-  job_salary?: string | null;
-  job_location?: string | null;
-  job_url?: string | null;
   job_description?: string | null;
+  job_id: number;
+  job_location?: string | null;
+  job_salary?: string | null;
+  job_title?: string | null;
+  job_url?: string | null;
+  llm_model_used: string | null;
+  match_reason: string | null;
+  match_score: number;
+  resume_id: number;
+  updated_at: string;
+  user_id: number;
 }

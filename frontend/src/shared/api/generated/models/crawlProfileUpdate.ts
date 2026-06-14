@@ -7,7 +7,7 @@
 import type { CrawlProfileUpdateStatus } from './crawlProfileUpdateStatus';
 
 export interface CrawlProfileUpdate {
-  status?: CrawlProfileUpdateStatus;
-  platform_hint?: string | null;
   last_error?: string | null;
+  platform_hint?: string | null;
+  status?: CrawlProfileUpdateStatus;
 }

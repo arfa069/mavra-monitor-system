@@ -7,9 +7,9 @@
 import type { CrawlProfileLoginSessionResponseStatus } from './crawlProfileLoginSessionResponseStatus';
 
 export interface CrawlProfileLoginSessionResponse {
-  profile_key: string;
-  platform: string;
-  status: CrawlProfileLoginSessionResponseStatus;
-  start_url: string;
   message?: string | null;
+  platform: string;
+  profile_key: string;
+  start_url: string;
+  status: CrawlProfileLoginSessionResponseStatus;
 }

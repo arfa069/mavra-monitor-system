@@ -24,10 +24,15 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  CleanupOldDataApiV1CrawlCleanupPostParams,
+  CleanupResultResponse,
   CrawlLogResponse,
-  GetCrawlLogsApiV1CrawlLogsGetParams,
-  HTTPValidationError
+  CrawlerWorkerResponse,
+  HTTPValidationError,
+  ProductsCrawlCleanupOldDataParams,
+  ProductsCrawlGetCrawlLogsParams,
+  TaskErrorResponse,
+  TaskProgressResponse,
+  TaskQueuedResponse
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -38,122 +43,216 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getCrawlLogsApiV1CrawlLogsGetResponse200 = {
-  data: CrawlLogResponse[]
-  status: 200
-}
-
-export type getCrawlLogsApiV1CrawlLogsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getCrawlLogsApiV1CrawlLogsGetResponseSuccess = (getCrawlLogsApiV1CrawlLogsGetResponse200) & {
-  headers: Headers;
-};
-export type getCrawlLogsApiV1CrawlLogsGetResponseError = (getCrawlLogsApiV1CrawlLogsGetResponse422) & {
-  headers: Headers;
-};
-
-export type getCrawlLogsApiV1CrawlLogsGetResponse = (getCrawlLogsApiV1CrawlLogsGetResponseSuccess | getCrawlLogsApiV1CrawlLogsGetResponseError)
-
-export const getGetCrawlLogsApiV1CrawlLogsGetUrl = (params?: GetCrawlLogsApiV1CrawlLogsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/crawl/logs?${stringifiedParams}` : `/api/v1/crawl/logs`
-}
-
 /**
+ * Delete price history and crawl logs older than retention period.
+ * @summary Cleanup Old Data
+ */
+export const productsCrawlCleanupOldData = (
+    params?: ProductsCrawlCleanupOldDataParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<CleanupResultResponse>(
+      {url: `/api/v1/crawl/cleanup`, method: 'POST',
+        params, signal
+    },
+      options);
+    }
+
+
+
+export const getProductsCrawlCleanupOldDataMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCleanupOldData>>, TError,{params?: ProductsCrawlCleanupOldDataParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCleanupOldData>>, TError,{params?: ProductsCrawlCleanupOldDataParams}, TContext> => {
+
+const mutationKey = ['productsCrawlCleanupOldData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsCrawlCleanupOldData>>, {params?: ProductsCrawlCleanupOldDataParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  productsCrawlCleanupOldData(params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsCrawlCleanupOldDataMutationResult = NonNullable<Awaited<ReturnType<typeof productsCrawlCleanupOldData>>>
+
+    export type ProductsCrawlCleanupOldDataMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Cleanup Old Data
+ */
+export const useProductsCrawlCleanupOldData = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCleanupOldData>>, TError,{params?: ProductsCrawlCleanupOldDataParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsCrawlCleanupOldData>>,
+        TError,
+        {params?: ProductsCrawlCleanupOldDataParams},
+        TContext
+      > => {
+      return useMutation(getProductsCrawlCleanupOldDataMutationOptions(options), queryClient);
+    }
+    /**
+ * Start crawling all active products immediately.
+ *
+ * Returns immediately with a task_id. Poll /products/crawl/status/{task_id} for progress.
+ * @summary Crawl Now
+ */
+export const productsCrawlCrawlNow = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TaskQueuedResponse>(
+      {url: `/api/v1/crawl/crawl-now`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+export const getProductsCrawlCrawlNowMutationOptions = <TError = ErrorType<TaskQueuedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCrawlNow>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCrawlNow>>, TError,void, TContext> => {
+
+const mutationKey = ['productsCrawlCrawlNow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsCrawlCrawlNow>>, void> = () => {
+
+
+          return  productsCrawlCrawlNow(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsCrawlCrawlNowMutationResult = NonNullable<Awaited<ReturnType<typeof productsCrawlCrawlNow>>>
+
+    export type ProductsCrawlCrawlNowMutationError = ErrorType<TaskQueuedResponse>
+
+    /**
+ * @summary Crawl Now
+ */
+export const useProductsCrawlCrawlNow = <TError = ErrorType<TaskQueuedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCrawlCrawlNow>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsCrawlCrawlNow>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getProductsCrawlCrawlNowMutationOptions(options), queryClient);
+    }
+    /**
  * Get recent crawl logs.
  * @summary Get Crawl Logs
  */
-export const getCrawlLogsApiV1CrawlLogsGet = async (params?: GetCrawlLogsApiV1CrawlLogsGetParams, options?: RequestInit): Promise<getCrawlLogsApiV1CrawlLogsGetResponse> => {
-
-  return customInstance<getCrawlLogsApiV1CrawlLogsGetResponse>(getGetCrawlLogsApiV1CrawlLogsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const productsCrawlGetCrawlLogs = (
+    params?: ProductsCrawlGetCrawlLogsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<CrawlLogResponse[]>(
+      {url: `/api/v1/crawl/logs`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetCrawlLogsApiV1CrawlLogsGetQueryKey = (params?: GetCrawlLogsApiV1CrawlLogsGetParams,) => {
+export const getProductsCrawlGetCrawlLogsQueryKey = (params?: ProductsCrawlGetCrawlLogsParams,) => {
     return [
     `/api/v1/crawl/logs`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetCrawlLogsApiV1CrawlLogsGetQueryOptions = <TData = Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(params?: GetCrawlLogsApiV1CrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsCrawlGetCrawlLogsQueryOptions = <TData = Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(params?: ProductsCrawlGetCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetCrawlLogsApiV1CrawlLogsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getProductsCrawlGetCrawlLogsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>> = ({ signal }) => getCrawlLogsApiV1CrawlLogsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>> = ({ signal }) => productsCrawlGetCrawlLogs(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetCrawlLogsApiV1CrawlLogsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>>
-export type GetCrawlLogsApiV1CrawlLogsGetQueryError = ErrorType<HTTPValidationError>
+export type ProductsCrawlGetCrawlLogsQueryResult = NonNullable<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>>
+export type ProductsCrawlGetCrawlLogsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetCrawlLogsApiV1CrawlLogsGet<TData = Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  GetCrawlLogsApiV1CrawlLogsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData>> & Pick<
+export function useProductsCrawlGetCrawlLogs<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  ProductsCrawlGetCrawlLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>,
           TError,
-          Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>
+          Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlLogsApiV1CrawlLogsGet<TData = Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetCrawlLogsApiV1CrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData>> & Pick<
+export function useProductsCrawlGetCrawlLogs<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsCrawlGetCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>,
           TError,
-          Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>
+          Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlLogsApiV1CrawlLogsGet<TData = Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetCrawlLogsApiV1CrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlGetCrawlLogs<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsCrawlGetCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Crawl Logs
  */
 
-export function useGetCrawlLogsApiV1CrawlLogsGet<TData = Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetCrawlLogsApiV1CrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlLogsApiV1CrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlGetCrawlLogs<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsCrawlGetCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetCrawlLogsApiV1CrawlLogsGetQueryOptions(params,options)
+  const queryOptions = getProductsCrawlGetCrawlLogsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -164,320 +263,89 @@ export function useGetCrawlLogsApiV1CrawlLogsGet<TData = Awaited<ReturnType<type
 
 
 
-
-export type crawlNowApiV1CrawlCrawlNowPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type crawlNowApiV1CrawlCrawlNowPostResponseSuccess = (crawlNowApiV1CrawlCrawlNowPostResponse200) & {
-  headers: Headers;
-};
-;
-
-export type crawlNowApiV1CrawlCrawlNowPostResponse = (crawlNowApiV1CrawlCrawlNowPostResponseSuccess)
-
-export const getCrawlNowApiV1CrawlCrawlNowPostUrl = () => {
-
-
-
-
-  return `/api/v1/crawl/crawl-now`
-}
-
-/**
- * Start crawling all active products immediately.
- *
- * Returns immediately with a task_id. Poll /products/crawl/status/{task_id} for progress.
- * @summary Crawl Now
- */
-export const crawlNowApiV1CrawlCrawlNowPost = async ( options?: RequestInit): Promise<crawlNowApiV1CrawlCrawlNowPostResponse> => {
-
-  return customInstance<crawlNowApiV1CrawlCrawlNowPostResponse>(getCrawlNowApiV1CrawlCrawlNowPostUrl(),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getCrawlNowApiV1CrawlCrawlNowPostMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>, TError,void, TContext> => {
-
-const mutationKey = ['crawlNowApiV1CrawlCrawlNowPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>, void> = () => {
-
-
-          return  crawlNowApiV1CrawlCrawlNowPost(requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CrawlNowApiV1CrawlCrawlNowPostMutationResult = NonNullable<Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>>
-
-    export type CrawlNowApiV1CrawlCrawlNowPostMutationError = ErrorType<unknown>
-
-    /**
- * @summary Crawl Now
- */
-export const useCrawlNowApiV1CrawlCrawlNowPost = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof crawlNowApiV1CrawlCrawlNowPost>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getCrawlNowApiV1CrawlCrawlNowPostMutationOptions(options), queryClient);
-    }
-    export type getCrawlStatusApiV1CrawlStatusTaskIdGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getCrawlStatusApiV1CrawlStatusTaskIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getCrawlStatusApiV1CrawlStatusTaskIdGetResponseSuccess = (getCrawlStatusApiV1CrawlStatusTaskIdGetResponse200) & {
-  headers: Headers;
-};
-export type getCrawlStatusApiV1CrawlStatusTaskIdGetResponseError = (getCrawlStatusApiV1CrawlStatusTaskIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getCrawlStatusApiV1CrawlStatusTaskIdGetResponse = (getCrawlStatusApiV1CrawlStatusTaskIdGetResponseSuccess | getCrawlStatusApiV1CrawlStatusTaskIdGetResponseError)
-
-export const getGetCrawlStatusApiV1CrawlStatusTaskIdGetUrl = (taskId: string,) => {
-
-
-
-
-  return `/api/v1/crawl/status/${taskId}`
-}
-
-/**
- * Get the status of a crawl task from persistent store.
- * @summary Get Crawl Status
- */
-export const getCrawlStatusApiV1CrawlStatusTaskIdGet = async (taskId: string, options?: RequestInit): Promise<getCrawlStatusApiV1CrawlStatusTaskIdGetResponse> => {
-
-  return customInstance<getCrawlStatusApiV1CrawlStatusTaskIdGetResponse>(getGetCrawlStatusApiV1CrawlStatusTaskIdGetUrl(taskId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetCrawlStatusApiV1CrawlStatusTaskIdGetQueryKey = (taskId: string,) => {
-    return [
-    `/api/v1/crawl/status/${taskId}`
-    ] as const;
-    }
-
-
-export const getGetCrawlStatusApiV1CrawlStatusTaskIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetCrawlStatusApiV1CrawlStatusTaskIdGetQueryKey(taskId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>> = ({ signal }) => getCrawlStatusApiV1CrawlStatusTaskIdGet(taskId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetCrawlStatusApiV1CrawlStatusTaskIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>>
-export type GetCrawlStatusApiV1CrawlStatusTaskIdGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetCrawlStatusApiV1CrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlStatusApiV1CrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlStatusApiV1CrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Crawl Status
- */
-
-export function useGetCrawlStatusApiV1CrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlStatusApiV1CrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetCrawlStatusApiV1CrawlStatusTaskIdGetQueryOptions(taskId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getCrawlResultApiV1CrawlResultTaskIdGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getCrawlResultApiV1CrawlResultTaskIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getCrawlResultApiV1CrawlResultTaskIdGetResponseSuccess = (getCrawlResultApiV1CrawlResultTaskIdGetResponse200) & {
-  headers: Headers;
-};
-export type getCrawlResultApiV1CrawlResultTaskIdGetResponseError = (getCrawlResultApiV1CrawlResultTaskIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getCrawlResultApiV1CrawlResultTaskIdGetResponse = (getCrawlResultApiV1CrawlResultTaskIdGetResponseSuccess | getCrawlResultApiV1CrawlResultTaskIdGetResponseError)
-
-export const getGetCrawlResultApiV1CrawlResultTaskIdGetUrl = (taskId: string,) => {
-
-
-
-
-  return `/api/v1/crawl/result/${taskId}`
-}
 
 /**
  * Get the final result of a completed crawl task from persistent store.
  * @summary Get Crawl Result
  */
-export const getCrawlResultApiV1CrawlResultTaskIdGet = async (taskId: string, options?: RequestInit): Promise<getCrawlResultApiV1CrawlResultTaskIdGetResponse> => {
-
-  return customInstance<getCrawlResultApiV1CrawlResultTaskIdGetResponse>(getGetCrawlResultApiV1CrawlResultTaskIdGetUrl(taskId),
-  {
-    ...options,
-    method: 'GET'
+export const productsCrawlGetCrawlResult = (
+    taskId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<TaskProgressResponse>(
+      {url: `/api/v1/crawl/result/${taskId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetCrawlResultApiV1CrawlResultTaskIdGetQueryKey = (taskId: string,) => {
+export const getProductsCrawlGetCrawlResultQueryKey = (taskId: string,) => {
     return [
     `/api/v1/crawl/result/${taskId}`
     ] as const;
     }
 
 
-export const getGetCrawlResultApiV1CrawlResultTaskIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsCrawlGetCrawlResultQueryOptions = <TData = Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetCrawlResultApiV1CrawlResultTaskIdGetQueryKey(taskId);
+  const queryKey =  queryOptions?.queryKey ?? getProductsCrawlGetCrawlResultQueryKey(taskId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>> = ({ signal }) => getCrawlResultApiV1CrawlResultTaskIdGet(taskId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>> = ({ signal }) => productsCrawlGetCrawlResult(taskId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetCrawlResultApiV1CrawlResultTaskIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>>
-export type GetCrawlResultApiV1CrawlResultTaskIdGetQueryError = ErrorType<HTTPValidationError>
+export type ProductsCrawlGetCrawlResultQueryResult = NonNullable<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>>
+export type ProductsCrawlGetCrawlResultQueryError = ErrorType<TaskErrorResponse | HTTPValidationError>
 
 
-export function useGetCrawlResultApiV1CrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData>> & Pick<
+export function useProductsCrawlGetCrawlResult<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>,
           TError,
-          Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>
+          Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlResultApiV1CrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData>> & Pick<
+export function useProductsCrawlGetCrawlResult<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>,
           TError,
-          Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>
+          Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetCrawlResultApiV1CrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlGetCrawlResult<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Crawl Result
  */
 
-export function useGetCrawlResultApiV1CrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCrawlResultApiV1CrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlGetCrawlResult<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetCrawlResultApiV1CrawlResultTaskIdGetQueryOptions(taskId,options)
+  const queryOptions = getProductsCrawlGetCrawlResultQueryOptions(taskId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -489,108 +357,181 @@ export function useGetCrawlResultApiV1CrawlResultTaskIdGet<TData = Awaited<Retur
 
 
 
-export type listCrawlerWorkersApiV1CrawlWorkersGetResponse200 = {
-  data: unknown
-  status: 200
+/**
+ * Get the status of a crawl task from persistent store.
+ * @summary Get Crawl Status
+ */
+export const productsCrawlGetCrawlStatus = (
+    taskId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TaskProgressResponse>(
+      {url: `/api/v1/crawl/status/${taskId}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getProductsCrawlGetCrawlStatusQueryKey = (taskId: string,) => {
+    return [
+    `/api/v1/crawl/status/${taskId}`
+    ] as const;
+    }
+
+
+export const getProductsCrawlGetCrawlStatusQueryOptions = <TData = Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsCrawlGetCrawlStatusQueryKey(taskId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>> = ({ signal }) => productsCrawlGetCrawlStatus(taskId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type listCrawlerWorkersApiV1CrawlWorkersGetResponseSuccess = (listCrawlerWorkersApiV1CrawlWorkersGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listCrawlerWorkersApiV1CrawlWorkersGetResponse = (listCrawlerWorkersApiV1CrawlWorkersGetResponseSuccess)
-
-export const getListCrawlerWorkersApiV1CrawlWorkersGetUrl = () => {
+export type ProductsCrawlGetCrawlStatusQueryResult = NonNullable<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>>
+export type ProductsCrawlGetCrawlStatusQueryError = ErrorType<TaskErrorResponse | HTTPValidationError>
 
 
+export function useProductsCrawlGetCrawlStatus<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>,
+          TError,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsCrawlGetCrawlStatus<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>,
+          TError,
+          Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsCrawlGetCrawlStatus<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Crawl Status
+ */
 
+export function useProductsCrawlGetCrawlStatus<TData = Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlGetCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  return `/api/v1/crawl/workers`
+  const queryOptions = getProductsCrawlGetCrawlStatusQueryOptions(taskId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
 
 /**
  * List all registered crawler workers.
  * @summary List Crawler Workers
  */
-export const listCrawlerWorkersApiV1CrawlWorkersGet = async ( options?: RequestInit): Promise<listCrawlerWorkersApiV1CrawlWorkersGetResponse> => {
+export const productsCrawlListCrawlerWorkers = (
 
-  return customInstance<listCrawlerWorkersApiV1CrawlWorkersGetResponse>(getListCrawlerWorkersApiV1CrawlWorkersGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<CrawlerWorkerResponse[]>(
+      {url: `/api/v1/crawl/workers`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListCrawlerWorkersApiV1CrawlWorkersGetQueryKey = () => {
+export const getProductsCrawlListCrawlerWorkersQueryKey = () => {
     return [
     `/api/v1/crawl/workers`
     ] as const;
     }
 
 
-export const getListCrawlerWorkersApiV1CrawlWorkersGetQueryOptions = <TData = Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsCrawlListCrawlerWorkersQueryOptions = <TData = Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListCrawlerWorkersApiV1CrawlWorkersGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getProductsCrawlListCrawlerWorkersQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>> = ({ signal }) => listCrawlerWorkersApiV1CrawlWorkersGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>> = ({ signal }) => productsCrawlListCrawlerWorkers(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListCrawlerWorkersApiV1CrawlWorkersGetQueryResult = NonNullable<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>>
-export type ListCrawlerWorkersApiV1CrawlWorkersGetQueryError = ErrorType<unknown>
+export type ProductsCrawlListCrawlerWorkersQueryResult = NonNullable<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>>
+export type ProductsCrawlListCrawlerWorkersQueryError = ErrorType<unknown>
 
 
-export function useListCrawlerWorkersApiV1CrawlWorkersGet<TData = Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData>> & Pick<
+export function useProductsCrawlListCrawlerWorkers<TData = Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>,
+          Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>,
           TError,
-          Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>
+          Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListCrawlerWorkersApiV1CrawlWorkersGet<TData = Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData>> & Pick<
+export function useProductsCrawlListCrawlerWorkers<TData = Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>,
+          Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>,
           TError,
-          Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>
+          Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListCrawlerWorkersApiV1CrawlWorkersGet<TData = Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlListCrawlerWorkers<TData = Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Crawler Workers
  */
 
-export function useListCrawlerWorkersApiV1CrawlWorkersGet<TData = Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listCrawlerWorkersApiV1CrawlWorkersGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsCrawlListCrawlerWorkers<TData = Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsCrawlListCrawlerWorkers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListCrawlerWorkersApiV1CrawlWorkersGetQueryOptions(options)
+  const queryOptions = getProductsCrawlListCrawlerWorkersQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -602,99 +543,3 @@ export function useListCrawlerWorkersApiV1CrawlWorkersGet<TData = Awaited<Return
 
 
 
-export type cleanupOldDataApiV1CrawlCleanupPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type cleanupOldDataApiV1CrawlCleanupPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type cleanupOldDataApiV1CrawlCleanupPostResponseSuccess = (cleanupOldDataApiV1CrawlCleanupPostResponse200) & {
-  headers: Headers;
-};
-export type cleanupOldDataApiV1CrawlCleanupPostResponseError = (cleanupOldDataApiV1CrawlCleanupPostResponse422) & {
-  headers: Headers;
-};
-
-export type cleanupOldDataApiV1CrawlCleanupPostResponse = (cleanupOldDataApiV1CrawlCleanupPostResponseSuccess | cleanupOldDataApiV1CrawlCleanupPostResponseError)
-
-export const getCleanupOldDataApiV1CrawlCleanupPostUrl = (params?: CleanupOldDataApiV1CrawlCleanupPostParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/crawl/cleanup?${stringifiedParams}` : `/api/v1/crawl/cleanup`
-}
-
-/**
- * Delete price history and crawl logs older than retention period.
- * @summary Cleanup Old Data
- */
-export const cleanupOldDataApiV1CrawlCleanupPost = async (params?: CleanupOldDataApiV1CrawlCleanupPostParams, options?: RequestInit): Promise<cleanupOldDataApiV1CrawlCleanupPostResponse> => {
-
-  return customInstance<cleanupOldDataApiV1CrawlCleanupPostResponse>(getCleanupOldDataApiV1CrawlCleanupPostUrl(params),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getCleanupOldDataApiV1CrawlCleanupPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>, TError,{params?: CleanupOldDataApiV1CrawlCleanupPostParams}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>, TError,{params?: CleanupOldDataApiV1CrawlCleanupPostParams}, TContext> => {
-
-const mutationKey = ['cleanupOldDataApiV1CrawlCleanupPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>, {params?: CleanupOldDataApiV1CrawlCleanupPostParams}> = (props) => {
-          const {params} = props ?? {};
-
-          return  cleanupOldDataApiV1CrawlCleanupPost(params,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CleanupOldDataApiV1CrawlCleanupPostMutationResult = NonNullable<Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>>
-
-    export type CleanupOldDataApiV1CrawlCleanupPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Cleanup Old Data
- */
-export const useCleanupOldDataApiV1CrawlCleanupPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>, TError,{params?: CleanupOldDataApiV1CrawlCleanupPostParams}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof cleanupOldDataApiV1CrawlCleanupPost>>,
-        TError,
-        {params?: CleanupOldDataApiV1CrawlCleanupPostParams},
-        TContext
-      > => {
-      return useMutation(getCleanupOldDataApiV1CrawlCleanupPostMutationOptions(options), queryClient);
-    }

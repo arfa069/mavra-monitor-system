@@ -10,6 +10,6 @@ import type { TrendDataset } from './trendDataset';
  * Trend chart data response.
  */
 export interface TrendResponse {
-  labels: string[];
   datasets: TrendDataset[];
+  labels: string[];
 }

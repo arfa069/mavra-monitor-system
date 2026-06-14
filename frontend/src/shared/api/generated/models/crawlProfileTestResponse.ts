@@ -7,8 +7,8 @@
 import type { CrawlProfileTestResponseStatus } from './crawlProfileTestResponseStatus';
 
 export interface CrawlProfileTestResponse {
-  profile_key: string;
-  platform: string;
-  status: CrawlProfileTestResponseStatus;
   message?: string | null;
+  platform: string;
+  profile_key: string;
+  status: CrawlProfileTestResponseStatus;
 }

@@ -9,10 +9,10 @@
  * Schema for creating an alert.
  */
 export interface AlertCreate {
+  /** Whether alert is active */
+  active?: boolean;
   /** Product ID to alert on */
   product_id: number;
   /** Trigger threshold percentage */
   threshold_percent?: number | string | null;
-  /** Whether alert is active */
-  active?: boolean;
 }

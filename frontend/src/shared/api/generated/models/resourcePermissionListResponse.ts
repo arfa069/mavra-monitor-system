@@ -11,7 +11,7 @@ import type { ResourcePermissionResponse } from './resourcePermissionResponse';
  */
 export interface ResourcePermissionListResponse {
   items: ResourcePermissionResponse[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

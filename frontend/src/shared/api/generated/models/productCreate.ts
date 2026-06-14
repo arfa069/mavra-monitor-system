@@ -9,15 +9,15 @@
  * Schema for creating a product to track.
  */
 export interface ProductCreate {
+  /** Whether monitoring is active */
+  active?: boolean;
   /**
      * Platform: taobao, jd, or amazon
      * @pattern ^(taobao|jd|amazon)$
      */
   platform: string;
-  /** Product URL */
-  url: string;
   /** Product title (auto-fetched if not provided) */
   title?: string | null;
-  /** Whether monitoring is active */
-  active?: boolean;
+  /** Product URL */
+  url: string;
 }

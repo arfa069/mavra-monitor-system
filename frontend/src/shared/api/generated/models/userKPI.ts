@@ -9,9 +9,9 @@
  * Personal KPI metrics for the current user.
  */
 export interface UserKPI {
-  total_products: number;
-  price_drops_today: number;
-  new_jobs_today: number;
-  match_count: number;
   crawl_count_today: number;
+  match_count: number;
+  new_jobs_today: number;
+  price_drops_today: number;
+  total_products: number;
 }

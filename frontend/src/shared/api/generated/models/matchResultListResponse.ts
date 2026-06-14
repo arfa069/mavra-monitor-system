@@ -8,7 +8,7 @@ import type { MatchResultResponse } from './matchResultResponse';
 
 export interface MatchResultListResponse {
   items: MatchResultResponse[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

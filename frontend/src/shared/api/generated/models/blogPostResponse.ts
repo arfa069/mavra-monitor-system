@@ -10,22 +10,22 @@ import type { BlogPostResponseStatus } from './blogPostResponseStatus';
 import type { BlogTagResponse } from './blogTagResponse';
 
 export interface BlogPostResponse {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt?: string | null;
-  content_json: BlogPostResponseContentJson;
-  content_html: string;
-  content_text: string;
-  status: BlogPostResponseStatus;
-  cover_url?: string | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
   canonical_url?: string | null;
+  category?: BlogCategoryResponse | null;
+  content_html: string;
+  content_json: BlogPostResponseContentJson;
+  content_text: string;
+  cover_url?: string | null;
+  created_at: string;
+  excerpt?: string | null;
+  id: number;
   og_image_url?: string | null;
   published_at?: string | null;
-  created_at: string;
-  updated_at: string;
-  category?: BlogCategoryResponse | null;
+  seo_description?: string | null;
+  seo_title?: string | null;
+  slug: string;
+  status: BlogPostResponseStatus;
   tags?: BlogTagResponse[];
+  title: string;
+  updated_at: string;
 }

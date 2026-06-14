@@ -6,6 +6,6 @@
  */
 
 export interface MatchAnalyzeRequest {
-  resume_id: number;
   job_ids?: number[] | null;
+  resume_id: number;
 }

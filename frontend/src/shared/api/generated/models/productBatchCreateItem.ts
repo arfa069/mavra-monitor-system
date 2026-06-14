@@ -9,9 +9,9 @@
  * Single item for batch create.
  */
 export interface ProductBatchCreateItem {
-  /** Product URL */
-  url: string;
   /** Platform (auto-detected if omitted) */
   platform?: string | null;
   title?: string | null;
+  /** Product URL */
+  url: string;
 }

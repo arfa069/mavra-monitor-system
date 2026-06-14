@@ -6,6 +6,6 @@
  */
 
 export interface CrawlProfileBackupImportResponse {
-  profile_key: string;
   imported: boolean;
+  profile_key: string;
 }

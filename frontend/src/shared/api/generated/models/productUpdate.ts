@@ -9,10 +9,10 @@
  * Schema for updating a product.
  */
 export interface ProductUpdate {
+  active?: boolean | null;
   /** Platform: taobao, jd, or amazon */
   platform?: string | null;
-  url?: string | null;
   /** Product title (auto-fetched if not provided) */
   title?: string | null;
-  active?: boolean | null;
+  url?: string | null;
 }

@@ -6,9 +6,9 @@
  */
 
 export interface SessionResponse {
-  id: number;
+  created_at: string;
   device: string | null;
+  id: number;
   ip_address: string | null;
   last_active_at: string;
-  created_at: string;
 }

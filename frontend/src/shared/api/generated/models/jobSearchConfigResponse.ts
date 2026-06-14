@@ -10,24 +10,24 @@ import type { JobSearchConfigResponsePlatform } from './jobSearchConfigResponseP
  * Schema for job search config response.
  */
 export interface JobSearchConfigResponse {
-  id: number;
-  user_id: number;
-  name: string;
-  profile_key: string;
-  platform?: JobSearchConfigResponsePlatform;
-  keyword: string | null;
-  city_code: string | null;
-  salary_min: number | null;
-  salary_max: number | null;
-  experience: string | null;
-  education: string | null;
-  url: string;
   active: boolean;
-  notify_on_new: boolean;
-  deactivation_threshold: number;
+  city_code: string | null;
+  created_at: string;
   cron_expression: string | null;
   cron_timezone: string | null;
+  deactivation_threshold: number;
+  education: string | null;
   enable_match_analysis: boolean;
-  created_at: string;
+  experience: string | null;
+  id: number;
+  keyword: string | null;
+  name: string;
+  notify_on_new: boolean;
+  platform?: JobSearchConfigResponsePlatform;
+  profile_key: string;
+  salary_max: number | null;
+  salary_min: number | null;
   updated_at: string;
+  url: string;
+  user_id: number;
 }

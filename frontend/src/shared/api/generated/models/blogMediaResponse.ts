@@ -6,11 +6,11 @@
  */
 
 export interface BlogMediaResponse {
-  id: number;
-  file_name: string;
-  original_name: string;
   content_type: string;
-  size_bytes: number;
-  public_url: string;
   created_at: string;
+  file_name: string;
+  id: number;
+  original_name: string;
+  public_url: string;
+  size_bytes: number;
 }

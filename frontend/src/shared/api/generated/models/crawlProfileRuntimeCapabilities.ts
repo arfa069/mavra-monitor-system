@@ -8,10 +8,10 @@ import type { CrawlProfileRuntimeCapabilitiesMode } from './crawlProfileRuntimeC
 import type { CrawlProfileRuntimeCapabilitiesRecommendedAction } from './crawlProfileRuntimeCapabilitiesRecommendedAction';
 
 export interface CrawlProfileRuntimeCapabilities {
-  os: string;
   mode: CrawlProfileRuntimeCapabilitiesMode;
-  supports_login_session: boolean;
-  supports_profile_import: boolean;
-  supports_profile_export: boolean;
+  os: string;
   recommended_action: CrawlProfileRuntimeCapabilitiesRecommendedAction;
+  supports_login_session: boolean;
+  supports_profile_export: boolean;
+  supports_profile_import: boolean;
 }

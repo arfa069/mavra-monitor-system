@@ -9,7 +9,7 @@
  * Batch update products.
  */
 export interface ProductBatchUpdate {
+  active?: boolean | null;
   /** @maxItems 100 */
   ids: number[];
-  active?: boolean | null;
 }

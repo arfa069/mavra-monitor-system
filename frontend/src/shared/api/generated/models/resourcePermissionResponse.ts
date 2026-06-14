@@ -9,12 +9,12 @@
  * Schema for a resource permission grant.
  */
 export interface ResourcePermissionResponse {
+  created_at: string;
+  granted_by: number;
   id: number;
+  permission: string;
+  resource_id: string;
+  resource_type: string;
   subject_id: number;
   subject_type: string;
-  resource_type: string;
-  resource_id: string;
-  permission: string;
-  granted_by: number;
-  created_at: string;
 }

@@ -6,8 +6,8 @@
  */
 
 export interface SmartHomeServiceResponse {
-  ok: boolean;
   entity_id: string;
-  service: string;
   message: string;
+  ok: boolean;
+  service: string;
 }

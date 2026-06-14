@@ -9,12 +9,12 @@
  * Schema for crawl log response.
  */
 export interface CrawlLogResponse {
-  id: number;
-  product_id: number | null;
-  platform: string | null;
-  status: string | null;
-  price: string | null;
   currency: string | null;
-  timestamp: string;
   error_message: string | null;
+  id: number;
+  platform: string | null;
+  price: string | null;
+  product_id: number | null;
+  status: string | null;
+  timestamp: string;
 }

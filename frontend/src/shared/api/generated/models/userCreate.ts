@@ -9,11 +9,6 @@
  * Schema for creating a user (admin).
  */
 export interface UserCreate {
-  /**
-     * @minLength 3
-     * @maxLength 50
-     */
-  username: string;
   email: string;
   /**
      * @minLength 6
@@ -21,4 +16,9 @@ export interface UserCreate {
      */
   password: string;
   role?: string;
+  /**
+     * @minLength 3
+     * @maxLength 50
+     */
+  username: string;
 }

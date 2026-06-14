@@ -10,13 +10,13 @@ import type { AuditLogResponseDetails } from './auditLogResponseDetails';
  * Schema for audit log entries.
  */
 export interface AuditLogResponse {
-  id: number;
-  actor_user_id: number | null;
   action: string;
-  target_type: string | null;
-  target_id: number | null;
-  details: AuditLogResponseDetails;
-  ip_address: string | null;
-  user_agent: string | null;
+  actor_user_id: number | null;
   created_at: string;
+  details: AuditLogResponseDetails;
+  id: number;
+  ip_address: string | null;
+  target_id: number | null;
+  target_type: string | null;
+  user_agent: string | null;
 }

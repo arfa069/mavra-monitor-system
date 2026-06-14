@@ -8,7 +8,7 @@ import type { BlogPostListItem } from './blogPostListItem';
 
 export interface BlogPostListResponse {
   items: BlogPostListItem[];
-  total: number;
   page: number;
   size: number;
+  total: number;
 }

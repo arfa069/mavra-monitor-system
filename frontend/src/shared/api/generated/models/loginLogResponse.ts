@@ -9,8 +9,8 @@
  * Response schema for login history.
  */
 export interface LoginLogResponse {
+  created_at: string;
   id: number;
   ip_address: string | null;
   user_agent: string | null;
-  created_at: string;
 }

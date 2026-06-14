@@ -9,8 +9,8 @@
  * Schema for admin updating a user (includes role and is_active).
  */
 export interface AdminUserUpdate {
-  username?: string | null;
   email?: string | null;
-  role?: string | null;
   is_active?: boolean | null;
+  role?: string | null;
+  username?: string | null;
 }

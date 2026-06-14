@@ -21,9 +21,8 @@ import type {
 
 import type {
   EventCenterListResponse,
-  HTTPValidationError,
-  ListEventsApiV1EventsGetParams,
-  StreamEventsApiV1EventsStreamGetParams
+  EventsListEventsParams,
+  HTTPValidationError
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -34,249 +33,89 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type listEventsApiV1EventsGetResponse200 = {
-  data: EventCenterListResponse
-  status: 200
-}
-
-export type listEventsApiV1EventsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listEventsApiV1EventsGetResponseSuccess = (listEventsApiV1EventsGetResponse200) & {
-  headers: Headers;
-};
-export type listEventsApiV1EventsGetResponseError = (listEventsApiV1EventsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listEventsApiV1EventsGetResponse = (listEventsApiV1EventsGetResponseSuccess | listEventsApiV1EventsGetResponseError)
-
-export const getListEventsApiV1EventsGetUrl = (params?: ListEventsApiV1EventsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/events?${stringifiedParams}` : `/api/v1/events`
-}
-
 /**
  * Return a unified paginated event-center list.
  * @summary List Events
  */
-export const listEventsApiV1EventsGet = async (params?: ListEventsApiV1EventsGetParams, options?: RequestInit): Promise<listEventsApiV1EventsGetResponse> => {
-
-  return customInstance<listEventsApiV1EventsGetResponse>(getListEventsApiV1EventsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const eventsListEvents = (
+    params?: EventsListEventsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<EventCenterListResponse>(
+      {url: `/api/v1/events`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListEventsApiV1EventsGetQueryKey = (params?: ListEventsApiV1EventsGetParams,) => {
+export const getEventsListEventsQueryKey = (params?: EventsListEventsParams,) => {
     return [
     `/api/v1/events`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListEventsApiV1EventsGetQueryOptions = <TData = Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListEventsApiV1EventsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getEventsListEventsQueryOptions = <TData = Awaited<ReturnType<typeof eventsListEvents>>, TError = ErrorType<HTTPValidationError>>(params?: EventsListEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEventsApiV1EventsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getEventsListEventsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>> = ({ signal }) => listEventsApiV1EventsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof eventsListEvents>>> = ({ signal }) => eventsListEvents(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListEventsApiV1EventsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>>
-export type ListEventsApiV1EventsGetQueryError = ErrorType<HTTPValidationError>
+export type EventsListEventsQueryResult = NonNullable<Awaited<ReturnType<typeof eventsListEvents>>>
+export type EventsListEventsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListEventsApiV1EventsGet<TData = Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListEventsApiV1EventsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData>> & Pick<
+export function useEventsListEvents<TData = Awaited<ReturnType<typeof eventsListEvents>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  EventsListEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listEventsApiV1EventsGet>>,
+          Awaited<ReturnType<typeof eventsListEvents>>,
           TError,
-          Awaited<ReturnType<typeof listEventsApiV1EventsGet>>
+          Awaited<ReturnType<typeof eventsListEvents>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListEventsApiV1EventsGet<TData = Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListEventsApiV1EventsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData>> & Pick<
+export function useEventsListEvents<TData = Awaited<ReturnType<typeof eventsListEvents>>, TError = ErrorType<HTTPValidationError>>(
+ params?: EventsListEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listEventsApiV1EventsGet>>,
+          Awaited<ReturnType<typeof eventsListEvents>>,
           TError,
-          Awaited<ReturnType<typeof listEventsApiV1EventsGet>>
+          Awaited<ReturnType<typeof eventsListEvents>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListEventsApiV1EventsGet<TData = Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListEventsApiV1EventsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useEventsListEvents<TData = Awaited<ReturnType<typeof eventsListEvents>>, TError = ErrorType<HTTPValidationError>>(
+ params?: EventsListEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Events
  */
 
-export function useListEventsApiV1EventsGet<TData = Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListEventsApiV1EventsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventsApiV1EventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useEventsListEvents<TData = Awaited<ReturnType<typeof eventsListEvents>>, TError = ErrorType<HTTPValidationError>>(
+ params?: EventsListEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof eventsListEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListEventsApiV1EventsGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type streamEventsApiV1EventsStreamGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type streamEventsApiV1EventsStreamGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type streamEventsApiV1EventsStreamGetResponseSuccess = (streamEventsApiV1EventsStreamGetResponse200) & {
-  headers: Headers;
-};
-export type streamEventsApiV1EventsStreamGetResponseError = (streamEventsApiV1EventsStreamGetResponse422) & {
-  headers: Headers;
-};
-
-export type streamEventsApiV1EventsStreamGetResponse = (streamEventsApiV1EventsStreamGetResponseSuccess | streamEventsApiV1EventsStreamGetResponseError)
-
-export const getStreamEventsApiV1EventsStreamGetUrl = (params?: StreamEventsApiV1EventsStreamGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/events/stream?${stringifiedParams}` : `/api/v1/events/stream`
-}
-
-/**
- * Stream event-center updates over SSE.
- * @summary Stream Events
- */
-export const streamEventsApiV1EventsStreamGet = async (params?: StreamEventsApiV1EventsStreamGetParams, options?: RequestInit): Promise<streamEventsApiV1EventsStreamGetResponse> => {
-
-  return customInstance<streamEventsApiV1EventsStreamGetResponse>(getStreamEventsApiV1EventsStreamGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getStreamEventsApiV1EventsStreamGetQueryKey = (params?: StreamEventsApiV1EventsStreamGetParams,) => {
-    return [
-    `/api/v1/events/stream`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getStreamEventsApiV1EventsStreamGetQueryOptions = <TData = Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError = ErrorType<HTTPValidationError>>(params?: StreamEventsApiV1EventsStreamGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getStreamEventsApiV1EventsStreamGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>> = ({ signal }) => streamEventsApiV1EventsStreamGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type StreamEventsApiV1EventsStreamGetQueryResult = NonNullable<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>>
-export type StreamEventsApiV1EventsStreamGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useStreamEventsApiV1EventsStreamGet<TData = Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  StreamEventsApiV1EventsStreamGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>,
-          TError,
-          Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamEventsApiV1EventsStreamGet<TData = Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: StreamEventsApiV1EventsStreamGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>,
-          TError,
-          Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamEventsApiV1EventsStreamGet<TData = Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: StreamEventsApiV1EventsStreamGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Stream Events
- */
-
-export function useStreamEventsApiV1EventsStreamGet<TData = Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: StreamEventsApiV1EventsStreamGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEventsApiV1EventsStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getStreamEventsApiV1EventsStreamGetQueryOptions(params,options)
+  const queryOptions = getEventsListEventsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

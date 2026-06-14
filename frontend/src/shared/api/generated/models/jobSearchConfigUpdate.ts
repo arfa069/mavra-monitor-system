@@ -10,20 +10,20 @@ import type { JobSearchConfigUpdatePlatform } from './jobSearchConfigUpdatePlatf
  * Schema for updating a job search config.
  */
 export interface JobSearchConfigUpdate {
-  name?: string | null;
-  profile_key?: string | null;
-  platform?: JobSearchConfigUpdatePlatform;
-  keyword?: string | null;
-  city_code?: string | null;
-  salary_min?: number | null;
-  salary_max?: number | null;
-  experience?: string | null;
-  education?: string | null;
-  url?: string | null;
   active?: boolean | null;
-  notify_on_new?: boolean | null;
-  deactivation_threshold?: number | null;
+  city_code?: string | null;
   cron_expression?: string | null;
   cron_timezone?: string | null;
+  deactivation_threshold?: number | null;
+  education?: string | null;
   enable_match_analysis?: boolean | null;
+  experience?: string | null;
+  keyword?: string | null;
+  name?: string | null;
+  notify_on_new?: boolean | null;
+  platform?: JobSearchConfigUpdatePlatform;
+  profile_key?: string | null;
+  salary_max?: number | null;
+  salary_min?: number | null;
+  url?: string | null;
 }

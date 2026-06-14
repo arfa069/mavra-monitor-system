@@ -9,12 +9,12 @@
  * Per-platform cron config for product crawling.
  */
 export interface ProductPlatformCronResponse {
-  id: number;
-  user_id: number;
-  platform: string;
+  created_at: string;
   cron_expression: string | null;
   cron_timezone: string;
+  id: number;
+  platform: string;
   profile_key: string | null;
-  created_at: string;
   updated_at: string;
+  user_id: number;
 }

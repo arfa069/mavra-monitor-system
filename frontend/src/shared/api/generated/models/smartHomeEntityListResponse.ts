@@ -7,8 +7,8 @@
 import type { SmartHomeEntity } from './smartHomeEntity';
 
 export interface SmartHomeEntityListResponse {
-  items: SmartHomeEntity[];
-  total: number;
   connected: boolean;
+  items: SmartHomeEntity[];
   last_error?: string | null;
+  total: number;
 }

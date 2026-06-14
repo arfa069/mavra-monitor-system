@@ -9,7 +9,7 @@
  * Request schema for binding WeChat to an existing account.
  */
 export interface WeChatBindRequest {
+  password: string;
   temp_token: string;
   username: string;
-  password: string;
 }

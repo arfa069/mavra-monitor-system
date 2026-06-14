@@ -11,7 +11,7 @@ import type { AuditLogResponse } from './auditLogResponse';
  */
 export interface AuditLogListResponse {
   items: AuditLogResponse[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

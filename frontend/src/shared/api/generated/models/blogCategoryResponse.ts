@@ -6,8 +6,8 @@
  */
 
 export interface BlogCategoryResponse {
+  description?: string | null;
   id: number;
   name: string;
   slug: string;
-  description?: string | null;
 }

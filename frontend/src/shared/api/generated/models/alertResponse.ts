@@ -9,13 +9,13 @@
  * Schema for alert response.
  */
 export interface AlertResponse {
-  id: number;
-  product_id: number;
+  active: boolean;
   alert_type: string;
-  threshold_percent: string | null;
+  created_at: string;
+  id: number;
   last_notified_at: string | null;
   last_notified_price: string | null;
-  active: boolean;
-  created_at: string;
+  product_id: number;
+  threshold_percent: string | null;
   updated_at: string;
 }

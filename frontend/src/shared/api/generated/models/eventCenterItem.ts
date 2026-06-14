@@ -11,18 +11,18 @@ import type { EventCenterItemPayload } from './eventCenterItemPayload';
  * Unified event-center row.
  */
 export interface EventCenterItem {
+  category: string;
+  entity_id: string | null;
+  entity_type: string | null;
+  event_type: string;
   id: string;
   kind: EventCenterItemKind;
-  event_type: string;
-  category: string;
-  severity: string;
   message: string;
   occurred_at: string;
+  payload: EventCenterItemPayload;
+  severity: string;
   source: string;
   status: string | null;
-  user_id: number | null;
-  entity_type: string | null;
-  entity_id: string | null;
   trace_id: string | null;
-  payload: EventCenterItemPayload;
+  user_id: number | null;
 }

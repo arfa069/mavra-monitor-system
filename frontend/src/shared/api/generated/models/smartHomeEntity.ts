@@ -8,13 +8,13 @@ import type { SmartHomeEntityAttributes } from './smartHomeEntityAttributes';
 import type { SmartHomeEntityDomain } from './smartHomeEntityDomain';
 
 export interface SmartHomeEntity {
-  entity_id: string;
-  domain: SmartHomeEntityDomain;
-  name: string;
-  state: string;
   area?: string | null;
   attributes?: SmartHomeEntityAttributes;
+  available?: boolean;
+  domain: SmartHomeEntityDomain;
+  entity_id: string;
   last_changed?: string | null;
   last_updated?: string | null;
-  available?: boolean;
+  name: string;
+  state: string;
 }

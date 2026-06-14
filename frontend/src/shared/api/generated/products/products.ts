@@ -24,15 +24,15 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AppSchemasRuntimeApiMessageResponse,
   BatchOperationResult,
-  GetProductHistoryApiV1ProductsProductIdHistoryGetParams,
   HTTPValidationError,
-  ListProductsApiV1ProductsGetParams,
   PriceHistoryResponse,
   ProductBatchCreate,
   ProductBatchDelete,
   ProductBatchUpdate,
   ProductCreate,
+  ProductCronSchedulesResponse,
   ProductListResponse,
   ProductPlatformCronCreate,
   ProductPlatformCronResponse,
@@ -40,7 +40,9 @@ import type {
   ProductPlatformProfileBindingResponse,
   ProductPlatformProfileBindingUpdate,
   ProductResponse,
-  ProductUpdate
+  ProductUpdate,
+  ProductsGetProductHistoryParams,
+  ProductsListProductsParams
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -51,211 +53,89 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type createProductApiV1ProductsPostResponse200 = {
-  data: ProductResponse
-  status: 200
-}
-
-export type createProductApiV1ProductsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createProductApiV1ProductsPostResponseSuccess = (createProductApiV1ProductsPostResponse200) & {
-  headers: Headers;
-};
-export type createProductApiV1ProductsPostResponseError = (createProductApiV1ProductsPostResponse422) & {
-  headers: Headers;
-};
-
-export type createProductApiV1ProductsPostResponse = (createProductApiV1ProductsPostResponseSuccess | createProductApiV1ProductsPostResponseError)
-
-export const getCreateProductApiV1ProductsPostUrl = () => {
-
-
-
-
-  return `/api/v1/products`
-}
-
-/**
- * Add a new product to track.
- * @summary Create Product
- */
-export const createProductApiV1ProductsPost = async (productCreate: ProductCreate, options?: RequestInit): Promise<createProductApiV1ProductsPostResponse> => {
-
-  return customInstance<createProductApiV1ProductsPostResponse>(getCreateProductApiV1ProductsPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productCreate)
-  }
-);}
-
-
-
-
-export const getCreateProductApiV1ProductsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductApiV1ProductsPost>>, TError,{data: BodyType<ProductCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProductApiV1ProductsPost>>, TError,{data: BodyType<ProductCreate>}, TContext> => {
-
-const mutationKey = ['createProductApiV1ProductsPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProductApiV1ProductsPost>>, {data: BodyType<ProductCreate>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createProductApiV1ProductsPost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateProductApiV1ProductsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createProductApiV1ProductsPost>>>
-    export type CreateProductApiV1ProductsPostMutationBody = BodyType<ProductCreate>
-    export type CreateProductApiV1ProductsPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Create Product
- */
-export const useCreateProductApiV1ProductsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductApiV1ProductsPost>>, TError,{data: BodyType<ProductCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createProductApiV1ProductsPost>>,
-        TError,
-        {data: BodyType<ProductCreate>},
-        TContext
-      > => {
-      return useMutation(getCreateProductApiV1ProductsPostMutationOptions(options), queryClient);
-    }
-    export type listProductsApiV1ProductsGetResponse200 = {
-  data: ProductListResponse
-  status: 200
-}
-
-export type listProductsApiV1ProductsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listProductsApiV1ProductsGetResponseSuccess = (listProductsApiV1ProductsGetResponse200) & {
-  headers: Headers;
-};
-export type listProductsApiV1ProductsGetResponseError = (listProductsApiV1ProductsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listProductsApiV1ProductsGetResponse = (listProductsApiV1ProductsGetResponseSuccess | listProductsApiV1ProductsGetResponseError)
-
-export const getListProductsApiV1ProductsGetUrl = (params?: ListProductsApiV1ProductsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/products?${stringifiedParams}` : `/api/v1/products`
-}
-
 /**
  * List tracked products with pagination.
  * @summary List Products
  */
-export const listProductsApiV1ProductsGet = async (params?: ListProductsApiV1ProductsGetParams, options?: RequestInit): Promise<listProductsApiV1ProductsGetResponse> => {
-
-  return customInstance<listProductsApiV1ProductsGetResponse>(getListProductsApiV1ProductsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const productsListProducts = (
+    params?: ProductsListProductsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<ProductListResponse>(
+      {url: `/api/v1/products`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListProductsApiV1ProductsGetQueryKey = (params?: ListProductsApiV1ProductsGetParams,) => {
+export const getProductsListProductsQueryKey = (params?: ProductsListProductsParams,) => {
     return [
     `/api/v1/products`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListProductsApiV1ProductsGetQueryOptions = <TData = Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListProductsApiV1ProductsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsListProductsQueryOptions = <TData = Awaited<ReturnType<typeof productsListProducts>>, TError = ErrorType<HTTPValidationError>>(params?: ProductsListProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProductsApiV1ProductsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getProductsListProductsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>> = ({ signal }) => listProductsApiV1ProductsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsListProducts>>> = ({ signal }) => productsListProducts(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListProductsApiV1ProductsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>>
-export type ListProductsApiV1ProductsGetQueryError = ErrorType<HTTPValidationError>
+export type ProductsListProductsQueryResult = NonNullable<Awaited<ReturnType<typeof productsListProducts>>>
+export type ProductsListProductsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListProductsApiV1ProductsGet<TData = Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListProductsApiV1ProductsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData>> & Pick<
+export function useProductsListProducts<TData = Awaited<ReturnType<typeof productsListProducts>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  ProductsListProductsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>,
+          Awaited<ReturnType<typeof productsListProducts>>,
           TError,
-          Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>
+          Awaited<ReturnType<typeof productsListProducts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductsApiV1ProductsGet<TData = Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListProductsApiV1ProductsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData>> & Pick<
+export function useProductsListProducts<TData = Awaited<ReturnType<typeof productsListProducts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsListProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>,
+          Awaited<ReturnType<typeof productsListProducts>>,
           TError,
-          Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>
+          Awaited<ReturnType<typeof productsListProducts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductsApiV1ProductsGet<TData = Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListProductsApiV1ProductsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProducts<TData = Awaited<ReturnType<typeof productsListProducts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsListProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Products
  */
 
-export function useListProductsApiV1ProductsGet<TData = Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListProductsApiV1ProductsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductsApiV1ProductsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProducts<TData = Awaited<ReturnType<typeof productsListProducts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: ProductsListProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListProductsApiV1ProductsGetQueryOptions(params,options)
+  const queryOptions = getProductsListProductsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -267,108 +147,344 @@ export function useListProductsApiV1ProductsGet<TData = Awaited<ReturnType<typeo
 
 
 
-export type listProductCronConfigsApiV1ProductsCronConfigsGetResponse200 = {
-  data: ProductPlatformCronResponse[]
-  status: 200
-}
-
-export type listProductCronConfigsApiV1ProductsCronConfigsGetResponseSuccess = (listProductCronConfigsApiV1ProductsCronConfigsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listProductCronConfigsApiV1ProductsCronConfigsGetResponse = (listProductCronConfigsApiV1ProductsCronConfigsGetResponseSuccess)
-
-export const getListProductCronConfigsApiV1ProductsCronConfigsGetUrl = () => {
-
-
-
-
-  return `/api/v1/products/cron-configs`
-}
-
 /**
+ * Add a new product to track.
+ * @summary Create Product
+ */
+export const productsCreateProduct = (
+    productCreate: BodyType<ProductCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<ProductResponse>(
+      {url: `/api/v1/products`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: productCreate, signal
+    },
+      options);
+    }
+
+
+
+export const getProductsCreateProductMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCreateProduct>>, TError,{data: BodyType<ProductCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsCreateProduct>>, TError,{data: BodyType<ProductCreate>}, TContext> => {
+
+const mutationKey = ['productsCreateProduct'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsCreateProduct>>, {data: BodyType<ProductCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  productsCreateProduct(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsCreateProductMutationResult = NonNullable<Awaited<ReturnType<typeof productsCreateProduct>>>
+    export type ProductsCreateProductMutationBody = BodyType<ProductCreate>
+    export type ProductsCreateProductMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Create Product
+ */
+export const useProductsCreateProduct = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCreateProduct>>, TError,{data: BodyType<ProductCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsCreateProduct>>,
+        TError,
+        {data: BodyType<ProductCreate>},
+        TContext
+      > => {
+      return useMutation(getProductsCreateProductMutationOptions(options), queryClient);
+    }
+    /**
+ * Batch create products from URLs.
+ * @summary Batch Create Products
+ */
+export const productsBatchCreateProducts = (
+    productBatchCreate: BodyType<ProductBatchCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BatchOperationResult[]>(
+      {url: `/api/v1/products/batch-create`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: productBatchCreate, signal
+    },
+      options);
+    }
+
+
+
+export const getProductsBatchCreateProductsMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchCreateProducts>>, TError,{data: BodyType<ProductBatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsBatchCreateProducts>>, TError,{data: BodyType<ProductBatchCreate>}, TContext> => {
+
+const mutationKey = ['productsBatchCreateProducts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsBatchCreateProducts>>, {data: BodyType<ProductBatchCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  productsBatchCreateProducts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsBatchCreateProductsMutationResult = NonNullable<Awaited<ReturnType<typeof productsBatchCreateProducts>>>
+    export type ProductsBatchCreateProductsMutationBody = BodyType<ProductBatchCreate>
+    export type ProductsBatchCreateProductsMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Batch Create Products
+ */
+export const useProductsBatchCreateProducts = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchCreateProducts>>, TError,{data: BodyType<ProductBatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsBatchCreateProducts>>,
+        TError,
+        {data: BodyType<ProductBatchCreate>},
+        TContext
+      > => {
+      return useMutation(getProductsBatchCreateProductsMutationOptions(options), queryClient);
+    }
+    /**
+ * Batch delete products by IDs.
+ * @summary Batch Delete Products
+ */
+export const productsBatchDeleteProducts = (
+    productBatchDelete: BodyType<ProductBatchDelete>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BatchOperationResult[]>(
+      {url: `/api/v1/products/batch-delete`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: productBatchDelete, signal
+    },
+      options);
+    }
+
+
+
+export const getProductsBatchDeleteProductsMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchDeleteProducts>>, TError,{data: BodyType<ProductBatchDelete>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsBatchDeleteProducts>>, TError,{data: BodyType<ProductBatchDelete>}, TContext> => {
+
+const mutationKey = ['productsBatchDeleteProducts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsBatchDeleteProducts>>, {data: BodyType<ProductBatchDelete>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  productsBatchDeleteProducts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsBatchDeleteProductsMutationResult = NonNullable<Awaited<ReturnType<typeof productsBatchDeleteProducts>>>
+    export type ProductsBatchDeleteProductsMutationBody = BodyType<ProductBatchDelete>
+    export type ProductsBatchDeleteProductsMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Batch Delete Products
+ */
+export const useProductsBatchDeleteProducts = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchDeleteProducts>>, TError,{data: BodyType<ProductBatchDelete>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsBatchDeleteProducts>>,
+        TError,
+        {data: BodyType<ProductBatchDelete>},
+        TContext
+      > => {
+      return useMutation(getProductsBatchDeleteProductsMutationOptions(options), queryClient);
+    }
+    /**
+ * Batch update products (active status).
+ * @summary Batch Update Products
+ */
+export const productsBatchUpdateProducts = (
+    productBatchUpdate: BodyType<ProductBatchUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<BatchOperationResult[]>(
+      {url: `/api/v1/products/batch-update`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: productBatchUpdate, signal
+    },
+      options);
+    }
+
+
+
+export const getProductsBatchUpdateProductsMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchUpdateProducts>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsBatchUpdateProducts>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext> => {
+
+const mutationKey = ['productsBatchUpdateProducts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsBatchUpdateProducts>>, {data: BodyType<ProductBatchUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  productsBatchUpdateProducts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsBatchUpdateProductsMutationResult = NonNullable<Awaited<ReturnType<typeof productsBatchUpdateProducts>>>
+    export type ProductsBatchUpdateProductsMutationBody = BodyType<ProductBatchUpdate>
+    export type ProductsBatchUpdateProductsMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Batch Update Products
+ */
+export const useProductsBatchUpdateProducts = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsBatchUpdateProducts>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsBatchUpdateProducts>>,
+        TError,
+        {data: BodyType<ProductBatchUpdate>},
+        TContext
+      > => {
+      return useMutation(getProductsBatchUpdateProductsMutationOptions(options), queryClient);
+    }
+    /**
  * List all per-platform cron configs for product crawling.
  * @summary List Product Cron Configs
  */
-export const listProductCronConfigsApiV1ProductsCronConfigsGet = async ( options?: RequestInit): Promise<listProductCronConfigsApiV1ProductsCronConfigsGetResponse> => {
+export const productsListProductCronConfigs = (
 
-  return customInstance<listProductCronConfigsApiV1ProductsCronConfigsGetResponse>(getListProductCronConfigsApiV1ProductsCronConfigsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<ProductPlatformCronResponse[]>(
+      {url: `/api/v1/products/cron-configs`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListProductCronConfigsApiV1ProductsCronConfigsGetQueryKey = () => {
+export const getProductsListProductCronConfigsQueryKey = () => {
     return [
     `/api/v1/products/cron-configs`
     ] as const;
     }
 
 
-export const getListProductCronConfigsApiV1ProductsCronConfigsGetQueryOptions = <TData = Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsListProductCronConfigsQueryOptions = <TData = Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProductCronConfigsApiV1ProductsCronConfigsGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getProductsListProductCronConfigsQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>> = ({ signal }) => listProductCronConfigsApiV1ProductsCronConfigsGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsListProductCronConfigs>>> = ({ signal }) => productsListProductCronConfigs(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListProductCronConfigsApiV1ProductsCronConfigsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>>
-export type ListProductCronConfigsApiV1ProductsCronConfigsGetQueryError = ErrorType<unknown>
+export type ProductsListProductCronConfigsQueryResult = NonNullable<Awaited<ReturnType<typeof productsListProductCronConfigs>>>
+export type ProductsListProductCronConfigsQueryError = ErrorType<unknown>
 
 
-export function useListProductCronConfigsApiV1ProductsCronConfigsGet<TData = Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData>> & Pick<
+export function useProductsListProductCronConfigs<TData = Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>,
+          Awaited<ReturnType<typeof productsListProductCronConfigs>>,
           TError,
-          Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>
+          Awaited<ReturnType<typeof productsListProductCronConfigs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductCronConfigsApiV1ProductsCronConfigsGet<TData = Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData>> & Pick<
+export function useProductsListProductCronConfigs<TData = Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>,
+          Awaited<ReturnType<typeof productsListProductCronConfigs>>,
           TError,
-          Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>
+          Awaited<ReturnType<typeof productsListProductCronConfigs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductCronConfigsApiV1ProductsCronConfigsGet<TData = Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProductCronConfigs<TData = Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Product Cron Configs
  */
 
-export function useListProductCronConfigsApiV1ProductsCronConfigsGet<TData = Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductCronConfigsApiV1ProductsCronConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProductCronConfigs<TData = Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductCronConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListProductCronConfigsApiV1ProductsCronConfigsGetQueryOptions(options)
+  const queryOptions = getProductsListProductCronConfigsQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -380,56 +496,31 @@ export function useListProductCronConfigsApiV1ProductsCronConfigsGet<TData = Awa
 
 
 
-export type createProductCronConfigApiV1ProductsCronConfigsPostResponse201 = {
-  data: ProductPlatformCronResponse
-  status: 201
-}
-
-export type createProductCronConfigApiV1ProductsCronConfigsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createProductCronConfigApiV1ProductsCronConfigsPostResponseSuccess = (createProductCronConfigApiV1ProductsCronConfigsPostResponse201) & {
-  headers: Headers;
-};
-export type createProductCronConfigApiV1ProductsCronConfigsPostResponseError = (createProductCronConfigApiV1ProductsCronConfigsPostResponse422) & {
-  headers: Headers;
-};
-
-export type createProductCronConfigApiV1ProductsCronConfigsPostResponse = (createProductCronConfigApiV1ProductsCronConfigsPostResponseSuccess | createProductCronConfigApiV1ProductsCronConfigsPostResponseError)
-
-export const getCreateProductCronConfigApiV1ProductsCronConfigsPostUrl = () => {
-
-
-
-
-  return `/api/v1/products/cron-configs`
-}
-
 /**
  * Create a new per-platform cron config for product crawling.
  * @summary Create Product Cron Config
  */
-export const createProductCronConfigApiV1ProductsCronConfigsPost = async (productPlatformCronCreate: ProductPlatformCronCreate, options?: RequestInit): Promise<createProductCronConfigApiV1ProductsCronConfigsPostResponse> => {
-
-  return customInstance<createProductCronConfigApiV1ProductsCronConfigsPostResponse>(getCreateProductCronConfigApiV1ProductsCronConfigsPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productPlatformCronCreate)
-  }
-);}
+export const productsCreateProductCronConfig = (
+    productPlatformCronCreate: BodyType<ProductPlatformCronCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<ProductPlatformCronResponse>(
+      {url: `/api/v1/products/cron-configs`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: productPlatformCronCreate, signal
+    },
+      options);
+    }
 
 
-export const getCreateProductCronConfigApiV1ProductsCronConfigsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext> => {
 
-const mutationKey = ['createProductCronConfigApiV1ProductsCronConfigsPost'];
+export const getProductsCreateProductCronConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCreateProductCronConfig>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsCreateProductCronConfig>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext> => {
+
+const mutationKey = ['productsCreateProductCronConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -439,10 +530,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>, {data: BodyType<ProductPlatformCronCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsCreateProductCronConfig>>, {data: BodyType<ProductPlatformCronCreate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createProductCronConfigApiV1ProductsCronConfigsPost(data,requestOptions)
+          return  productsCreateProductCronConfig(data,requestOptions)
         }
 
 
@@ -452,73 +543,46 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateProductCronConfigApiV1ProductsCronConfigsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>>
-    export type CreateProductCronConfigApiV1ProductsCronConfigsPostMutationBody = BodyType<ProductPlatformCronCreate>
-    export type CreateProductCronConfigApiV1ProductsCronConfigsPostMutationError = ErrorType<HTTPValidationError>
+    export type ProductsCreateProductCronConfigMutationResult = NonNullable<Awaited<ReturnType<typeof productsCreateProductCronConfig>>>
+    export type ProductsCreateProductCronConfigMutationBody = BodyType<ProductPlatformCronCreate>
+    export type ProductsCreateProductCronConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Create Product Cron Config
  */
-export const useCreateProductCronConfigApiV1ProductsCronConfigsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useProductsCreateProductCronConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsCreateProductCronConfig>>, TError,{data: BodyType<ProductPlatformCronCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createProductCronConfigApiV1ProductsCronConfigsPost>>,
+        Awaited<ReturnType<typeof productsCreateProductCronConfig>>,
         TError,
         {data: BodyType<ProductPlatformCronCreate>},
         TContext
       > => {
-      return useMutation(getCreateProductCronConfigApiV1ProductsCronConfigsPostMutationOptions(options), queryClient);
+      return useMutation(getProductsCreateProductCronConfigMutationOptions(options), queryClient);
     }
-    export type deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponseSuccess = (deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponseError = (deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse = (deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponseSuccess | deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponseError)
-
-export const getDeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteUrl = (platform: string,) => {
-
-
-
-
-  return `/api/v1/products/cron-configs/${platform}`
-}
-
-/**
+    /**
  * Delete a per-platform cron config for product crawling.
  * @summary Delete Product Cron Config
  */
-export const deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete = async (platform: string, options?: RequestInit): Promise<deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse> => {
-
-  return customInstance<deleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteResponse>(getDeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteUrl(platform),
-  {
-    ...options,
-    method: 'DELETE'
+export const productsDeleteProductCronConfig = (
+    platform: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/products/cron-configs/${platform}`, method: 'DELETE', signal
+    },
+      options);
+    }
 
 
 
+export const getProductsDeleteProductCronConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductCronConfig>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductCronConfig>>, TError,{platform: string}, TContext> => {
 
-export const getDeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>, TError,{platform: string}, TContext> => {
-
-const mutationKey = ['deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete'];
+const mutationKey = ['productsDeleteProductCronConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -528,10 +592,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>, {platform: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsDeleteProductCronConfig>>, {platform: string}> = (props) => {
           const {platform} = props ?? {};
 
-          return  deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete(platform,requestOptions)
+          return  productsDeleteProductCronConfig(platform,requestOptions)
         }
 
 
@@ -541,74 +605,49 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>>
+    export type ProductsDeleteProductCronConfigMutationResult = NonNullable<Awaited<ReturnType<typeof productsDeleteProductCronConfig>>>
 
-    export type DeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteMutationError = ErrorType<HTTPValidationError>
+    export type ProductsDeleteProductCronConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Delete Product Cron Config
  */
-export const useDeleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useProductsDeleteProductCronConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductCronConfig>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteProductCronConfigApiV1ProductsCronConfigsPlatformDelete>>,
+        Awaited<ReturnType<typeof productsDeleteProductCronConfig>>,
         TError,
         {platform: string},
         TContext
       > => {
-      return useMutation(getDeleteProductCronConfigApiV1ProductsCronConfigsPlatformDeleteMutationOptions(options), queryClient);
+      return useMutation(getProductsDeleteProductCronConfigMutationOptions(options), queryClient);
     }
-    export type updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse200 = {
-  data: ProductPlatformCronResponse
-  status: 200
-}
-
-export type updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponseSuccess = (updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse200) & {
-  headers: Headers;
-};
-export type updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponseError = (updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse = (updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponseSuccess | updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponseError)
-
-export const getUpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchUrl = (platform: string,) => {
-
-
-
-
-  return `/api/v1/products/cron-configs/${platform}`
-}
-
-/**
+    /**
  * Update cron expression for a product platform.
  * @summary Update Product Cron Config
  */
-export const updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch = async (platform: string,
-    productPlatformCronUpdate: ProductPlatformCronUpdate, options?: RequestInit): Promise<updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse> => {
-
-  return customInstance<updateProductCronConfigApiV1ProductsCronConfigsPlatformPatchResponse>(getUpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchUrl(platform),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productPlatformCronUpdate)
-  }
-);}
+export const productsUpdateProductCronConfig = (
+    platform: string,
+    productPlatformCronUpdate: BodyType<ProductPlatformCronUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<ProductPlatformCronResponse>(
+      {url: `/api/v1/products/cron-configs/${platform}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: productPlatformCronUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext> => {
 
-const mutationKey = ['updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch'];
+export const getProductsUpdateProductCronConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProductCronConfig>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProductCronConfig>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext> => {
+
+const mutationKey = ['productsUpdateProductCronConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -618,10 +657,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>, {platform: string;data: BodyType<ProductPlatformCronUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsUpdateProductCronConfig>>, {platform: string;data: BodyType<ProductPlatformCronUpdate>}> = (props) => {
           const {platform,data} = props ?? {};
 
-          return  updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch(platform,data,requestOptions)
+          return  productsUpdateProductCronConfig(platform,data,requestOptions)
         }
 
 
@@ -631,125 +670,105 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>>
-    export type UpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchMutationBody = BodyType<ProductPlatformCronUpdate>
-    export type UpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchMutationError = ErrorType<HTTPValidationError>
+    export type ProductsUpdateProductCronConfigMutationResult = NonNullable<Awaited<ReturnType<typeof productsUpdateProductCronConfig>>>
+    export type ProductsUpdateProductCronConfigMutationBody = BodyType<ProductPlatformCronUpdate>
+    export type ProductsUpdateProductCronConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Product Cron Config
  */
-export const useUpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useProductsUpdateProductCronConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProductCronConfig>>, TError,{platform: string;data: BodyType<ProductPlatformCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateProductCronConfigApiV1ProductsCronConfigsPlatformPatch>>,
+        Awaited<ReturnType<typeof productsUpdateProductCronConfig>>,
         TError,
         {platform: string;data: BodyType<ProductPlatformCronUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateProductCronConfigApiV1ProductsCronConfigsPlatformPatchMutationOptions(options), queryClient);
+      return useMutation(getProductsUpdateProductCronConfigMutationOptions(options), queryClient);
     }
-    export type getProductCronSchedulesApiV1ProductsCronSchedulesGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getProductCronSchedulesApiV1ProductsCronSchedulesGetResponseSuccess = (getProductCronSchedulesApiV1ProductsCronSchedulesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getProductCronSchedulesApiV1ProductsCronSchedulesGetResponse = (getProductCronSchedulesApiV1ProductsCronSchedulesGetResponseSuccess)
-
-export const getGetProductCronSchedulesApiV1ProductsCronSchedulesGetUrl = () => {
-
-
-
-
-  return `/api/v1/products/cron-schedules`
-}
-
-/**
+    /**
  * Get next run times for the current user's per-platform product crawl schedules.
  * @summary Get Product Cron Schedules
  */
-export const getProductCronSchedulesApiV1ProductsCronSchedulesGet = async ( options?: RequestInit): Promise<getProductCronSchedulesApiV1ProductsCronSchedulesGetResponse> => {
+export const productsGetProductCronSchedules = (
 
-  return customInstance<getProductCronSchedulesApiV1ProductsCronSchedulesGetResponse>(getGetProductCronSchedulesApiV1ProductsCronSchedulesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<ProductCronSchedulesResponse>(
+      {url: `/api/v1/products/cron-schedules`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryKey = () => {
+export const getProductsGetProductCronSchedulesQueryKey = () => {
     return [
     `/api/v1/products/cron-schedules`
     ] as const;
     }
 
 
-export const getGetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryOptions = <TData = Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsGetProductCronSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getProductsGetProductCronSchedulesQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>> = ({ signal }) => getProductCronSchedulesApiV1ProductsCronSchedulesGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsGetProductCronSchedules>>> = ({ signal }) => productsGetProductCronSchedules(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryResult = NonNullable<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>>
-export type GetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryError = ErrorType<unknown>
+export type ProductsGetProductCronSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof productsGetProductCronSchedules>>>
+export type ProductsGetProductCronSchedulesQueryError = ErrorType<unknown>
 
 
-export function useGetProductCronSchedulesApiV1ProductsCronSchedulesGet<TData = Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData>> & Pick<
+export function useProductsGetProductCronSchedules<TData = Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>,
+          Awaited<ReturnType<typeof productsGetProductCronSchedules>>,
           TError,
-          Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>
+          Awaited<ReturnType<typeof productsGetProductCronSchedules>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductCronSchedulesApiV1ProductsCronSchedulesGet<TData = Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData>> & Pick<
+export function useProductsGetProductCronSchedules<TData = Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>,
+          Awaited<ReturnType<typeof productsGetProductCronSchedules>>,
           TError,
-          Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>
+          Awaited<ReturnType<typeof productsGetProductCronSchedules>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductCronSchedulesApiV1ProductsCronSchedulesGet<TData = Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsGetProductCronSchedules<TData = Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Product Cron Schedules
  */
 
-export function useGetProductCronSchedulesApiV1ProductsCronSchedulesGet<TData = Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductCronSchedulesApiV1ProductsCronSchedulesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsGetProductCronSchedules<TData = Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductCronSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetProductCronSchedulesApiV1ProductsCronSchedulesGetQueryOptions(options)
+  const queryOptions = getProductsGetProductCronSchedulesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -761,108 +780,88 @@ export function useGetProductCronSchedulesApiV1ProductsCronSchedulesGet<TData = 
 
 
 
-export type listProductProfileBindingsApiV1ProductsProfileBindingsGetResponse200 = {
-  data: ProductPlatformProfileBindingResponse[]
-  status: 200
-}
-
-export type listProductProfileBindingsApiV1ProductsProfileBindingsGetResponseSuccess = (listProductProfileBindingsApiV1ProductsProfileBindingsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listProductProfileBindingsApiV1ProductsProfileBindingsGetResponse = (listProductProfileBindingsApiV1ProductsProfileBindingsGetResponseSuccess)
-
-export const getListProductProfileBindingsApiV1ProductsProfileBindingsGetUrl = () => {
-
-
-
-
-  return `/api/v1/products/profile-bindings`
-}
-
 /**
  * List product platform profile bindings for the current user.
  * @summary List Product Profile Bindings
  */
-export const listProductProfileBindingsApiV1ProductsProfileBindingsGet = async ( options?: RequestInit): Promise<listProductProfileBindingsApiV1ProductsProfileBindingsGetResponse> => {
+export const productsListProductProfileBindings = (
 
-  return customInstance<listProductProfileBindingsApiV1ProductsProfileBindingsGetResponse>(getListProductProfileBindingsApiV1ProductsProfileBindingsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<ProductPlatformProfileBindingResponse[]>(
+      {url: `/api/v1/products/profile-bindings`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryKey = () => {
+export const getProductsListProductProfileBindingsQueryKey = () => {
     return [
     `/api/v1/products/profile-bindings`
     ] as const;
     }
 
 
-export const getListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryOptions = <TData = Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsListProductProfileBindingsQueryOptions = <TData = Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getProductsListProductProfileBindingsQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>> = ({ signal }) => listProductProfileBindingsApiV1ProductsProfileBindingsGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsListProductProfileBindings>>> = ({ signal }) => productsListProductProfileBindings(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>>
-export type ListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryError = ErrorType<unknown>
+export type ProductsListProductProfileBindingsQueryResult = NonNullable<Awaited<ReturnType<typeof productsListProductProfileBindings>>>
+export type ProductsListProductProfileBindingsQueryError = ErrorType<unknown>
 
 
-export function useListProductProfileBindingsApiV1ProductsProfileBindingsGet<TData = Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData>> & Pick<
+export function useProductsListProductProfileBindings<TData = Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>,
+          Awaited<ReturnType<typeof productsListProductProfileBindings>>,
           TError,
-          Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>
+          Awaited<ReturnType<typeof productsListProductProfileBindings>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductProfileBindingsApiV1ProductsProfileBindingsGet<TData = Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData>> & Pick<
+export function useProductsListProductProfileBindings<TData = Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>,
+          Awaited<ReturnType<typeof productsListProductProfileBindings>>,
           TError,
-          Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>
+          Awaited<ReturnType<typeof productsListProductProfileBindings>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProductProfileBindingsApiV1ProductsProfileBindingsGet<TData = Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProductProfileBindings<TData = Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Product Profile Bindings
  */
 
-export function useListProductProfileBindingsApiV1ProductsProfileBindingsGet<TData = Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProductProfileBindingsApiV1ProductsProfileBindingsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsListProductProfileBindings<TData = Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsListProductProfileBindings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListProductProfileBindingsApiV1ProductsProfileBindingsGetQueryOptions(options)
+  const queryOptions = getProductsListProductProfileBindingsQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -874,146 +873,29 @@ export function useListProductProfileBindingsApiV1ProductsProfileBindingsGet<TDa
 
 
 
-export type upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse200 = {
-  data: ProductPlatformProfileBindingResponse
-  status: 200
-}
-
-export type upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponseSuccess = (upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse200) & {
-  headers: Headers;
-};
-export type upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponseError = (upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse422) & {
-  headers: Headers;
-};
-
-export type upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse = (upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponseSuccess | upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponseError)
-
-export const getUpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutUrl = (platform: string,) => {
-
-
-
-
-  return `/api/v1/products/profile-bindings/${platform}`
-}
-
-/**
- * Create or update a product platform profile binding.
- * @summary Upsert Product Profile Binding
- */
-export const upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut = async (platform: string,
-    productPlatformProfileBindingUpdate: ProductPlatformProfileBindingUpdate, options?: RequestInit): Promise<upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse> => {
-
-  return customInstance<upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutResponse>(getUpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutUrl(platform),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productPlatformProfileBindingUpdate)
-  }
-);}
-
-
-
-
-export const getUpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext> => {
-
-const mutationKey = ['upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>, {platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}> = (props) => {
-          const {platform,data} = props ?? {};
-
-          return  upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut(platform,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutMutationResult = NonNullable<Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>>
-    export type UpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutMutationBody = BodyType<ProductPlatformProfileBindingUpdate>
-    export type UpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Upsert Product Profile Binding
- */
-export const useUpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof upsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPut>>,
-        TError,
-        {platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>},
-        TContext
-      > => {
-      return useMutation(getUpsertProductProfileBindingApiV1ProductsProfileBindingsPlatformPutMutationOptions(options), queryClient);
-    }
-    export type deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponseSuccess = (deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponseError = (deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse = (deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponseSuccess | deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponseError)
-
-export const getDeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteUrl = (platform: string,) => {
-
-
-
-
-  return `/api/v1/products/profile-bindings/${platform}`
-}
-
 /**
  * Delete a product platform profile binding.
  * @summary Delete Product Profile Binding
  */
-export const deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete = async (platform: string, options?: RequestInit): Promise<deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse> => {
-
-  return customInstance<deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteResponse>(getDeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteUrl(platform),
-  {
-    ...options,
-    method: 'DELETE'
+export const productsDeleteProductProfileBinding = (
+    platform: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/products/profile-bindings/${platform}`, method: 'DELETE', signal
+    },
+      options);
+    }
 
 
 
+export const getProductsDeleteProductProfileBindingMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>, TError,{platform: string}, TContext> => {
 
-export const getDeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>, TError,{platform: string}, TContext> => {
-
-const mutationKey = ['deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete'];
+const mutationKey = ['productsDeleteProductProfileBinding'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1023,10 +905,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>, {platform: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>, {platform: string}> = (props) => {
           const {platform} = props ?? {};
 
-          return  deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete(platform,requestOptions)
+          return  productsDeleteProductProfileBinding(platform,requestOptions)
         }
 
 
@@ -1036,132 +918,232 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>>
+    export type ProductsDeleteProductProfileBindingMutationResult = NonNullable<Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>>
 
-    export type DeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteMutationError = ErrorType<HTTPValidationError>
+    export type ProductsDeleteProductProfileBindingMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Delete Product Profile Binding
  */
-export const useDeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useProductsDeleteProductProfileBinding = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>, TError,{platform: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDelete>>,
+        Awaited<ReturnType<typeof productsDeleteProductProfileBinding>>,
         TError,
         {platform: string},
         TContext
       > => {
-      return useMutation(getDeleteProductProfileBindingApiV1ProductsProfileBindingsPlatformDeleteMutationOptions(options), queryClient);
+      return useMutation(getProductsDeleteProductProfileBindingMutationOptions(options), queryClient);
     }
-    export type getProductApiV1ProductsProductIdGetResponse200 = {
-  data: ProductResponse
-  status: 200
-}
+    /**
+ * Create or update a product platform profile binding.
+ * @summary Upsert Product Profile Binding
+ */
+export const productsUpsertProductProfileBinding = (
+    platform: string,
+    productPlatformProfileBindingUpdate: BodyType<ProductPlatformProfileBindingUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-export type getProductApiV1ProductsProductIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
 
-export type getProductApiV1ProductsProductIdGetResponseSuccess = (getProductApiV1ProductsProductIdGetResponse200) & {
-  headers: Headers;
-};
-export type getProductApiV1ProductsProductIdGetResponseError = (getProductApiV1ProductsProductIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getProductApiV1ProductsProductIdGetResponse = (getProductApiV1ProductsProductIdGetResponseSuccess | getProductApiV1ProductsProductIdGetResponseError)
-
-export const getGetProductApiV1ProductsProductIdGetUrl = (productId: number,) => {
+      return customInstance<ProductPlatformProfileBindingResponse>(
+      {url: `/api/v1/products/profile-bindings/${platform}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: productPlatformProfileBindingUpdate, signal
+    },
+      options);
+    }
 
 
 
+export const getProductsUpsertProductProfileBindingMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext> => {
 
-  return `/api/v1/products/${productId}`
-}
+const mutationKey = ['productsUpsertProductProfileBinding'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>, {platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}> = (props) => {
+          const {platform,data} = props ?? {};
+
+          return  productsUpsertProductProfileBinding(platform,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsUpsertProductProfileBindingMutationResult = NonNullable<Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>>
+    export type ProductsUpsertProductProfileBindingMutationBody = BodyType<ProductPlatformProfileBindingUpdate>
+    export type ProductsUpsertProductProfileBindingMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Upsert Product Profile Binding
+ */
+export const useProductsUpsertProductProfileBinding = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>, TError,{platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsUpsertProductProfileBinding>>,
+        TError,
+        {platform: string;data: BodyType<ProductPlatformProfileBindingUpdate>},
+        TContext
+      > => {
+      return useMutation(getProductsUpsertProductProfileBindingMutationOptions(options), queryClient);
+    }
+    /**
+ * Delete a product and its related data.
+ * @summary Delete Product
+ */
+export const productsDeleteProduct = (
+    productId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/products/${productId}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+export const getProductsDeleteProductMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProduct>>, TError,{productId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProduct>>, TError,{productId: number}, TContext> => {
+
+const mutationKey = ['productsDeleteProduct'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsDeleteProduct>>, {productId: number}> = (props) => {
+          const {productId} = props ?? {};
+
+          return  productsDeleteProduct(productId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsDeleteProductMutationResult = NonNullable<Awaited<ReturnType<typeof productsDeleteProduct>>>
+
+    export type ProductsDeleteProductMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Delete Product
+ */
+export const useProductsDeleteProduct = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsDeleteProduct>>, TError,{productId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsDeleteProduct>>,
+        TError,
+        {productId: number},
+        TContext
+      > => {
+      return useMutation(getProductsDeleteProductMutationOptions(options), queryClient);
+    }
+    /**
  * Get product details.
  * @summary Get Product
  */
-export const getProductApiV1ProductsProductIdGet = async (productId: number, options?: RequestInit): Promise<getProductApiV1ProductsProductIdGetResponse> => {
-
-  return customInstance<getProductApiV1ProductsProductIdGetResponse>(getGetProductApiV1ProductsProductIdGetUrl(productId),
-  {
-    ...options,
-    method: 'GET'
+export const productsGetProduct = (
+    productId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<ProductResponse>(
+      {url: `/api/v1/products/${productId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetProductApiV1ProductsProductIdGetQueryKey = (productId: number,) => {
+export const getProductsGetProductQueryKey = (productId: number,) => {
     return [
     `/api/v1/products/${productId}`
     ] as const;
     }
 
 
-export const getGetProductApiV1ProductsProductIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError = ErrorType<HTTPValidationError>>(productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsGetProductQueryOptions = <TData = Awaited<ReturnType<typeof productsGetProduct>>, TError = ErrorType<HTTPValidationError>>(productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetProductApiV1ProductsProductIdGetQueryKey(productId);
+  const queryKey =  queryOptions?.queryKey ?? getProductsGetProductQueryKey(productId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>> = ({ signal }) => getProductApiV1ProductsProductIdGet(productId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsGetProduct>>> = ({ signal }) => productsGetProduct(productId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: productId !== null && productId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: productId !== null && productId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetProductApiV1ProductsProductIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>>
-export type GetProductApiV1ProductsProductIdGetQueryError = ErrorType<HTTPValidationError>
+export type ProductsGetProductQueryResult = NonNullable<Awaited<ReturnType<typeof productsGetProduct>>>
+export type ProductsGetProductQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetProductApiV1ProductsProductIdGet<TData = Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError = ErrorType<HTTPValidationError>>(
- productId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData>> & Pick<
+export function useProductsGetProduct<TData = Awaited<ReturnType<typeof productsGetProduct>>, TError = ErrorType<HTTPValidationError>>(
+ productId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>,
+          Awaited<ReturnType<typeof productsGetProduct>>,
           TError,
-          Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>
+          Awaited<ReturnType<typeof productsGetProduct>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductApiV1ProductsProductIdGet<TData = Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError = ErrorType<HTTPValidationError>>(
- productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData>> & Pick<
+export function useProductsGetProduct<TData = Awaited<ReturnType<typeof productsGetProduct>>, TError = ErrorType<HTTPValidationError>>(
+ productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>,
+          Awaited<ReturnType<typeof productsGetProduct>>,
           TError,
-          Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>
+          Awaited<ReturnType<typeof productsGetProduct>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductApiV1ProductsProductIdGet<TData = Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError = ErrorType<HTTPValidationError>>(
- productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsGetProduct<TData = Awaited<ReturnType<typeof productsGetProduct>>, TError = ErrorType<HTTPValidationError>>(
+ productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Product
  */
 
-export function useGetProductApiV1ProductsProductIdGet<TData = Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError = ErrorType<HTTPValidationError>>(
- productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductApiV1ProductsProductIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useProductsGetProduct<TData = Awaited<ReturnType<typeof productsGetProduct>>, TError = ErrorType<HTTPValidationError>>(
+ productId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProduct>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetProductApiV1ProductsProductIdGetQueryOptions(productId,options)
+  const queryOptions = getProductsGetProductQueryOptions(productId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1173,57 +1155,32 @@ export function useGetProductApiV1ProductsProductIdGet<TData = Awaited<ReturnTyp
 
 
 
-export type updateProductApiV1ProductsProductIdPatchResponse200 = {
-  data: ProductResponse
-  status: 200
-}
-
-export type updateProductApiV1ProductsProductIdPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateProductApiV1ProductsProductIdPatchResponseSuccess = (updateProductApiV1ProductsProductIdPatchResponse200) & {
-  headers: Headers;
-};
-export type updateProductApiV1ProductsProductIdPatchResponseError = (updateProductApiV1ProductsProductIdPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateProductApiV1ProductsProductIdPatchResponse = (updateProductApiV1ProductsProductIdPatchResponseSuccess | updateProductApiV1ProductsProductIdPatchResponseError)
-
-export const getUpdateProductApiV1ProductsProductIdPatchUrl = (productId: number,) => {
-
-
-
-
-  return `/api/v1/products/${productId}`
-}
-
 /**
  * Update a product.
  * @summary Update Product
  */
-export const updateProductApiV1ProductsProductIdPatch = async (productId: number,
-    productUpdate: ProductUpdate, options?: RequestInit): Promise<updateProductApiV1ProductsProductIdPatchResponse> => {
-
-  return customInstance<updateProductApiV1ProductsProductIdPatchResponse>(getUpdateProductApiV1ProductsProductIdPatchUrl(productId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productUpdate)
-  }
-);}
+export const productsUpdateProduct = (
+    productId: number,
+    productUpdate: BodyType<ProductUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<ProductResponse>(
+      {url: `/api/v1/products/${productId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: productUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateProductApiV1ProductsProductIdPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext> => {
 
-const mutationKey = ['updateProductApiV1ProductsProductIdPatch'];
+export const getProductsUpdateProductMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProduct>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProduct>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext> => {
+
+const mutationKey = ['productsUpdateProduct'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1233,10 +1190,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>, {productId: number;data: BodyType<ProductUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsUpdateProduct>>, {productId: number;data: BodyType<ProductUpdate>}> = (props) => {
           const {productId,data} = props ?? {};
 
-          return  updateProductApiV1ProductsProductIdPatch(productId,data,requestOptions)
+          return  productsUpdateProduct(productId,data,requestOptions)
         }
 
 
@@ -1246,503 +1203,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateProductApiV1ProductsProductIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>>
-    export type UpdateProductApiV1ProductsProductIdPatchMutationBody = BodyType<ProductUpdate>
-    export type UpdateProductApiV1ProductsProductIdPatchMutationError = ErrorType<HTTPValidationError>
+    export type ProductsUpdateProductMutationResult = NonNullable<Awaited<ReturnType<typeof productsUpdateProduct>>>
+    export type ProductsUpdateProductMutationBody = BodyType<ProductUpdate>
+    export type ProductsUpdateProductMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Product
  */
-export const useUpdateProductApiV1ProductsProductIdPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useProductsUpdateProduct = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsUpdateProduct>>, TError,{productId: number;data: BodyType<ProductUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateProductApiV1ProductsProductIdPatch>>,
+        Awaited<ReturnType<typeof productsUpdateProduct>>,
         TError,
         {productId: number;data: BodyType<ProductUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateProductApiV1ProductsProductIdPatchMutationOptions(options), queryClient);
+      return useMutation(getProductsUpdateProductMutationOptions(options), queryClient);
     }
-    export type deleteProductApiV1ProductsProductIdDeleteResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type deleteProductApiV1ProductsProductIdDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteProductApiV1ProductsProductIdDeleteResponseSuccess = (deleteProductApiV1ProductsProductIdDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteProductApiV1ProductsProductIdDeleteResponseError = (deleteProductApiV1ProductsProductIdDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteProductApiV1ProductsProductIdDeleteResponse = (deleteProductApiV1ProductsProductIdDeleteResponseSuccess | deleteProductApiV1ProductsProductIdDeleteResponseError)
-
-export const getDeleteProductApiV1ProductsProductIdDeleteUrl = (productId: number,) => {
-
-
-
-
-  return `/api/v1/products/${productId}`
-}
-
-/**
- * Delete a product and its related data.
- * @summary Delete Product
- */
-export const deleteProductApiV1ProductsProductIdDelete = async (productId: number, options?: RequestInit): Promise<deleteProductApiV1ProductsProductIdDeleteResponse> => {
-
-  return customInstance<deleteProductApiV1ProductsProductIdDeleteResponse>(getDeleteProductApiV1ProductsProductIdDeleteUrl(productId),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-export const getDeleteProductApiV1ProductsProductIdDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>, TError,{productId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>, TError,{productId: number}, TContext> => {
-
-const mutationKey = ['deleteProductApiV1ProductsProductIdDelete'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>, {productId: number}> = (props) => {
-          const {productId} = props ?? {};
-
-          return  deleteProductApiV1ProductsProductIdDelete(productId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteProductApiV1ProductsProductIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>>
-
-    export type DeleteProductApiV1ProductsProductIdDeleteMutationError = ErrorType<HTTPValidationError>
-
     /**
- * @summary Delete Product
- */
-export const useDeleteProductApiV1ProductsProductIdDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>, TError,{productId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteProductApiV1ProductsProductIdDelete>>,
-        TError,
-        {productId: number},
-        TContext
-      > => {
-      return useMutation(getDeleteProductApiV1ProductsProductIdDeleteMutationOptions(options), queryClient);
-    }
-    export type batchCreateProductsApiV1ProductsBatchCreatePostResponse200 = {
-  data: BatchOperationResult[]
-  status: 200
-}
-
-export type batchCreateProductsApiV1ProductsBatchCreatePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type batchCreateProductsApiV1ProductsBatchCreatePostResponseSuccess = (batchCreateProductsApiV1ProductsBatchCreatePostResponse200) & {
-  headers: Headers;
-};
-export type batchCreateProductsApiV1ProductsBatchCreatePostResponseError = (batchCreateProductsApiV1ProductsBatchCreatePostResponse422) & {
-  headers: Headers;
-};
-
-export type batchCreateProductsApiV1ProductsBatchCreatePostResponse = (batchCreateProductsApiV1ProductsBatchCreatePostResponseSuccess | batchCreateProductsApiV1ProductsBatchCreatePostResponseError)
-
-export const getBatchCreateProductsApiV1ProductsBatchCreatePostUrl = () => {
-
-
-
-
-  return `/api/v1/products/batch-create`
-}
-
-/**
- * Batch create products from URLs.
- * @summary Batch Create Products
- */
-export const batchCreateProductsApiV1ProductsBatchCreatePost = async (productBatchCreate: ProductBatchCreate, options?: RequestInit): Promise<batchCreateProductsApiV1ProductsBatchCreatePostResponse> => {
-
-  return customInstance<batchCreateProductsApiV1ProductsBatchCreatePostResponse>(getBatchCreateProductsApiV1ProductsBatchCreatePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productBatchCreate)
-  }
-);}
-
-
-
-
-export const getBatchCreateProductsApiV1ProductsBatchCreatePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>, TError,{data: BodyType<ProductBatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>, TError,{data: BodyType<ProductBatchCreate>}, TContext> => {
-
-const mutationKey = ['batchCreateProductsApiV1ProductsBatchCreatePost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>, {data: BodyType<ProductBatchCreate>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  batchCreateProductsApiV1ProductsBatchCreatePost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type BatchCreateProductsApiV1ProductsBatchCreatePostMutationResult = NonNullable<Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>>
-    export type BatchCreateProductsApiV1ProductsBatchCreatePostMutationBody = BodyType<ProductBatchCreate>
-    export type BatchCreateProductsApiV1ProductsBatchCreatePostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Batch Create Products
- */
-export const useBatchCreateProductsApiV1ProductsBatchCreatePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>, TError,{data: BodyType<ProductBatchCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof batchCreateProductsApiV1ProductsBatchCreatePost>>,
-        TError,
-        {data: BodyType<ProductBatchCreate>},
-        TContext
-      > => {
-      return useMutation(getBatchCreateProductsApiV1ProductsBatchCreatePostMutationOptions(options), queryClient);
-    }
-    export type batchDeleteProductsApiV1ProductsBatchDeletePostResponse200 = {
-  data: BatchOperationResult[]
-  status: 200
-}
-
-export type batchDeleteProductsApiV1ProductsBatchDeletePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type batchDeleteProductsApiV1ProductsBatchDeletePostResponseSuccess = (batchDeleteProductsApiV1ProductsBatchDeletePostResponse200) & {
-  headers: Headers;
-};
-export type batchDeleteProductsApiV1ProductsBatchDeletePostResponseError = (batchDeleteProductsApiV1ProductsBatchDeletePostResponse422) & {
-  headers: Headers;
-};
-
-export type batchDeleteProductsApiV1ProductsBatchDeletePostResponse = (batchDeleteProductsApiV1ProductsBatchDeletePostResponseSuccess | batchDeleteProductsApiV1ProductsBatchDeletePostResponseError)
-
-export const getBatchDeleteProductsApiV1ProductsBatchDeletePostUrl = () => {
-
-
-
-
-  return `/api/v1/products/batch-delete`
-}
-
-/**
- * Batch delete products by IDs.
- * @summary Batch Delete Products
- */
-export const batchDeleteProductsApiV1ProductsBatchDeletePost = async (productBatchDelete: ProductBatchDelete, options?: RequestInit): Promise<batchDeleteProductsApiV1ProductsBatchDeletePostResponse> => {
-
-  return customInstance<batchDeleteProductsApiV1ProductsBatchDeletePostResponse>(getBatchDeleteProductsApiV1ProductsBatchDeletePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productBatchDelete)
-  }
-);}
-
-
-
-
-export const getBatchDeleteProductsApiV1ProductsBatchDeletePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>, TError,{data: BodyType<ProductBatchDelete>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>, TError,{data: BodyType<ProductBatchDelete>}, TContext> => {
-
-const mutationKey = ['batchDeleteProductsApiV1ProductsBatchDeletePost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>, {data: BodyType<ProductBatchDelete>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  batchDeleteProductsApiV1ProductsBatchDeletePost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type BatchDeleteProductsApiV1ProductsBatchDeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>>
-    export type BatchDeleteProductsApiV1ProductsBatchDeletePostMutationBody = BodyType<ProductBatchDelete>
-    export type BatchDeleteProductsApiV1ProductsBatchDeletePostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Batch Delete Products
- */
-export const useBatchDeleteProductsApiV1ProductsBatchDeletePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>, TError,{data: BodyType<ProductBatchDelete>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof batchDeleteProductsApiV1ProductsBatchDeletePost>>,
-        TError,
-        {data: BodyType<ProductBatchDelete>},
-        TContext
-      > => {
-      return useMutation(getBatchDeleteProductsApiV1ProductsBatchDeletePostMutationOptions(options), queryClient);
-    }
-    export type batchUpdateProductsApiV1ProductsBatchUpdatePostResponse200 = {
-  data: BatchOperationResult[]
-  status: 200
-}
-
-export type batchUpdateProductsApiV1ProductsBatchUpdatePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type batchUpdateProductsApiV1ProductsBatchUpdatePostResponseSuccess = (batchUpdateProductsApiV1ProductsBatchUpdatePostResponse200) & {
-  headers: Headers;
-};
-export type batchUpdateProductsApiV1ProductsBatchUpdatePostResponseError = (batchUpdateProductsApiV1ProductsBatchUpdatePostResponse422) & {
-  headers: Headers;
-};
-
-export type batchUpdateProductsApiV1ProductsBatchUpdatePostResponse = (batchUpdateProductsApiV1ProductsBatchUpdatePostResponseSuccess | batchUpdateProductsApiV1ProductsBatchUpdatePostResponseError)
-
-export const getBatchUpdateProductsApiV1ProductsBatchUpdatePostUrl = () => {
-
-
-
-
-  return `/api/v1/products/batch-update`
-}
-
-/**
- * Batch update products (active status).
- * @summary Batch Update Products
- */
-export const batchUpdateProductsApiV1ProductsBatchUpdatePost = async (productBatchUpdate: ProductBatchUpdate, options?: RequestInit): Promise<batchUpdateProductsApiV1ProductsBatchUpdatePostResponse> => {
-
-  return customInstance<batchUpdateProductsApiV1ProductsBatchUpdatePostResponse>(getBatchUpdateProductsApiV1ProductsBatchUpdatePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(productBatchUpdate)
-  }
-);}
-
-
-
-
-export const getBatchUpdateProductsApiV1ProductsBatchUpdatePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext> => {
-
-const mutationKey = ['batchUpdateProductsApiV1ProductsBatchUpdatePost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>, {data: BodyType<ProductBatchUpdate>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  batchUpdateProductsApiV1ProductsBatchUpdatePost(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type BatchUpdateProductsApiV1ProductsBatchUpdatePostMutationResult = NonNullable<Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>>
-    export type BatchUpdateProductsApiV1ProductsBatchUpdatePostMutationBody = BodyType<ProductBatchUpdate>
-    export type BatchUpdateProductsApiV1ProductsBatchUpdatePostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Batch Update Products
- */
-export const useBatchUpdateProductsApiV1ProductsBatchUpdatePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>, TError,{data: BodyType<ProductBatchUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof batchUpdateProductsApiV1ProductsBatchUpdatePost>>,
-        TError,
-        {data: BodyType<ProductBatchUpdate>},
-        TContext
-      > => {
-      return useMutation(getBatchUpdateProductsApiV1ProductsBatchUpdatePostMutationOptions(options), queryClient);
-    }
-    export type getProductHistoryApiV1ProductsProductIdHistoryGetResponse200 = {
-  data: PriceHistoryResponse[]
-  status: 200
-}
-
-export type getProductHistoryApiV1ProductsProductIdHistoryGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getProductHistoryApiV1ProductsProductIdHistoryGetResponseSuccess = (getProductHistoryApiV1ProductsProductIdHistoryGetResponse200) & {
-  headers: Headers;
-};
-export type getProductHistoryApiV1ProductsProductIdHistoryGetResponseError = (getProductHistoryApiV1ProductsProductIdHistoryGetResponse422) & {
-  headers: Headers;
-};
-
-export type getProductHistoryApiV1ProductsProductIdHistoryGetResponse = (getProductHistoryApiV1ProductsProductIdHistoryGetResponseSuccess | getProductHistoryApiV1ProductsProductIdHistoryGetResponseError)
-
-export const getGetProductHistoryApiV1ProductsProductIdHistoryGetUrl = (productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/products/${productId}/history?${stringifiedParams}` : `/api/v1/products/${productId}/history`
-}
-
-/**
  * Get price history for a product.
  * @summary Get Product History
  */
-export const getProductHistoryApiV1ProductsProductIdHistoryGet = async (productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options?: RequestInit): Promise<getProductHistoryApiV1ProductsProductIdHistoryGetResponse> => {
-
-  return customInstance<getProductHistoryApiV1ProductsProductIdHistoryGetResponse>(getGetProductHistoryApiV1ProductsProductIdHistoryGetUrl(productId,params),
-  {
-    ...options,
-    method: 'GET'
+export const productsGetProductHistory = (
+    productId: number,
+    params?: ProductsGetProductHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<PriceHistoryResponse[]>(
+      {url: `/api/v1/products/${productId}/history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetProductHistoryApiV1ProductsProductIdHistoryGetQueryKey = (productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams,) => {
+export const getProductsGetProductHistoryQueryKey = (productId: number,
+    params?: ProductsGetProductHistoryParams,) => {
     return [
     `/api/v1/products/${productId}/history`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetProductHistoryApiV1ProductsProductIdHistoryGetQueryOptions = <TData = Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError = ErrorType<HTTPValidationError>>(productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getProductsGetProductHistoryQueryOptions = <TData = Awaited<ReturnType<typeof productsGetProductHistory>>, TError = ErrorType<HTTPValidationError>>(productId: number,
+    params?: ProductsGetProductHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetProductHistoryApiV1ProductsProductIdHistoryGetQueryKey(productId,params);
+  const queryKey =  queryOptions?.queryKey ?? getProductsGetProductHistoryQueryKey(productId,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>> = ({ signal }) => getProductHistoryApiV1ProductsProductIdHistoryGet(productId,params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsGetProductHistory>>> = ({ signal }) => productsGetProductHistory(productId,params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: productId !== null && productId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: productId !== null && productId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetProductHistoryApiV1ProductsProductIdHistoryGetQueryResult = NonNullable<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>>
-export type GetProductHistoryApiV1ProductsProductIdHistoryGetQueryError = ErrorType<HTTPValidationError>
+export type ProductsGetProductHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof productsGetProductHistory>>>
+export type ProductsGetProductHistoryQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetProductHistoryApiV1ProductsProductIdHistoryGet<TData = Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError = ErrorType<HTTPValidationError>>(
+export function useProductsGetProductHistory<TData = Awaited<ReturnType<typeof productsGetProductHistory>>, TError = ErrorType<HTTPValidationError>>(
  productId: number,
-    params: undefined |  GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData>> & Pick<
+    params: undefined |  ProductsGetProductHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>,
+          Awaited<ReturnType<typeof productsGetProductHistory>>,
           TError,
-          Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>
+          Awaited<ReturnType<typeof productsGetProductHistory>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductHistoryApiV1ProductsProductIdHistoryGet<TData = Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError = ErrorType<HTTPValidationError>>(
+export function useProductsGetProductHistory<TData = Awaited<ReturnType<typeof productsGetProductHistory>>, TError = ErrorType<HTTPValidationError>>(
  productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData>> & Pick<
+    params?: ProductsGetProductHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>,
+          Awaited<ReturnType<typeof productsGetProductHistory>>,
           TError,
-          Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>
+          Awaited<ReturnType<typeof productsGetProductHistory>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetProductHistoryApiV1ProductsProductIdHistoryGet<TData = Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError = ErrorType<HTTPValidationError>>(
+export function useProductsGetProductHistory<TData = Awaited<ReturnType<typeof productsGetProductHistory>>, TError = ErrorType<HTTPValidationError>>(
  productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: ProductsGetProductHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Product History
  */
 
-export function useGetProductHistoryApiV1ProductsProductIdHistoryGet<TData = Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError = ErrorType<HTTPValidationError>>(
+export function useProductsGetProductHistory<TData = Awaited<ReturnType<typeof productsGetProductHistory>>, TError = ErrorType<HTTPValidationError>>(
  productId: number,
-    params?: GetProductHistoryApiV1ProductsProductIdHistoryGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProductHistoryApiV1ProductsProductIdHistoryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: ProductsGetProductHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsGetProductHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetProductHistoryApiV1ProductsProductIdHistoryGetQueryOptions(productId,params,options)
+  const queryOptions = getProductsGetProductHistoryQueryOptions(productId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

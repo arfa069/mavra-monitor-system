@@ -6,10 +6,10 @@
  */
 
 export interface UserResumeResponse {
+  created_at: string;
   id: number;
-  user_id: number;
   name: string;
   resume_text: string;
-  created_at: string;
   updated_at: string;
+  user_id: number;
 }

@@ -6,12 +6,12 @@
  */
 
 export interface SmartHomeConfigResponse {
-  id: number;
   base_url: string;
-  enabled: boolean;
-  last_status?: string | null;
-  last_error?: string | null;
   created_at: string;
-  updated_at: string;
+  enabled: boolean;
+  id: number;
+  last_error?: string | null;
+  last_status?: string | null;
   token_configured?: boolean;
+  updated_at: string;
 }

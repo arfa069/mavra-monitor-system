@@ -11,7 +11,7 @@ import type { AdminUserResponse } from './adminUserResponse';
  */
 export interface AdminUserListResponse {
   items: AdminUserResponse[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

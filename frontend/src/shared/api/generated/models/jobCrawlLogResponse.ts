@@ -9,11 +9,11 @@
  * Schema for job crawl log record.
  */
 export interface JobCrawlLogResponse {
+  error_message?: string | null;
   id: number;
+  new_jobs_count?: number | null;
+  scraped_at: string;
   search_config_id: number;
   status: string;
-  new_jobs_count?: number | null;
   total_jobs_count?: number | null;
-  error_message?: string | null;
-  scraped_at: string;
 }

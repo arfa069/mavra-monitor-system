@@ -11,6 +11,6 @@ import type { RolePermissionResponse } from './rolePermissionResponse';
  * Schema for the full role-permission matrix.
  */
 export interface RolePermissionMatrixResponse {
-  roles: RolePermissionResponse[];
   all_permissions: PermissionResponse[];
+  roles: RolePermissionResponse[];
 }

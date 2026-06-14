@@ -9,16 +9,16 @@ import type { BlogPostListItemStatus } from './blogPostListItemStatus';
 import type { BlogTagResponse } from './blogTagResponse';
 
 export interface BlogPostListItem {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt?: string | null;
-  status: BlogPostListItemStatus;
-  cover_url?: string | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  published_at?: string | null;
-  updated_at: string;
   category?: BlogCategoryResponse | null;
+  cover_url?: string | null;
+  excerpt?: string | null;
+  id: number;
+  published_at?: string | null;
+  seo_description?: string | null;
+  seo_title?: string | null;
+  slug: string;
+  status: BlogPostListItemStatus;
   tags?: BlogTagResponse[];
+  title: string;
+  updated_at: string;
 }

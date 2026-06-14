@@ -9,8 +9,8 @@
  * Request schema for user login.
  */
 export interface UserLogin {
-  /** 用户名 */
-  username: string;
   /** 密码 */
   password: string;
+  /** 用户名 */
+  username: string;
 }

@@ -24,8 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost,
-  CrawlProfileBackupExportRequest,
+  BodyCrawlProfilesImportProfileBackup,
   CrawlProfileBackupImportResponse,
   CrawlProfileCreate,
   CrawlProfileLoginSessionRequest,
@@ -47,219 +46,87 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponse200 = {
-  data: CrawlProfileRuntimeCapabilities
-  status: 200
-}
-
-export type getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponseSuccess = (getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponse = (getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponseSuccess)
-
-export const getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetUrl = () => {
-
-
-
-
-  return `/api/v1/crawl-profiles/runtime-capabilities`
-}
-
-/**
- * @summary Get Runtime Capabilities
- */
-export const getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet = async ( options?: RequestInit): Promise<getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponse> => {
-
-  return customInstance<getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetResponse>(getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryKey = () => {
-    return [
-    `/api/v1/crawl-profiles/runtime-capabilities`
-    ] as const;
-    }
-
-
-export const getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryOptions = <TData = Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>> = ({ signal }) => getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryResult = NonNullable<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>>
-export type GetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryError = ErrorType<unknown>
-
-
-export function useGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet<TData = Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>,
-          TError,
-          Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet<TData = Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>,
-          TError,
-          Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet<TData = Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Runtime Capabilities
- */
-
-export function useGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet<TData = Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetRuntimeCapabilitiesApiV1CrawlProfilesRuntimeCapabilitiesGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type listProfilesApiV1CrawlProfilesGetResponse200 = {
-  data: CrawlProfileResponse[]
-  status: 200
-}
-
-export type listProfilesApiV1CrawlProfilesGetResponseSuccess = (listProfilesApiV1CrawlProfilesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listProfilesApiV1CrawlProfilesGetResponse = (listProfilesApiV1CrawlProfilesGetResponseSuccess)
-
-export const getListProfilesApiV1CrawlProfilesGetUrl = () => {
-
-
-
-
-  return `/api/v1/crawl-profiles`
-}
-
 /**
  * @summary List Profiles
  */
-export const listProfilesApiV1CrawlProfilesGet = async ( options?: RequestInit): Promise<listProfilesApiV1CrawlProfilesGetResponse> => {
+export const crawlProfilesListProfiles = (
 
-  return customInstance<listProfilesApiV1CrawlProfilesGetResponse>(getListProfilesApiV1CrawlProfilesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<CrawlProfileResponse[]>(
+      {url: `/api/v1/crawl-profiles`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListProfilesApiV1CrawlProfilesGetQueryKey = () => {
+export const getCrawlProfilesListProfilesQueryKey = () => {
     return [
     `/api/v1/crawl-profiles`
     ] as const;
     }
 
 
-export const getListProfilesApiV1CrawlProfilesGetQueryOptions = <TData = Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getCrawlProfilesListProfilesQueryOptions = <TData = Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListProfilesApiV1CrawlProfilesGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getCrawlProfilesListProfilesQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>> = ({ signal }) => listProfilesApiV1CrawlProfilesGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof crawlProfilesListProfiles>>> = ({ signal }) => crawlProfilesListProfiles(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListProfilesApiV1CrawlProfilesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>>
-export type ListProfilesApiV1CrawlProfilesGetQueryError = ErrorType<unknown>
+export type CrawlProfilesListProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesListProfiles>>>
+export type CrawlProfilesListProfilesQueryError = ErrorType<unknown>
 
 
-export function useListProfilesApiV1CrawlProfilesGet<TData = Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData>> & Pick<
+export function useCrawlProfilesListProfiles<TData = Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>,
+          Awaited<ReturnType<typeof crawlProfilesListProfiles>>,
           TError,
-          Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>
+          Awaited<ReturnType<typeof crawlProfilesListProfiles>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProfilesApiV1CrawlProfilesGet<TData = Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData>> & Pick<
+export function useCrawlProfilesListProfiles<TData = Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>,
+          Awaited<ReturnType<typeof crawlProfilesListProfiles>>,
           TError,
-          Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>
+          Awaited<ReturnType<typeof crawlProfilesListProfiles>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListProfilesApiV1CrawlProfilesGet<TData = Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useCrawlProfilesListProfiles<TData = Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Profiles
  */
 
-export function useListProfilesApiV1CrawlProfilesGet<TData = Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listProfilesApiV1CrawlProfilesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useCrawlProfilesListProfiles<TData = Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesListProfiles>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListProfilesApiV1CrawlProfilesGetQueryOptions(options)
+  const queryOptions = getCrawlProfilesListProfilesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -271,55 +138,30 @@ export function useListProfilesApiV1CrawlProfilesGet<TData = Awaited<ReturnType<
 
 
 
-export type createProfileApiV1CrawlProfilesPostResponse201 = {
-  data: CrawlProfileResponse
-  status: 201
-}
-
-export type createProfileApiV1CrawlProfilesPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createProfileApiV1CrawlProfilesPostResponseSuccess = (createProfileApiV1CrawlProfilesPostResponse201) & {
-  headers: Headers;
-};
-export type createProfileApiV1CrawlProfilesPostResponseError = (createProfileApiV1CrawlProfilesPostResponse422) & {
-  headers: Headers;
-};
-
-export type createProfileApiV1CrawlProfilesPostResponse = (createProfileApiV1CrawlProfilesPostResponseSuccess | createProfileApiV1CrawlProfilesPostResponseError)
-
-export const getCreateProfileApiV1CrawlProfilesPostUrl = () => {
-
-
-
-
-  return `/api/v1/crawl-profiles`
-}
-
 /**
  * @summary Create Profile
  */
-export const createProfileApiV1CrawlProfilesPost = async (crawlProfileCreate: CrawlProfileCreate, options?: RequestInit): Promise<createProfileApiV1CrawlProfilesPostResponse> => {
-
-  return customInstance<createProfileApiV1CrawlProfilesPostResponse>(getCreateProfileApiV1CrawlProfilesPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileCreate)
-  }
-);}
+export const crawlProfilesCreateProfile = (
+    crawlProfileCreate: BodyType<CrawlProfileCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<CrawlProfileResponse>(
+      {url: `/api/v1/crawl-profiles`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: crawlProfileCreate, signal
+    },
+      options);
+    }
 
 
-export const getCreateProfileApiV1CrawlProfilesPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext> => {
 
-const mutationKey = ['createProfileApiV1CrawlProfilesPost'];
+export const getCrawlProfilesCreateProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCreateProfile>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCreateProfile>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext> => {
+
+const mutationKey = ['crawlProfilesCreateProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -329,10 +171,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>, {data: BodyType<CrawlProfileCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesCreateProfile>>, {data: BodyType<CrawlProfileCreate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createProfileApiV1CrawlProfilesPost(data,requestOptions)
+          return  crawlProfilesCreateProfile(data,requestOptions)
         }
 
 
@@ -342,249 +184,137 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateProfileApiV1CrawlProfilesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>>
-    export type CreateProfileApiV1CrawlProfilesPostMutationBody = BodyType<CrawlProfileCreate>
-    export type CreateProfileApiV1CrawlProfilesPostMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesCreateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesCreateProfile>>>
+    export type CrawlProfilesCreateProfileMutationBody = BodyType<CrawlProfileCreate>
+    export type CrawlProfilesCreateProfileMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Create Profile
  */
-export const useCreateProfileApiV1CrawlProfilesPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesCreateProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCreateProfile>>, TError,{data: BodyType<CrawlProfileCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createProfileApiV1CrawlProfilesPost>>,
+        Awaited<ReturnType<typeof crawlProfilesCreateProfile>>,
         TError,
         {data: BodyType<CrawlProfileCreate>},
         TContext
       > => {
-      return useMutation(getCreateProfileApiV1CrawlProfilesPostMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesCreateProfileMutationOptions(options), queryClient);
     }
-    export type renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse200 = {
-  data: CrawlProfileResponse
-  status: 200
-}
-
-export type renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponseSuccess = (renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse200) & {
-  headers: Headers;
-};
-export type renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponseError = (renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse422) & {
-  headers: Headers;
-};
-
-export type renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse = (renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponseSuccess | renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponseError)
-
-export const getRenameProfileApiV1CrawlProfilesProfileKeyRenamePostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/rename`
-}
-
-/**
- * @summary Rename Profile
- */
-export const renameProfileApiV1CrawlProfilesProfileKeyRenamePost = async (profileKey: string,
-    crawlProfileRenameRequest: CrawlProfileRenameRequest, options?: RequestInit): Promise<renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse> => {
-
-  return customInstance<renameProfileApiV1CrawlProfilesProfileKeyRenamePostResponse>(getRenameProfileApiV1CrawlProfilesProfileKeyRenamePostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileRenameRequest)
-  }
-);}
-
-
-
-
-export const getRenameProfileApiV1CrawlProfilesProfileKeyRenamePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext> => {
-
-const mutationKey = ['renameProfileApiV1CrawlProfilesProfileKeyRenamePost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>, {profileKey: string;data: BodyType<CrawlProfileRenameRequest>}> = (props) => {
-          const {profileKey,data} = props ?? {};
-
-          return  renameProfileApiV1CrawlProfilesProfileKeyRenamePost(profileKey,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type RenameProfileApiV1CrawlProfilesProfileKeyRenamePostMutationResult = NonNullable<Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>>
-    export type RenameProfileApiV1CrawlProfilesProfileKeyRenamePostMutationBody = BodyType<CrawlProfileRenameRequest>
-    export type RenameProfileApiV1CrawlProfilesProfileKeyRenamePostMutationError = ErrorType<HTTPValidationError>
-
     /**
- * @summary Rename Profile
+ * @summary Get Runtime Capabilities
  */
-export const useRenameProfileApiV1CrawlProfilesProfileKeyRenamePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof renameProfileApiV1CrawlProfilesProfileKeyRenamePost>>,
-        TError,
-        {profileKey: string;data: BodyType<CrawlProfileRenameRequest>},
-        TContext
-      > => {
-      return useMutation(getRenameProfileApiV1CrawlProfilesProfileKeyRenamePostMutationOptions(options), queryClient);
+export const crawlProfilesGetRuntimeCapabilities = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<CrawlProfileRuntimeCapabilities>(
+      {url: `/api/v1/crawl-profiles/runtime-capabilities`, method: 'GET', signal
+    },
+      options);
     }
-    export type copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse201 = {
-  data: CrawlProfileResponse
-  status: 201
+
+
+
+
+export const getCrawlProfilesGetRuntimeCapabilitiesQueryKey = () => {
+    return [
+    `/api/v1/crawl-profiles/runtime-capabilities`
+    ] as const;
+    }
+
+
+export const getCrawlProfilesGetRuntimeCapabilitiesQueryOptions = <TData = Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCrawlProfilesGetRuntimeCapabilitiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>> = ({ signal }) => crawlProfilesGetRuntimeCapabilities(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponseSuccess = (copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse201) & {
-  headers: Headers;
-};
-export type copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponseError = (copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse422) & {
-  headers: Headers;
-};
-
-export type copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse = (copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponseSuccess | copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponseError)
-
-export const getCopyProfileApiV1CrawlProfilesProfileKeyCopyPostUrl = (profileKey: string,) => {
+export type CrawlProfilesGetRuntimeCapabilitiesQueryResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>>
+export type CrawlProfilesGetRuntimeCapabilitiesQueryError = ErrorType<unknown>
 
 
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/copy`
-}
-
+export function useCrawlProfilesGetRuntimeCapabilities<TData = Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>,
+          TError,
+          Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCrawlProfilesGetRuntimeCapabilities<TData = Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>,
+          TError,
+          Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCrawlProfilesGetRuntimeCapabilities<TData = Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Copy Profile
+ * @summary Get Runtime Capabilities
  */
-export const copyProfileApiV1CrawlProfilesProfileKeyCopyPost = async (profileKey: string, options?: RequestInit): Promise<copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse> => {
 
-  return customInstance<copyProfileApiV1CrawlProfilesProfileKeyCopyPostResponse>(getCopyProfileApiV1CrawlProfilesProfileKeyCopyPostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST'
+export function useCrawlProfilesGetRuntimeCapabilities<TData = Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetRuntimeCapabilities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
+  const queryOptions = getCrawlProfilesGetRuntimeCapabilitiesQueryOptions(options)
 
-  }
-);}
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
-
-
-
-export const getCopyProfileApiV1CrawlProfilesProfileKeyCopyPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>, TError,{profileKey: string}, TContext> => {
-
-const mutationKey = ['copyProfileApiV1CrawlProfilesProfileKeyCopyPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>, {profileKey: string}> = (props) => {
-          const {profileKey} = props ?? {};
-
-          return  copyProfileApiV1CrawlProfilesProfileKeyCopyPost(profileKey,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CopyProfileApiV1CrawlProfilesProfileKeyCopyPostMutationResult = NonNullable<Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>>
-
-    export type CopyProfileApiV1CrawlProfilesProfileKeyCopyPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Copy Profile
- */
-export const useCopyProfileApiV1CrawlProfilesProfileKeyCopyPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof copyProfileApiV1CrawlProfilesProfileKeyCopyPost>>,
-        TError,
-        {profileKey: string},
-        TContext
-      > => {
-      return useMutation(getCopyProfileApiV1CrawlProfilesProfileKeyCopyPostMutationOptions(options), queryClient);
-    }
-    export type deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse204 = {
-  data: void
-  status: 204
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export type deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponseSuccess = (deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse204) & {
-  headers: Headers;
-};
-export type deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponseError = (deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse = (deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponseSuccess | deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponseError)
-
-export const getDeleteProfileApiV1CrawlProfilesProfileKeyDeleteUrl = (profileKey: string,) => {
 
 
 
 
-  return `/api/v1/crawl-profiles/${profileKey}`
-}
 
 /**
  * @summary Delete Profile
  */
-export const deleteProfileApiV1CrawlProfilesProfileKeyDelete = async (profileKey: string, options?: RequestInit): Promise<deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse> => {
-
-  return customInstance<deleteProfileApiV1CrawlProfilesProfileKeyDeleteResponse>(getDeleteProfileApiV1CrawlProfilesProfileKeyDeleteUrl(profileKey),
-  {
-    ...options,
-    method: 'DELETE'
+export const crawlProfilesDeleteProfile = (
+    profileKey: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<void>(
+      {url: `/api/v1/crawl-profiles/${profileKey}`, method: 'DELETE', signal
+    },
+      options);
+    }
 
 
 
+export const getCrawlProfilesDeleteProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>, TError,{profileKey: string}, TContext> => {
 
-export const getDeleteProfileApiV1CrawlProfilesProfileKeyDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>, TError,{profileKey: string}, TContext> => {
-
-const mutationKey = ['deleteProfileApiV1CrawlProfilesProfileKeyDelete'];
+const mutationKey = ['crawlProfilesDeleteProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -594,10 +324,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>, {profileKey: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>, {profileKey: string}> = (props) => {
           const {profileKey} = props ?? {};
 
-          return  deleteProfileApiV1CrawlProfilesProfileKeyDelete(profileKey,requestOptions)
+          return  crawlProfilesDeleteProfile(profileKey,requestOptions)
         }
 
 
@@ -607,73 +337,48 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteProfileApiV1CrawlProfilesProfileKeyDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>>
+    export type CrawlProfilesDeleteProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>>
 
-    export type DeleteProfileApiV1CrawlProfilesProfileKeyDeleteMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesDeleteProfileMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Delete Profile
  */
-export const useDeleteProfileApiV1CrawlProfilesProfileKeyDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesDeleteProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteProfileApiV1CrawlProfilesProfileKeyDelete>>,
+        Awaited<ReturnType<typeof crawlProfilesDeleteProfile>>,
         TError,
         {profileKey: string},
         TContext
       > => {
-      return useMutation(getDeleteProfileApiV1CrawlProfilesProfileKeyDeleteMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesDeleteProfileMutationOptions(options), queryClient);
     }
-    export type updateProfileApiV1CrawlProfilesProfileKeyPatchResponse200 = {
-  data: CrawlProfileResponse
-  status: 200
-}
-
-export type updateProfileApiV1CrawlProfilesProfileKeyPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateProfileApiV1CrawlProfilesProfileKeyPatchResponseSuccess = (updateProfileApiV1CrawlProfilesProfileKeyPatchResponse200) & {
-  headers: Headers;
-};
-export type updateProfileApiV1CrawlProfilesProfileKeyPatchResponseError = (updateProfileApiV1CrawlProfilesProfileKeyPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateProfileApiV1CrawlProfilesProfileKeyPatchResponse = (updateProfileApiV1CrawlProfilesProfileKeyPatchResponseSuccess | updateProfileApiV1CrawlProfilesProfileKeyPatchResponseError)
-
-export const getUpdateProfileApiV1CrawlProfilesProfileKeyPatchUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}`
-}
-
-/**
+    /**
  * @summary Update Profile
  */
-export const updateProfileApiV1CrawlProfilesProfileKeyPatch = async (profileKey: string,
-    crawlProfileUpdate: CrawlProfileUpdate, options?: RequestInit): Promise<updateProfileApiV1CrawlProfilesProfileKeyPatchResponse> => {
-
-  return customInstance<updateProfileApiV1CrawlProfilesProfileKeyPatchResponse>(getUpdateProfileApiV1CrawlProfilesProfileKeyPatchUrl(profileKey),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileUpdate)
-  }
-);}
+export const crawlProfilesUpdateProfile = (
+    profileKey: string,
+    crawlProfileUpdate: BodyType<CrawlProfileUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<CrawlProfileResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: crawlProfileUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateProfileApiV1CrawlProfilesProfileKeyPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext> => {
 
-const mutationKey = ['updateProfileApiV1CrawlProfilesProfileKeyPatch'];
+export const getCrawlProfilesUpdateProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext> => {
+
+const mutationKey = ['crawlProfilesUpdateProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -683,10 +388,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>, {profileKey: string;data: BodyType<CrawlProfileUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>, {profileKey: string;data: BodyType<CrawlProfileUpdate>}> = (props) => {
           const {profileKey,data} = props ?? {};
 
-          return  updateProfileApiV1CrawlProfilesProfileKeyPatch(profileKey,data,requestOptions)
+          return  crawlProfilesUpdateProfile(profileKey,data,requestOptions)
         }
 
 
@@ -696,72 +401,45 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateProfileApiV1CrawlProfilesProfileKeyPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>>
-    export type UpdateProfileApiV1CrawlProfilesProfileKeyPatchMutationBody = BodyType<CrawlProfileUpdate>
-    export type UpdateProfileApiV1CrawlProfilesProfileKeyPatchMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesUpdateProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>>
+    export type CrawlProfilesUpdateProfileMutationBody = BodyType<CrawlProfileUpdate>
+    export type CrawlProfilesUpdateProfileMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Profile
  */
-export const useUpdateProfileApiV1CrawlProfilesProfileKeyPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesUpdateProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateProfileApiV1CrawlProfilesProfileKeyPatch>>,
+        Awaited<ReturnType<typeof crawlProfilesUpdateProfile>>,
         TError,
         {profileKey: string;data: BodyType<CrawlProfileUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateProfileApiV1CrawlProfilesProfileKeyPatchMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesUpdateProfileMutationOptions(options), queryClient);
     }
-    export type releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse200 = {
-  data: CrawlProfileResponse
-  status: 200
-}
-
-export type releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponseSuccess = (releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse200) & {
-  headers: Headers;
-};
-export type releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponseError = (releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse422) & {
-  headers: Headers;
-};
-
-export type releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse = (releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponseSuccess | releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponseError)
-
-export const getReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/release-stale`
-}
-
-/**
- * @summary Release Stale Profile
+    /**
+ * @summary Copy Profile
  */
-export const releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost = async (profileKey: string, options?: RequestInit): Promise<releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse> => {
-
-  return customInstance<releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostResponse>(getReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST'
+export const crawlProfilesCopyProfile = (
+    profileKey: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<CrawlProfileResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/copy`, method: 'POST', signal
+    },
+      options);
+    }
 
 
 
+export const getCrawlProfilesCopyProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCopyProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCopyProfile>>, TError,{profileKey: string}, TContext> => {
 
-export const getReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>, TError,{profileKey: string}, TContext> => {
-
-const mutationKey = ['releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost'];
+const mutationKey = ['crawlProfilesCopyProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -771,10 +449,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>, {profileKey: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesCopyProfile>>, {profileKey: string}> = (props) => {
           const {profileKey} = props ?? {};
 
-          return  releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost(profileKey,requestOptions)
+          return  crawlProfilesCopyProfile(profileKey,requestOptions)
         }
 
 
@@ -784,73 +462,54 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type ReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostMutationResult = NonNullable<Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>>
+    export type CrawlProfilesCopyProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesCopyProfile>>>
 
-    export type ReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesCopyProfileMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Release Stale Profile
+ * @summary Copy Profile
  */
-export const useReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesCopyProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCopyProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof releaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePost>>,
+        Awaited<ReturnType<typeof crawlProfilesCopyProfile>>,
         TError,
         {profileKey: string},
         TContext
       > => {
-      return useMutation(getReleaseStaleProfileApiV1CrawlProfilesProfileKeyReleaseStalePostMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesCopyProfileMutationOptions(options), queryClient);
     }
-    export type openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse200 = {
-  data: CrawlProfileLoginSessionResponse
-  status: 200
-}
-
-export type openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponseSuccess = (openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse200) & {
-  headers: Headers;
-};
-export type openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponseError = (openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse422) & {
-  headers: Headers;
-};
-
-export type openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse = (openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponseSuccess | openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponseError)
-
-export const getOpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/login-session`
-}
-
-/**
- * @summary Open Login Session
+    /**
+ * @summary Import Profile Backup
  */
-export const openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost = async (profileKey: string,
-    crawlProfileLoginSessionRequest: CrawlProfileLoginSessionRequest, options?: RequestInit): Promise<openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse> => {
+export const crawlProfilesImportProfileBackup = (
+    profileKey: string,
+    bodyCrawlProfilesImportProfileBackup: BodyType<BodyCrawlProfilesImportProfileBackup>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostResponse>(getOpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileLoginSessionRequest)
-  }
-);}
+      const formData = new FormData();
+formData.append(`file`, bodyCrawlProfilesImportProfileBackup.file);
+if(bodyCrawlProfilesImportProfileBackup.force !== undefined) {
+ formData.append(`force`, bodyCrawlProfilesImportProfileBackup.force.toString())
+ }
+formData.append(`password`, bodyCrawlProfilesImportProfileBackup.password);
+
+      return customInstance<CrawlProfileBackupImportResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/import`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData, signal
+    },
+      options);
+    }
 
 
 
+export const getCrawlProfilesImportProfileBackupMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>, TError,{profileKey: string;data: BodyType<BodyCrawlProfilesImportProfileBackup>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>, TError,{profileKey: string;data: BodyType<BodyCrawlProfilesImportProfileBackup>}, TContext> => {
 
-export const getOpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext> => {
-
-const mutationKey = ['openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost'];
+const mutationKey = ['crawlProfilesImportProfileBackup'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -860,10 +519,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>, {profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>, {profileKey: string;data: BodyType<BodyCrawlProfilesImportProfileBackup>}> = (props) => {
           const {profileKey,data} = props ?? {};
 
-          return  openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost(profileKey,data,requestOptions)
+          return  crawlProfilesImportProfileBackup(profileKey,data,requestOptions)
         }
 
 
@@ -873,131 +532,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type OpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostMutationResult = NonNullable<Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>>
-    export type OpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostMutationBody = BodyType<CrawlProfileLoginSessionRequest>
-    export type OpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesImportProfileBackupMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>>
+    export type CrawlProfilesImportProfileBackupMutationBody = BodyType<BodyCrawlProfilesImportProfileBackup>
+    export type CrawlProfilesImportProfileBackupMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Open Login Session
+ * @summary Import Profile Backup
  */
-export const useOpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesImportProfileBackup = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>, TError,{profileKey: string;data: BodyType<BodyCrawlProfilesImportProfileBackup>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof openLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPost>>,
+        Awaited<ReturnType<typeof crawlProfilesImportProfileBackup>>,
         TError,
-        {profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>},
+        {profileKey: string;data: BodyType<BodyCrawlProfilesImportProfileBackup>},
         TContext
       > => {
-      return useMutation(getOpenLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionPostMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesImportProfileBackupMutationOptions(options), queryClient);
     }
-    export type getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse200 = {
-  data: CrawlProfileLoginSessionResponse
-  status: 200
-}
-
-export type getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponseSuccess = (getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse200) & {
-  headers: Headers;
-};
-export type getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponseError = (getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse422) & {
-  headers: Headers;
-};
-
-export type getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse = (getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponseSuccess | getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponseError)
-
-export const getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/login-session`
-}
-
-/**
+    /**
  * @summary Get Login Session
  */
-export const getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet = async (profileKey: string, options?: RequestInit): Promise<getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse> => {
-
-  return customInstance<getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetResponse>(getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetUrl(profileKey),
-  {
-    ...options,
-    method: 'GET'
+export const crawlProfilesGetLoginSession = (
+    profileKey: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<CrawlProfileLoginSessionResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/login-session`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryKey = (profileKey: string,) => {
+export const getCrawlProfilesGetLoginSessionQueryKey = (profileKey: string,) => {
     return [
     `/api/v1/crawl-profiles/${profileKey}/login-session`
     ] as const;
     }
 
 
-export const getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryOptions = <TData = Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError = ErrorType<HTTPValidationError>>(profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getCrawlProfilesGetLoginSessionQueryOptions = <TData = Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError = ErrorType<HTTPValidationError>>(profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryKey(profileKey);
+  const queryKey =  queryOptions?.queryKey ?? getCrawlProfilesGetLoginSessionQueryKey(profileKey);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>> = ({ signal }) => getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet(profileKey, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>> = ({ signal }) => crawlProfilesGetLoginSession(profileKey, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: profileKey !== null && profileKey !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: profileKey !== null && profileKey !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryResult = NonNullable<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>>
-export type GetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryError = ErrorType<HTTPValidationError>
+export type CrawlProfilesGetLoginSessionQueryResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>>
+export type CrawlProfilesGetLoginSessionQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet<TData = Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError = ErrorType<HTTPValidationError>>(
- profileKey: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData>> & Pick<
+export function useCrawlProfilesGetLoginSession<TData = Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError = ErrorType<HTTPValidationError>>(
+ profileKey: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>,
+          Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>,
           TError,
-          Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>
+          Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet<TData = Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError = ErrorType<HTTPValidationError>>(
- profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData>> & Pick<
+export function useCrawlProfilesGetLoginSession<TData = Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError = ErrorType<HTTPValidationError>>(
+ profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>,
+          Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>,
           TError,
-          Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>
+          Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet<TData = Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError = ErrorType<HTTPValidationError>>(
- profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useCrawlProfilesGetLoginSession<TData = Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError = ErrorType<HTTPValidationError>>(
+ profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Login Session
  */
 
-export function useGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet<TData = Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError = ErrorType<HTTPValidationError>>(
- profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useCrawlProfilesGetLoginSession<TData = Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError = ErrorType<HTTPValidationError>>(
+ profileKey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crawlProfilesGetLoginSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGetQueryOptions(profileKey,options)
+  const queryOptions = getCrawlProfilesGetLoginSessionQueryOptions(profileKey,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1009,55 +641,31 @@ export function useGetLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionGet<TD
 
 
 
-export type closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse200 = {
-  data: CrawlProfileLoginSessionResponse
-  status: 200
-}
-
-export type closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponseSuccess = (closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse200) & {
-  headers: Headers;
-};
-export type closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponseError = (closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse422) & {
-  headers: Headers;
-};
-
-export type closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse = (closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponseSuccess | closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponseError)
-
-export const getCloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/login-session/close`
-}
-
 /**
- * @summary Close Login Session
+ * @summary Open Login Session
  */
-export const closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost = async (profileKey: string, options?: RequestInit): Promise<closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse> => {
-
-  return customInstance<closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostResponse>(getCloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
+export const crawlProfilesOpenLoginSession = (
+    profileKey: string,
+    crawlProfileLoginSessionRequest: BodyType<CrawlProfileLoginSessionRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<CrawlProfileLoginSessionResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/login-session`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: crawlProfileLoginSessionRequest, signal
+    },
+      options);
+    }
 
 
-export const getCloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>, TError,{profileKey: string}, TContext> => {
 
-const mutationKey = ['closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost'];
+export const getCrawlProfilesOpenLoginSessionMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext> => {
+
+const mutationKey = ['crawlProfilesOpenLoginSession'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1067,10 +675,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>, {profileKey: string}> = (props) => {
-          const {profileKey} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>, {profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}> = (props) => {
+          const {profileKey,data} = props ?? {};
 
-          return  closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost(profileKey,requestOptions)
+          return  crawlProfilesOpenLoginSession(profileKey,data,requestOptions)
         }
 
 
@@ -1080,73 +688,106 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostMutationResult = NonNullable<Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>>
+    export type CrawlProfilesOpenLoginSessionMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>>
+    export type CrawlProfilesOpenLoginSessionMutationBody = BodyType<CrawlProfileLoginSessionRequest>
+    export type CrawlProfilesOpenLoginSessionMutationError = ErrorType<HTTPValidationError>
 
-    export type CloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostMutationError = ErrorType<HTTPValidationError>
+    /**
+ * @summary Open Login Session
+ */
+export const useCrawlProfilesOpenLoginSession = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>, TError,{profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof crawlProfilesOpenLoginSession>>,
+        TError,
+        {profileKey: string;data: BodyType<CrawlProfileLoginSessionRequest>},
+        TContext
+      > => {
+      return useMutation(getCrawlProfilesOpenLoginSessionMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Close Login Session
+ */
+export const crawlProfilesCloseLoginSession = (
+    profileKey: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<CrawlProfileLoginSessionResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/login-session/close`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+export const getCrawlProfilesCloseLoginSessionMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>, TError,{profileKey: string}, TContext> => {
+
+const mutationKey = ['crawlProfilesCloseLoginSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>, {profileKey: string}> = (props) => {
+          const {profileKey} = props ?? {};
+
+          return  crawlProfilesCloseLoginSession(profileKey,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CrawlProfilesCloseLoginSessionMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>>
+
+    export type CrawlProfilesCloseLoginSessionMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Close Login Session
  */
-export const useCloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesCloseLoginSession = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof closeLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePost>>,
+        Awaited<ReturnType<typeof crawlProfilesCloseLoginSession>>,
         TError,
         {profileKey: string},
         TContext
       > => {
-      return useMutation(getCloseLoginSessionApiV1CrawlProfilesProfileKeyLoginSessionClosePostMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesCloseLoginSessionMutationOptions(options), queryClient);
     }
-    export type testProfileApiV1CrawlProfilesProfileKeyTestPostResponse200 = {
-  data: CrawlProfileTestResponse
-  status: 200
-}
-
-export type testProfileApiV1CrawlProfilesProfileKeyTestPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type testProfileApiV1CrawlProfilesProfileKeyTestPostResponseSuccess = (testProfileApiV1CrawlProfilesProfileKeyTestPostResponse200) & {
-  headers: Headers;
-};
-export type testProfileApiV1CrawlProfilesProfileKeyTestPostResponseError = (testProfileApiV1CrawlProfilesProfileKeyTestPostResponse422) & {
-  headers: Headers;
-};
-
-export type testProfileApiV1CrawlProfilesProfileKeyTestPostResponse = (testProfileApiV1CrawlProfilesProfileKeyTestPostResponseSuccess | testProfileApiV1CrawlProfilesProfileKeyTestPostResponseError)
-
-export const getTestProfileApiV1CrawlProfilesProfileKeyTestPostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/test`
-}
-
-/**
- * @summary Test Profile
+    /**
+ * @summary Release Stale Profile
  */
-export const testProfileApiV1CrawlProfilesProfileKeyTestPost = async (profileKey: string,
-    crawlProfileTestRequest: CrawlProfileTestRequest, options?: RequestInit): Promise<testProfileApiV1CrawlProfilesProfileKeyTestPostResponse> => {
-
-  return customInstance<testProfileApiV1CrawlProfilesProfileKeyTestPostResponse>(getTestProfileApiV1CrawlProfilesProfileKeyTestPostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileTestRequest)
-  }
-);}
+export const crawlProfilesReleaseStaleProfile = (
+    profileKey: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<CrawlProfileResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/release-stale`, method: 'POST', signal
+    },
+      options);
+    }
 
 
-export const getTestProfileApiV1CrawlProfilesProfileKeyTestPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext> => {
 
-const mutationKey = ['testProfileApiV1CrawlProfilesProfileKeyTestPost'];
+export const getCrawlProfilesReleaseStaleProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>, TError,{profileKey: string}, TContext> => {
+
+const mutationKey = ['crawlProfilesReleaseStaleProfile'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1156,10 +797,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>, {profileKey: string;data: BodyType<CrawlProfileTestRequest>}> = (props) => {
-          const {profileKey,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>, {profileKey: string}> = (props) => {
+          const {profileKey} = props ?? {};
 
-          return  testProfileApiV1CrawlProfilesProfileKeyTestPost(profileKey,data,requestOptions)
+          return  crawlProfilesReleaseStaleProfile(profileKey,requestOptions)
         }
 
 
@@ -1169,204 +810,148 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TestProfileApiV1CrawlProfilesProfileKeyTestPostMutationResult = NonNullable<Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>>
-    export type TestProfileApiV1CrawlProfilesProfileKeyTestPostMutationBody = BodyType<CrawlProfileTestRequest>
-    export type TestProfileApiV1CrawlProfilesProfileKeyTestPostMutationError = ErrorType<HTTPValidationError>
+    export type CrawlProfilesReleaseStaleProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>>
+
+    export type CrawlProfilesReleaseStaleProfileMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Release Stale Profile
+ */
+export const useCrawlProfilesReleaseStaleProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>, TError,{profileKey: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof crawlProfilesReleaseStaleProfile>>,
+        TError,
+        {profileKey: string},
+        TContext
+      > => {
+      return useMutation(getCrawlProfilesReleaseStaleProfileMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Rename Profile
+ */
+export const crawlProfilesRenameProfile = (
+    profileKey: string,
+    crawlProfileRenameRequest: BodyType<CrawlProfileRenameRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<CrawlProfileResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/rename`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: crawlProfileRenameRequest, signal
+    },
+      options);
+    }
+
+
+
+export const getCrawlProfilesRenameProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesRenameProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesRenameProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext> => {
+
+const mutationKey = ['crawlProfilesRenameProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesRenameProfile>>, {profileKey: string;data: BodyType<CrawlProfileRenameRequest>}> = (props) => {
+          const {profileKey,data} = props ?? {};
+
+          return  crawlProfilesRenameProfile(profileKey,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CrawlProfilesRenameProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesRenameProfile>>>
+    export type CrawlProfilesRenameProfileMutationBody = BodyType<CrawlProfileRenameRequest>
+    export type CrawlProfilesRenameProfileMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Rename Profile
+ */
+export const useCrawlProfilesRenameProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesRenameProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileRenameRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof crawlProfilesRenameProfile>>,
+        TError,
+        {profileKey: string;data: BodyType<CrawlProfileRenameRequest>},
+        TContext
+      > => {
+      return useMutation(getCrawlProfilesRenameProfileMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Test Profile
+ */
+export const crawlProfilesTestProfile = (
+    profileKey: string,
+    crawlProfileTestRequest: BodyType<CrawlProfileTestRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<CrawlProfileTestResponse>(
+      {url: `/api/v1/crawl-profiles/${profileKey}/test`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: crawlProfileTestRequest, signal
+    },
+      options);
+    }
+
+
+
+export const getCrawlProfilesTestProfileMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesTestProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesTestProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext> => {
+
+const mutationKey = ['crawlProfilesTestProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlProfilesTestProfile>>, {profileKey: string;data: BodyType<CrawlProfileTestRequest>}> = (props) => {
+          const {profileKey,data} = props ?? {};
+
+          return  crawlProfilesTestProfile(profileKey,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CrawlProfilesTestProfileMutationResult = NonNullable<Awaited<ReturnType<typeof crawlProfilesTestProfile>>>
+    export type CrawlProfilesTestProfileMutationBody = BodyType<CrawlProfileTestRequest>
+    export type CrawlProfilesTestProfileMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Test Profile
  */
-export const useTestProfileApiV1CrawlProfilesProfileKeyTestPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCrawlProfilesTestProfile = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlProfilesTestProfile>>, TError,{profileKey: string;data: BodyType<CrawlProfileTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof testProfileApiV1CrawlProfilesProfileKeyTestPost>>,
+        Awaited<ReturnType<typeof crawlProfilesTestProfile>>,
         TError,
         {profileKey: string;data: BodyType<CrawlProfileTestRequest>},
         TContext
       > => {
-      return useMutation(getTestProfileApiV1CrawlProfilesProfileKeyTestPostMutationOptions(options), queryClient);
-    }
-    export type exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponseSuccess = (exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse200) & {
-  headers: Headers;
-};
-export type exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponseError = (exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse422) & {
-  headers: Headers;
-};
-
-export type exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse = (exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponseSuccess | exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponseError)
-
-export const getExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/export`
-}
-
-/**
- * @summary Export Profile Backup
- */
-export const exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost = async (profileKey: string,
-    crawlProfileBackupExportRequest: CrawlProfileBackupExportRequest, options?: RequestInit): Promise<exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse> => {
-
-  return customInstance<exportProfileBackupApiV1CrawlProfilesProfileKeyExportPostResponse>(getExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(crawlProfileBackupExportRequest)
-  }
-);}
-
-
-
-
-export const getExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileBackupExportRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileBackupExportRequest>}, TContext> => {
-
-const mutationKey = ['exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>, {profileKey: string;data: BodyType<CrawlProfileBackupExportRequest>}> = (props) => {
-          const {profileKey,data} = props ?? {};
-
-          return  exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost(profileKey,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type ExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostMutationResult = NonNullable<Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>>
-    export type ExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostMutationBody = BodyType<CrawlProfileBackupExportRequest>
-    export type ExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Export Profile Backup
- */
-export const useExportProfileBackupApiV1CrawlProfilesProfileKeyExportPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>, TError,{profileKey: string;data: BodyType<CrawlProfileBackupExportRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof exportProfileBackupApiV1CrawlProfilesProfileKeyExportPost>>,
-        TError,
-        {profileKey: string;data: BodyType<CrawlProfileBackupExportRequest>},
-        TContext
-      > => {
-      return useMutation(getExportProfileBackupApiV1CrawlProfilesProfileKeyExportPostMutationOptions(options), queryClient);
-    }
-    export type importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse200 = {
-  data: CrawlProfileBackupImportResponse
-  status: 200
-}
-
-export type importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponseSuccess = (importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse200) & {
-  headers: Headers;
-};
-export type importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponseError = (importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse422) & {
-  headers: Headers;
-};
-
-export type importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse = (importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponseSuccess | importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponseError)
-
-export const getImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostUrl = (profileKey: string,) => {
-
-
-
-
-  return `/api/v1/crawl-profiles/${profileKey}/import`
-}
-
-/**
- * @summary Import Profile Backup
- */
-export const importProfileBackupApiV1CrawlProfilesProfileKeyImportPost = async (profileKey: string,
-    bodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost: BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost, options?: RequestInit): Promise<importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse> => {
-    const formData = new FormData();
-formData.append(`password`, bodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost.password);
-if(bodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost.force !== undefined) {
- formData.append(`force`, bodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost.force.toString())
- }
-formData.append(`file`, bodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost.file);
-
-  return customInstance<importProfileBackupApiV1CrawlProfilesProfileKeyImportPostResponse>(getImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostUrl(profileKey),
-  {
-    ...options,
-    method: 'POST'
-    ,
-    body: formData
-  }
-);}
-
-
-
-
-export const getImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>, TError,{profileKey: string;data: BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>, TError,{profileKey: string;data: BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>}, TContext> => {
-
-const mutationKey = ['importProfileBackupApiV1CrawlProfilesProfileKeyImportPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>, {profileKey: string;data: BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>}> = (props) => {
-          const {profileKey,data} = props ?? {};
-
-          return  importProfileBackupApiV1CrawlProfilesProfileKeyImportPost(profileKey,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type ImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostMutationResult = NonNullable<Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>>
-    export type ImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostMutationBody = BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>
-    export type ImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Import Profile Backup
- */
-export const useImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>, TError,{profileKey: string;data: BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof importProfileBackupApiV1CrawlProfilesProfileKeyImportPost>>,
-        TError,
-        {profileKey: string;data: BodyType<BodyImportProfileBackupApiV1CrawlProfilesProfileKeyImportPost>},
-        TContext
-      > => {
-      return useMutation(getImportProfileBackupApiV1CrawlProfilesProfileKeyImportPostMutationOptions(options), queryClient);
+      return useMutation(getCrawlProfilesTestProfileMutationOptions(options), queryClient);
     }

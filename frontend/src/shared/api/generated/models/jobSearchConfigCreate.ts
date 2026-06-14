@@ -10,23 +10,23 @@ import type { JobSearchConfigCreatePlatform } from './jobSearchConfigCreatePlatf
  * Schema for creating a job search config.
  */
 export interface JobSearchConfigCreate {
-  /** @maxLength 100 */
-  name: string;
-  /** @maxLength 80 */
-  profile_key?: string;
-  platform?: JobSearchConfigCreatePlatform;
-  keyword?: string | null;
-  city_code?: string | null;
-  salary_min?: number | null;
-  salary_max?: number | null;
-  experience?: string | null;
-  education?: string | null;
-  url: string;
   active?: boolean;
-  notify_on_new?: boolean;
-  /** @minimum 1 */
-  deactivation_threshold?: number;
+  city_code?: string | null;
   cron_expression?: string | null;
   cron_timezone?: string | null;
+  /** @minimum 1 */
+  deactivation_threshold?: number;
+  education?: string | null;
   enable_match_analysis?: boolean;
+  experience?: string | null;
+  keyword?: string | null;
+  /** @maxLength 100 */
+  name: string;
+  notify_on_new?: boolean;
+  platform?: JobSearchConfigCreatePlatform;
+  /** @maxLength 80 */
+  profile_key?: string;
+  salary_max?: number | null;
+  salary_min?: number | null;
+  url: string;
 }

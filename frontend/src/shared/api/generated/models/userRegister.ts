@@ -9,12 +9,6 @@
  * Request schema for user registration.
  */
 export interface UserRegister {
-  /**
-     * 用户名
-     * @minLength 3
-     * @maxLength 50
-     */
-  username: string;
   /** 邮箱 */
   email: string;
   /**
@@ -22,4 +16,10 @@ export interface UserRegister {
      * @maxLength 100
      */
   password: string;
+  /**
+     * 用户名
+     * @minLength 3
+     * @maxLength 50
+     */
+  username: string;
 }

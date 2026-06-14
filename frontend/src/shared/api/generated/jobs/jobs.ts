@@ -24,20 +24,26 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  GetJobCrawlLogsApiV1JobsCrawlLogsGetParams,
+  AppSchemasRuntimeApiMessageResponse,
   HTTPValidationError,
   JobConfigCronUpdate,
+  JobConfigSchedulesResponse,
   JobCrawlLogResponse,
   JobListResponse,
   JobResponse,
   JobSearchConfigCreate,
   JobSearchConfigResponse,
   JobSearchConfigUpdate,
-  ListConfigsApiV1JobsConfigsGetParams,
-  ListJobsApiV1JobsGetParams,
-  ListMatchResultsApiV1JobsMatchResultsGetParams,
+  JobsGetJobCrawlLogsParams,
+  JobsListConfigsParams,
+  JobsListJobsParams,
+  JobsListMatchResultsParams,
   MatchAnalyzeRequest,
   MatchResultListResponse,
+  MatchTaskQueuedResponse,
+  TaskErrorResponse,
+  TaskProgressResponse,
+  TaskQueuedResponse,
   UserResumeCreate,
   UserResumeResponse,
   UserResumeUpdate
@@ -51,122 +57,183 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type listConfigsApiV1JobsConfigsGetResponse200 = {
-  data: JobSearchConfigResponse[]
-  status: 200
-}
+/**
+ * List jobs with filtering and pagination.
+ * @summary List Jobs
+ */
+export const jobsListJobs = (
+    params?: JobsListJobsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-export type listConfigsApiV1JobsConfigsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
 
-export type listConfigsApiV1JobsConfigsGetResponseSuccess = (listConfigsApiV1JobsConfigsGetResponse200) & {
-  headers: Headers;
-};
-export type listConfigsApiV1JobsConfigsGetResponseError = (listConfigsApiV1JobsConfigsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listConfigsApiV1JobsConfigsGetResponse = (listConfigsApiV1JobsConfigsGetResponseSuccess | listConfigsApiV1JobsConfigsGetResponseError)
-
-export const getListConfigsApiV1JobsConfigsGetUrl = (params?: ListConfigsApiV1JobsConfigsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      return customInstance<JobListResponse>(
+      {url: `/api/v1/jobs`, method: 'GET',
+        params, signal
+    },
+      options);
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/v1/jobs/configs?${stringifiedParams}` : `/api/v1/jobs/configs`
+
+
+export const getJobsListJobsQueryKey = (params?: JobsListJobsParams,) => {
+    return [
+    `/api/v1/jobs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getJobsListJobsQueryOptions = <TData = Awaited<ReturnType<typeof jobsListJobs>>, TError = ErrorType<HTTPValidationError>>(params?: JobsListJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsListJobsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsListJobs>>> = ({ signal }) => jobsListJobs(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
+
+export type JobsListJobsQueryResult = NonNullable<Awaited<ReturnType<typeof jobsListJobs>>>
+export type JobsListJobsQueryError = ErrorType<HTTPValidationError>
+
+
+export function useJobsListJobs<TData = Awaited<ReturnType<typeof jobsListJobs>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  JobsListJobsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsListJobs>>,
+          TError,
+          Awaited<ReturnType<typeof jobsListJobs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsListJobs<TData = Awaited<ReturnType<typeof jobsListJobs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsListJobs>>,
+          TError,
+          Awaited<ReturnType<typeof jobsListJobs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsListJobs<TData = Awaited<ReturnType<typeof jobsListJobs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Jobs
+ */
+
+export function useJobsListJobs<TData = Awaited<ReturnType<typeof jobsListJobs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListJobsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListJobs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsListJobsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
 
 /**
  * List all job search configs.
  * @summary List Configs
  */
-export const listConfigsApiV1JobsConfigsGet = async (params?: ListConfigsApiV1JobsConfigsGetParams, options?: RequestInit): Promise<listConfigsApiV1JobsConfigsGetResponse> => {
-
-  return customInstance<listConfigsApiV1JobsConfigsGetResponse>(getListConfigsApiV1JobsConfigsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const jobsListConfigs = (
+    params?: JobsListConfigsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<JobSearchConfigResponse[]>(
+      {url: `/api/v1/jobs/configs`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListConfigsApiV1JobsConfigsGetQueryKey = (params?: ListConfigsApiV1JobsConfigsGetParams,) => {
+export const getJobsListConfigsQueryKey = (params?: JobsListConfigsParams,) => {
     return [
     `/api/v1/jobs/configs`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListConfigsApiV1JobsConfigsGetQueryOptions = <TData = Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListConfigsApiV1JobsConfigsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getJobsListConfigsQueryOptions = <TData = Awaited<ReturnType<typeof jobsListConfigs>>, TError = ErrorType<HTTPValidationError>>(params?: JobsListConfigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListConfigsApiV1JobsConfigsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getJobsListConfigsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>> = ({ signal }) => listConfigsApiV1JobsConfigsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsListConfigs>>> = ({ signal }) => jobsListConfigs(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListConfigsApiV1JobsConfigsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>>
-export type ListConfigsApiV1JobsConfigsGetQueryError = ErrorType<HTTPValidationError>
+export type JobsListConfigsQueryResult = NonNullable<Awaited<ReturnType<typeof jobsListConfigs>>>
+export type JobsListConfigsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListConfigsApiV1JobsConfigsGet<TData = Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListConfigsApiV1JobsConfigsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData>> & Pick<
+export function useJobsListConfigs<TData = Awaited<ReturnType<typeof jobsListConfigs>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  JobsListConfigsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>,
+          Awaited<ReturnType<typeof jobsListConfigs>>,
           TError,
-          Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>
+          Awaited<ReturnType<typeof jobsListConfigs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListConfigsApiV1JobsConfigsGet<TData = Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListConfigsApiV1JobsConfigsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData>> & Pick<
+export function useJobsListConfigs<TData = Awaited<ReturnType<typeof jobsListConfigs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListConfigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>,
+          Awaited<ReturnType<typeof jobsListConfigs>>,
           TError,
-          Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>
+          Awaited<ReturnType<typeof jobsListConfigs>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListConfigsApiV1JobsConfigsGet<TData = Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListConfigsApiV1JobsConfigsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsListConfigs<TData = Awaited<ReturnType<typeof jobsListConfigs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListConfigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Configs
  */
 
-export function useListConfigsApiV1JobsConfigsGet<TData = Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListConfigsApiV1JobsConfigsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConfigsApiV1JobsConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsListConfigs<TData = Awaited<ReturnType<typeof jobsListConfigs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListConfigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListConfigs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListConfigsApiV1JobsConfigsGetQueryOptions(params,options)
+  const queryOptions = getJobsListConfigsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -177,57 +244,32 @@ export function useListConfigsApiV1JobsConfigsGet<TData = Awaited<ReturnType<typ
 
 
 
-
-export type createConfigApiV1JobsConfigsPostResponse201 = {
-  data: JobSearchConfigResponse
-  status: 201
-}
-
-export type createConfigApiV1JobsConfigsPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createConfigApiV1JobsConfigsPostResponseSuccess = (createConfigApiV1JobsConfigsPostResponse201) & {
-  headers: Headers;
-};
-export type createConfigApiV1JobsConfigsPostResponseError = (createConfigApiV1JobsConfigsPostResponse422) & {
-  headers: Headers;
-};
-
-export type createConfigApiV1JobsConfigsPostResponse = (createConfigApiV1JobsConfigsPostResponseSuccess | createConfigApiV1JobsConfigsPostResponseError)
-
-export const getCreateConfigApiV1JobsConfigsPostUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/configs`
-}
 
 /**
  * Create a new job search config.
  * @summary Create Config
  */
-export const createConfigApiV1JobsConfigsPost = async (jobSearchConfigCreate: JobSearchConfigCreate, options?: RequestInit): Promise<createConfigApiV1JobsConfigsPostResponse> => {
-
-  return customInstance<createConfigApiV1JobsConfigsPostResponse>(getCreateConfigApiV1JobsConfigsPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(jobSearchConfigCreate)
-  }
-);}
+export const jobsCreateConfig = (
+    jobSearchConfigCreate: BodyType<JobSearchConfigCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<JobSearchConfigResponse>(
+      {url: `/api/v1/jobs/configs`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: jobSearchConfigCreate, signal
+    },
+      options);
+    }
 
 
-export const getCreateConfigApiV1JobsConfigsPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext> => {
 
-const mutationKey = ['createConfigApiV1JobsConfigsPost'];
+export const getJobsCreateConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCreateConfig>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsCreateConfig>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext> => {
+
+const mutationKey = ['jobsCreateConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -237,10 +279,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>, {data: BodyType<JobSearchConfigCreate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsCreateConfig>>, {data: BodyType<JobSearchConfigCreate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  createConfigApiV1JobsConfigsPost(data,requestOptions)
+          return  jobsCreateConfig(data,requestOptions)
         }
 
 
@@ -250,124 +292,167 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateConfigApiV1JobsConfigsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>>
-    export type CreateConfigApiV1JobsConfigsPostMutationBody = BodyType<JobSearchConfigCreate>
-    export type CreateConfigApiV1JobsConfigsPostMutationError = ErrorType<HTTPValidationError>
+    export type JobsCreateConfigMutationResult = NonNullable<Awaited<ReturnType<typeof jobsCreateConfig>>>
+    export type JobsCreateConfigMutationBody = BodyType<JobSearchConfigCreate>
+    export type JobsCreateConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Create Config
  */
-export const useCreateConfigApiV1JobsConfigsPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsCreateConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCreateConfig>>, TError,{data: BodyType<JobSearchConfigCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createConfigApiV1JobsConfigsPost>>,
+        Awaited<ReturnType<typeof jobsCreateConfig>>,
         TError,
         {data: BodyType<JobSearchConfigCreate>},
         TContext
       > => {
-      return useMutation(getCreateConfigApiV1JobsConfigsPostMutationOptions(options), queryClient);
+      return useMutation(getJobsCreateConfigMutationOptions(options), queryClient);
     }
-    export type listResumesApiV1JobsResumesGetResponse200 = {
-  data: UserResumeResponse[]
-  status: 200
-}
-
-export type listResumesApiV1JobsResumesGetResponseSuccess = (listResumesApiV1JobsResumesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listResumesApiV1JobsResumesGetResponse = (listResumesApiV1JobsResumesGetResponseSuccess)
-
-export const getListResumesApiV1JobsResumesGetUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/resumes`
-}
-
-/**
- * @summary List Resumes
+    /**
+ * Delete a config (cascades to jobs).
+ * @summary Delete Config
  */
-export const listResumesApiV1JobsResumesGet = async ( options?: RequestInit): Promise<listResumesApiV1JobsResumesGetResponse> => {
-
-  return customInstance<listResumesApiV1JobsResumesGetResponse>(getListResumesApiV1JobsResumesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+export const jobsDeleteConfig = (
+    configId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/jobs/configs/${configId}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+export const getJobsDeleteConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteConfig>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteConfig>>, TError,{configId: number}, TContext> => {
+
+const mutationKey = ['jobsDeleteConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsDeleteConfig>>, {configId: number}> = (props) => {
+          const {configId} = props ?? {};
+
+          return  jobsDeleteConfig(configId,requestOptions)
+        }
 
 
 
 
 
-export const getListResumesApiV1JobsResumesGetQueryKey = () => {
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JobsDeleteConfigMutationResult = NonNullable<Awaited<ReturnType<typeof jobsDeleteConfig>>>
+
+    export type JobsDeleteConfigMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Delete Config
+ */
+export const useJobsDeleteConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteConfig>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof jobsDeleteConfig>>,
+        TError,
+        {configId: number},
+        TContext
+      > => {
+      return useMutation(getJobsDeleteConfigMutationOptions(options), queryClient);
+    }
+    /**
+ * Get a single config.
+ * @summary Get Config
+ */
+export const jobsGetConfig = (
+    configId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<JobSearchConfigResponse>(
+      {url: `/api/v1/jobs/configs/${configId}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsGetConfigQueryKey = (configId: number,) => {
     return [
-    `/api/v1/jobs/resumes`
+    `/api/v1/jobs/configs/${configId}`
     ] as const;
     }
 
 
-export const getListResumesApiV1JobsResumesGetQueryOptions = <TData = Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getJobsGetConfigQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetConfig>>, TError = ErrorType<HTTPValidationError>>(configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListResumesApiV1JobsResumesGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetConfigQueryKey(configId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>> = ({ signal }) => listResumesApiV1JobsResumesGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetConfig>>> = ({ signal }) => jobsGetConfig(configId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: configId !== null && configId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListResumesApiV1JobsResumesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>>
-export type ListResumesApiV1JobsResumesGetQueryError = ErrorType<unknown>
+export type JobsGetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetConfig>>>
+export type JobsGetConfigQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListResumesApiV1JobsResumesGet<TData = Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData>> & Pick<
+export function useJobsGetConfig<TData = Awaited<ReturnType<typeof jobsGetConfig>>, TError = ErrorType<HTTPValidationError>>(
+ configId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>,
+          Awaited<ReturnType<typeof jobsGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>
+          Awaited<ReturnType<typeof jobsGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListResumesApiV1JobsResumesGet<TData = Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData>> & Pick<
+export function useJobsGetConfig<TData = Awaited<ReturnType<typeof jobsGetConfig>>, TError = ErrorType<HTTPValidationError>>(
+ configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>,
+          Awaited<ReturnType<typeof jobsGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>
+          Awaited<ReturnType<typeof jobsGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListResumesApiV1JobsResumesGet<TData = Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetConfig<TData = Awaited<ReturnType<typeof jobsGetConfig>>, TError = ErrorType<HTTPValidationError>>(
+ configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary List Resumes
+ * @summary Get Config
  */
 
-export function useListResumesApiV1JobsResumesGet<TData = Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listResumesApiV1JobsResumesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetConfig<TData = Awaited<ReturnType<typeof jobsGetConfig>>, TError = ErrorType<HTTPValidationError>>(
+ configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListResumesApiV1JobsResumesGetQueryOptions(options)
+  const queryOptions = getJobsGetConfigQueryOptions(configId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -379,55 +464,32 @@ export function useListResumesApiV1JobsResumesGet<TData = Awaited<ReturnType<typ
 
 
 
-export type createResumeApiV1JobsResumesPostResponse201 = {
-  data: UserResumeResponse
-  status: 201
-}
-
-export type createResumeApiV1JobsResumesPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type createResumeApiV1JobsResumesPostResponseSuccess = (createResumeApiV1JobsResumesPostResponse201) & {
-  headers: Headers;
-};
-export type createResumeApiV1JobsResumesPostResponseError = (createResumeApiV1JobsResumesPostResponse422) & {
-  headers: Headers;
-};
-
-export type createResumeApiV1JobsResumesPostResponse = (createResumeApiV1JobsResumesPostResponseSuccess | createResumeApiV1JobsResumesPostResponseError)
-
-export const getCreateResumeApiV1JobsResumesPostUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/resumes`
-}
-
 /**
- * @summary Create Resume
+ * Update a config.
+ * @summary Update Config
  */
-export const createResumeApiV1JobsResumesPost = async (userResumeCreate: UserResumeCreate, options?: RequestInit): Promise<createResumeApiV1JobsResumesPostResponse> => {
-
-  return customInstance<createResumeApiV1JobsResumesPostResponse>(getCreateResumeApiV1JobsResumesPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userResumeCreate)
-  }
-);}
+export const jobsUpdateConfig = (
+    configId: number,
+    jobSearchConfigUpdate: BodyType<JobSearchConfigUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<JobSearchConfigResponse>(
+      {url: `/api/v1/jobs/configs/${configId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: jobSearchConfigUpdate, signal
+    },
+      options);
+    }
 
 
-export const getCreateResumeApiV1JobsResumesPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>, TError,{data: BodyType<UserResumeCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>, TError,{data: BodyType<UserResumeCreate>}, TContext> => {
 
-const mutationKey = ['createResumeApiV1JobsResumesPost'];
+export const getJobsUpdateConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfig>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfig>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext> => {
+
+const mutationKey = ['jobsUpdateConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -437,10 +499,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>, {data: BodyType<UserResumeCreate>}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsUpdateConfig>>, {configId: number;data: BodyType<JobSearchConfigUpdate>}> = (props) => {
+          const {configId,data} = props ?? {};
 
-          return  createResumeApiV1JobsResumesPost(data,requestOptions)
+          return  jobsUpdateConfig(configId,data,requestOptions)
         }
 
 
@@ -450,73 +512,51 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateResumeApiV1JobsResumesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>>
-    export type CreateResumeApiV1JobsResumesPostMutationBody = BodyType<UserResumeCreate>
-    export type CreateResumeApiV1JobsResumesPostMutationError = ErrorType<HTTPValidationError>
+    export type JobsUpdateConfigMutationResult = NonNullable<Awaited<ReturnType<typeof jobsUpdateConfig>>>
+    export type JobsUpdateConfigMutationBody = BodyType<JobSearchConfigUpdate>
+    export type JobsUpdateConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Create Resume
+ * @summary Update Config
  */
-export const useCreateResumeApiV1JobsResumesPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>, TError,{data: BodyType<UserResumeCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsUpdateConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfig>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createResumeApiV1JobsResumesPost>>,
+        Awaited<ReturnType<typeof jobsUpdateConfig>>,
         TError,
-        {data: BodyType<UserResumeCreate>},
+        {configId: number;data: BodyType<JobSearchConfigUpdate>},
         TContext
       > => {
-      return useMutation(getCreateResumeApiV1JobsResumesPostMutationOptions(options), queryClient);
+      return useMutation(getJobsUpdateConfigMutationOptions(options), queryClient);
     }
-    export type updateResumeApiV1JobsResumesResumeIdPatchResponse200 = {
-  data: UserResumeResponse
-  status: 200
-}
-
-export type updateResumeApiV1JobsResumesResumeIdPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateResumeApiV1JobsResumesResumeIdPatchResponseSuccess = (updateResumeApiV1JobsResumesResumeIdPatchResponse200) & {
-  headers: Headers;
-};
-export type updateResumeApiV1JobsResumesResumeIdPatchResponseError = (updateResumeApiV1JobsResumesResumeIdPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateResumeApiV1JobsResumesResumeIdPatchResponse = (updateResumeApiV1JobsResumesResumeIdPatchResponseSuccess | updateResumeApiV1JobsResumesResumeIdPatchResponseError)
-
-export const getUpdateResumeApiV1JobsResumesResumeIdPatchUrl = (resumeId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/resumes/${resumeId}`
-}
-
-/**
- * @summary Update Resume
+    /**
+ * Update only the cron settings for a job search config.
+ *
+ * Null cron_expression disables scheduled crawling for this config.
+ * @summary Update Config Cron
  */
-export const updateResumeApiV1JobsResumesResumeIdPatch = async (resumeId: number,
-    userResumeUpdate: UserResumeUpdate, options?: RequestInit): Promise<updateResumeApiV1JobsResumesResumeIdPatchResponse> => {
-
-  return customInstance<updateResumeApiV1JobsResumesResumeIdPatchResponse>(getUpdateResumeApiV1JobsResumesResumeIdPatchUrl(resumeId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userResumeUpdate)
-  }
-);}
+export const jobsUpdateConfigCron = (
+    configId: number,
+    jobConfigCronUpdate: BodyType<JobConfigCronUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<JobSearchConfigResponse>(
+      {url: `/api/v1/jobs/configs/${configId}/cron`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: jobConfigCronUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateResumeApiV1JobsResumesResumeIdPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext> => {
 
-const mutationKey = ['updateResumeApiV1JobsResumesResumeIdPatch'];
+export const getJobsUpdateConfigCronMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfigCron>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfigCron>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext> => {
+
+const mutationKey = ['jobsUpdateConfigCron'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -526,10 +566,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>, {resumeId: number;data: BodyType<UserResumeUpdate>}> = (props) => {
-          const {resumeId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsUpdateConfigCron>>, {configId: number;data: BodyType<JobConfigCronUpdate>}> = (props) => {
+          const {configId,data} = props ?? {};
 
-          return  updateResumeApiV1JobsResumesResumeIdPatch(resumeId,data,requestOptions)
+          return  jobsUpdateConfigCron(configId,data,requestOptions)
         }
 
 
@@ -539,72 +579,140 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateResumeApiV1JobsResumesResumeIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>>
-    export type UpdateResumeApiV1JobsResumesResumeIdPatchMutationBody = BodyType<UserResumeUpdate>
-    export type UpdateResumeApiV1JobsResumesResumeIdPatchMutationError = ErrorType<HTTPValidationError>
+    export type JobsUpdateConfigCronMutationResult = NonNullable<Awaited<ReturnType<typeof jobsUpdateConfigCron>>>
+    export type JobsUpdateConfigCronMutationBody = BodyType<JobConfigCronUpdate>
+    export type JobsUpdateConfigCronMutationError = ErrorType<HTTPValidationError>
 
     /**
- * @summary Update Resume
+ * @summary Update Config Cron
  */
-export const useUpdateResumeApiV1JobsResumesResumeIdPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsUpdateConfigCron = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateConfigCron>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateResumeApiV1JobsResumesResumeIdPatch>>,
+        Awaited<ReturnType<typeof jobsUpdateConfigCron>>,
         TError,
-        {resumeId: number;data: BodyType<UserResumeUpdate>},
+        {configId: number;data: BodyType<JobConfigCronUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateResumeApiV1JobsResumesResumeIdPatchMutationOptions(options), queryClient);
+      return useMutation(getJobsUpdateConfigCronMutationOptions(options), queryClient);
     }
-    export type deleteResumeApiV1JobsResumesResumeIdDeleteResponse200 = {
-  data: unknown
-  status: 200
+    /**
+ * Get job crawl logs for current user's search configs.
+ * @summary Get Job Crawl Logs
+ */
+export const jobsGetJobCrawlLogs = (
+    params?: JobsGetJobCrawlLogsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<JobCrawlLogResponse[]>(
+      {url: `/api/v1/jobs/crawl-logs`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsGetJobCrawlLogsQueryKey = (params?: JobsGetJobCrawlLogsParams,) => {
+    return [
+    `/api/v1/jobs/crawl-logs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getJobsGetJobCrawlLogsQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(params?: JobsGetJobCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetJobCrawlLogsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>> = ({ signal }) => jobsGetJobCrawlLogs(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type deleteResumeApiV1JobsResumesResumeIdDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
+export type JobsGetJobCrawlLogsQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>>
+export type JobsGetJobCrawlLogsQueryError = ErrorType<HTTPValidationError>
+
+
+export function useJobsGetJobCrawlLogs<TData = Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  JobsGetJobCrawlLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlLogs<TData = Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsGetJobCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlLogs<TData = Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsGetJobCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Job Crawl Logs
+ */
+
+export function useJobsGetJobCrawlLogs<TData = Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsGetJobCrawlLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsGetJobCrawlLogsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export type deleteResumeApiV1JobsResumesResumeIdDeleteResponseSuccess = (deleteResumeApiV1JobsResumesResumeIdDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteResumeApiV1JobsResumesResumeIdDeleteResponseError = (deleteResumeApiV1JobsResumesResumeIdDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteResumeApiV1JobsResumesResumeIdDeleteResponse = (deleteResumeApiV1JobsResumesResumeIdDeleteResponseSuccess | deleteResumeApiV1JobsResumesResumeIdDeleteResponseError)
-
-export const getDeleteResumeApiV1JobsResumesResumeIdDeleteUrl = (resumeId: number,) => {
 
 
 
 
-  return `/api/v1/jobs/resumes/${resumeId}`
-}
 
 /**
- * @summary Delete Resume
+ * Trigger crawling all active job search configs (async).
+ * @summary Crawl Now
  */
-export const deleteResumeApiV1JobsResumesResumeIdDelete = async (resumeId: number, options?: RequestInit): Promise<deleteResumeApiV1JobsResumesResumeIdDeleteResponse> => {
+export const jobsCrawlNow = (
 
-  return customInstance<deleteResumeApiV1JobsResumesResumeIdDeleteResponse>(getDeleteResumeApiV1JobsResumesResumeIdDeleteUrl(resumeId),
-  {
-    ...options,
-    method: 'DELETE'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<TaskQueuedResponse>(
+      {url: `/api/v1/jobs/crawl-now`, method: 'POST', signal
+    },
+      options);
+    }
 
 
 
+export const getJobsCrawlNowMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlNow>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlNow>>, TError,void, TContext> => {
 
-export const getDeleteResumeApiV1JobsResumesResumeIdDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>, TError,{resumeId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>, TError,{resumeId: number}, TContext> => {
-
-const mutationKey = ['deleteResumeApiV1JobsResumesResumeIdDelete'];
+const mutationKey = ['jobsCrawlNow'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -614,10 +722,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>, {resumeId: number}> = (props) => {
-          const {resumeId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsCrawlNow>>, void> = () => {
 
-          return  deleteResumeApiV1JobsResumesResumeIdDelete(resumeId,requestOptions)
+
+          return  jobsCrawlNow(requestOptions)
         }
 
 
@@ -627,138 +735,353 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteResumeApiV1JobsResumesResumeIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>>
+    export type JobsCrawlNowMutationResult = NonNullable<Awaited<ReturnType<typeof jobsCrawlNow>>>
 
-    export type DeleteResumeApiV1JobsResumesResumeIdDeleteMutationError = ErrorType<HTTPValidationError>
+    export type JobsCrawlNowMutationError = ErrorType<unknown>
 
     /**
- * @summary Delete Resume
+ * @summary Crawl Now
  */
-export const useDeleteResumeApiV1JobsResumesResumeIdDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>, TError,{resumeId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsCrawlNow = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlNow>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteResumeApiV1JobsResumesResumeIdDelete>>,
+        Awaited<ReturnType<typeof jobsCrawlNow>>,
         TError,
-        {resumeId: number},
+        void,
         TContext
       > => {
-      return useMutation(getDeleteResumeApiV1JobsResumesResumeIdDeleteMutationOptions(options), queryClient);
+      return useMutation(getJobsCrawlNowMutationOptions(options), queryClient);
     }
-    export type listMatchResultsApiV1JobsMatchResultsGetResponse200 = {
-  data: MatchResultListResponse
-  status: 200
-}
+    /**
+ * Trigger crawling a single config (async).
+ * @summary Crawl Single
+ */
+export const jobsCrawlSingle = (
+    configId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-export type listMatchResultsApiV1JobsMatchResultsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
 
-export type listMatchResultsApiV1JobsMatchResultsGetResponseSuccess = (listMatchResultsApiV1JobsMatchResultsGetResponse200) & {
-  headers: Headers;
-};
-export type listMatchResultsApiV1JobsMatchResultsGetResponseError = (listMatchResultsApiV1JobsMatchResultsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listMatchResultsApiV1JobsMatchResultsGetResponse = (listMatchResultsApiV1JobsMatchResultsGetResponseSuccess | listMatchResultsApiV1JobsMatchResultsGetResponseError)
-
-export const getListMatchResultsApiV1JobsMatchResultsGetUrl = (params?: ListMatchResultsApiV1JobsMatchResultsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      return customInstance<TaskQueuedResponse>(
+      {url: `/api/v1/jobs/crawl-now/${configId}`, method: 'POST', signal
+    },
+      options);
     }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/v1/jobs/match-results?${stringifiedParams}` : `/api/v1/jobs/match-results`
+
+export const getJobsCrawlSingleMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlSingle>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlSingle>>, TError,{configId: number}, TContext> => {
+
+const mutationKey = ['jobsCrawlSingle'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsCrawlSingle>>, {configId: number}> = (props) => {
+          const {configId} = props ?? {};
+
+          return  jobsCrawlSingle(configId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JobsCrawlSingleMutationResult = NonNullable<Awaited<ReturnType<typeof jobsCrawlSingle>>>
+
+    export type JobsCrawlSingleMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Crawl Single
+ */
+export const useJobsCrawlSingle = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCrawlSingle>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof jobsCrawlSingle>>,
+        TError,
+        {configId: number},
+        TContext
+      > => {
+      return useMutation(getJobsCrawlSingleMutationOptions(options), queryClient);
+    }
+    /**
+ * Get the final result of a completed job crawl task.
+ * @summary Get Job Crawl Result
+ */
+export const jobsGetJobCrawlResult = (
+    taskId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TaskProgressResponse>(
+      {url: `/api/v1/jobs/crawl/result/${taskId}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsGetJobCrawlResultQueryKey = (taskId: string,) => {
+    return [
+    `/api/v1/jobs/crawl/result/${taskId}`
+    ] as const;
+    }
+
+
+export const getJobsGetJobCrawlResultQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetJobCrawlResultQueryKey(taskId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>> = ({ signal }) => jobsGetJobCrawlResult(taskId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
+
+export type JobsGetJobCrawlResultQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>>
+export type JobsGetJobCrawlResultQueryError = ErrorType<TaskErrorResponse | HTTPValidationError>
+
+
+export function useJobsGetJobCrawlResult<TData = Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlResult>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlResult>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlResult<TData = Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlResult>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlResult>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlResult<TData = Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Job Crawl Result
+ */
+
+export function useJobsGetJobCrawlResult<TData = Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlResult>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsGetJobCrawlResultQueryOptions(taskId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * Get the status of a job crawl task from persistent store.
+ * @summary Get Job Crawl Status
+ */
+export const jobsGetJobCrawlStatus = (
+    taskId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TaskProgressResponse>(
+      {url: `/api/v1/jobs/crawl/status/${taskId}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsGetJobCrawlStatusQueryKey = (taskId: string,) => {
+    return [
+    `/api/v1/jobs/crawl/status/${taskId}`
+    ] as const;
+    }
+
+
+export const getJobsGetJobCrawlStatusQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetJobCrawlStatusQueryKey(taskId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>> = ({ signal }) => jobsGetJobCrawlStatus(taskId, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type JobsGetJobCrawlStatusQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>>
+export type JobsGetJobCrawlStatusQueryError = ErrorType<TaskErrorResponse | HTTPValidationError>
+
+
+export function useJobsGetJobCrawlStatus<TData = Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlStatus<TData = Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobCrawlStatus<TData = Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Job Crawl Status
+ */
+
+export function useJobsGetJobCrawlStatus<TData = Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobCrawlStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsGetJobCrawlStatusQueryOptions(taskId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
 
 /**
  * @summary List Match Results
  */
-export const listMatchResultsApiV1JobsMatchResultsGet = async (params?: ListMatchResultsApiV1JobsMatchResultsGetParams, options?: RequestInit): Promise<listMatchResultsApiV1JobsMatchResultsGetResponse> => {
-
-  return customInstance<listMatchResultsApiV1JobsMatchResultsGetResponse>(getListMatchResultsApiV1JobsMatchResultsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const jobsListMatchResults = (
+    params?: JobsListMatchResultsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<MatchResultListResponse>(
+      {url: `/api/v1/jobs/match-results`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListMatchResultsApiV1JobsMatchResultsGetQueryKey = (params?: ListMatchResultsApiV1JobsMatchResultsGetParams,) => {
+export const getJobsListMatchResultsQueryKey = (params?: JobsListMatchResultsParams,) => {
     return [
     `/api/v1/jobs/match-results`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListMatchResultsApiV1JobsMatchResultsGetQueryOptions = <TData = Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListMatchResultsApiV1JobsMatchResultsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getJobsListMatchResultsQueryOptions = <TData = Awaited<ReturnType<typeof jobsListMatchResults>>, TError = ErrorType<HTTPValidationError>>(params?: JobsListMatchResultsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListMatchResultsApiV1JobsMatchResultsGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getJobsListMatchResultsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>> = ({ signal }) => listMatchResultsApiV1JobsMatchResultsGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsListMatchResults>>> = ({ signal }) => jobsListMatchResults(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListMatchResultsApiV1JobsMatchResultsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>>
-export type ListMatchResultsApiV1JobsMatchResultsGetQueryError = ErrorType<HTTPValidationError>
+export type JobsListMatchResultsQueryResult = NonNullable<Awaited<ReturnType<typeof jobsListMatchResults>>>
+export type JobsListMatchResultsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useListMatchResultsApiV1JobsMatchResultsGet<TData = Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListMatchResultsApiV1JobsMatchResultsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData>> & Pick<
+export function useJobsListMatchResults<TData = Awaited<ReturnType<typeof jobsListMatchResults>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  JobsListMatchResultsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>,
+          Awaited<ReturnType<typeof jobsListMatchResults>>,
           TError,
-          Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>
+          Awaited<ReturnType<typeof jobsListMatchResults>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListMatchResultsApiV1JobsMatchResultsGet<TData = Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListMatchResultsApiV1JobsMatchResultsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData>> & Pick<
+export function useJobsListMatchResults<TData = Awaited<ReturnType<typeof jobsListMatchResults>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListMatchResultsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>,
+          Awaited<ReturnType<typeof jobsListMatchResults>>,
           TError,
-          Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>
+          Awaited<ReturnType<typeof jobsListMatchResults>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListMatchResultsApiV1JobsMatchResultsGet<TData = Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListMatchResultsApiV1JobsMatchResultsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsListMatchResults<TData = Awaited<ReturnType<typeof jobsListMatchResults>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListMatchResultsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Match Results
  */
 
-export function useListMatchResultsApiV1JobsMatchResultsGet<TData = Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListMatchResultsApiV1JobsMatchResultsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMatchResultsApiV1JobsMatchResultsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsListMatchResults<TData = Awaited<ReturnType<typeof jobsListMatchResults>>, TError = ErrorType<HTTPValidationError>>(
+ params?: JobsListMatchResultsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListMatchResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListMatchResultsApiV1JobsMatchResultsGetQueryOptions(params,options)
+  const queryOptions = getJobsListMatchResultsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -769,33 +1092,6 @@ export function useListMatchResultsApiV1JobsMatchResultsGet<TData = Awaited<Retu
 
 
 
-
-export type triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponseSuccess = (triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse200) & {
-  headers: Headers;
-};
-export type triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponseError = (triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse422) & {
-  headers: Headers;
-};
-
-export type triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse = (triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponseSuccess | triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponseError)
-
-export const getTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/match-results/analyze`
-}
 
 /**
  * Enqueue match analysis as a durable task.
@@ -804,25 +1100,27 @@ export const getTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostUrl = () => 
  * It creates a crawl_tasks record and returns a task_id for polling.
  * @summary Trigger Match Analysis
  */
-export const triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost = async (matchAnalyzeRequest: MatchAnalyzeRequest, options?: RequestInit): Promise<triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse> => {
-
-  return customInstance<triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostResponse>(getTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(matchAnalyzeRequest)
-  }
-);}
+export const jobsTriggerMatchAnalysis = (
+    matchAnalyzeRequest: BodyType<MatchAnalyzeRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<MatchTaskQueuedResponse>(
+      {url: `/api/v1/jobs/match-results/analyze`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: matchAnalyzeRequest, signal
+    },
+      options);
+    }
 
 
-export const getTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext> => {
 
-const mutationKey = ['triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost'];
+export const getJobsTriggerMatchAnalysisMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext> => {
+
+const mutationKey = ['jobsTriggerMatchAnalysis'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -832,10 +1130,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>, {data: BodyType<MatchAnalyzeRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>, {data: BodyType<MatchAnalyzeRequest>}> = (props) => {
           const {data} = props ?? {};
 
-          return  triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost(data,requestOptions)
+          return  jobsTriggerMatchAnalysis(data,requestOptions)
         }
 
 
@@ -845,75 +1143,50 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostMutationResult = NonNullable<Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>>
-    export type TriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostMutationBody = BodyType<MatchAnalyzeRequest>
-    export type TriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostMutationError = ErrorType<HTTPValidationError>
+    export type JobsTriggerMatchAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>>
+    export type JobsTriggerMatchAnalysisMutationBody = BodyType<MatchAnalyzeRequest>
+    export type JobsTriggerMatchAnalysisMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Trigger Match Analysis
  */
-export const useTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsTriggerMatchAnalysis = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof triggerMatchAnalysisApiV1JobsMatchResultsAnalyzePost>>,
+        Awaited<ReturnType<typeof jobsTriggerMatchAnalysis>>,
         TError,
         {data: BodyType<MatchAnalyzeRequest>},
         TContext
       > => {
-      return useMutation(getTriggerMatchAnalysisApiV1JobsMatchResultsAnalyzePostMutationOptions(options), queryClient);
+      return useMutation(getJobsTriggerMatchAnalysisMutationOptions(options), queryClient);
     }
-    export type triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponseSuccess = (triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse200) & {
-  headers: Headers;
-};
-export type triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponseError = (triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse422) & {
-  headers: Headers;
-};
-
-export type triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse = (triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponseSuccess | triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponseError)
-
-export const getTriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/match-results/analyze-async`
-}
-
-/**
+    /**
  * Trigger async match analysis, returning task_id for polling.
  *
  * Creates a durable crawl_tasks record. Poll GET /jobs/tasks/{task_id} for status.
  * @summary Trigger Match Analysis Async
  */
-export const triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost = async (matchAnalyzeRequest: MatchAnalyzeRequest, options?: RequestInit): Promise<triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse> => {
-
-  return customInstance<triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostResponse>(getTriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(matchAnalyzeRequest)
-  }
-);}
+export const jobsTriggerMatchAnalysisAsync = (
+    matchAnalyzeRequest: BodyType<MatchAnalyzeRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<MatchTaskQueuedResponse>(
+      {url: `/api/v1/jobs/match-results/analyze-async`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: matchAnalyzeRequest, signal
+    },
+      options);
+    }
 
 
-export const getTriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext> => {
 
-const mutationKey = ['triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost'];
+export const getJobsTriggerMatchAnalysisAsyncMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext> => {
+
+const mutationKey = ['jobsTriggerMatchAnalysisAsync'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -923,10 +1196,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>, {data: BodyType<MatchAnalyzeRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>, {data: BodyType<MatchAnalyzeRequest>}> = (props) => {
           const {data} = props ?? {};
 
-          return  triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost(data,requestOptions)
+          return  jobsTriggerMatchAnalysisAsync(data,requestOptions)
         }
 
 
@@ -936,49 +1209,395 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostMutationResult = NonNullable<Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>>
-    export type TriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostMutationBody = BodyType<MatchAnalyzeRequest>
-    export type TriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostMutationError = ErrorType<HTTPValidationError>
+    export type JobsTriggerMatchAnalysisAsyncMutationResult = NonNullable<Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>>
+    export type JobsTriggerMatchAnalysisAsyncMutationBody = BodyType<MatchAnalyzeRequest>
+    export type JobsTriggerMatchAnalysisAsyncMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Trigger Match Analysis Async
  */
-export const useTriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useJobsTriggerMatchAnalysisAsync = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>, TError,{data: BodyType<MatchAnalyzeRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof triggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPost>>,
+        Awaited<ReturnType<typeof jobsTriggerMatchAnalysisAsync>>,
         TError,
         {data: BodyType<MatchAnalyzeRequest>},
         TContext
       > => {
-      return useMutation(getTriggerMatchAnalysisAsyncApiV1JobsMatchResultsAnalyzeAsyncPostMutationOptions(options), queryClient);
+      return useMutation(getJobsTriggerMatchAnalysisAsyncMutationOptions(options), queryClient);
     }
-    export type getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse200 = {
-  data: unknown
-  status: 200
+    /**
+ * @summary List Resumes
+ */
+export const jobsListResumes = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<UserResumeResponse[]>(
+      {url: `/api/v1/jobs/resumes`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsListResumesQueryKey = () => {
+    return [
+    `/api/v1/jobs/resumes`
+    ] as const;
+    }
+
+
+export const getJobsListResumesQueryOptions = <TData = Awaited<ReturnType<typeof jobsListResumes>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsListResumesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsListResumes>>> = ({ signal }) => jobsListResumes(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
+export type JobsListResumesQueryResult = NonNullable<Awaited<ReturnType<typeof jobsListResumes>>>
+export type JobsListResumesQueryError = ErrorType<unknown>
+
+
+export function useJobsListResumes<TData = Awaited<ReturnType<typeof jobsListResumes>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsListResumes>>,
+          TError,
+          Awaited<ReturnType<typeof jobsListResumes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsListResumes<TData = Awaited<ReturnType<typeof jobsListResumes>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsListResumes>>,
+          TError,
+          Awaited<ReturnType<typeof jobsListResumes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsListResumes<TData = Awaited<ReturnType<typeof jobsListResumes>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Resumes
+ */
+
+export function useJobsListResumes<TData = Awaited<ReturnType<typeof jobsListResumes>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsListResumes>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsListResumesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export type getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponseSuccess = (getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse200) & {
-  headers: Headers;
-};
-export type getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponseError = (getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse = (getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponseSuccess | getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponseError)
-
-export const getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetUrl = (taskId: string,) => {
 
 
 
 
-  return `/api/v1/jobs/tasks/${taskId}`
+
+/**
+ * @summary Create Resume
+ */
+export const jobsCreateResume = (
+    userResumeCreate: BodyType<UserResumeCreate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<UserResumeResponse>(
+      {url: `/api/v1/jobs/resumes`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userResumeCreate, signal
+    },
+      options);
+    }
+
+
+
+export const getJobsCreateResumeMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCreateResume>>, TError,{data: BodyType<UserResumeCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsCreateResume>>, TError,{data: BodyType<UserResumeCreate>}, TContext> => {
+
+const mutationKey = ['jobsCreateResume'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsCreateResume>>, {data: BodyType<UserResumeCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  jobsCreateResume(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JobsCreateResumeMutationResult = NonNullable<Awaited<ReturnType<typeof jobsCreateResume>>>
+    export type JobsCreateResumeMutationBody = BodyType<UserResumeCreate>
+    export type JobsCreateResumeMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Create Resume
+ */
+export const useJobsCreateResume = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsCreateResume>>, TError,{data: BodyType<UserResumeCreate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof jobsCreateResume>>,
+        TError,
+        {data: BodyType<UserResumeCreate>},
+        TContext
+      > => {
+      return useMutation(getJobsCreateResumeMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Delete Resume
+ */
+export const jobsDeleteResume = (
+    resumeId: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<AppSchemasRuntimeApiMessageResponse>(
+      {url: `/api/v1/jobs/resumes/${resumeId}`, method: 'DELETE', signal
+    },
+      options);
+    }
+
+
+
+export const getJobsDeleteResumeMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteResume>>, TError,{resumeId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteResume>>, TError,{resumeId: number}, TContext> => {
+
+const mutationKey = ['jobsDeleteResume'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsDeleteResume>>, {resumeId: number}> = (props) => {
+          const {resumeId} = props ?? {};
+
+          return  jobsDeleteResume(resumeId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JobsDeleteResumeMutationResult = NonNullable<Awaited<ReturnType<typeof jobsDeleteResume>>>
+
+    export type JobsDeleteResumeMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Delete Resume
+ */
+export const useJobsDeleteResume = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsDeleteResume>>, TError,{resumeId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof jobsDeleteResume>>,
+        TError,
+        {resumeId: number},
+        TContext
+      > => {
+      return useMutation(getJobsDeleteResumeMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Update Resume
+ */
+export const jobsUpdateResume = (
+    resumeId: number,
+    userResumeUpdate: BodyType<UserResumeUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<UserResumeResponse>(
+      {url: `/api/v1/jobs/resumes/${resumeId}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: userResumeUpdate, signal
+    },
+      options);
+    }
+
+
+
+export const getJobsUpdateResumeMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateResume>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateResume>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext> => {
+
+const mutationKey = ['jobsUpdateResume'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof jobsUpdateResume>>, {resumeId: number;data: BodyType<UserResumeUpdate>}> = (props) => {
+          const {resumeId,data} = props ?? {};
+
+          return  jobsUpdateResume(resumeId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JobsUpdateResumeMutationResult = NonNullable<Awaited<ReturnType<typeof jobsUpdateResume>>>
+    export type JobsUpdateResumeMutationBody = BodyType<UserResumeUpdate>
+    export type JobsUpdateResumeMutationError = ErrorType<HTTPValidationError>
+
+    /**
+ * @summary Update Resume
+ */
+export const useJobsUpdateResume = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof jobsUpdateResume>>, TError,{resumeId: number;data: BodyType<UserResumeUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof jobsUpdateResume>>,
+        TError,
+        {resumeId: number;data: BodyType<UserResumeUpdate>},
+        TContext
+      > => {
+      return useMutation(getJobsUpdateResumeMutationOptions(options), queryClient);
+    }
+    /**
+ * Get next run times for all per-config job crawl schedules.
+ * @summary Get Job Config Schedules
+ */
+export const jobsGetJobConfigSchedules = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<JobConfigSchedulesResponse>(
+      {url: `/api/v1/jobs/scheduler/job-configs`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getJobsGetJobConfigSchedulesQueryKey = () => {
+    return [
+    `/api/v1/jobs/scheduler/job-configs`
+    ] as const;
+    }
+
+
+export const getJobsGetJobConfigSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetJobConfigSchedulesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>> = ({ signal }) => jobsGetJobConfigSchedules(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
+
+export type JobsGetJobConfigSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>>
+export type JobsGetJobConfigSchedulesQueryError = ErrorType<unknown>
+
+
+export function useJobsGetJobConfigSchedules<TData = Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobConfigSchedules<TData = Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>,
+          TError,
+          Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useJobsGetJobConfigSchedules<TData = Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Job Config Schedules
+ */
+
+export function useJobsGetJobConfigSchedules<TData = Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJobConfigSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getJobsGetJobConfigSchedulesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
 
 /**
  * Get status of a match analysis task from the durable crawl_tasks store.
@@ -986,84 +1605,84 @@ export const getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetUrl = (taskId: 
  * Returns task progress (total/success/errors) and final results when completed.
  * @summary Get Match Analysis Task Status
  */
-export const getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet = async (taskId: string, options?: RequestInit): Promise<getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse> => {
-
-  return customInstance<getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetResponse>(getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetUrl(taskId),
-  {
-    ...options,
-    method: 'GET'
+export const jobsGetMatchAnalysisTaskStatus = (
+    taskId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<TaskProgressResponse>(
+      {url: `/api/v1/jobs/tasks/${taskId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryKey = (taskId: string,) => {
+export const getJobsGetMatchAnalysisTaskStatusQueryKey = (taskId: string,) => {
     return [
     `/api/v1/jobs/tasks/${taskId}`
     ] as const;
     }
 
 
-export const getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getJobsGetMatchAnalysisTaskStatusQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryKey(taskId);
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetMatchAnalysisTaskStatusQueryKey(taskId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>> = ({ signal }) => getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet(taskId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>> = ({ signal }) => jobsGetMatchAnalysisTaskStatus(taskId, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>>
-export type GetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryError = ErrorType<HTTPValidationError>
+export type JobsGetMatchAnalysisTaskStatusQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>>
+export type JobsGetMatchAnalysisTaskStatusQueryError = ErrorType<TaskErrorResponse | HTTPValidationError>
 
 
-export function useGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet<TData = Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData>> & Pick<
+export function useJobsGetMatchAnalysisTaskStatus<TData = Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>,
+          Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>,
           TError,
-          Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>
+          Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet<TData = Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData>> & Pick<
+export function useJobsGetMatchAnalysisTaskStatus<TData = Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>,
+          Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>,
           TError,
-          Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>
+          Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet<TData = Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetMatchAnalysisTaskStatus<TData = Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Match Analysis Task Status
  */
 
-export function useGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet<TData = Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetMatchAnalysisTaskStatus<TData = Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError = ErrorType<TaskErrorResponse | HTTPValidationError>>(
+ taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetMatchAnalysisTaskStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGetQueryOptions(taskId,options)
+  const queryOptions = getJobsGetMatchAnalysisTaskStatusQueryOptions(taskId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1074,1285 +1693,89 @@ export function useGetMatchAnalysisTaskStatusApiV1JobsTasksTaskIdGet<TData = Awa
 
 
 
-
-export type getConfigApiV1JobsConfigsConfigIdGetResponse200 = {
-  data: JobSearchConfigResponse
-  status: 200
-}
-
-export type getConfigApiV1JobsConfigsConfigIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getConfigApiV1JobsConfigsConfigIdGetResponseSuccess = (getConfigApiV1JobsConfigsConfigIdGetResponse200) & {
-  headers: Headers;
-};
-export type getConfigApiV1JobsConfigsConfigIdGetResponseError = (getConfigApiV1JobsConfigsConfigIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getConfigApiV1JobsConfigsConfigIdGetResponse = (getConfigApiV1JobsConfigsConfigIdGetResponseSuccess | getConfigApiV1JobsConfigsConfigIdGetResponseError)
-
-export const getGetConfigApiV1JobsConfigsConfigIdGetUrl = (configId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/configs/${configId}`
-}
-
-/**
- * Get a single config.
- * @summary Get Config
- */
-export const getConfigApiV1JobsConfigsConfigIdGet = async (configId: number, options?: RequestInit): Promise<getConfigApiV1JobsConfigsConfigIdGetResponse> => {
-
-  return customInstance<getConfigApiV1JobsConfigsConfigIdGetResponse>(getGetConfigApiV1JobsConfigsConfigIdGetUrl(configId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetConfigApiV1JobsConfigsConfigIdGetQueryKey = (configId: number,) => {
-    return [
-    `/api/v1/jobs/configs/${configId}`
-    ] as const;
-    }
-
-
-export const getGetConfigApiV1JobsConfigsConfigIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError = ErrorType<HTTPValidationError>>(configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetConfigApiV1JobsConfigsConfigIdGetQueryKey(configId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>> = ({ signal }) => getConfigApiV1JobsConfigsConfigIdGet(configId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: configId !== null && configId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetConfigApiV1JobsConfigsConfigIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>>
-export type GetConfigApiV1JobsConfigsConfigIdGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetConfigApiV1JobsConfigsConfigIdGet<TData = Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError = ErrorType<HTTPValidationError>>(
- configId: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1JobsConfigsConfigIdGet<TData = Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError = ErrorType<HTTPValidationError>>(
- configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1JobsConfigsConfigIdGet<TData = Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError = ErrorType<HTTPValidationError>>(
- configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Config
- */
-
-export function useGetConfigApiV1JobsConfigsConfigIdGet<TData = Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError = ErrorType<HTTPValidationError>>(
- configId: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1JobsConfigsConfigIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetConfigApiV1JobsConfigsConfigIdGetQueryOptions(configId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type updateConfigApiV1JobsConfigsConfigIdPatchResponse200 = {
-  data: JobSearchConfigResponse
-  status: 200
-}
-
-export type updateConfigApiV1JobsConfigsConfigIdPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateConfigApiV1JobsConfigsConfigIdPatchResponseSuccess = (updateConfigApiV1JobsConfigsConfigIdPatchResponse200) & {
-  headers: Headers;
-};
-export type updateConfigApiV1JobsConfigsConfigIdPatchResponseError = (updateConfigApiV1JobsConfigsConfigIdPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateConfigApiV1JobsConfigsConfigIdPatchResponse = (updateConfigApiV1JobsConfigsConfigIdPatchResponseSuccess | updateConfigApiV1JobsConfigsConfigIdPatchResponseError)
-
-export const getUpdateConfigApiV1JobsConfigsConfigIdPatchUrl = (configId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/configs/${configId}`
-}
-
-/**
- * Update a config.
- * @summary Update Config
- */
-export const updateConfigApiV1JobsConfigsConfigIdPatch = async (configId: number,
-    jobSearchConfigUpdate: JobSearchConfigUpdate, options?: RequestInit): Promise<updateConfigApiV1JobsConfigsConfigIdPatchResponse> => {
-
-  return customInstance<updateConfigApiV1JobsConfigsConfigIdPatchResponse>(getUpdateConfigApiV1JobsConfigsConfigIdPatchUrl(configId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(jobSearchConfigUpdate)
-  }
-);}
-
-
-
-
-export const getUpdateConfigApiV1JobsConfigsConfigIdPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext> => {
-
-const mutationKey = ['updateConfigApiV1JobsConfigsConfigIdPatch'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>, {configId: number;data: BodyType<JobSearchConfigUpdate>}> = (props) => {
-          const {configId,data} = props ?? {};
-
-          return  updateConfigApiV1JobsConfigsConfigIdPatch(configId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateConfigApiV1JobsConfigsConfigIdPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>>
-    export type UpdateConfigApiV1JobsConfigsConfigIdPatchMutationBody = BodyType<JobSearchConfigUpdate>
-    export type UpdateConfigApiV1JobsConfigsConfigIdPatchMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Update Config
- */
-export const useUpdateConfigApiV1JobsConfigsConfigIdPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>, TError,{configId: number;data: BodyType<JobSearchConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateConfigApiV1JobsConfigsConfigIdPatch>>,
-        TError,
-        {configId: number;data: BodyType<JobSearchConfigUpdate>},
-        TContext
-      > => {
-      return useMutation(getUpdateConfigApiV1JobsConfigsConfigIdPatchMutationOptions(options), queryClient);
-    }
-    export type deleteConfigApiV1JobsConfigsConfigIdDeleteResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type deleteConfigApiV1JobsConfigsConfigIdDeleteResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type deleteConfigApiV1JobsConfigsConfigIdDeleteResponseSuccess = (deleteConfigApiV1JobsConfigsConfigIdDeleteResponse200) & {
-  headers: Headers;
-};
-export type deleteConfigApiV1JobsConfigsConfigIdDeleteResponseError = (deleteConfigApiV1JobsConfigsConfigIdDeleteResponse422) & {
-  headers: Headers;
-};
-
-export type deleteConfigApiV1JobsConfigsConfigIdDeleteResponse = (deleteConfigApiV1JobsConfigsConfigIdDeleteResponseSuccess | deleteConfigApiV1JobsConfigsConfigIdDeleteResponseError)
-
-export const getDeleteConfigApiV1JobsConfigsConfigIdDeleteUrl = (configId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/configs/${configId}`
-}
-
-/**
- * Delete a config (cascades to jobs).
- * @summary Delete Config
- */
-export const deleteConfigApiV1JobsConfigsConfigIdDelete = async (configId: number, options?: RequestInit): Promise<deleteConfigApiV1JobsConfigsConfigIdDeleteResponse> => {
-
-  return customInstance<deleteConfigApiV1JobsConfigsConfigIdDeleteResponse>(getDeleteConfigApiV1JobsConfigsConfigIdDeleteUrl(configId),
-  {
-    ...options,
-    method: 'DELETE'
-
-
-  }
-);}
-
-
-
-
-export const getDeleteConfigApiV1JobsConfigsConfigIdDeleteMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>, TError,{configId: number}, TContext> => {
-
-const mutationKey = ['deleteConfigApiV1JobsConfigsConfigIdDelete'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>, {configId: number}> = (props) => {
-          const {configId} = props ?? {};
-
-          return  deleteConfigApiV1JobsConfigsConfigIdDelete(configId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteConfigApiV1JobsConfigsConfigIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>>
-
-    export type DeleteConfigApiV1JobsConfigsConfigIdDeleteMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Delete Config
- */
-export const useDeleteConfigApiV1JobsConfigsConfigIdDelete = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deleteConfigApiV1JobsConfigsConfigIdDelete>>,
-        TError,
-        {configId: number},
-        TContext
-      > => {
-      return useMutation(getDeleteConfigApiV1JobsConfigsConfigIdDeleteMutationOptions(options), queryClient);
-    }
-    export type listJobsApiV1JobsGetResponse200 = {
-  data: JobListResponse
-  status: 200
-}
-
-export type listJobsApiV1JobsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type listJobsApiV1JobsGetResponseSuccess = (listJobsApiV1JobsGetResponse200) & {
-  headers: Headers;
-};
-export type listJobsApiV1JobsGetResponseError = (listJobsApiV1JobsGetResponse422) & {
-  headers: Headers;
-};
-
-export type listJobsApiV1JobsGetResponse = (listJobsApiV1JobsGetResponseSuccess | listJobsApiV1JobsGetResponseError)
-
-export const getListJobsApiV1JobsGetUrl = (params?: ListJobsApiV1JobsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/jobs?${stringifiedParams}` : `/api/v1/jobs`
-}
-
-/**
- * List jobs with filtering and pagination.
- * @summary List Jobs
- */
-export const listJobsApiV1JobsGet = async (params?: ListJobsApiV1JobsGetParams, options?: RequestInit): Promise<listJobsApiV1JobsGetResponse> => {
-
-  return customInstance<listJobsApiV1JobsGetResponse>(getListJobsApiV1JobsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListJobsApiV1JobsGetQueryKey = (params?: ListJobsApiV1JobsGetParams,) => {
-    return [
-    `/api/v1/jobs`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListJobsApiV1JobsGetQueryOptions = <TData = Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError = ErrorType<HTTPValidationError>>(params?: ListJobsApiV1JobsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListJobsApiV1JobsGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>> = ({ signal }) => listJobsApiV1JobsGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListJobsApiV1JobsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>>
-export type ListJobsApiV1JobsGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useListJobsApiV1JobsGet<TData = Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  ListJobsApiV1JobsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listJobsApiV1JobsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listJobsApiV1JobsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListJobsApiV1JobsGet<TData = Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListJobsApiV1JobsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listJobsApiV1JobsGet>>,
-          TError,
-          Awaited<ReturnType<typeof listJobsApiV1JobsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListJobsApiV1JobsGet<TData = Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListJobsApiV1JobsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List Jobs
- */
-
-export function useListJobsApiV1JobsGet<TData = Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: ListJobsApiV1JobsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listJobsApiV1JobsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListJobsApiV1JobsGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getJobCrawlLogsApiV1JobsCrawlLogsGetResponse200 = {
-  data: JobCrawlLogResponse[]
-  status: 200
-}
-
-export type getJobCrawlLogsApiV1JobsCrawlLogsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getJobCrawlLogsApiV1JobsCrawlLogsGetResponseSuccess = (getJobCrawlLogsApiV1JobsCrawlLogsGetResponse200) & {
-  headers: Headers;
-};
-export type getJobCrawlLogsApiV1JobsCrawlLogsGetResponseError = (getJobCrawlLogsApiV1JobsCrawlLogsGetResponse422) & {
-  headers: Headers;
-};
-
-export type getJobCrawlLogsApiV1JobsCrawlLogsGetResponse = (getJobCrawlLogsApiV1JobsCrawlLogsGetResponseSuccess | getJobCrawlLogsApiV1JobsCrawlLogsGetResponseError)
-
-export const getGetJobCrawlLogsApiV1JobsCrawlLogsGetUrl = (params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/jobs/crawl-logs?${stringifiedParams}` : `/api/v1/jobs/crawl-logs`
-}
-
-/**
- * Get job crawl logs for current user's search configs.
- * @summary Get Job Crawl Logs
- */
-export const getJobCrawlLogsApiV1JobsCrawlLogsGet = async (params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options?: RequestInit): Promise<getJobCrawlLogsApiV1JobsCrawlLogsGetResponse> => {
-
-  return customInstance<getJobCrawlLogsApiV1JobsCrawlLogsGetResponse>(getGetJobCrawlLogsApiV1JobsCrawlLogsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetJobCrawlLogsApiV1JobsCrawlLogsGetQueryKey = (params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams,) => {
-    return [
-    `/api/v1/jobs/crawl-logs`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetJobCrawlLogsApiV1JobsCrawlLogsGetQueryOptions = <TData = Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetJobCrawlLogsApiV1JobsCrawlLogsGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>> = ({ signal }) => getJobCrawlLogsApiV1JobsCrawlLogsGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetJobCrawlLogsApiV1JobsCrawlLogsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>>
-export type GetJobCrawlLogsApiV1JobsCrawlLogsGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetJobCrawlLogsApiV1JobsCrawlLogsGet<TData = Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlLogsApiV1JobsCrawlLogsGet<TData = Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlLogsApiV1JobsCrawlLogsGet<TData = Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Job Crawl Logs
- */
-
-export function useGetJobCrawlLogsApiV1JobsCrawlLogsGet<TData = Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetJobCrawlLogsApiV1JobsCrawlLogsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlLogsApiV1JobsCrawlLogsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetJobCrawlLogsApiV1JobsCrawlLogsGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getJobApiV1JobsJobIdStrGetResponse200 = {
-  data: JobResponse
-  status: 200
-}
-
-export type getJobApiV1JobsJobIdStrGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getJobApiV1JobsJobIdStrGetResponseSuccess = (getJobApiV1JobsJobIdStrGetResponse200) & {
-  headers: Headers;
-};
-export type getJobApiV1JobsJobIdStrGetResponseError = (getJobApiV1JobsJobIdStrGetResponse422) & {
-  headers: Headers;
-};
-
-export type getJobApiV1JobsJobIdStrGetResponse = (getJobApiV1JobsJobIdStrGetResponseSuccess | getJobApiV1JobsJobIdStrGetResponseError)
-
-export const getGetJobApiV1JobsJobIdStrGetUrl = (jobIdStr: string,) => {
-
-
-
-
-  return `/api/v1/jobs/${jobIdStr}`
-}
 
 /**
  * Get a single job by boss job_id.
  * @summary Get Job
  */
-export const getJobApiV1JobsJobIdStrGet = async (jobIdStr: string, options?: RequestInit): Promise<getJobApiV1JobsJobIdStrGetResponse> => {
-
-  return customInstance<getJobApiV1JobsJobIdStrGetResponse>(getGetJobApiV1JobsJobIdStrGetUrl(jobIdStr),
-  {
-    ...options,
-    method: 'GET'
+export const jobsGetJob = (
+    jobIdStr: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<JobResponse>(
+      {url: `/api/v1/jobs/${jobIdStr}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetJobApiV1JobsJobIdStrGetQueryKey = (jobIdStr: string,) => {
+export const getJobsGetJobQueryKey = (jobIdStr: string,) => {
     return [
     `/api/v1/jobs/${jobIdStr}`
     ] as const;
     }
 
 
-export const getGetJobApiV1JobsJobIdStrGetQueryOptions = <TData = Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError = ErrorType<HTTPValidationError>>(jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getJobsGetJobQueryOptions = <TData = Awaited<ReturnType<typeof jobsGetJob>>, TError = ErrorType<HTTPValidationError>>(jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetJobApiV1JobsJobIdStrGetQueryKey(jobIdStr);
+  const queryKey =  queryOptions?.queryKey ?? getJobsGetJobQueryKey(jobIdStr);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>> = ({ signal }) => getJobApiV1JobsJobIdStrGet(jobIdStr, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof jobsGetJob>>> = ({ signal }) => jobsGetJob(jobIdStr, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: jobIdStr !== null && jobIdStr !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: jobIdStr !== null && jobIdStr !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetJobApiV1JobsJobIdStrGetQueryResult = NonNullable<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>>
-export type GetJobApiV1JobsJobIdStrGetQueryError = ErrorType<HTTPValidationError>
+export type JobsGetJobQueryResult = NonNullable<Awaited<ReturnType<typeof jobsGetJob>>>
+export type JobsGetJobQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetJobApiV1JobsJobIdStrGet<TData = Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError = ErrorType<HTTPValidationError>>(
- jobIdStr: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData>> & Pick<
+export function useJobsGetJob<TData = Awaited<ReturnType<typeof jobsGetJob>>, TError = ErrorType<HTTPValidationError>>(
+ jobIdStr: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>,
+          Awaited<ReturnType<typeof jobsGetJob>>,
           TError,
-          Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>
+          Awaited<ReturnType<typeof jobsGetJob>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobApiV1JobsJobIdStrGet<TData = Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError = ErrorType<HTTPValidationError>>(
- jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData>> & Pick<
+export function useJobsGetJob<TData = Awaited<ReturnType<typeof jobsGetJob>>, TError = ErrorType<HTTPValidationError>>(
+ jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>,
+          Awaited<ReturnType<typeof jobsGetJob>>,
           TError,
-          Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>
+          Awaited<ReturnType<typeof jobsGetJob>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobApiV1JobsJobIdStrGet<TData = Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError = ErrorType<HTTPValidationError>>(
- jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetJob<TData = Awaited<ReturnType<typeof jobsGetJob>>, TError = ErrorType<HTTPValidationError>>(
+ jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Job
  */
 
-export function useGetJobApiV1JobsJobIdStrGet<TData = Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError = ErrorType<HTTPValidationError>>(
- jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobApiV1JobsJobIdStrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useJobsGetJob<TData = Awaited<ReturnType<typeof jobsGetJob>>, TError = ErrorType<HTTPValidationError>>(
+ jobIdStr: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof jobsGetJob>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetJobApiV1JobsJobIdStrGetQueryOptions(jobIdStr,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type crawlNowApiV1JobsCrawlNowPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type crawlNowApiV1JobsCrawlNowPostResponseSuccess = (crawlNowApiV1JobsCrawlNowPostResponse200) & {
-  headers: Headers;
-};
-;
-
-export type crawlNowApiV1JobsCrawlNowPostResponse = (crawlNowApiV1JobsCrawlNowPostResponseSuccess)
-
-export const getCrawlNowApiV1JobsCrawlNowPostUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/crawl-now`
-}
-
-/**
- * Trigger crawling all active job search configs (async).
- * @summary Crawl Now
- */
-export const crawlNowApiV1JobsCrawlNowPost = async ( options?: RequestInit): Promise<crawlNowApiV1JobsCrawlNowPostResponse> => {
-
-  return customInstance<crawlNowApiV1JobsCrawlNowPostResponse>(getCrawlNowApiV1JobsCrawlNowPostUrl(),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getCrawlNowApiV1JobsCrawlNowPostMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>, TError,void, TContext> => {
-
-const mutationKey = ['crawlNowApiV1JobsCrawlNowPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>, void> = () => {
-
-
-          return  crawlNowApiV1JobsCrawlNowPost(requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CrawlNowApiV1JobsCrawlNowPostMutationResult = NonNullable<Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>>
-
-    export type CrawlNowApiV1JobsCrawlNowPostMutationError = ErrorType<unknown>
-
-    /**
- * @summary Crawl Now
- */
-export const useCrawlNowApiV1JobsCrawlNowPost = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof crawlNowApiV1JobsCrawlNowPost>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getCrawlNowApiV1JobsCrawlNowPostMutationOptions(options), queryClient);
-    }
-    export type crawlSingleApiV1JobsCrawlNowConfigIdPostResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type crawlSingleApiV1JobsCrawlNowConfigIdPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type crawlSingleApiV1JobsCrawlNowConfigIdPostResponseSuccess = (crawlSingleApiV1JobsCrawlNowConfigIdPostResponse200) & {
-  headers: Headers;
-};
-export type crawlSingleApiV1JobsCrawlNowConfigIdPostResponseError = (crawlSingleApiV1JobsCrawlNowConfigIdPostResponse422) & {
-  headers: Headers;
-};
-
-export type crawlSingleApiV1JobsCrawlNowConfigIdPostResponse = (crawlSingleApiV1JobsCrawlNowConfigIdPostResponseSuccess | crawlSingleApiV1JobsCrawlNowConfigIdPostResponseError)
-
-export const getCrawlSingleApiV1JobsCrawlNowConfigIdPostUrl = (configId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/crawl-now/${configId}`
-}
-
-/**
- * Trigger crawling a single config (async).
- * @summary Crawl Single
- */
-export const crawlSingleApiV1JobsCrawlNowConfigIdPost = async (configId: number, options?: RequestInit): Promise<crawlSingleApiV1JobsCrawlNowConfigIdPostResponse> => {
-
-  return customInstance<crawlSingleApiV1JobsCrawlNowConfigIdPostResponse>(getCrawlSingleApiV1JobsCrawlNowConfigIdPostUrl(configId),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-export const getCrawlSingleApiV1JobsCrawlNowConfigIdPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>, TError,{configId: number}, TContext> => {
-
-const mutationKey = ['crawlSingleApiV1JobsCrawlNowConfigIdPost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>, {configId: number}> = (props) => {
-          const {configId} = props ?? {};
-
-          return  crawlSingleApiV1JobsCrawlNowConfigIdPost(configId,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CrawlSingleApiV1JobsCrawlNowConfigIdPostMutationResult = NonNullable<Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>>
-
-    export type CrawlSingleApiV1JobsCrawlNowConfigIdPostMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Crawl Single
- */
-export const useCrawlSingleApiV1JobsCrawlNowConfigIdPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>, TError,{configId: number}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof crawlSingleApiV1JobsCrawlNowConfigIdPost>>,
-        TError,
-        {configId: number},
-        TContext
-      > => {
-      return useMutation(getCrawlSingleApiV1JobsCrawlNowConfigIdPostMutationOptions(options), queryClient);
-    }
-    export type getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponseSuccess = (getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse200) & {
-  headers: Headers;
-};
-export type getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponseError = (getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse = (getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponseSuccess | getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponseError)
-
-export const getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetUrl = (taskId: string,) => {
-
-
-
-
-  return `/api/v1/jobs/crawl/status/${taskId}`
-}
-
-/**
- * Get the status of a job crawl task from persistent store.
- * @summary Get Job Crawl Status
- */
-export const getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet = async (taskId: string, options?: RequestInit): Promise<getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse> => {
-
-  return customInstance<getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetResponse>(getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetUrl(taskId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryKey = (taskId: string,) => {
-    return [
-    `/api/v1/jobs/crawl/status/${taskId}`
-    ] as const;
-    }
-
-
-export const getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryKey(taskId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>> = ({ signal }) => getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet(taskId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>>
-export type GetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Job Crawl Status
- */
-
-export function useGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlStatusApiV1JobsCrawlStatusTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetJobCrawlStatusApiV1JobsCrawlStatusTaskIdGetQueryOptions(taskId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponseSuccess = (getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse200) & {
-  headers: Headers;
-};
-export type getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponseError = (getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse = (getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponseSuccess | getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponseError)
-
-export const getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetUrl = (taskId: string,) => {
-
-
-
-
-  return `/api/v1/jobs/crawl/result/${taskId}`
-}
-
-/**
- * Get the final result of a completed job crawl task.
- * @summary Get Job Crawl Result
- */
-export const getJobCrawlResultApiV1JobsCrawlResultTaskIdGet = async (taskId: string, options?: RequestInit): Promise<getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse> => {
-
-  return customInstance<getJobCrawlResultApiV1JobsCrawlResultTaskIdGetResponse>(getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetUrl(taskId),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryKey = (taskId: string,) => {
-    return [
-    `/api/v1/jobs/crawl/result/${taskId}`
-    ] as const;
-    }
-
-
-export const getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryOptions = <TData = Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryKey(taskId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>> = ({ signal }) => getJobCrawlResultApiV1JobsCrawlResultTaskIdGet(taskId, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>>
-export type GetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetJobCrawlResultApiV1JobsCrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlResultApiV1JobsCrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobCrawlResultApiV1JobsCrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Job Crawl Result
- */
-
-export function useGetJobCrawlResultApiV1JobsCrawlResultTaskIdGet<TData = Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError = ErrorType<HTTPValidationError>>(
- taskId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobCrawlResultApiV1JobsCrawlResultTaskIdGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetJobCrawlResultApiV1JobsCrawlResultTaskIdGetQueryOptions(taskId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse200 = {
-  data: JobSearchConfigResponse
-  status: 200
-}
-
-export type updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponseSuccess = (updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse200) & {
-  headers: Headers;
-};
-export type updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponseError = (updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse422) & {
-  headers: Headers;
-};
-
-export type updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse = (updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponseSuccess | updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponseError)
-
-export const getUpdateConfigCronApiV1JobsConfigsConfigIdCronPatchUrl = (configId: number,) => {
-
-
-
-
-  return `/api/v1/jobs/configs/${configId}/cron`
-}
-
-/**
- * Update only the cron settings for a job search config.
- *
- * Null cron_expression disables scheduled crawling for this config.
- * @summary Update Config Cron
- */
-export const updateConfigCronApiV1JobsConfigsConfigIdCronPatch = async (configId: number,
-    jobConfigCronUpdate: JobConfigCronUpdate, options?: RequestInit): Promise<updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse> => {
-
-  return customInstance<updateConfigCronApiV1JobsConfigsConfigIdCronPatchResponse>(getUpdateConfigCronApiV1JobsConfigsConfigIdCronPatchUrl(configId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(jobConfigCronUpdate)
-  }
-);}
-
-
-
-
-export const getUpdateConfigCronApiV1JobsConfigsConfigIdCronPatchMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext> => {
-
-const mutationKey = ['updateConfigCronApiV1JobsConfigsConfigIdCronPatch'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>, {configId: number;data: BodyType<JobConfigCronUpdate>}> = (props) => {
-          const {configId,data} = props ?? {};
-
-          return  updateConfigCronApiV1JobsConfigsConfigIdCronPatch(configId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateConfigCronApiV1JobsConfigsConfigIdCronPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>>
-    export type UpdateConfigCronApiV1JobsConfigsConfigIdCronPatchMutationBody = BodyType<JobConfigCronUpdate>
-    export type UpdateConfigCronApiV1JobsConfigsConfigIdCronPatchMutationError = ErrorType<HTTPValidationError>
-
-    /**
- * @summary Update Config Cron
- */
-export const useUpdateConfigCronApiV1JobsConfigsConfigIdCronPatch = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>, TError,{configId: number;data: BodyType<JobConfigCronUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateConfigCronApiV1JobsConfigsConfigIdCronPatch>>,
-        TError,
-        {configId: number;data: BodyType<JobConfigCronUpdate>},
-        TContext
-      > => {
-      return useMutation(getUpdateConfigCronApiV1JobsConfigsConfigIdCronPatchMutationOptions(options), queryClient);
-    }
-    export type getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponseSuccess = (getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponse = (getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponseSuccess)
-
-export const getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetUrl = () => {
-
-
-
-
-  return `/api/v1/jobs/scheduler/job-configs`
-}
-
-/**
- * Get next run times for all per-config job crawl schedules.
- * @summary Get Job Config Schedules
- */
-export const getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet = async ( options?: RequestInit): Promise<getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponse> => {
-
-  return customInstance<getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetResponse>(getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryKey = () => {
-    return [
-    `/api/v1/jobs/scheduler/job-configs`
-    ] as const;
-    }
-
-
-export const getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryOptions = <TData = Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>> = ({ signal }) => getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>>
-export type GetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryError = ErrorType<unknown>
-
-
-export function useGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet<TData = Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet<TData = Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet<TData = Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Job Config Schedules
- */
-
-export function useGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet<TData = Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getJobConfigSchedulesApiV1JobsSchedulerJobConfigsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetJobConfigSchedulesApiV1JobsSchedulerJobConfigsGetQueryOptions(options)
+  const queryOptions = getJobsGetJobQueryOptions(jobIdStr,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

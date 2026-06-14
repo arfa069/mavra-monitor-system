@@ -10,11 +10,11 @@ import type { ProductResponse } from './productResponse';
  * Paginated product list response.
  */
 export interface ProductListResponse {
-  items: ProductResponse[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
   has_next: boolean;
   has_prev: boolean;
+  items: ProductResponse[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
 }

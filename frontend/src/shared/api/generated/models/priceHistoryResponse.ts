@@ -9,10 +9,10 @@
  * Schema for price history record.
  */
 export interface PriceHistoryResponse {
+  currency: string;
   id: number;
-  product_id: number;
   /** @pattern ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$ */
   price: string;
-  currency: string;
+  product_id: number;
   scraped_at: string;
 }

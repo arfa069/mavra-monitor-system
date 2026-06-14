@@ -9,7 +9,7 @@
  * Schema for updating user configuration.
  */
 export interface UserConfigUpdate {
+  data_retention_days?: number | null;
   /** Feishu webhook URL */
   feishu_webhook_url?: string | null;
-  data_retention_days?: number | null;
 }

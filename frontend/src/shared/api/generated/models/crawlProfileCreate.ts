@@ -6,10 +6,10 @@
  */
 
 export interface CrawlProfileCreate {
+  platform_hint?: string | null;
   /**
      * @minLength 1
      * @maxLength 80
      */
   profile_key: string;
-  platform_hint?: string | null;
 }

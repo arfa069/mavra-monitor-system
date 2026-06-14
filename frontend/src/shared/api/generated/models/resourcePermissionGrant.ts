@@ -9,15 +9,15 @@
  * Schema for granting resource permissions.
  */
 export interface ResourcePermissionGrant {
-  /** 被授权用户 ID */
-  subject_id: number;
-  /** @pattern ^(product|job|user)$ */
-  resource_type: string;
+  /** @pattern ^(read|write|delete|\*)$ */
+  permission: string;
   /**
      * 资源 ID 列表，支持 '*' 表示全部
      * @minItems 1
      */
   resource_ids: string[];
-  /** @pattern ^(read|write|delete|\*)$ */
-  permission: string;
+  /** @pattern ^(product|job|user)$ */
+  resource_type: string;
+  /** 被授权用户 ID */
+  subject_id: number;
 }

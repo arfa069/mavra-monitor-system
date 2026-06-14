@@ -11,10 +11,10 @@
  * is_active is a compatibility projection of deleted_at (not the DB column).
  */
 export interface AdminUserResponse {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  is_active?: boolean;
   created_at: string;
+  email: string;
+  id: number;
+  is_active?: boolean;
+  role: string;
+  username: string;
 }

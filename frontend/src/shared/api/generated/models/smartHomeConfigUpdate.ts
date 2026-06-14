@@ -11,6 +11,6 @@ export interface SmartHomeConfigUpdate {
      * @maxLength 2083
      */
   base_url: string;
-  token?: string | null;
   enabled?: boolean;
+  token?: string | null;
 }

@@ -9,8 +9,8 @@
  * Result of a single batch operation item.
  */
 export interface BatchOperationResult {
-  id?: number | null;
-  url?: string | null;
-  success: boolean;
   error?: string | null;
+  id?: number | null;
+  success: boolean;
+  url?: string | null;
 }

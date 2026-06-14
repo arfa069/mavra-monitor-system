@@ -19,6 +19,10 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
+import type {
+  SchedulerStatusResponse
+} from '../models';
+
 import { customInstance } from '../../mutator';
 import type { ErrorType } from '../../mutator';
 
@@ -27,108 +31,88 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getSchedulerStatusApiV1SchedulerStatusGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type getSchedulerStatusApiV1SchedulerStatusGetResponseSuccess = (getSchedulerStatusApiV1SchedulerStatusGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getSchedulerStatusApiV1SchedulerStatusGetResponse = (getSchedulerStatusApiV1SchedulerStatusGetResponseSuccess)
-
-export const getGetSchedulerStatusApiV1SchedulerStatusGetUrl = () => {
-
-
-
-
-  return `/api/v1/scheduler/status`
-}
-
 /**
  * Get APScheduler status and next run times for all cron jobs.
  * @summary Get Scheduler Status
  */
-export const getSchedulerStatusApiV1SchedulerStatusGet = async ( options?: RequestInit): Promise<getSchedulerStatusApiV1SchedulerStatusGetResponse> => {
+export const schedulerGetSchedulerStatus = (
 
-  return customInstance<getSchedulerStatusApiV1SchedulerStatusGetResponse>(getGetSchedulerStatusApiV1SchedulerStatusGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<SchedulerStatusResponse>(
+      {url: `/api/v1/scheduler/status`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetSchedulerStatusApiV1SchedulerStatusGetQueryKey = () => {
+export const getSchedulerGetSchedulerStatusQueryKey = () => {
     return [
     `/api/v1/scheduler/status`
     ] as const;
     }
 
 
-export const getGetSchedulerStatusApiV1SchedulerStatusGetQueryOptions = <TData = Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getSchedulerGetSchedulerStatusQueryOptions = <TData = Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError = ErrorType<SchedulerStatusResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSchedulerStatusApiV1SchedulerStatusGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getSchedulerGetSchedulerStatusQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>> = ({ signal }) => getSchedulerStatusApiV1SchedulerStatusGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>> = ({ signal }) => schedulerGetSchedulerStatus(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetSchedulerStatusApiV1SchedulerStatusGetQueryResult = NonNullable<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>>
-export type GetSchedulerStatusApiV1SchedulerStatusGetQueryError = ErrorType<unknown>
+export type SchedulerGetSchedulerStatusQueryResult = NonNullable<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>>
+export type SchedulerGetSchedulerStatusQueryError = ErrorType<SchedulerStatusResponse>
 
 
-export function useGetSchedulerStatusApiV1SchedulerStatusGet<TData = Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData>> & Pick<
+export function useSchedulerGetSchedulerStatus<TData = Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError = ErrorType<SchedulerStatusResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>,
+          Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>,
           TError,
-          Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>
+          Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSchedulerStatusApiV1SchedulerStatusGet<TData = Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData>> & Pick<
+export function useSchedulerGetSchedulerStatus<TData = Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError = ErrorType<SchedulerStatusResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>,
+          Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>,
           TError,
-          Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>
+          Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSchedulerStatusApiV1SchedulerStatusGet<TData = Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSchedulerGetSchedulerStatus<TData = Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError = ErrorType<SchedulerStatusResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Scheduler Status
  */
 
-export function useGetSchedulerStatusApiV1SchedulerStatusGet<TData = Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSchedulerStatusApiV1SchedulerStatusGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSchedulerGetSchedulerStatus<TData = Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError = ErrorType<SchedulerStatusResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof schedulerGetSchedulerStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetSchedulerStatusApiV1SchedulerStatusGetQueryOptions(options)
+  const queryOptions = getSchedulerGetSchedulerStatusQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

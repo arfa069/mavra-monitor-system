@@ -9,6 +9,6 @@
  * Schema for updating an alert.
  */
 export interface AlertUpdate {
-  threshold_percent?: number | string | null;
   active?: boolean | null;
+  threshold_percent?: number | string | null;
 }

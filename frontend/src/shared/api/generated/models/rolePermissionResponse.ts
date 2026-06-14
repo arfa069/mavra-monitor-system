@@ -9,7 +9,7 @@
  * Schema for a role with its permissions.
  */
 export interface RolePermissionResponse {
-  role: string;
   description?: string | null;
   permissions: string[];
+  role: string;
 }

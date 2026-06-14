@@ -24,13 +24,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  GetWechatQrUrlApiV1AuthWechatQrGetParams,
   HTTPValidationError,
   UserResponse,
   WeChatBindRequest,
   WeChatQrResponse,
   WeChatRegisterRequest,
-  WechatCallbackApiV1AuthWechatCallbackGetParams
+  WechatGetWechatQrUrlParams
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -41,294 +40,6 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getWechatQrUrlApiV1AuthWechatQrGetResponse200 = {
-  data: WeChatQrResponse
-  status: 200
-}
-
-export type getWechatQrUrlApiV1AuthWechatQrGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getWechatQrUrlApiV1AuthWechatQrGetResponseSuccess = (getWechatQrUrlApiV1AuthWechatQrGetResponse200) & {
-  headers: Headers;
-};
-export type getWechatQrUrlApiV1AuthWechatQrGetResponseError = (getWechatQrUrlApiV1AuthWechatQrGetResponse422) & {
-  headers: Headers;
-};
-
-export type getWechatQrUrlApiV1AuthWechatQrGetResponse = (getWechatQrUrlApiV1AuthWechatQrGetResponseSuccess | getWechatQrUrlApiV1AuthWechatQrGetResponseError)
-
-export const getGetWechatQrUrlApiV1AuthWechatQrGetUrl = (params?: GetWechatQrUrlApiV1AuthWechatQrGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/auth/wechat/qr?${stringifiedParams}` : `/api/v1/auth/wechat/qr`
-}
-
-/**
- * Generate WeChat QR code authorization URL.
- *
- * Returns a URL for the user to scan with WeChat.
- * The state parameter is randomly generated and cached for 10 minutes.
- * @summary Get Wechat Qr Url
- */
-export const getWechatQrUrlApiV1AuthWechatQrGet = async (params?: GetWechatQrUrlApiV1AuthWechatQrGetParams, options?: RequestInit): Promise<getWechatQrUrlApiV1AuthWechatQrGetResponse> => {
-
-  return customInstance<getWechatQrUrlApiV1AuthWechatQrGetResponse>(getGetWechatQrUrlApiV1AuthWechatQrGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetWechatQrUrlApiV1AuthWechatQrGetQueryKey = (params?: GetWechatQrUrlApiV1AuthWechatQrGetParams,) => {
-    return [
-    `/api/v1/auth/wechat/qr`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetWechatQrUrlApiV1AuthWechatQrGetQueryOptions = <TData = Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError = ErrorType<HTTPValidationError>>(params?: GetWechatQrUrlApiV1AuthWechatQrGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetWechatQrUrlApiV1AuthWechatQrGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>> = ({ signal }) => getWechatQrUrlApiV1AuthWechatQrGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetWechatQrUrlApiV1AuthWechatQrGetQueryResult = NonNullable<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>>
-export type GetWechatQrUrlApiV1AuthWechatQrGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetWechatQrUrlApiV1AuthWechatQrGet<TData = Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  GetWechatQrUrlApiV1AuthWechatQrGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>,
-          TError,
-          Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetWechatQrUrlApiV1AuthWechatQrGet<TData = Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetWechatQrUrlApiV1AuthWechatQrGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>,
-          TError,
-          Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetWechatQrUrlApiV1AuthWechatQrGet<TData = Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetWechatQrUrlApiV1AuthWechatQrGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Wechat Qr Url
- */
-
-export function useGetWechatQrUrlApiV1AuthWechatQrGet<TData = Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetWechatQrUrlApiV1AuthWechatQrGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWechatQrUrlApiV1AuthWechatQrGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetWechatQrUrlApiV1AuthWechatQrGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type wechatCallbackApiV1AuthWechatCallbackGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type wechatCallbackApiV1AuthWechatCallbackGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type wechatCallbackApiV1AuthWechatCallbackGetResponseSuccess = (wechatCallbackApiV1AuthWechatCallbackGetResponse200) & {
-  headers: Headers;
-};
-export type wechatCallbackApiV1AuthWechatCallbackGetResponseError = (wechatCallbackApiV1AuthWechatCallbackGetResponse422) & {
-  headers: Headers;
-};
-
-export type wechatCallbackApiV1AuthWechatCallbackGetResponse = (wechatCallbackApiV1AuthWechatCallbackGetResponseSuccess | wechatCallbackApiV1AuthWechatCallbackGetResponseError)
-
-export const getWechatCallbackApiV1AuthWechatCallbackGetUrl = (params: WechatCallbackApiV1AuthWechatCallbackGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/auth/wechat/callback?${stringifiedParams}` : `/api/v1/auth/wechat/callback`
-}
-
-/**
- * Handle WeChat OAuth callback.
- *
- * Exchanges code for access_token and openid.
- * If the openid is already bound to a user, logs them in (sets auth cookies).
- * Otherwise, returns a temporary token for binding/registration.
- * @summary Wechat Callback
- */
-export const wechatCallbackApiV1AuthWechatCallbackGet = async (params: WechatCallbackApiV1AuthWechatCallbackGetParams, options?: RequestInit): Promise<wechatCallbackApiV1AuthWechatCallbackGetResponse> => {
-
-  return customInstance<wechatCallbackApiV1AuthWechatCallbackGetResponse>(getWechatCallbackApiV1AuthWechatCallbackGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getWechatCallbackApiV1AuthWechatCallbackGetQueryKey = (params?: WechatCallbackApiV1AuthWechatCallbackGetParams,) => {
-    return [
-    `/api/v1/auth/wechat/callback`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getWechatCallbackApiV1AuthWechatCallbackGetQueryOptions = <TData = Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError = ErrorType<HTTPValidationError>>(params: WechatCallbackApiV1AuthWechatCallbackGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getWechatCallbackApiV1AuthWechatCallbackGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>> = ({ signal }) => wechatCallbackApiV1AuthWechatCallbackGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type WechatCallbackApiV1AuthWechatCallbackGetQueryResult = NonNullable<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>>
-export type WechatCallbackApiV1AuthWechatCallbackGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useWechatCallbackApiV1AuthWechatCallbackGet<TData = Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError = ErrorType<HTTPValidationError>>(
- params: WechatCallbackApiV1AuthWechatCallbackGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>,
-          TError,
-          Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useWechatCallbackApiV1AuthWechatCallbackGet<TData = Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError = ErrorType<HTTPValidationError>>(
- params: WechatCallbackApiV1AuthWechatCallbackGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>,
-          TError,
-          Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useWechatCallbackApiV1AuthWechatCallbackGet<TData = Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError = ErrorType<HTTPValidationError>>(
- params: WechatCallbackApiV1AuthWechatCallbackGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Wechat Callback
- */
-
-export function useWechatCallbackApiV1AuthWechatCallbackGet<TData = Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError = ErrorType<HTTPValidationError>>(
- params: WechatCallbackApiV1AuthWechatCallbackGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatCallbackApiV1AuthWechatCallbackGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getWechatCallbackApiV1AuthWechatCallbackGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type bindWechatAccountApiV1AuthWechatBindPostResponse200 = {
-  data: UserResponse
-  status: 200
-}
-
-export type bindWechatAccountApiV1AuthWechatBindPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type bindWechatAccountApiV1AuthWechatBindPostResponseSuccess = (bindWechatAccountApiV1AuthWechatBindPostResponse200) & {
-  headers: Headers;
-};
-export type bindWechatAccountApiV1AuthWechatBindPostResponseError = (bindWechatAccountApiV1AuthWechatBindPostResponse422) & {
-  headers: Headers;
-};
-
-export type bindWechatAccountApiV1AuthWechatBindPostResponse = (bindWechatAccountApiV1AuthWechatBindPostResponseSuccess | bindWechatAccountApiV1AuthWechatBindPostResponseError)
-
-export const getBindWechatAccountApiV1AuthWechatBindPostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/wechat/bind`
-}
-
 /**
  * Bind WeChat account to an existing user.
  *
@@ -338,25 +49,27 @@ export const getBindWechatAccountApiV1AuthWechatBindPostUrl = () => {
  *     password: Existing password
  * @summary Bind Wechat Account
  */
-export const bindWechatAccountApiV1AuthWechatBindPost = async (weChatBindRequest: WeChatBindRequest, options?: RequestInit): Promise<bindWechatAccountApiV1AuthWechatBindPostResponse> => {
-
-  return customInstance<bindWechatAccountApiV1AuthWechatBindPostResponse>(getBindWechatAccountApiV1AuthWechatBindPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(weChatBindRequest)
-  }
-);}
+export const wechatBindWechatAccount = (
+    weChatBindRequest: BodyType<WeChatBindRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<UserResponse>(
+      {url: `/api/v1/auth/wechat/bind`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: weChatBindRequest, signal
+    },
+      options);
+    }
 
 
-export const getBindWechatAccountApiV1AuthWechatBindPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>, TError,{data: BodyType<WeChatBindRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>, TError,{data: BodyType<WeChatBindRequest>}, TContext> => {
 
-const mutationKey = ['bindWechatAccountApiV1AuthWechatBindPost'];
+export const getWechatBindWechatAccountMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof wechatBindWechatAccount>>, TError,{data: BodyType<WeChatBindRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof wechatBindWechatAccount>>, TError,{data: BodyType<WeChatBindRequest>}, TContext> => {
+
+const mutationKey = ['wechatBindWechatAccount'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -366,10 +79,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>, {data: BodyType<WeChatBindRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof wechatBindWechatAccount>>, {data: BodyType<WeChatBindRequest>}> = (props) => {
           const {data} = props ?? {};
 
-          return  bindWechatAccountApiV1AuthWechatBindPost(data,requestOptions)
+          return  wechatBindWechatAccount(data,requestOptions)
         }
 
 
@@ -379,49 +92,119 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type BindWechatAccountApiV1AuthWechatBindPostMutationResult = NonNullable<Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>>
-    export type BindWechatAccountApiV1AuthWechatBindPostMutationBody = BodyType<WeChatBindRequest>
-    export type BindWechatAccountApiV1AuthWechatBindPostMutationError = ErrorType<HTTPValidationError>
+    export type WechatBindWechatAccountMutationResult = NonNullable<Awaited<ReturnType<typeof wechatBindWechatAccount>>>
+    export type WechatBindWechatAccountMutationBody = BodyType<WeChatBindRequest>
+    export type WechatBindWechatAccountMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Bind Wechat Account
  */
-export const useBindWechatAccountApiV1AuthWechatBindPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>, TError,{data: BodyType<WeChatBindRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useWechatBindWechatAccount = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof wechatBindWechatAccount>>, TError,{data: BodyType<WeChatBindRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof bindWechatAccountApiV1AuthWechatBindPost>>,
+        Awaited<ReturnType<typeof wechatBindWechatAccount>>,
         TError,
         {data: BodyType<WeChatBindRequest>},
         TContext
       > => {
-      return useMutation(getBindWechatAccountApiV1AuthWechatBindPostMutationOptions(options), queryClient);
+      return useMutation(getWechatBindWechatAccountMutationOptions(options), queryClient);
     }
-    export type registerWithWechatApiV1AuthWechatRegisterPostResponse200 = {
-  data: UserResponse
-  status: 200
+    /**
+ * Generate WeChat QR code authorization URL.
+ *
+ * Returns a URL for the user to scan with WeChat.
+ * The state parameter is randomly generated and cached for 10 minutes.
+ * @summary Get Wechat Qr Url
+ */
+export const wechatGetWechatQrUrl = (
+    params?: WechatGetWechatQrUrlParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<WeChatQrResponse>(
+      {url: `/api/v1/auth/wechat/qr`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getWechatGetWechatQrUrlQueryKey = (params?: WechatGetWechatQrUrlParams,) => {
+    return [
+    `/api/v1/auth/wechat/qr`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getWechatGetWechatQrUrlQueryOptions = <TData = Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError = ErrorType<HTTPValidationError>>(params?: WechatGetWechatQrUrlParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getWechatGetWechatQrUrlQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>> = ({ signal }) => wechatGetWechatQrUrl(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type registerWithWechatApiV1AuthWechatRegisterPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
+export type WechatGetWechatQrUrlQueryResult = NonNullable<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>>
+export type WechatGetWechatQrUrlQueryError = ErrorType<HTTPValidationError>
+
+
+export function useWechatGetWechatQrUrl<TData = Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  WechatGetWechatQrUrlParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof wechatGetWechatQrUrl>>,
+          TError,
+          Awaited<ReturnType<typeof wechatGetWechatQrUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWechatGetWechatQrUrl<TData = Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError = ErrorType<HTTPValidationError>>(
+ params?: WechatGetWechatQrUrlParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof wechatGetWechatQrUrl>>,
+          TError,
+          Awaited<ReturnType<typeof wechatGetWechatQrUrl>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useWechatGetWechatQrUrl<TData = Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError = ErrorType<HTTPValidationError>>(
+ params?: WechatGetWechatQrUrlParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Wechat Qr Url
+ */
+
+export function useWechatGetWechatQrUrl<TData = Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError = ErrorType<HTTPValidationError>>(
+ params?: WechatGetWechatQrUrlParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof wechatGetWechatQrUrl>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getWechatGetWechatQrUrlQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export type registerWithWechatApiV1AuthWechatRegisterPostResponseSuccess = (registerWithWechatApiV1AuthWechatRegisterPostResponse200) & {
-  headers: Headers;
-};
-export type registerWithWechatApiV1AuthWechatRegisterPostResponseError = (registerWithWechatApiV1AuthWechatRegisterPostResponse422) & {
-  headers: Headers;
-};
-
-export type registerWithWechatApiV1AuthWechatRegisterPostResponse = (registerWithWechatApiV1AuthWechatRegisterPostResponseSuccess | registerWithWechatApiV1AuthWechatRegisterPostResponseError)
-
-export const getRegisterWithWechatApiV1AuthWechatRegisterPostUrl = () => {
 
 
 
 
-  return `/api/v1/auth/wechat/register`
-}
 
 /**
  * Register a new user and bind WeChat account.
@@ -433,25 +216,27 @@ export const getRegisterWithWechatApiV1AuthWechatRegisterPostUrl = () => {
  *     password: New password
  * @summary Register With Wechat
  */
-export const registerWithWechatApiV1AuthWechatRegisterPost = async (weChatRegisterRequest: WeChatRegisterRequest, options?: RequestInit): Promise<registerWithWechatApiV1AuthWechatRegisterPostResponse> => {
-
-  return customInstance<registerWithWechatApiV1AuthWechatRegisterPostResponse>(getRegisterWithWechatApiV1AuthWechatRegisterPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(weChatRegisterRequest)
-  }
-);}
+export const wechatRegisterWithWechat = (
+    weChatRegisterRequest: BodyType<WeChatRegisterRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<UserResponse>(
+      {url: `/api/v1/auth/wechat/register`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: weChatRegisterRequest, signal
+    },
+      options);
+    }
 
 
-export const getRegisterWithWechatApiV1AuthWechatRegisterPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext> => {
 
-const mutationKey = ['registerWithWechatApiV1AuthWechatRegisterPost'];
+export const getWechatRegisterWithWechatMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof wechatRegisterWithWechat>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof wechatRegisterWithWechat>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext> => {
+
+const mutationKey = ['wechatRegisterWithWechat'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -461,10 +246,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>, {data: BodyType<WeChatRegisterRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof wechatRegisterWithWechat>>, {data: BodyType<WeChatRegisterRequest>}> = (props) => {
           const {data} = props ?? {};
 
-          return  registerWithWechatApiV1AuthWechatRegisterPost(data,requestOptions)
+          return  wechatRegisterWithWechat(data,requestOptions)
         }
 
 
@@ -474,20 +259,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type RegisterWithWechatApiV1AuthWechatRegisterPostMutationResult = NonNullable<Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>>
-    export type RegisterWithWechatApiV1AuthWechatRegisterPostMutationBody = BodyType<WeChatRegisterRequest>
-    export type RegisterWithWechatApiV1AuthWechatRegisterPostMutationError = ErrorType<HTTPValidationError>
+    export type WechatRegisterWithWechatMutationResult = NonNullable<Awaited<ReturnType<typeof wechatRegisterWithWechat>>>
+    export type WechatRegisterWithWechatMutationBody = BodyType<WeChatRegisterRequest>
+    export type WechatRegisterWithWechatMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Register With Wechat
  */
-export const useRegisterWithWechatApiV1AuthWechatRegisterPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useWechatRegisterWithWechat = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof wechatRegisterWithWechat>>, TError,{data: BodyType<WeChatRegisterRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof registerWithWechatApiV1AuthWechatRegisterPost>>,
+        Awaited<ReturnType<typeof wechatRegisterWithWechat>>,
         TError,
         {data: BodyType<WeChatRegisterRequest>},
         TContext
       > => {
-      return useMutation(getRegisterWithWechatApiV1AuthWechatRegisterPostMutationOptions(options), queryClient);
+      return useMutation(getWechatRegisterWithWechatMutationOptions(options), queryClient);
     }

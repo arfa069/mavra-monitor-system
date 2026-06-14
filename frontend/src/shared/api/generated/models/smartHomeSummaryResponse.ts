@@ -6,8 +6,8 @@
  */
 
 export interface SmartHomeSummaryResponse {
+  active_count: number;
   configured: boolean;
   connected: boolean;
-  active_count: number;
   unavailable_count: number;
 }

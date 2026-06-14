@@ -8,21 +8,21 @@ import type { BlogPostUpdateContentJson } from './blogPostUpdateContentJson';
 import type { BlogPostUpdateStatus } from './blogPostUpdateStatus';
 
 export interface BlogPostUpdate {
-  title?: string | null;
-  slug?: string | null;
-  excerpt?: string | null;
-  content_json?: BlogPostUpdateContentJson;
-  content_html?: string | null;
-  status?: BlogPostUpdateStatus;
+  canonical_url?: string | null;
   category_id?: number | null;
   category_name?: string | null;
-  tag_ids?: number[] | null;
-  tag_names?: string[] | null;
-  cover_url?: string | null;
+  content_html?: string | null;
+  content_json?: BlogPostUpdateContentJson;
   cover_media_id?: number | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  canonical_url?: string | null;
+  cover_url?: string | null;
+  excerpt?: string | null;
   og_image_url?: string | null;
   published_at?: string | null;
+  seo_description?: string | null;
+  seo_title?: string | null;
+  slug?: string | null;
+  status?: BlogPostUpdateStatus;
+  tag_ids?: number[] | null;
+  tag_names?: string[] | null;
+  title?: string | null;
 }

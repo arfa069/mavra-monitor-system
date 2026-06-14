@@ -20,9 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DashboardGetRecentAlertsParams,
+  DashboardGetTrendDataParams,
   DashboardKPIResponse,
-  GetRecentAlertsApiV1DashboardAlertsRecentGetParams,
-  GetTrendDataApiV1DashboardTrendsGetParams,
   HTTPValidationError,
   RecentAlert,
   TrendResponse
@@ -36,475 +36,276 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getDashboardKpiApiV1DashboardKpiGetResponse200 = {
-  data: DashboardKPIResponse
-  status: 200
-}
-
-export type getDashboardKpiApiV1DashboardKpiGetResponseSuccess = (getDashboardKpiApiV1DashboardKpiGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getDashboardKpiApiV1DashboardKpiGetResponse = (getDashboardKpiApiV1DashboardKpiGetResponseSuccess)
-
-export const getGetDashboardKpiApiV1DashboardKpiGetUrl = () => {
-
-
-
-
-  return `/api/v1/dashboard/kpi`
-}
-
-/**
- * Get current dashboard KPI data.
- * @summary Get Dashboard Kpi
- */
-export const getDashboardKpiApiV1DashboardKpiGet = async ( options?: RequestInit): Promise<getDashboardKpiApiV1DashboardKpiGetResponse> => {
-
-  return customInstance<getDashboardKpiApiV1DashboardKpiGetResponse>(getGetDashboardKpiApiV1DashboardKpiGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetDashboardKpiApiV1DashboardKpiGetQueryKey = () => {
-    return [
-    `/api/v1/dashboard/kpi`
-    ] as const;
-    }
-
-
-export const getGetDashboardKpiApiV1DashboardKpiGetQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetDashboardKpiApiV1DashboardKpiGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>> = ({ signal }) => getDashboardKpiApiV1DashboardKpiGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetDashboardKpiApiV1DashboardKpiGetQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>>
-export type GetDashboardKpiApiV1DashboardKpiGetQueryError = ErrorType<unknown>
-
-
-export function useGetDashboardKpiApiV1DashboardKpiGet<TData = Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>,
-          TError,
-          Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDashboardKpiApiV1DashboardKpiGet<TData = Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>,
-          TError,
-          Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDashboardKpiApiV1DashboardKpiGet<TData = Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Dashboard Kpi
- */
-
-export function useGetDashboardKpiApiV1DashboardKpiGet<TData = Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardKpiApiV1DashboardKpiGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetDashboardKpiApiV1DashboardKpiGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type streamDashboardEventsApiV1DashboardEventsGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type streamDashboardEventsApiV1DashboardEventsGetResponseSuccess = (streamDashboardEventsApiV1DashboardEventsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type streamDashboardEventsApiV1DashboardEventsGetResponse = (streamDashboardEventsApiV1DashboardEventsGetResponseSuccess)
-
-export const getStreamDashboardEventsApiV1DashboardEventsGetUrl = () => {
-
-
-
-
-  return `/api/v1/dashboard/events`
-}
-
-/**
- * Stream dashboard KPI updates over SSE.
- * @summary Stream Dashboard Events
- */
-export const streamDashboardEventsApiV1DashboardEventsGet = async ( options?: RequestInit): Promise<streamDashboardEventsApiV1DashboardEventsGetResponse> => {
-
-  return customInstance<streamDashboardEventsApiV1DashboardEventsGetResponse>(getStreamDashboardEventsApiV1DashboardEventsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getStreamDashboardEventsApiV1DashboardEventsGetQueryKey = () => {
-    return [
-    `/api/v1/dashboard/events`
-    ] as const;
-    }
-
-
-export const getStreamDashboardEventsApiV1DashboardEventsGetQueryOptions = <TData = Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getStreamDashboardEventsApiV1DashboardEventsGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>> = ({ signal }) => streamDashboardEventsApiV1DashboardEventsGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type StreamDashboardEventsApiV1DashboardEventsGetQueryResult = NonNullable<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>>
-export type StreamDashboardEventsApiV1DashboardEventsGetQueryError = ErrorType<unknown>
-
-
-export function useStreamDashboardEventsApiV1DashboardEventsGet<TData = Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>,
-          TError,
-          Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamDashboardEventsApiV1DashboardEventsGet<TData = Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>,
-          TError,
-          Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamDashboardEventsApiV1DashboardEventsGet<TData = Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Stream Dashboard Events
- */
-
-export function useStreamDashboardEventsApiV1DashboardEventsGet<TData = Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamDashboardEventsApiV1DashboardEventsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getStreamDashboardEventsApiV1DashboardEventsGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getTrendDataApiV1DashboardTrendsGetResponse200 = {
-  data: TrendResponse
-  status: 200
-}
-
-export type getTrendDataApiV1DashboardTrendsGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getTrendDataApiV1DashboardTrendsGetResponseSuccess = (getTrendDataApiV1DashboardTrendsGetResponse200) & {
-  headers: Headers;
-};
-export type getTrendDataApiV1DashboardTrendsGetResponseError = (getTrendDataApiV1DashboardTrendsGetResponse422) & {
-  headers: Headers;
-};
-
-export type getTrendDataApiV1DashboardTrendsGetResponse = (getTrendDataApiV1DashboardTrendsGetResponseSuccess | getTrendDataApiV1DashboardTrendsGetResponseError)
-
-export const getGetTrendDataApiV1DashboardTrendsGetUrl = (params: GetTrendDataApiV1DashboardTrendsGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/dashboard/trends?${stringifiedParams}` : `/api/v1/dashboard/trends`
-}
-
-/**
- * Get trend chart data for dashboard.
- * @summary Get Trend Data
- */
-export const getTrendDataApiV1DashboardTrendsGet = async (params: GetTrendDataApiV1DashboardTrendsGetParams, options?: RequestInit): Promise<getTrendDataApiV1DashboardTrendsGetResponse> => {
-
-  return customInstance<getTrendDataApiV1DashboardTrendsGetResponse>(getGetTrendDataApiV1DashboardTrendsGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetTrendDataApiV1DashboardTrendsGetQueryKey = (params?: GetTrendDataApiV1DashboardTrendsGetParams,) => {
-    return [
-    `/api/v1/dashboard/trends`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetTrendDataApiV1DashboardTrendsGetQueryOptions = <TData = Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError = ErrorType<HTTPValidationError>>(params: GetTrendDataApiV1DashboardTrendsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetTrendDataApiV1DashboardTrendsGetQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>> = ({ signal }) => getTrendDataApiV1DashboardTrendsGet(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetTrendDataApiV1DashboardTrendsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>>
-export type GetTrendDataApiV1DashboardTrendsGetQueryError = ErrorType<HTTPValidationError>
-
-
-export function useGetTrendDataApiV1DashboardTrendsGet<TData = Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: GetTrendDataApiV1DashboardTrendsGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetTrendDataApiV1DashboardTrendsGet<TData = Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: GetTrendDataApiV1DashboardTrendsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>,
-          TError,
-          Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetTrendDataApiV1DashboardTrendsGet<TData = Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: GetTrendDataApiV1DashboardTrendsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Trend Data
- */
-
-export function useGetTrendDataApiV1DashboardTrendsGet<TData = Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError = ErrorType<HTTPValidationError>>(
- params: GetTrendDataApiV1DashboardTrendsGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTrendDataApiV1DashboardTrendsGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetTrendDataApiV1DashboardTrendsGetQueryOptions(params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type getRecentAlertsApiV1DashboardAlertsRecentGetResponse200 = {
-  data: RecentAlert[]
-  status: 200
-}
-
-export type getRecentAlertsApiV1DashboardAlertsRecentGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getRecentAlertsApiV1DashboardAlertsRecentGetResponseSuccess = (getRecentAlertsApiV1DashboardAlertsRecentGetResponse200) & {
-  headers: Headers;
-};
-export type getRecentAlertsApiV1DashboardAlertsRecentGetResponseError = (getRecentAlertsApiV1DashboardAlertsRecentGetResponse422) & {
-  headers: Headers;
-};
-
-export type getRecentAlertsApiV1DashboardAlertsRecentGetResponse = (getRecentAlertsApiV1DashboardAlertsRecentGetResponseSuccess | getRecentAlertsApiV1DashboardAlertsRecentGetResponseError)
-
-export const getGetRecentAlertsApiV1DashboardAlertsRecentGetUrl = (params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/dashboard/alerts/recent?${stringifiedParams}` : `/api/v1/dashboard/alerts/recent`
-}
-
 /**
  * Get recent alerts (admin only).
  * @summary Get Recent Alerts
  */
-export const getRecentAlertsApiV1DashboardAlertsRecentGet = async (params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options?: RequestInit): Promise<getRecentAlertsApiV1DashboardAlertsRecentGetResponse> => {
-
-  return customInstance<getRecentAlertsApiV1DashboardAlertsRecentGetResponse>(getGetRecentAlertsApiV1DashboardAlertsRecentGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const dashboardGetRecentAlerts = (
+    params?: DashboardGetRecentAlertsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<RecentAlert[]>(
+      {url: `/api/v1/dashboard/alerts/recent`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetRecentAlertsApiV1DashboardAlertsRecentGetQueryKey = (params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams,) => {
+export const getDashboardGetRecentAlertsQueryKey = (params?: DashboardGetRecentAlertsParams,) => {
     return [
     `/api/v1/dashboard/alerts/recent`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetRecentAlertsApiV1DashboardAlertsRecentGetQueryOptions = <TData = Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError = ErrorType<HTTPValidationError>>(params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getDashboardGetRecentAlertsQueryOptions = <TData = Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError = ErrorType<HTTPValidationError>>(params?: DashboardGetRecentAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetRecentAlertsApiV1DashboardAlertsRecentGetQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getDashboardGetRecentAlertsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>> = ({ signal }) => getRecentAlertsApiV1DashboardAlertsRecentGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>> = ({ signal }) => dashboardGetRecentAlerts(params, requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetRecentAlertsApiV1DashboardAlertsRecentGetQueryResult = NonNullable<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>>
-export type GetRecentAlertsApiV1DashboardAlertsRecentGetQueryError = ErrorType<HTTPValidationError>
+export type DashboardGetRecentAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>>
+export type DashboardGetRecentAlertsQueryError = ErrorType<HTTPValidationError>
 
 
-export function useGetRecentAlertsApiV1DashboardAlertsRecentGet<TData = Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError = ErrorType<HTTPValidationError>>(
- params: undefined |  GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData>> & Pick<
+export function useDashboardGetRecentAlerts<TData = Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params: undefined |  DashboardGetRecentAlertsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>,
+          Awaited<ReturnType<typeof dashboardGetRecentAlerts>>,
           TError,
-          Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>
+          Awaited<ReturnType<typeof dashboardGetRecentAlerts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRecentAlertsApiV1DashboardAlertsRecentGet<TData = Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData>> & Pick<
+export function useDashboardGetRecentAlerts<TData = Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: DashboardGetRecentAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>,
+          Awaited<ReturnType<typeof dashboardGetRecentAlerts>>,
           TError,
-          Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>
+          Awaited<ReturnType<typeof dashboardGetRecentAlerts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRecentAlertsApiV1DashboardAlertsRecentGet<TData = Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useDashboardGetRecentAlerts<TData = Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: DashboardGetRecentAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Recent Alerts
  */
 
-export function useGetRecentAlertsApiV1DashboardAlertsRecentGet<TData = Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError = ErrorType<HTTPValidationError>>(
- params?: GetRecentAlertsApiV1DashboardAlertsRecentGetParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRecentAlertsApiV1DashboardAlertsRecentGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useDashboardGetRecentAlerts<TData = Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError = ErrorType<HTTPValidationError>>(
+ params?: DashboardGetRecentAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetRecentAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetRecentAlertsApiV1DashboardAlertsRecentGetQueryOptions(params,options)
+  const queryOptions = getDashboardGetRecentAlertsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * Get current dashboard KPI data.
+ * @summary Get Dashboard Kpi
+ */
+export const dashboardGetDashboardKpi = (
+
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<DashboardKPIResponse>(
+      {url: `/api/v1/dashboard/kpi`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getDashboardGetDashboardKpiQueryKey = () => {
+    return [
+    `/api/v1/dashboard/kpi`
+    ] as const;
+    }
+
+
+export const getDashboardGetDashboardKpiQueryOptions = <TData = Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDashboardGetDashboardKpiQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>> = ({ signal }) => dashboardGetDashboardKpi(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DashboardGetDashboardKpiQueryResult = NonNullable<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>>
+export type DashboardGetDashboardKpiQueryError = ErrorType<unknown>
+
+
+export function useDashboardGetDashboardKpi<TData = Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof dashboardGetDashboardKpi>>,
+          TError,
+          Awaited<ReturnType<typeof dashboardGetDashboardKpi>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDashboardGetDashboardKpi<TData = Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof dashboardGetDashboardKpi>>,
+          TError,
+          Awaited<ReturnType<typeof dashboardGetDashboardKpi>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDashboardGetDashboardKpi<TData = Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Dashboard Kpi
+ */
+
+export function useDashboardGetDashboardKpi<TData = Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetDashboardKpi>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDashboardGetDashboardKpiQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+/**
+ * Get trend chart data for dashboard.
+ * @summary Get Trend Data
+ */
+export const dashboardGetTrendData = (
+    params: DashboardGetTrendDataParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+
+      return customInstance<TrendResponse>(
+      {url: `/api/v1/dashboard/trends`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getDashboardGetTrendDataQueryKey = (params?: DashboardGetTrendDataParams,) => {
+    return [
+    `/api/v1/dashboard/trends`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getDashboardGetTrendDataQueryOptions = <TData = Awaited<ReturnType<typeof dashboardGetTrendData>>, TError = ErrorType<HTTPValidationError>>(params: DashboardGetTrendDataParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDashboardGetTrendDataQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof dashboardGetTrendData>>> = ({ signal }) => dashboardGetTrendData(params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DashboardGetTrendDataQueryResult = NonNullable<Awaited<ReturnType<typeof dashboardGetTrendData>>>
+export type DashboardGetTrendDataQueryError = ErrorType<HTTPValidationError>
+
+
+export function useDashboardGetTrendData<TData = Awaited<ReturnType<typeof dashboardGetTrendData>>, TError = ErrorType<HTTPValidationError>>(
+ params: DashboardGetTrendDataParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof dashboardGetTrendData>>,
+          TError,
+          Awaited<ReturnType<typeof dashboardGetTrendData>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDashboardGetTrendData<TData = Awaited<ReturnType<typeof dashboardGetTrendData>>, TError = ErrorType<HTTPValidationError>>(
+ params: DashboardGetTrendDataParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof dashboardGetTrendData>>,
+          TError,
+          Awaited<ReturnType<typeof dashboardGetTrendData>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDashboardGetTrendData<TData = Awaited<ReturnType<typeof dashboardGetTrendData>>, TError = ErrorType<HTTPValidationError>>(
+ params: DashboardGetTrendDataParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Trend Data
+ */
+
+export function useDashboardGetTrendData<TData = Awaited<ReturnType<typeof dashboardGetTrendData>>, TError = ErrorType<HTTPValidationError>>(
+ params: DashboardGetTrendDataParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof dashboardGetTrendData>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDashboardGetTrendDataQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

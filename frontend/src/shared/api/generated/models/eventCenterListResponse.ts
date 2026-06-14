@@ -11,7 +11,7 @@ import type { EventCenterItem } from './eventCenterItem';
  */
 export interface EventCenterListResponse {
   items: EventCenterItem[];
-  total: number;
   page: number;
   page_size: number;
+  total: number;
 }

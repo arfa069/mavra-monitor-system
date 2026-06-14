@@ -9,6 +9,6 @@
  * Schema for updating current user's profile (username, email only).
  */
 export interface ProfileUpdate {
-  username?: string | null;
   email?: string | null;
+  username?: string | null;
 }

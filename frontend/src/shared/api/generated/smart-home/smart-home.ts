@@ -43,107 +43,87 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getConfigApiV1SmartHomeConfigGetResponse200 = {
-  data: SmartHomeConfigResponse
-  status: 200
-}
-
-export type getConfigApiV1SmartHomeConfigGetResponseSuccess = (getConfigApiV1SmartHomeConfigGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getConfigApiV1SmartHomeConfigGetResponse = (getConfigApiV1SmartHomeConfigGetResponseSuccess)
-
-export const getGetConfigApiV1SmartHomeConfigGetUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/config`
-}
-
 /**
  * @summary Get Config
  */
-export const getConfigApiV1SmartHomeConfigGet = async ( options?: RequestInit): Promise<getConfigApiV1SmartHomeConfigGetResponse> => {
+export const smartHomeGetConfig = (
 
-  return customInstance<getConfigApiV1SmartHomeConfigGetResponse>(getGetConfigApiV1SmartHomeConfigGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<SmartHomeConfigResponse>(
+      {url: `/api/v1/smart-home/config`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getGetConfigApiV1SmartHomeConfigGetQueryKey = () => {
+export const getSmartHomeGetConfigQueryKey = () => {
     return [
     `/api/v1/smart-home/config`
     ] as const;
     }
 
 
-export const getGetConfigApiV1SmartHomeConfigGetQueryOptions = <TData = Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getSmartHomeGetConfigQueryOptions = <TData = Awaited<ReturnType<typeof smartHomeGetConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetConfigApiV1SmartHomeConfigGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getSmartHomeGetConfigQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>> = ({ signal }) => getConfigApiV1SmartHomeConfigGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof smartHomeGetConfig>>> = ({ signal }) => smartHomeGetConfig(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetConfigApiV1SmartHomeConfigGetQueryResult = NonNullable<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>>
-export type GetConfigApiV1SmartHomeConfigGetQueryError = ErrorType<unknown>
+export type SmartHomeGetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof smartHomeGetConfig>>>
+export type SmartHomeGetConfigQueryError = ErrorType<unknown>
 
 
-export function useGetConfigApiV1SmartHomeConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData>> & Pick<
+export function useSmartHomeGetConfig<TData = Awaited<ReturnType<typeof smartHomeGetConfig>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>,
+          Awaited<ReturnType<typeof smartHomeGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>
+          Awaited<ReturnType<typeof smartHomeGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1SmartHomeConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData>> & Pick<
+export function useSmartHomeGetConfig<TData = Awaited<ReturnType<typeof smartHomeGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>,
+          Awaited<ReturnType<typeof smartHomeGetConfig>>,
           TError,
-          Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>
+          Awaited<ReturnType<typeof smartHomeGetConfig>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetConfigApiV1SmartHomeConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeGetConfig<TData = Awaited<ReturnType<typeof smartHomeGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get Config
  */
 
-export function useGetConfigApiV1SmartHomeConfigGet<TData = Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigApiV1SmartHomeConfigGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeGetConfig<TData = Awaited<ReturnType<typeof smartHomeGetConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetConfigApiV1SmartHomeConfigGetQueryOptions(options)
+  const queryOptions = getSmartHomeGetConfigQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -155,55 +135,30 @@ export function useGetConfigApiV1SmartHomeConfigGet<TData = Awaited<ReturnType<t
 
 
 
-export type updateConfigApiV1SmartHomeConfigPutResponse200 = {
-  data: SmartHomeConfigResponse
-  status: 200
-}
-
-export type updateConfigApiV1SmartHomeConfigPutResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateConfigApiV1SmartHomeConfigPutResponseSuccess = (updateConfigApiV1SmartHomeConfigPutResponse200) & {
-  headers: Headers;
-};
-export type updateConfigApiV1SmartHomeConfigPutResponseError = (updateConfigApiV1SmartHomeConfigPutResponse422) & {
-  headers: Headers;
-};
-
-export type updateConfigApiV1SmartHomeConfigPutResponse = (updateConfigApiV1SmartHomeConfigPutResponseSuccess | updateConfigApiV1SmartHomeConfigPutResponseError)
-
-export const getUpdateConfigApiV1SmartHomeConfigPutUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/config`
-}
-
 /**
  * @summary Update Config
  */
-export const updateConfigApiV1SmartHomeConfigPut = async (smartHomeConfigUpdate: SmartHomeConfigUpdate, options?: RequestInit): Promise<updateConfigApiV1SmartHomeConfigPutResponse> => {
-
-  return customInstance<updateConfigApiV1SmartHomeConfigPutResponse>(getUpdateConfigApiV1SmartHomeConfigPutUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(smartHomeConfigUpdate)
-  }
-);}
+export const smartHomeUpdateConfig = (
+    smartHomeConfigUpdate: BodyType<SmartHomeConfigUpdate>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<SmartHomeConfigResponse>(
+      {url: `/api/v1/smart-home/config`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: smartHomeConfigUpdate, signal
+    },
+      options);
+    }
 
 
-export const getUpdateConfigApiV1SmartHomeConfigPutMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext> => {
 
-const mutationKey = ['updateConfigApiV1SmartHomeConfigPut'];
+export const getSmartHomeUpdateConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeUpdateConfig>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof smartHomeUpdateConfig>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext> => {
+
+const mutationKey = ['smartHomeUpdateConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -213,10 +168,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>, {data: BodyType<SmartHomeConfigUpdate>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof smartHomeUpdateConfig>>, {data: BodyType<SmartHomeConfigUpdate>}> = (props) => {
           const {data} = props ?? {};
 
-          return  updateConfigApiV1SmartHomeConfigPut(data,requestOptions)
+          return  smartHomeUpdateConfig(data,requestOptions)
         }
 
 
@@ -226,72 +181,47 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateConfigApiV1SmartHomeConfigPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>>
-    export type UpdateConfigApiV1SmartHomeConfigPutMutationBody = BodyType<SmartHomeConfigUpdate>
-    export type UpdateConfigApiV1SmartHomeConfigPutMutationError = ErrorType<HTTPValidationError>
+    export type SmartHomeUpdateConfigMutationResult = NonNullable<Awaited<ReturnType<typeof smartHomeUpdateConfig>>>
+    export type SmartHomeUpdateConfigMutationBody = BodyType<SmartHomeConfigUpdate>
+    export type SmartHomeUpdateConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Update Config
  */
-export const useUpdateConfigApiV1SmartHomeConfigPut = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useSmartHomeUpdateConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeUpdateConfig>>, TError,{data: BodyType<SmartHomeConfigUpdate>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updateConfigApiV1SmartHomeConfigPut>>,
+        Awaited<ReturnType<typeof smartHomeUpdateConfig>>,
         TError,
         {data: BodyType<SmartHomeConfigUpdate>},
         TContext
       > => {
-      return useMutation(getUpdateConfigApiV1SmartHomeConfigPutMutationOptions(options), queryClient);
+      return useMutation(getSmartHomeUpdateConfigMutationOptions(options), queryClient);
     }
-    export type testConfigApiV1SmartHomeConfigTestPostResponse200 = {
-  data: SmartHomeConfigTestResponse
-  status: 200
-}
-
-export type testConfigApiV1SmartHomeConfigTestPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type testConfigApiV1SmartHomeConfigTestPostResponseSuccess = (testConfigApiV1SmartHomeConfigTestPostResponse200) & {
-  headers: Headers;
-};
-export type testConfigApiV1SmartHomeConfigTestPostResponseError = (testConfigApiV1SmartHomeConfigTestPostResponse422) & {
-  headers: Headers;
-};
-
-export type testConfigApiV1SmartHomeConfigTestPostResponse = (testConfigApiV1SmartHomeConfigTestPostResponseSuccess | testConfigApiV1SmartHomeConfigTestPostResponseError)
-
-export const getTestConfigApiV1SmartHomeConfigTestPostUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/config/test`
-}
-
-/**
+    /**
  * @summary Test Config
  */
-export const testConfigApiV1SmartHomeConfigTestPost = async (smartHomeConfigTestRequest: SmartHomeConfigTestRequest, options?: RequestInit): Promise<testConfigApiV1SmartHomeConfigTestPostResponse> => {
-
-  return customInstance<testConfigApiV1SmartHomeConfigTestPostResponse>(getTestConfigApiV1SmartHomeConfigTestPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(smartHomeConfigTestRequest)
-  }
-);}
+export const smartHomeTestConfig = (
+    smartHomeConfigTestRequest: BodyType<SmartHomeConfigTestRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<SmartHomeConfigTestResponse>(
+      {url: `/api/v1/smart-home/config/test`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: smartHomeConfigTestRequest, signal
+    },
+      options);
+    }
 
 
-export const getTestConfigApiV1SmartHomeConfigTestPostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext> => {
 
-const mutationKey = ['testConfigApiV1SmartHomeConfigTestPost'];
+export const getSmartHomeTestConfigMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeTestConfig>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof smartHomeTestConfig>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext> => {
+
+const mutationKey = ['smartHomeTestConfig'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -301,10 +231,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>, {data: BodyType<SmartHomeConfigTestRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof smartHomeTestConfig>>, {data: BodyType<SmartHomeConfigTestRequest>}> = (props) => {
           const {data} = props ?? {};
 
-          return  testConfigApiV1SmartHomeConfigTestPost(data,requestOptions)
+          return  smartHomeTestConfig(data,requestOptions)
         }
 
 
@@ -314,124 +244,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type TestConfigApiV1SmartHomeConfigTestPostMutationResult = NonNullable<Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>>
-    export type TestConfigApiV1SmartHomeConfigTestPostMutationBody = BodyType<SmartHomeConfigTestRequest>
-    export type TestConfigApiV1SmartHomeConfigTestPostMutationError = ErrorType<HTTPValidationError>
+    export type SmartHomeTestConfigMutationResult = NonNullable<Awaited<ReturnType<typeof smartHomeTestConfig>>>
+    export type SmartHomeTestConfigMutationBody = BodyType<SmartHomeConfigTestRequest>
+    export type SmartHomeTestConfigMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Test Config
  */
-export const useTestConfigApiV1SmartHomeConfigTestPost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useSmartHomeTestConfig = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeTestConfig>>, TError,{data: BodyType<SmartHomeConfigTestRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof testConfigApiV1SmartHomeConfigTestPost>>,
+        Awaited<ReturnType<typeof smartHomeTestConfig>>,
         TError,
         {data: BodyType<SmartHomeConfigTestRequest>},
         TContext
       > => {
-      return useMutation(getTestConfigApiV1SmartHomeConfigTestPostMutationOptions(options), queryClient);
+      return useMutation(getSmartHomeTestConfigMutationOptions(options), queryClient);
     }
-    export type listEntitiesApiV1SmartHomeEntitiesGetResponse200 = {
-  data: SmartHomeEntityListResponse
-  status: 200
-}
-
-export type listEntitiesApiV1SmartHomeEntitiesGetResponseSuccess = (listEntitiesApiV1SmartHomeEntitiesGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type listEntitiesApiV1SmartHomeEntitiesGetResponse = (listEntitiesApiV1SmartHomeEntitiesGetResponseSuccess)
-
-export const getListEntitiesApiV1SmartHomeEntitiesGetUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/entities`
-}
-
-/**
+    /**
  * @summary List Entities
  */
-export const listEntitiesApiV1SmartHomeEntitiesGet = async ( options?: RequestInit): Promise<listEntitiesApiV1SmartHomeEntitiesGetResponse> => {
+export const smartHomeListEntities = (
 
-  return customInstance<listEntitiesApiV1SmartHomeEntitiesGetResponse>(getListEntitiesApiV1SmartHomeEntitiesGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<SmartHomeEntityListResponse>(
+      {url: `/api/v1/smart-home/entities`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getListEntitiesApiV1SmartHomeEntitiesGetQueryKey = () => {
+export const getSmartHomeListEntitiesQueryKey = () => {
     return [
     `/api/v1/smart-home/entities`
     ] as const;
     }
 
 
-export const getListEntitiesApiV1SmartHomeEntitiesGetQueryOptions = <TData = Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getSmartHomeListEntitiesQueryOptions = <TData = Awaited<ReturnType<typeof smartHomeListEntities>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListEntitiesApiV1SmartHomeEntitiesGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getSmartHomeListEntitiesQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>> = ({ signal }) => listEntitiesApiV1SmartHomeEntitiesGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof smartHomeListEntities>>> = ({ signal }) => smartHomeListEntities(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListEntitiesApiV1SmartHomeEntitiesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>>
-export type ListEntitiesApiV1SmartHomeEntitiesGetQueryError = ErrorType<unknown>
+export type SmartHomeListEntitiesQueryResult = NonNullable<Awaited<ReturnType<typeof smartHomeListEntities>>>
+export type SmartHomeListEntitiesQueryError = ErrorType<unknown>
 
 
-export function useListEntitiesApiV1SmartHomeEntitiesGet<TData = Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData>> & Pick<
+export function useSmartHomeListEntities<TData = Awaited<ReturnType<typeof smartHomeListEntities>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>,
+          Awaited<ReturnType<typeof smartHomeListEntities>>,
           TError,
-          Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>
+          Awaited<ReturnType<typeof smartHomeListEntities>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListEntitiesApiV1SmartHomeEntitiesGet<TData = Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData>> & Pick<
+export function useSmartHomeListEntities<TData = Awaited<ReturnType<typeof smartHomeListEntities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>,
+          Awaited<ReturnType<typeof smartHomeListEntities>>,
           TError,
-          Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>
+          Awaited<ReturnType<typeof smartHomeListEntities>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListEntitiesApiV1SmartHomeEntitiesGet<TData = Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeListEntities<TData = Awaited<ReturnType<typeof smartHomeListEntities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List Entities
  */
 
-export function useListEntitiesApiV1SmartHomeEntitiesGet<TData = Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEntitiesApiV1SmartHomeEntitiesGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeListEntities<TData = Awaited<ReturnType<typeof smartHomeListEntities>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeListEntities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListEntitiesApiV1SmartHomeEntitiesGetQueryOptions(options)
+  const queryOptions = getSmartHomeListEntitiesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -442,169 +352,32 @@ export function useListEntitiesApiV1SmartHomeEntitiesGet<TData = Awaited<ReturnT
 
 
 
-
-export type getSummaryApiV1SmartHomeSummaryGetResponse200 = {
-  data: SmartHomeSummaryResponse
-  status: 200
-}
-
-export type getSummaryApiV1SmartHomeSummaryGetResponseSuccess = (getSummaryApiV1SmartHomeSummaryGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getSummaryApiV1SmartHomeSummaryGetResponse = (getSummaryApiV1SmartHomeSummaryGetResponseSuccess)
-
-export const getGetSummaryApiV1SmartHomeSummaryGetUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/summary`
-}
-
-/**
- * @summary Get Summary
- */
-export const getSummaryApiV1SmartHomeSummaryGet = async ( options?: RequestInit): Promise<getSummaryApiV1SmartHomeSummaryGetResponse> => {
-
-  return customInstance<getSummaryApiV1SmartHomeSummaryGetResponse>(getGetSummaryApiV1SmartHomeSummaryGetUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetSummaryApiV1SmartHomeSummaryGetQueryKey = () => {
-    return [
-    `/api/v1/smart-home/summary`
-    ] as const;
-    }
-
-
-export const getGetSummaryApiV1SmartHomeSummaryGetQueryOptions = <TData = Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetSummaryApiV1SmartHomeSummaryGetQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>> = ({ signal }) => getSummaryApiV1SmartHomeSummaryGet({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetSummaryApiV1SmartHomeSummaryGetQueryResult = NonNullable<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>>
-export type GetSummaryApiV1SmartHomeSummaryGetQueryError = ErrorType<unknown>
-
-
-export function useGetSummaryApiV1SmartHomeSummaryGet<TData = Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>,
-          TError,
-          Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSummaryApiV1SmartHomeSummaryGet<TData = Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>,
-          TError,
-          Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetSummaryApiV1SmartHomeSummaryGet<TData = Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Summary
- */
-
-export function useGetSummaryApiV1SmartHomeSummaryGet<TData = Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSummaryApiV1SmartHomeSummaryGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetSummaryApiV1SmartHomeSummaryGetQueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-export type callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse200 = {
-  data: SmartHomeServiceResponse
-  status: 200
-}
-
-export type callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponseSuccess = (callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse200) & {
-  headers: Headers;
-};
-export type callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponseError = (callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse422) & {
-  headers: Headers;
-};
-
-export type callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse = (callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponseSuccess | callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponseError)
-
-export const getCallServiceApiV1SmartHomeEntitiesEntityIdServicePostUrl = (entityId: string,) => {
-
-
-
-
-  return `/api/v1/smart-home/entities/${entityId}/service`
-}
 
 /**
  * @summary Call Service
  */
-export const callServiceApiV1SmartHomeEntitiesEntityIdServicePost = async (entityId: string,
-    smartHomeServiceRequest: SmartHomeServiceRequest, options?: RequestInit): Promise<callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse> => {
-
-  return customInstance<callServiceApiV1SmartHomeEntitiesEntityIdServicePostResponse>(getCallServiceApiV1SmartHomeEntitiesEntityIdServicePostUrl(entityId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(smartHomeServiceRequest)
-  }
-);}
+export const smartHomeCallService = (
+    entityId: string,
+    smartHomeServiceRequest: BodyType<SmartHomeServiceRequest>,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
+      return customInstance<SmartHomeServiceResponse>(
+      {url: `/api/v1/smart-home/entities/${entityId}/service`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: smartHomeServiceRequest, signal
+    },
+      options);
+    }
 
 
-export const getCallServiceApiV1SmartHomeEntitiesEntityIdServicePostMutationOptions = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext> => {
 
-const mutationKey = ['callServiceApiV1SmartHomeEntitiesEntityIdServicePost'];
+export const getSmartHomeCallServiceMutationOptions = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext> => {
+
+const mutationKey = ['smartHomeCallService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -614,10 +387,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>, {entityId: string;data: BodyType<SmartHomeServiceRequest>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof smartHomeCallService>>, {entityId: string;data: BodyType<SmartHomeServiceRequest>}> = (props) => {
           const {entityId,data} = props ?? {};
 
-          return  callServiceApiV1SmartHomeEntitiesEntityIdServicePost(entityId,data,requestOptions)
+          return  smartHomeCallService(entityId,data,requestOptions)
         }
 
 
@@ -627,124 +400,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CallServiceApiV1SmartHomeEntitiesEntityIdServicePostMutationResult = NonNullable<Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>>
-    export type CallServiceApiV1SmartHomeEntitiesEntityIdServicePostMutationBody = BodyType<SmartHomeServiceRequest>
-    export type CallServiceApiV1SmartHomeEntitiesEntityIdServicePostMutationError = ErrorType<HTTPValidationError>
+    export type SmartHomeCallServiceMutationResult = NonNullable<Awaited<ReturnType<typeof smartHomeCallService>>>
+    export type SmartHomeCallServiceMutationBody = BodyType<SmartHomeServiceRequest>
+    export type SmartHomeCallServiceMutationError = ErrorType<HTTPValidationError>
 
     /**
  * @summary Call Service
  */
-export const useCallServiceApiV1SmartHomeEntitiesEntityIdServicePost = <TError = ErrorType<HTTPValidationError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useSmartHomeCallService = <TError = ErrorType<HTTPValidationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof smartHomeCallService>>, TError,{entityId: string;data: BodyType<SmartHomeServiceRequest>}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof callServiceApiV1SmartHomeEntitiesEntityIdServicePost>>,
+        Awaited<ReturnType<typeof smartHomeCallService>>,
         TError,
         {entityId: string;data: BodyType<SmartHomeServiceRequest>},
         TContext
       > => {
-      return useMutation(getCallServiceApiV1SmartHomeEntitiesEntityIdServicePostMutationOptions(options), queryClient);
+      return useMutation(getSmartHomeCallServiceMutationOptions(options), queryClient);
     }
-    export type streamEntitiesApiV1SmartHomeEntitiesStreamGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type streamEntitiesApiV1SmartHomeEntitiesStreamGetResponseSuccess = (streamEntitiesApiV1SmartHomeEntitiesStreamGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type streamEntitiesApiV1SmartHomeEntitiesStreamGetResponse = (streamEntitiesApiV1SmartHomeEntitiesStreamGetResponseSuccess)
-
-export const getStreamEntitiesApiV1SmartHomeEntitiesStreamGetUrl = () => {
-
-
-
-
-  return `/api/v1/smart-home/entities/stream`
-}
-
-/**
- * @summary Stream Entities
+    /**
+ * @summary Get Summary
  */
-export const streamEntitiesApiV1SmartHomeEntitiesStreamGet = async ( options?: RequestInit): Promise<streamEntitiesApiV1SmartHomeEntitiesStreamGetResponse> => {
+export const smartHomeGetSummary = (
 
-  return customInstance<streamEntitiesApiV1SmartHomeEntitiesStreamGetResponse>(getStreamEntitiesApiV1SmartHomeEntitiesStreamGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
+      return customInstance<SmartHomeSummaryResponse>(
+      {url: `/api/v1/smart-home/summary`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
 
-
-export const getStreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryKey = () => {
+export const getSmartHomeGetSummaryQueryKey = () => {
     return [
-    `/api/v1/smart-home/entities/stream`
+    `/api/v1/smart-home/summary`
     ] as const;
     }
 
 
-export const getStreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryOptions = <TData = Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getSmartHomeGetSummaryQueryOptions = <TData = Awaited<ReturnType<typeof smartHomeGetSummary>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getStreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getSmartHomeGetSummaryQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>> = ({ signal }) => streamEntitiesApiV1SmartHomeEntitiesStreamGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof smartHomeGetSummary>>> = ({ signal }) => smartHomeGetSummary(requestOptions, signal);
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type StreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryResult = NonNullable<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>>
-export type StreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryError = ErrorType<unknown>
+export type SmartHomeGetSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof smartHomeGetSummary>>>
+export type SmartHomeGetSummaryQueryError = ErrorType<unknown>
 
 
-export function useStreamEntitiesApiV1SmartHomeEntitiesStreamGet<TData = Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData>> & Pick<
+export function useSmartHomeGetSummary<TData = Awaited<ReturnType<typeof smartHomeGetSummary>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>,
+          Awaited<ReturnType<typeof smartHomeGetSummary>>,
           TError,
-          Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>
+          Awaited<ReturnType<typeof smartHomeGetSummary>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamEntitiesApiV1SmartHomeEntitiesStreamGet<TData = Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData>> & Pick<
+export function useSmartHomeGetSummary<TData = Awaited<ReturnType<typeof smartHomeGetSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>,
+          Awaited<ReturnType<typeof smartHomeGetSummary>>,
           TError,
-          Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>
+          Awaited<ReturnType<typeof smartHomeGetSummary>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStreamEntitiesApiV1SmartHomeEntitiesStreamGet<TData = Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeGetSummary<TData = Awaited<ReturnType<typeof smartHomeGetSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Stream Entities
+ * @summary Get Summary
  */
 
-export function useStreamEntitiesApiV1SmartHomeEntitiesStreamGet<TData = Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamEntitiesApiV1SmartHomeEntitiesStreamGet>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useSmartHomeGetSummary<TData = Awaited<ReturnType<typeof smartHomeGetSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof smartHomeGetSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getStreamEntitiesApiV1SmartHomeEntitiesStreamGetQueryOptions(options)
+  const queryOptions = getSmartHomeGetSummaryQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

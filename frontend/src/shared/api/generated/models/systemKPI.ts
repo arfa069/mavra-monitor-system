@@ -9,10 +9,10 @@
  * System-level KPI metrics (admin only).
  */
 export interface SystemKPI {
-  total_users: number;
-  total_crawls: number;
-  success_rate: number;
   active_alerts: number;
   disk_usage: number;
   memory_usage: number;
+  success_rate: number;
+  total_crawls: number;
+  total_users: number;
 }
