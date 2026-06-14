@@ -15,7 +15,10 @@
     "test:e2e:headed": "playwright test --headed",
     "test:frontend": "npm run lint && npm run test:coverage && npm run build && npm run test:e2e",
     "preview": "vite preview",
-    "api:generate": "orval --config ./orval.config.ts"
+    "api:generate": "orval --config ./orval.config.ts",
+    "api:check-generated": "vitest run tests/unit/shared/generated-api-contract.test.ts",
+    "api:check": "python ../scripts/check_api_contract.py",
+    "api:check-usage": "python ../scripts/check_frontend_api_usage.py"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.1",
