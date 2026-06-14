@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import api from "@/shared/api/client";
+import { useDashboardGetTrendData } from "@/shared/api/generated/dashboard/dashboard";
 import type { TrendResponse, TrendType, TimeRange } from "../types";
 
 interface TrendsState {
@@ -14,60 +13,15 @@ export function useDashboardTrends(
   days: TimeRange,
   enabled = true,
 ): TrendsState {
-  const [state, setState] = useState<TrendsState>({
-    data: null,
-    loading: false,
-    refreshing: false,
-    error: null,
-  });
+  const { data, isLoading, isFetching, error } = useDashboardGetTrendData(
+    { type, days: days as any },
+    { query: { enabled } }
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!enabled) {
-      return undefined;
-    }
-
-    const fetchData = async () => {
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        refreshing: prev.data !== null,
-        error: null,
-      }));
-      try {
-        const response = await api.get<TrendResponse>("/dashboard/trends", {
-          params: { type, days },
-        });
-        if (!cancelled) {
-          setState({
-            data: response.data,
-            loading: false,
-            refreshing: false,
-            error: null,
-          });
-        }
-      } catch (err) {
-        if (cancelled) {
-          return;
-        }
-        const message =
-          err instanceof Error ? err.message : "Failed to load trend data";
-        setState({
-          data: null,
-          loading: false,
-          refreshing: false,
-          error: message,
-        });
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [type, days, enabled]);
-
-  return state;
+  return {
+    data: data ?? null,
+    loading: isLoading,
+    refreshing: isFetching && !isLoading,
+    error: error ? (error.message || "Failed to load trend data") : null,
+  };
 }

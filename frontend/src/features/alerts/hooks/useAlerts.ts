@@ -1,21 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { alertsApi } from "../api/alerts";
-import type { AlertUpdateRequest } from "../types";
+import type { AlertUpdateRequest } from "@/shared/api/generated/models";
 
 export const useAlerts = (productId?: number) =>
   useQuery({
     queryKey: ["alerts", productId],
     queryFn: () =>
-      alertsApi
-        .list(productId !== undefined ? { product_id: productId } : undefined)
-        .then((res) => res.data),
+      alertsApi.list(productId !== undefined ? { product_id: productId } : undefined),
     enabled: productId !== undefined,
   });
 
 export const useAllAlerts = () =>
   useQuery({
     queryKey: ["alerts", "all"],
-    queryFn: () => alertsApi.list().then((res) => res.data),
+    queryFn: () => alertsApi.list(),
   });
 
 export const useCreateAlert = () => {

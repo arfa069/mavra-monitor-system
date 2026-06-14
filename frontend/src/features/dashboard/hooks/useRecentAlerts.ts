@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import api from "@/shared/api/client";
+import { useDashboardGetRecentAlerts } from "@/shared/api/generated/dashboard/dashboard";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import type { RecentAlert } from "../types";
 
@@ -18,42 +17,18 @@ const DEFAULT_STATE: AlertsState = {
 export function useRecentAlerts(limit = 10): AlertsState {
   const { isAdmin } = useAuth();
 
-  const [state, setState] = useState<AlertsState>(DEFAULT_STATE);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    let cancelled = false;
-
-    const fetchAlerts = async () => {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
-      try {
-        const response = await api.get<RecentAlert[]>(
-          "/dashboard/alerts/recent",
-          { params: { limit } },
-        );
-        if (!cancelled) {
-          setState({ data: response.data, loading: false, error: null });
-        }
-      } catch {
-        if (cancelled) {
-          return;
-        }
-        // Silently handle 403 (non-admin) and other errors
-        setState({ data: [], loading: false, error: null });
-      }
-    };
-
-    void fetchAlerts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [limit, isAdmin]);
+  const { data, isLoading, error } = useDashboardGetRecentAlerts(
+    { limit },
+    { query: { enabled: isAdmin } }
+  );
 
   if (!isAdmin) {
     return DEFAULT_STATE;
   }
 
-  return state;
+  return {
+    data: (data as RecentAlert[]) ?? [],
+    loading: isLoading,
+    error: error ? (error.message || "Failed to load recent alerts") : null,
+  };
 }

@@ -1,16 +1,22 @@
-import api from "@/shared/api/client";
-import type { Alert, AlertCreateRequest, AlertUpdateRequest } from "../types";
+import {
+  alertsListAlerts,
+  alertsGetAlert,
+  alertsCreateAlert,
+  alertsUpdateAlert,
+  alertsDeleteAlert,
+} from "@/shared/api/generated/alerts/alerts";
+import type { AlertCreateRequest, AlertUpdateRequest } from "@/shared/api/generated/models";
 
 export const alertsApi = {
   list: (params?: { product_id?: number; active?: boolean }) =>
-    api.get<Alert[]>("/alerts", { params }),
+    alertsListAlerts(params),
 
-  get: (id: number) => api.get<Alert>(`/alerts/${id}`),
+  get: (id: number) => alertsGetAlert(id),
 
-  create: (data: AlertCreateRequest) => api.post<Alert>("/alerts", data),
+  create: (data: AlertCreateRequest) => alertsCreateAlert(data),
 
   update: (id: number, data: AlertUpdateRequest) =>
-    api.patch<Alert>(`/alerts/${id}`, data),
+    alertsUpdateAlert(id, data),
 
-  delete: (id: number) => api.delete(`/alerts/${id}`),
+  delete: (id: number) => alertsDeleteAlert(id),
 };

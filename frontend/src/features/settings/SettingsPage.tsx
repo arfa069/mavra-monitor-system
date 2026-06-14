@@ -25,7 +25,7 @@ export default function SettingsPage() {
     try {
       const response = await configApi.update(values);
       if (user) {
-        login(applyUserConfig(user, response.data));
+        login(applyUserConfig(user, response));
       }
       message.success("Settings saved");
     } catch (error: unknown) {

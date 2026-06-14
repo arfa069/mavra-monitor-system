@@ -1,4 +1,4 @@
-import api from "@/shared/api/client";
+import { eventsListEvents } from "@/shared/api/generated/events/events";
 import { apiUrl } from "@/shared/api/base";
 import type { EventCenterListResponse, EventCenterQuery } from "../types";
 
@@ -6,10 +6,7 @@ export const eventsApi = {
   listEvents: async (
     params: EventCenterQuery,
   ): Promise<EventCenterListResponse> => {
-    const response = await api.get<EventCenterListResponse>("/events", {
-      params,
-    });
-    return response.data;
+    return eventsListEvents(params as any);
   },
 
   buildStreamUrl: (params: EventCenterQuery) => {

@@ -1,12 +1,14 @@
-import api from "@/shared/api/client";
-import type { SchedulerStatusResponse, UserConfig } from "../types";
+import {
+  configGetConfig,
+  configUpdateConfigPartial,
+} from "@/shared/api/generated/config/config";
+import { schedulerGetSchedulerStatus } from "@/shared/api/generated/scheduler/scheduler";
+import type { UserConfigUpdate } from "@/shared/api/generated/models";
 
 export const configApi = {
-  get: () => api.get<UserConfig>("/config"),
+  get: () => configGetConfig(),
 
-  update: (data: Partial<UserConfig>) =>
-    api.patch<UserConfig>("/config", data),
+  update: (data: UserConfigUpdate) => configUpdateConfigPartial(data),
 
-  getSchedulerStatus: () =>
-    api.get<SchedulerStatusResponse>("/scheduler/status"),
+  getSchedulerStatus: () => schedulerGetSchedulerStatus(),
 };

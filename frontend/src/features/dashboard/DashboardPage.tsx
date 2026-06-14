@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Segmented, Skeleton, Tag } from "antd";
-import api from "@/shared/api/client";
+import { dashboardGetDashboardKpi } from "@/shared/api/generated/dashboard/dashboard";
 import { m } from "framer-motion";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import {
@@ -56,9 +56,8 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        const response =
-          await api.get<DashboardKPIResponse>("/dashboard/kpi");
-        setInitialData(response.data);
+        const response = await dashboardGetDashboardKpi();
+        setInitialData(response);
       } catch {
         // Silently fail — SSE will provide data eventually
       }
