@@ -1,18 +1,40 @@
-import type { AxiosRequestConfig, AxiosError } from 'axios';
-import api from './client';
+import type { AxiosError, AxiosRequestConfig } from "axios";
+import api from "./client";
+
+const CANONICAL_API_PREFIX = "/api/v1";
+
+export function normalizeGeneratedApiUrl(url: string | undefined): string {
+  if (!url) {
+    throw new Error("Orval generated a request without a URL");
+  }
+  if (url.includes(`${CANONICAL_API_PREFIX}${CANONICAL_API_PREFIX}`)) {
+    throw new Error(`Orval generated a double API prefix: ${url}`);
+  }
+  if (url === CANONICAL_API_PREFIX) {
+    return "/";
+  }
+  if (!url.startsWith(`${CANONICAL_API_PREFIX}/`)) {
+    throw new Error(`Orval generated a non-canonical URL: ${url}`);
+  }
+  return url.slice(CANONICAL_API_PREFIX.length);
+}
 
 export const customInstance = <T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig,
 ): Promise<T> => {
-  const promise = api({
+  const mergedConfig: AxiosRequestConfig = {
     ...config,
     ...options,
-  }).then(({ data }) => data);
+    headers: {
+      ...config.headers,
+      ...options?.headers,
+    },
+    url: normalizeGeneratedApiUrl(options?.url ?? config.url),
+  };
 
-  return promise;
+  return api(mergedConfig).then(({ data }) => data);
 };
 
-// Error type for Orval generated hooks
 export type ErrorType<Error> = AxiosError<Error>;
 export type BodyType<BodyData> = BodyData;
