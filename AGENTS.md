@@ -44,133 +44,97 @@ This project is indexed by GitNexus as **mavra-monitor-system** (10713 symbols, 
 
 <!-- gitnexus:end -->
 
-## 概述 (OVERVIEW)
+## 项目快照
 
-淘宝、京东、亚马逊价格监控 + Boss/51job/猎聘职位监控 + Home Assistant 智能家居控制。后端 FastAPI + PostgreSQL/Redis + Playwright/curl_cffi/CloakBrowser；前端 React/Vite/TypeScript/Ant Design + Figma Design System。
+Mavra 做价格监控（淘宝/京东/亚马逊）、职位监控（Boss/51job/猎聘）和
+Home Assistant 智能家居控制。后端是 FastAPI + PostgreSQL/Redis +
+Playwright/curl_cffi；前端是 React/Vite/TypeScript/Ant Design。
+业务 API 只使用 `/api/v1`，根路径和 `/v1` 业务别名应返回 404。主应用首页是
+`/today`。
 
-## 目录结构 (STRUCTURE)
+## 文件定位
 
-```
-mavra-monitor-system/
-├── backend/                    # FastAPI, SQLAlchemy, 爬虫, worker, 测试
-│   ├── app/main.py             # FastAPI 应用 + lifespan + 路由挂载
-│   ├── app/domains/            # 业务领域: 爬取/职位/商品/认证/管理员/智能家居/...
-│   ├── app/platforms/          # 淘宝/京东/亚马逊/Boss/51job/猎聘适配器
-│   └── tests/                  # pytest 单元/集成/回归测试
-├── frontend/                   # Vite React 应用
-│   ├── src/App.tsx             # 路由/布局/主题组合
-│   ├── src/features/           # 功能优先模块
-│   ├── src/shared/             # API 客户端, 认证上下文, 布局, 共享类型
-│   └── tests/e2e/              # Playwright E2E 规范
-├── doc/                        # 实时架构/设计文档
-├── docs/                       # 实施计划和历史计划
-├── scripts/start_server.ps1    # 本地后端/前端/worker 启动脚本
-└── profiles/                   # 运行时浏览器配置文件；请勿手动编辑
-```
+| 领域 | 文件 |
+| --- | --- |
+| 后端应用/路由 | `backend/app/main.py`, `backend/app/domains/*/router.py` |
+| 爬取/Profile 运行期 | `backend/app/domains/crawling/*`, `backend/app/platforms/*`, `backend/app/workers/crawler.py` |
+| 职位功能 | `backend/app/domains/jobs/*`, `frontend/src/features/jobs/*` |
+| 智能家居 | `backend/app/domains/smart_home/*`, `backend/app/schemas/smart_home.py`, `frontend/src/features/smart-home/*` |
+| 认证/RBAC | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `frontend/src/shared/contexts/AuthContext.tsx`, `doc/permission-architecture.md` |
+| 前端壳/API | `frontend/src/App.tsx`, `frontend/src/shared/api/*`, `frontend/src/shared/api/generated/*` |
+| 文档 | `doc/` 放当前架构/教程/参考；`docs/` 放计划和阶段报告 |
 
-## 文件寻址 (WHERE TO LOOK)
+做 UI 前先读 `doc/DESIGN.md`。只有明确需要手动 UI/爬取验证时，才使用
+`backend/tests/manual_verification_checklist.md`。
 
-| 任务 (Task)            | 位置 (Location)                                                                                           | 备注 (Notes)                                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 后端路由/生命周期管理   | `backend/app/main.py`, `backend/app/domains/*/router.py`                                                  | 业务路由仅挂载于 `/api/v1`；根路径和 `/v1` legacy 路径返回 `404`                                      |
-| 商品爬取               | `backend/app/domains/crawling`, `backend/app/platforms`                                                   | 使用 Playwright/CDP/对浏览器配置敏感                                                                 |
-| 职位爬取               | `backend/app/domains/jobs`, `backend/app/platforms`                                                       | Boss 使用 CloakBrowser cookie 刷新 + `curl_cffi`；猎聘支持 Chromium 浏览器配置 cookie 加载            |
-| 智能家居               | `backend/app/domains/smart_home`, `backend/app/models/smart_home.py`, `backend/app/schemas/smart_home.py` | Home Assistant 配置, 实体控制, SSE 扇出, 加密 token 存储                                             |
-| 身份验证/RBAC          | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `doc/permission-architecture.md`       | Cookie 优先 + Bearer 回退                                                                            |
-| 前端路由               | `frontend/src/App.tsx`                                                                                    | 根路径重定向到 `/jobs`                                                                               |
-| 前端 API/身份验证       | `frontend/src/shared/api/client.ts`, `frontend/src/shared/contexts/AuthContext.tsx`                       | Axios 注入 CSRF 并刷新 401                                                                           |
-| 设计决策               | `doc/DESIGN.md`, `frontend/src/styles/`                                                                   | 更改 UI 前必须阅读                                                                                   |
-| 手动 QA                | `backend/tests/manual_verification_checklist.md`                                                          | 浏览器用于验证 UI/爬取触发更改的凭证                                                                  |
+## 常用命令
 
-## 代码分布图 (CODE MAP)
+在 Windows PowerShell 运行。优先使用 `python -m pytest`，不要裸跑 `pytest`，
+避免走到 Anaconda shim。
 
-| 区域 (Area)       | 关键文件 (Key files)                                                                             | 作用 (Role)                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| 应用引导          | `backend/app/main.py`, `frontend/src/main.tsx`                                                   | 后端 lifespan/路由设置；React Query 提供商             |
-| 爬虫运行期        | `backend/app/domains/crawling/task_runner.py`, `task_store.py`, `backend/app/workers/crawler.py` | 持久化任务执行及 worker 循环                          |
-| 浏览器配置池      | `backend/app/domains/crawling/profile_pool.py`, `browser_manager.py`                             | 数据库租约 + 浏览器会话生命周期                       |
-| 平台适配器        | `backend/app/platforms/*.py`                                                                     | 商品/职位平台提取和反爬处理                           |
-| 职位领域          | `backend/app/domains/jobs/*`, `llm/*`                                                            | 职位配置, 爬取, 通知, 简历匹配                         |
-| 前端职位          | `frontend/src/features/jobs/*`                                                                   | 最大的 UI 功能：职位、配置、简历、匹配                 |
-| 共享前端          | `frontend/src/shared/*`                                                                          | 认证、API、布局、动画/主题原语                         |
-| 共享工具          | `backend/app/utils/*.py`                                                                         | URL 标准化、薪资解析、请求辅助函数                    |
-| 共享核心          | `backend/app/core/*.py`                                                                          | JSON 工具、Redis 客户端、会话、事件流                 |
-
-## 常用命令 (COMMANDS)
-在 Windows 上通过 PowerShell 运行 shell/测试/检查 (lint) 命令。
-
-项目启动命令： **脚本会先清理所有占用启前端、后端和worker端口的进程，同时启动他们**
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
-
-后端：
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pip install -e ."
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; alembic upgrade head"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check ."
+# 后端
+cd C:/Users/arfac/Documents/mavra-monitor-system/backend
+python -m ruff check .
+python -m pytest
+
+# 前端
+cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
+npm run lint
+npm run test:unit
+npm run build
+npm run test:e2e
+
+# 博客前端
+cd C:/Users/arfac/Documents/mavra-monitor-system/blog-frontend
+npm test
+npm run build
 ```
 
-前端：
-```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run lint"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run build"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; $env:E2E_BASE_URL='http://localhost:3000'; npx playwright test tests/e2e/ --project=chromium"
-```
+`scripts/start_server.ps1` 会清理端口并启动后端、前端和 crawler worker。它只用于
+明确需要本地全栈运行的场景，不是默认验证命令。
 
-## 设计系统 (DESIGN SYSTEM)
+## 工作规则
 
-- 在做出任何 UI 或视觉决定之前，请阅读 `doc/DESIGN.md`。
-- 未经明确批准，不得偏离 `doc/DESIGN.md` 的设计系统。
-- UI QA 必须指出任何与 `doc/DESIGN.md` 不符的地方。
+- 改代码前遵循项目 skill 流程；适用时加载 `karpathy-guidelines`。
+- 没有实际命令或浏览器证据，不要声称完成或通过。
+- 除非用户明确要求 live 验证，不要运行真实爬取、Profile 登录/测试/导入/导出、
+  worker、职位匹配或 Home Assistant 控制。
+- 不要手动编辑 `profiles/{key}`，也不要在同一 profile 上并行跑两个会话。
+- Windows 上不要用 `uvicorn --reload`，它会破坏 Playwright 子进程。
+- 不要在日志、事件或报告中泄露 cookie、token、webhook 等密钥。
+- 时间使用感知时区 UTC：`datetime.now(timezone.utc)`；价格使用 `Decimal`。
+- 认证是 Cookie 优先：`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`；
+  脚本可用 Bearer 兜底。
+- 保存 Home Assistant token 前必须配置 `SMART_HOME_SECRET_KEY`。
 
-## 规约 (CONVENTIONS)
+## API 契约与 Orval
 
-- 代码实现或更改之前应加载 `karpathy-guidelines` 技能。
-- 代码实现或更改之后应执行‘项目启动命令’重启所有服务。
-- 项目默认测试用户为：`default` / `Adminf8869!@`。
-- 本地启动器使用后端端口 `8000`，前端端口 `3000`，worker 使用 `python -m app.workers.crawler --kind all`。
-- 使用感知时区的 UTC 时间戳：`datetime.now(timezone.utc)`。
-- 使用 `Decimal` 比较价格。
-- 浏览器身份验证采用 Cookie 优先策略 (`pm_access_token`, `pm_refresh_token`, `pm_csrf_token`)；脚本可以使用 Bearer 作为备用方案。
-- 前端 API 模块使用 `/api/v1`；Vite 代理将浏览器请求的 `/api/v1/...` 原样转发给后端，不重写路径。
-- 运行时配置：`ALLOWED_ORIGINS` CONTROLS CORS 跨域源 (逗号分隔或 JSON 列表)，`CRAWLER_HEADLESS=false` 会在本地调试时以可见窗口形式打开 Playwright/配置浏览器，`PRODUCT_CRAWL_CONCURRENCY` 限制了单个 worker 任务内的商品爬取并发量 (默认/最小为 `1`)。
-- 在保存 Home Assistant token 之前必须设置 `SMART_HOME_SECRET_KEY`；智能家居路由使用 `smart_home:read`, `smart_home:control` 和 `smart_home:configure` 权限。
+后端 OpenAPI 是唯一 API 契约。普通 JSON 前端请求必须使用 Orval 生成代码。
 
-## 不要做 (ANTI-PATTERNS)
+1. 修改 FastAPI route/schema/`response_model` 和后端测试。
+2. 运行 `python scripts/export_openapi.py`。
+3. 运行 `cd frontend; npm run api:generate`。
+4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、
+   轮询、缓存失效或 UI 映射，但不能手写 Axios。
+5. 运行 `python scripts/check_api_contract.py` 和
+   `cd frontend; npm run api:check-usage`。
+6. 同一提交必须包含后端改动、`frontend/openapi.json`、生成客户端、前端适配和测试。
 
-- 不要在 Windows 上使用 `uvicorn --reload`；这会破坏 Playwright 子进程的处理。
-- 不要手动重命名/复制/删除 `profiles/{key}`。
-- 不要同时在同一个配置目录上运行两个爬取/登录会话。
-- 不要在日志或事件负载中泄露 cookie、token、webhook 或安全字段。
-- 不要声称已通过验证，除非命令/浏览器检查实际运行完毕。
+URL 所有权：
 
-## API 契约与 ORVAL 工作流 (API CONTRACT & ORVAL WORKFLOW)
+- OpenAPI/Orval 保留规范 `/api/v1/...` 路径。
+- `frontend/src/shared/api/mutator.ts` 只截断一次 `/api/v1`。
+- `frontend/src/shared/api/client.ts` 是唯一拥有 `baseURL=/api/v1` 的地方。
+- Vite 和生产反代必须原样转发 `/api/v1/...`。
 
-**关键规则：绝对不要在前端手动编写 AXIOS 请求或 TYPESCRIPT API 接口。**
-我们使用 `Orval` 实现端到端类型安全 (End-to-End Type Safety)。当您需要添加或修改 API 功能时，您**必须**遵循以下确切顺序：
+只有这些传输可以绕过普通 Orval JSON 客户端：
 
-1. **后端优先 (Backend First)**：修改 FastAPI 路由和 Pydantic 模式 (schemas)。
-2. **导出 OpenAPI (Export OpenAPI)**：运行脚本导出最新的 OpenAPI 架构：
-   `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; python scripts/export_openapi.py"`
-3. **生成前端客户端 (Generate Frontend Client)**：运行 Orval 生成器：
-   `powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/frontend; npm run api:generate"`
-4. **运行静态校验 (Run Verification)**：
-   - 校验 API 契约漂移：在根目录运行 `python scripts/check_api_contract.py`
-   - 校验前端 Axios/api 直接调用限制：在 `frontend/` 目录运行 `npm run api:check-usage`
-5. **使用生成客户端 (Use Generated Client)**：普通 HTTP 请求使用 `frontend/src/shared/api/generated/` 中的生成函数、React Query hooks 或 query options。业务 wrapper 可以保留轮询、缓存失效和 UI 数据映射，但不得重新手写 Axios 请求或用 `any`/`unknown` 断言覆盖生成类型。
-6. **Git 提交 (Git Commit)**：提交时必须同时包含修改的后端文件**以及**新生成的前端 `generated` 目录。
+- SSE/EventSource 流。
+- Blob 导出：`frontend/src/features/jobs/api/profileBackupExport.ts`。
+- OAuth 302 callback。
+- 非业务资源：`/health`, `/health/detailed`, `/blog-media/{file_name}`。
 
-### URL 所有权规则 (URL Ownership Rule)
-- FastAPI 和 OpenAPI 暴露规范的 `/api/v1` 路径。
-- 生成的 API URLs 包含 `/api/v1`。
-- Mutator 中的 `customInstance` 必须在调用共享 Axios 客户端之前截断且仅截断一次 `/api/v1` 前缀，以避免与 Axios `baseURL=/api/v1` 重复；浏览器最终请求仍是完整的 `/api/v1/...`。
-- 共享 Axios 客户端是唯一拥有浏览器请求 `baseURL`（即 `/api/v1`）的地方。
-- Vite 和生产反向代理必须原样转发 `/api/v1/...`，不得剥离 `/api` 或 `/api/v1`。
-- 任何生成的非规范 URL（不以 `/api/v1/` 开头且不是规范路径）都必须直接抛出异常，防止无声请求至错误路径。
-
-### 特殊传输协议策略 (Special Transport Policy)
-以下特殊接口不在生成的 Orval 客户端中处理，必须保留独立的定制传输适配器/手写客户端：
-- **EventSource / SSE**：`/api/v1/events/stream`, `/api/v1/dashboard/events`, `/api/v1/smart-home/entities/stream`（走手写的 SSE 适配器）
-- **二进制下载 (Blob Export)**：`/api/v1/crawl-profiles/{profile_key}/export`（仅 `frontend/src/features/jobs/api/profileBackupExport.ts` 使用手写 Axios；profile 导入使用 Orval）
-- **OAuth 302 重定向**：`/api/v1/auth/wechat/callback`
-- **公共资源或非规范路径**：`/health`, `/health/detailed`, `/blog-media/{file_name}`
+红线：不要手改 `frontend/src/shared/api/generated/`；不要在 feature 层新增
+`api.get/post/put/patch/delete`；不要用 `as any` 或 `as unknown as` 掩盖类型漂移，
+应修 schema 或写显式 normalizer。
