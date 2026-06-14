@@ -37,7 +37,7 @@ import ResumeManager from "./components/ResumeManager";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useStaggerAnimation } from "@/shared/hooks/useStaggerAnimation";
 import { formatDateTime } from "@/shared/utils/date";
-import type { Job, JobCrawlLog, JobSearchConfigCreate } from "./types";
+import type { Job, JobCrawlLog, JobSearchConfig, JobSearchConfigCreate, MatchResultWithJob } from "./types";
 
 export default function JobsPage() {
   const { hasPermission } = useAuth();
@@ -190,7 +190,7 @@ export default function JobsPage() {
       不太匹配: 1,
     };
     const map: Record<number, string> = {};
-    allMatches?.items.forEach((item) => {
+    allMatches?.items.forEach((item: MatchResultWithJob) => {
       const recommendation = item.apply_recommendation;
       if (!recommendation) return;
       const current = map[item.job_id];
@@ -207,7 +207,7 @@ export default function JobsPage() {
 
   const configNameMap = useMemo(() => {
     const map: Record<number, string> = {};
-    configs?.forEach((c) => {
+    configs?.forEach((c: JobSearchConfig) => {
       map[c.id] = c.name;
     });
     return map;

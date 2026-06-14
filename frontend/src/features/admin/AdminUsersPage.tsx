@@ -720,7 +720,7 @@ function GrantPermissionModal({
       resource_type: resourceType,
       resource_ids: resourceIds,
       permission,
-    })) as any;
+    })) as unknown as { granted: number };
     message.success(`Granted ${result.granted} permissions`);
     setRawResourceIds("");
     setPermission(undefined);

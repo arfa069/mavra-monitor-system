@@ -62,25 +62,21 @@ describe("TodayPage", () => {
       ],
     } as never);
     const matchesSpy = vi.spyOn(jobsApi, "getMatchResults").mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 9,
-            match_score: 92,
-            job_title: "Frontend Engineer",
-            job_company: "Example Co",
-            job_location: "Shanghai",
-          },
-        ],
-      },
+      items: [
+        {
+          id: 9,
+          match_score: 92,
+          job_title: "Frontend Engineer",
+          job_company: "Example Co",
+          job_location: "Shanghai",
+        },
+      ],
     } as never);
     const summarySpy = vi.spyOn(smartHomeApi, "getSummary").mockResolvedValue({
-      data: {
-        configured: true,
-        connected: true,
-        active_count: 1,
-        unavailable_count: 0,
-      },
+      configured: true,
+      connected: true,
+      active_count: 1,
+      unavailable_count: 0,
     } as never);
     const entitiesSpy = vi.spyOn(smartHomeApi, "listEntities");
 

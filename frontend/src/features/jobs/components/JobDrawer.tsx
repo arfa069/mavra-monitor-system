@@ -10,7 +10,7 @@ import {
   App,
 } from "antd";
 import { useMatchResults, useResumes, useTriggerMatch } from "../hooks/useJobs";
-import type { Job } from "../types";
+import type { Job, UserResume } from "../types";
 
 interface JobDrawerProps {
   open: boolean;
@@ -151,7 +151,7 @@ export default function JobDrawer({ open, job, onClose }: JobDrawerProps) {
                     placeholder="Select Resume"
                     value={selectedResumeId}
                     onChange={setSelectedResumeId}
-                    options={resumes?.map((resume) => ({
+                    options={resumes?.map((resume: UserResume) => ({
                       label: resume.name,
                       value: resume.id,
                     }))}

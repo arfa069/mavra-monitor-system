@@ -76,7 +76,7 @@ export function useTodayData(): TodayDataState {
               : [];
           const matchResponse =
             matchesResult.status === "fulfilled"
-              ? (matchesResult.value.data as MatchResultListResponse)
+              ? (matchesResult.value as MatchResultListResponse)
               : null;
           const jobMatches =
             matchResponse?.items.map((match) => ({
@@ -88,7 +88,7 @@ export function useTodayData(): TodayDataState {
             })) ?? [];
           const summary =
             summaryResult.status === "fulfilled"
-              ? summaryResult.value.data
+              ? (summaryResult.value as unknown as SmartHomeSummary)
               : null;
 
           return {

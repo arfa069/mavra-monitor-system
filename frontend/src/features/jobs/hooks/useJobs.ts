@@ -54,20 +54,20 @@ export const useJobCrawlLogs = (params?: {
 }) =>
   useQuery<JobCrawlLog[]>({
     queryKey: jobQueryKeys.crawlLogs(params),
-    queryFn: () => jobsApi.getCrawlLogs(params).then((res) => res.data),
+    queryFn: () => jobsApi.getCrawlLogs(params),
     refetchInterval: 60_000,
   });
 
 export const useJobConfigs = (active?: boolean) =>
   useQuery({
     queryKey: jobQueryKeys.configs(active),
-    queryFn: () => jobsApi.getConfigs(active).then((res) => res.data),
+    queryFn: () => jobsApi.getConfigs(active),
   });
 
 export const useJobConfig = (id: number) =>
   useQuery({
     queryKey: jobQueryKeys.config(id),
-    queryFn: () => jobsApi.getConfig(id).then((res) => res.data),
+    queryFn: () => jobsApi.getConfig(id),
     enabled: !!id,
   });
 
@@ -111,14 +111,14 @@ export const useJobs = (params?: {
 }) =>
   useQuery({
     queryKey: jobQueryKeys.jobs(params),
-    queryFn: () => jobsApi.getJobs(params).then((res) => res.data),
+    queryFn: () => jobsApi.getJobs(params),
     staleTime: 30_000,
   });
 
 export const useJob = (jobId: string) =>
   useQuery({
     queryKey: jobQueryKeys.job(jobId),
-    queryFn: () => jobsApi.getJob(jobId).then((res) => res.data),
+    queryFn: () => jobsApi.getJob(jobId),
     enabled: !!jobId,
   });
 
@@ -133,7 +133,7 @@ export const useCrawlAllJobs = () => {
       reason?: string;
     }> => {
       const response = await jobsApi.crawlAll();
-      const taskId = response.data.task_id;
+      const taskId = response.task_id;
       for (
         let attempt = 0;
         attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS;
@@ -143,11 +143,9 @@ export const useCrawlAllJobs = () => {
           setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS),
         );
         try {
-          const statusRes = await jobsApi.getCrawlStatus(taskId);
-          const s = statusRes.data;
+          const s = await jobsApi.getCrawlStatus(taskId);
           if (s.status === "completed") {
-            const resultRes = await jobsApi.getCrawlResult(taskId);
-            const r = resultRes.data;
+            const r = await jobsApi.getCrawlResult(taskId);
             qc.invalidateQueries({ queryKey: ["jobs"] });
             qc.invalidateQueries({ queryKey: ["job-configs"] });
             return {
@@ -181,7 +179,7 @@ export const useCrawlSingleJob = () => {
       reason?: string;
     }> => {
       const response = await jobsApi.crawlSingle(configId);
-      const taskId = response.data.task_id;
+      const taskId = response.task_id;
       for (
         let attempt = 0;
         attempt < JOB_CRAWL_MAX_POLL_ATTEMPTS;
@@ -191,11 +189,9 @@ export const useCrawlSingleJob = () => {
           setTimeout(resolve, JOB_CRAWL_POLL_INTERVAL_MS),
         );
         try {
-          const statusRes = await jobsApi.getCrawlStatus(taskId);
-          const s = statusRes.data;
+          const s = await jobsApi.getCrawlStatus(taskId);
           if (s.status === "completed") {
-            const resultRes = await jobsApi.getCrawlResult(taskId);
-            const r = resultRes.data;
+            const r = await jobsApi.getCrawlResult(taskId);
             qc.invalidateQueries({ queryKey: ["jobs"] });
             qc.invalidateQueries({ queryKey: ["job-configs"] });
             return {
@@ -219,7 +215,7 @@ export const useCrawlSingleJob = () => {
 export const useResumes = () =>
   useQuery({
     queryKey: jobQueryKeys.resumes,
-    queryFn: () => jobMatchApi.listResumes().then((res) => res.data),
+    queryFn: () => jobMatchApi.listResumes(),
   });
 
 export const useCreateResume = () => {
@@ -257,21 +253,14 @@ export const useMatchResults = (params?: {
 }) =>
   useQuery({
     queryKey: jobQueryKeys.matchResults(params),
-    queryFn: () => jobMatchApi.listMatchResults(params).then((res) => res.data),
+    queryFn: () => jobMatchApi.listMatchResults(params),
   });
 
 export const useTriggerMatch = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: MatchAnalyzeRequest) =>
-      jobMatchApi.triggerMatchAsync(data).then(
-        (resp) =>
-          resp.data as {
-            status: string;
-            task_id: string | null;
-            total: number;
-          },
-      ),
+      jobMatchApi.triggerMatchAsync(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["match-results"] });
       qc.invalidateQueries({ queryKey: ["jobs"] });
@@ -282,14 +271,14 @@ export const useTriggerMatch = () => {
 export const useCrawlProfiles = () =>
   useQuery({
     queryKey: jobQueryKeys.profiles,
-    queryFn: () => jobsApi.getProfiles().then((res) => res.data),
+    queryFn: () => jobsApi.getProfiles(),
   });
 
 export const useProfileRuntimeCapabilities = () =>
   useQuery({
     queryKey: ["crawl-profile-runtime-capabilities"],
     queryFn: () =>
-      jobsApi.getProfileRuntimeCapabilities().then((res) => res.data),
+      jobsApi.getProfileRuntimeCapabilities(),
   });
 
 export const useCreateCrawlProfile = () => {

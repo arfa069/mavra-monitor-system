@@ -84,9 +84,9 @@ export default function SmartHomePage() {
     setLoading(true);
     try {
       const response = await smartHomeApi.listEntities();
-      setEntities(response.data.items);
-      setConnected(response.data.connected);
-      setLastError(response.data.last_error);
+      setEntities(response.items as unknown as SmartHomeEntity[]);
+      setConnected(response.connected);
+      setLastError(response.last_error as unknown as string | null);
     } catch (error) {
       setConnected(false);
       setLastError(formatApiError(error, "Failed to load smart home entities"));
@@ -99,10 +99,10 @@ export default function SmartHomePage() {
     if (!canConfigure) return;
     try {
       const response = await smartHomeApi.getConfig();
-      setConfig(response.data);
+      setConfig(response as unknown as SmartHomeConfig);
       form.setFieldsValue({
-        base_url: response.data.base_url,
-        enabled: response.data.enabled,
+        base_url: response.base_url,
+        enabled: response.enabled,
       });
     } catch {
       setConfig(null);
@@ -180,7 +180,7 @@ export default function SmartHomePage() {
         token: values.token || null,
         enabled: values.enabled,
       });
-      setConfig(response.data);
+      setConfig(response as unknown as SmartHomeConfig);
       setConfigOpen(false);
       message.success("Smart home config saved");
       void loadEntities();
@@ -196,16 +196,15 @@ export default function SmartHomePage() {
       const response = await smartHomeApi.testConfig({
         base_url: values.base_url,
         token: values.token || null,
-        enabled: values.enabled ?? true,
       });
-      if (response.data.ok) {
+      if (response.ok) {
         message.success(
-          response.data.home_assistant_version
-            ? `Connected to Home Assistant ${response.data.home_assistant_version}`
-            : response.data.message,
+          response.home_assistant_version
+            ? `Connected to Home Assistant ${response.home_assistant_version}`
+            : response.message,
         );
       } else {
-        message.error(response.data.message);
+        message.error(response.message);
       }
     } catch (error) {
       message.error(formatApiError(error, "Failed to test smart home config"));

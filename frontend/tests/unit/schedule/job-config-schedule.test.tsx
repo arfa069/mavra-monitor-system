@@ -41,12 +41,8 @@ describe("useJobConfigSchedule Hook", () => {
       ],
     };
 
-    vi.mocked(jobsApi.getConfigs).mockResolvedValue({
-      data: mockConfigs,
-    } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
-      data: mockSchedules,
-    } as any);
+    vi.mocked(jobsApi.getConfigs).mockResolvedValue(mockConfigs as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue(mockSchedules as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
 
@@ -86,12 +82,8 @@ describe("useJobConfigSchedule Hook", () => {
     ];
     const mockSchedules = { configs: [] };
 
-    vi.mocked(jobsApi.getConfigs).mockResolvedValue({
-      data: mockConfigs,
-    } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
-      data: mockSchedules,
-    } as any);
+    vi.mocked(jobsApi.getConfigs).mockResolvedValue(mockConfigs as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue(mockSchedules as any);
     vi.mocked(jobsApi.updateConfigCron).mockResolvedValue({} as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
@@ -144,10 +136,8 @@ describe("useJobConfigSchedule Hook", () => {
 
   it("accepts null/blank cron expression to disable the schedule", async () => {
     vi.mocked(jobsApi.updateConfigCron).mockResolvedValue({} as any);
-    vi.mocked(jobsApi.getConfigs).mockResolvedValue({ data: [] } as any);
-    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({
-      data: { configs: [] },
-    } as any);
+    vi.mocked(jobsApi.getConfigs).mockResolvedValue([] as any);
+    vi.mocked(jobsApi.getJobConfigSchedules).mockResolvedValue({ configs: [] } as any);
 
     const { result } = renderHook(() => useJobConfigSchedule(mockMessage));
 

@@ -14,7 +14,7 @@ import type { ColumnsType } from "antd/es/table";
 import { formatDateTime } from "@/shared/utils/date";
 import { jobMatchApi } from "../api/job_match";
 import { useMatchResults, useResumes, useTriggerMatch } from "../hooks/useJobs";
-import type { MatchResultWithJob } from "../types";
+import type { MatchResultWithJob, UserResume } from "../types";
 
 export default function MatchResultList() {
   const message = App.useApp().message;
@@ -52,7 +52,7 @@ export default function MatchResultList() {
     setTaskProgress(null);
 
     try {
-      const result = await triggerMatch.mutateAsync({ resume_id: resumeId });
+      const result = (await triggerMatch.mutateAsync({ resume_id: resumeId })) as unknown as { task_id: string | null; total: number };
       const { task_id, total } = result;
 
       if (!task_id || total === 0) {
@@ -69,7 +69,7 @@ export default function MatchResultList() {
       pollRef.current = setInterval(async () => {
         try {
           const statusRes = await jobMatchApi.getMatchTaskStatus(task_id);
-          const s = statusRes.data;
+          const s = statusRes;
           // 跳过旧任务的回调
           if (currentTaskId.current !== task_id) return;
 
@@ -180,7 +180,7 @@ export default function MatchResultList() {
             setResumeId(value);
             setPage(1);
           }}
-          options={resumes?.map((resume) => ({
+          options={resumes?.map((resume: UserResume) => ({
             label: resume.name,
             value: resume.id,
           }))}

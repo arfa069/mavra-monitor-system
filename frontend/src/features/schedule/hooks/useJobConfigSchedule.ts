@@ -18,19 +18,18 @@ export function useJobConfigSchedule(message: {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [configsRes, schedulesRes] = await Promise.all([
+      const [configs, schedulesRes] = await Promise.all([
         jobsApi.getConfigs(),
         jobsApi.getJobConfigSchedules(),
       ]);
-      const configs = configsRes.data;
       setList(configs);
       const scheduleMap: Record<number, JobConfigScheduleInfo> = {};
-      schedulesRes.data.configs.forEach((item) => {
+      schedulesRes.configs.forEach((item: any) => {
         scheduleMap[item.config_id] = item;
       });
       setSchedules(scheduleMap);
       const inputs: Record<number, string> = {};
-      configs.forEach((configItem) => {
+      configs.forEach((configItem: JobSearchConfig) => {
         inputs[configItem.id] = configItem.cron_expression || "";
       });
       setCronInputs(inputs);

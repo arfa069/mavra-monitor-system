@@ -282,7 +282,7 @@ export default function ResumeManager({
           animate="show"
           style={{ display: "grid", gap: 12 }}
         >
-          {resumes.map((resume) => (
+          {resumes.map((resume: UserResume) => (
             <m.div key={resume.id} variants={stagger.item}>
               <Card
                 size="small"
