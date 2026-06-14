@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { alertsApi } from "../api/alerts";
-import type { AlertUpdateRequest } from "@/shared/api/generated/models";
+import type { AlertUpdate } from "@/shared/api/generated/models";
 
 export const useAlerts = (productId?: number) =>
   useQuery({
@@ -27,7 +27,7 @@ export const useCreateAlert = () => {
 export const useUpdateAlert = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: AlertUpdateRequest }) =>
+    mutationFn: ({ id, data }: { id: number; data: AlertUpdate }) =>
       alertsApi.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["alerts"] }),
   });

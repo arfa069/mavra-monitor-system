@@ -1,56 +1,31 @@
-import api from "@/shared/api/client";
-import type { CrawlLog } from "../types";
+import {
+  productsCrawlCrawlNow,
+  productsCrawlGetCrawlStatus,
+  productsCrawlGetCrawlResult,
+  productsCrawlGetCrawlLogs,
+} from "@/shared/api/generated/products-crawl/products-crawl";
+import type {
+  TaskQueuedResponse as CrawlNowResponse,
+  TaskProgressResponse as CrawlStatusResponse,
+} from "@/shared/api/generated/models";
 
-export interface CrawlNowResponse {
-  status: "pending" | "skipped" | "error";
-  task_id?: string;
-  message?: string;
-  reason?: string;
-}
-
-export interface CrawlStatusResponse {
-  task_id: string;
-  status: "pending" | "running" | "completed" | "failed";
-  total: number;
-  success: number;
-  errors: number;
-  reason?: string | null;
-  worker_id?: string | null;
-  heartbeat_at?: string | null;
-  lease_until?: string | null;
-  started_at?: string | null;
-  finished_at?: string | null;
-  details?: unknown[] | null;
-}
-
-export interface CrawlResultResponse {
-  status: "completed" | "pending" | "running" | "error";
-  task_id: string;
-  total?: number;
-  success?: number;
-  errors?: number;
-  details?: unknown[] | null;
-  reason?: string | null;
-  worker_id?: string | null;
-  heartbeat_at?: string | null;
-  lease_until?: string | null;
-  started_at?: string | null;
-  finished_at?: string | null;
-}
+export type { CrawlNowResponse, CrawlStatusResponse };
+export type CrawlResultResponse = CrawlStatusResponse;
 
 export const crawlApi = {
-  crawlNow: () => api.post<CrawlNowResponse>("/crawl/crawl-now"),
+  crawlNow: () => productsCrawlCrawlNow(),
 
-  getStatus: (taskId: string) =>
-    api.get<CrawlStatusResponse>(`/crawl/status/${taskId}`),
+  getStatus: (taskId: string) => productsCrawlGetCrawlStatus(taskId),
 
-  getResult: (taskId: string) =>
-    api.get<CrawlResultResponse>(`/crawl/result/${taskId}`),
+  getResult: (taskId: string) => productsCrawlGetCrawlResult(taskId),
 
   getLogs: (params?: {
     product_id?: number;
     status?: string;
     hours?: number;
     limit?: number;
-  }) => api.get<CrawlLog[]>("/crawl/logs", { params }),
+  }) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return productsCrawlGetCrawlLogs(params as any);
+  },
 };

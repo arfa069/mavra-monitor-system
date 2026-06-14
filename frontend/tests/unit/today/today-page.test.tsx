@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import api from "@/shared/api/client";
+import * as dashboardApi from "@/shared/api/generated/dashboard/dashboard";
 import { jobsApi } from "@/features/jobs/api/jobs";
 import { productsApi } from "@/features/products/api/products";
 import { smartHomeApi } from "@/features/smart-home/api/smartHome";
@@ -41,28 +42,24 @@ describe("TodayPage", () => {
   });
 
   it("deduplicates today data loading during StrictMode remounts", async () => {
-    const dashboardSpy = vi.spyOn(api, "get").mockResolvedValue({
-      data: {
-        user: {
-          total_products: 3,
-          price_drops_today: 1,
-          new_jobs_today: 2,
-          match_count: 1,
-          crawl_count_today: 4,
-        },
-        system: null,
+    const dashboardSpy = vi.spyOn(dashboardApi, "dashboardGetDashboardKpi").mockResolvedValue({
+      user: {
+        total_products: 3,
+        price_drops_today: 1,
+        new_jobs_today: 2,
+        match_count: 1,
+        crawl_count_today: 4,
       },
+      system: null,
     });
     const productsSpy = vi.spyOn(productsApi, "list").mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 12,
-            title: "Dell 显示器",
-            platform: "jd",
-          },
-        ],
-      },
+      items: [
+        {
+          id: 12,
+          title: "Dell 显示器",
+          platform: "jd",
+        },
+      ],
     } as never);
     const matchesSpy = vi.spyOn(jobsApi, "getMatchResults").mockResolvedValue({
       data: {

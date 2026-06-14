@@ -49,7 +49,7 @@ export const useProducts = (params: {
 }) =>
   useQuery({
     queryKey: productQueryKeys.list(params),
-    queryFn: () => productsApi.list(params).then((res) => res.data),
+    queryFn: () => productsApi.list(params),
     staleTime: 10_000,
   });
 
@@ -111,7 +111,7 @@ export const useBatchUpdate = () => {
 export const useProductHistory = (id: number, days = 30) =>
   useQuery({
     queryKey: productQueryKeys.history(id, days),
-    queryFn: () => productsApi.history(id, days).then((res) => res.data),
+    queryFn: () => productsApi.history(id, days),
     enabled: !!id,
   });
 
@@ -119,8 +119,7 @@ export const useCrawlNow = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<CrawlNowMutationResult> => {
-      const response = await crawlApi.crawlNow();
-      const data = response.data;
+      const data = await crawlApi.crawlNow();
       if (data.status === "skipped")
         return { type: "skipped", reason: data.reason };
       if (data.status === "error")
@@ -130,11 +129,9 @@ export const useCrawlNow = () => {
       for (let attempts = 0; attempts < 60; attempts += 1) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         try {
-          const statusRes = await crawlApi.getStatus(taskId);
-          const status = statusRes.data;
+          const status = await crawlApi.getStatus(taskId);
           if (status.status === "completed") {
-            const resultRes = await crawlApi.getResult(taskId);
-            const result = resultRes.data;
+            const result = await crawlApi.getResult(taskId);
             qc.invalidateQueries({ queryKey: ["crawl-logs"] });
             return {
               type: "completed",
@@ -164,14 +161,14 @@ export const useCrawlLogs = (params?: {
 }) =>
   useQuery<CrawlLog[]>({
     queryKey: productQueryKeys.crawlLogs(params),
-    queryFn: () => crawlApi.getLogs(params).then((res) => res.data),
+    queryFn: () => crawlApi.getLogs(params) as unknown as CrawlLog[],
     refetchInterval: 60_000,
   });
 
 export const useProductProfileBindings = () =>
   useQuery({
     queryKey: productQueryKeys.profileBindings,
-    queryFn: () => productsApi.getProfileBindings().then((res) => res.data),
+    queryFn: () => productsApi.getProfileBindings(),
     staleTime: 10_000,
   });
 

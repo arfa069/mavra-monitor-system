@@ -53,12 +53,8 @@ export interface BatchCreateItem {
   title?: string;
 }
 
-export interface BatchOperationResult {
-  id: number | null;
-  url: string | null;
-  success: boolean;
-  error: string | null;
-}
+import type { BatchOperationResult as GeneratedBatchOperationResult } from "@/shared/api/generated/models";
+export type BatchOperationResult = GeneratedBatchOperationResult;
 
 export interface ProductPlatformCronSchedule {
   cron_expression: string | null;

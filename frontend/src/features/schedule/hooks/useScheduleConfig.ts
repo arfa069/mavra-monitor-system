@@ -5,7 +5,7 @@ import { configApi } from "@/features/settings";
 export const useScheduleConfig = () =>
   useQuery({
     queryKey: ["config"],
-    queryFn: () => configApi.get().then((res) => res.data),
+    queryFn: () => configApi.get(),
   });
 
 export const useUpdateScheduleConfig = () => {

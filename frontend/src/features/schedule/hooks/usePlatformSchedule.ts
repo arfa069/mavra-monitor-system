@@ -24,9 +24,9 @@ export function usePlatformSchedule(message: {
         productsApi.getCronConfigs(),
         productsApi.getCronSchedules(),
       ]);
-      const configs = configsRes.data;
-      setConfigs(configs);
-      setSchedules(schedulesRes.data.platforms);
+      const configs = configsRes;
+      setConfigs(configs as unknown as ProductPlatformCron[]);
+      setSchedules(schedulesRes.platforms as unknown as Record<string, ProductPlatformCronSchedule>);
       const inputs: Record<string, string> = {};
       configs.forEach((configItem) => {
         inputs[configItem.platform] = configItem.cron_expression || "";

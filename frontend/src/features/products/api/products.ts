@@ -1,19 +1,34 @@
-import api from "@/shared/api/client";
+import {
+  productsListProducts,
+  productsGetProduct,
+  productsCreateProduct,
+  productsUpdateProduct,
+  productsDeleteProduct,
+  productsBatchCreateProducts,
+  productsBatchDeleteProducts,
+  productsBatchUpdateProducts,
+  productsGetProductHistory,
+  productsListProductCronConfigs,
+  productsCreateProductCronConfig,
+  productsUpdateProductCronConfig,
+  productsDeleteProductCronConfig,
+  productsGetProductCronSchedules,
+  productsListProductProfileBindings,
+  productsUpsertProductProfileBinding,
+  productsDeleteProductProfileBinding,
+} from "@/shared/api/generated/products/products";
 import type {
-  ProductListResponse,
-  Product,
-  ProductCreateRequest,
-  ProductUpdateRequest,
-  BatchCreateItem,
-  BatchOperationResult,
-  PriceHistoryRecord,
-  ProductPlatformCron,
+  ProductCreate,
+  ProductUpdate,
+  ProductBatchCreate,
+  ProductBatchCreateItem,
+  ProductBatchDelete,
+  ProductBatchUpdate,
   ProductPlatformCronCreate,
   ProductPlatformCronUpdate,
-  ProductPlatformCronSchedule,
-  ProductPlatformProfileBinding,
   ProductPlatformProfileBindingUpdate,
-} from "../types";
+  ProductsListProductsParams,
+} from "@/shared/api/generated/models";
 
 export const productsApi = {
   list: (params: {
@@ -22,68 +37,54 @@ export const productsApi = {
     keyword?: string;
     page?: number;
     size?: number;
-  }) => api.get<ProductListResponse>("/products", { params }),
+  }) => productsListProducts(params as ProductsListProductsParams),
 
-  get: (id: number) => api.get<Product>(`/products/${id}`),
+  get: (id: number) => productsGetProduct(id),
 
-  create: (data: ProductCreateRequest) =>
-    api.post<Product>("/products", data),
+  create: (data: ProductCreate) => productsCreateProduct(data),
 
-  update: (id: number, data: ProductUpdateRequest) =>
-    api.patch<Product>(`/products/${id}`, data),
+  update: (id: number, data: ProductUpdate) => productsUpdateProduct(id, data),
 
-  delete: (id: number) => api.delete(`/products/${id}`),
+  delete: (id: number) => productsDeleteProduct(id),
 
-  batchCreate: (items: BatchCreateItem[]) =>
-    api.post<BatchOperationResult[]>("/products/batch-create", { items }),
+  batchCreate: (items: ProductBatchCreateItem[]) =>
+    productsBatchCreateProducts({ items } as ProductBatchCreate),
 
   batchDelete: (ids: number[]) =>
-    api.post<BatchOperationResult[]>("/products/batch-delete", { ids }),
+    productsBatchDeleteProducts({ ids } as ProductBatchDelete),
 
   batchUpdate: (ids: number[], active?: boolean) =>
-    api.post<BatchOperationResult[]>("/products/batch-update", {
-      ids,
-      active,
-    }),
+    productsBatchUpdateProducts({ ids, active } as ProductBatchUpdate),
 
   history: (id: number, days = 30, limit = 100) =>
-    api.get<PriceHistoryRecord[]>(`/products/${id}/history`, {
-      params: { days, limit },
-    }),
+    productsGetProductHistory(id, { days, limit }).then((res) =>
+      res.map((item) => ({
+        ...item,
+        price: Number(item.price),
+      })),
+    ),
 
   // Per-platform cron configs
-  getCronConfigs: () =>
-    api.get<ProductPlatformCron[]>("/products/cron-configs"),
+  getCronConfigs: () => productsListProductCronConfigs(),
 
   createCronConfig: (data: ProductPlatformCronCreate) =>
-    api.post<ProductPlatformCron>("/products/cron-configs", data),
+    productsCreateProductCronConfig(data),
 
   updateCronConfig: (platform: string, data: ProductPlatformCronUpdate) =>
-    api.patch<ProductPlatformCron>(
-      `/products/cron-configs/${platform}`,
-      data,
-    ),
+    productsUpdateProductCronConfig(platform, data),
 
   deleteCronConfig: (platform: string) =>
-    api.delete(`/products/cron-configs/${platform}`),
+    productsDeleteProductCronConfig(platform),
 
-  getCronSchedules: () =>
-    api.get<{ platforms: Record<string, ProductPlatformCronSchedule> }>(
-      "/products/cron-schedules",
-    ),
+  getCronSchedules: () => productsGetProductCronSchedules(),
 
-  getProfileBindings: () =>
-    api.get<ProductPlatformProfileBinding[]>("/products/profile-bindings"),
+  getProfileBindings: () => productsListProductProfileBindings(),
 
   updateProfileBinding: (
     platform: string,
     data: ProductPlatformProfileBindingUpdate,
-  ) =>
-    api.put<ProductPlatformProfileBinding>(
-      `/products/profile-bindings/${platform}`,
-      data,
-    ),
+  ) => productsUpsertProductProfileBinding(platform, data),
 
   deleteProfileBinding: (platform: string) =>
-    api.delete(`/products/profile-bindings/${platform}`),
+    productsDeleteProductProfileBinding(platform),
 };

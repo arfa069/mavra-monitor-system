@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import api from "@/shared/api/client";
+import { dashboardGetDashboardKpi } from "@/shared/api/generated/dashboard/dashboard";
 import { productsApi } from "@/features/products/api/products";
 import { jobsApi } from "@/features/jobs/api/jobs";
 import { smartHomeApi } from "@/features/smart-home/api/smartHome";
 import type { SmartHomeSummary } from "@/features/smart-home/types";
 import { buildTodayBrief } from "../todayBrief";
-import type { DashboardKPIResponse } from "@/features/dashboard/types";
 import type { MatchResultListResponse } from "@/features/jobs/types";
 import type { TodayBrief, TodaySourceData } from "../types";
 
@@ -57,7 +56,7 @@ export function useTodayData(): TodayDataState {
         todayLoadPromise ??= (async () => {
           const [kpiResult, productsResult, matchesResult, summaryResult] =
             await Promise.allSettled([
-              api.get<DashboardKPIResponse>("/dashboard/kpi"),
+              dashboardGetDashboardKpi(),
               productsApi.list({ active: true, page: 1, size: 5 }),
               jobsApi.getMatchResults({ page: 1, page_size: 5 }),
               smartHomeApi.getSummary(),
@@ -65,11 +64,11 @@ export function useTodayData(): TodayDataState {
 
           const kpi =
             kpiResult.status === "fulfilled"
-              ? kpiResult.value.data.user
+              ? kpiResult.value.user
               : DEFAULT_KPI;
           const products =
             productsResult.status === "fulfilled"
-              ? productsResult.value.data.items.map((product) => ({
+              ? productsResult.value.items.map((product) => ({
                   id: product.id,
                   title: product.title,
                   platform: product.platform,

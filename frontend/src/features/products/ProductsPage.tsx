@@ -231,14 +231,14 @@ export default function ProductsPage() {
   const { data: productCronConfigs = [], isLoading: cronConfigsLoading } =
     useQuery({
       queryKey: PRODUCT_CRON_CONFIGS_QUERY_KEY,
-      queryFn: () => productsApi.getCronConfigs().then((res) => res.data),
+      queryFn: () => productsApi.getCronConfigs(),
       staleTime: 10_000,
     });
   const { data: productCronSchedules = {}, isLoading: cronSchedulesLoading } =
     useQuery<Record<string, ProductPlatformCronSchedule>>({
       queryKey: PRODUCT_CRON_SCHEDULES_QUERY_KEY,
       queryFn: () =>
-        productsApi.getCronSchedules().then((res) => res.data.platforms),
+        productsApi.getCronSchedules().then((res) => res.platforms as Record<string, ProductPlatformCronSchedule>),
       staleTime: 10_000,
     });
   const {
@@ -254,7 +254,7 @@ export default function ProductsPage() {
     alertsData?.forEach((alert) => {
       map.set(alert.product_id, {
         id: alert.id,
-        threshold_percent: alert.threshold_percent || 0,
+        threshold_percent: Number(alert.threshold_percent) || 0,
         active: alert.active,
       });
     });
@@ -327,7 +327,7 @@ export default function ProductsPage() {
         if (shouldGoPrev) {
           setPage((current) => Math.max(1, current - 1));
         }
-        showBatchResult("Batch Delete", response.data);
+        showBatchResult("Batch Delete", response);
         setSelectedRowKeys([]);
       },
       onError: (error) =>
@@ -365,7 +365,7 @@ export default function ProductsPage() {
             ...productValues,
             platform: productValues.platform,
           });
-          productId = result.data.id;
+          productId = result.id;
         }
 
         if (alert.enabled) {
@@ -384,19 +384,15 @@ export default function ProductsPage() {
         } else if (alert.existingId) {
           await updateAlertMutation.mutateAsync({
             id: alert.existingId,
-            data: { active: false },
+            data: { threshold_percent: alert.threshold, active: false },
           });
         }
 
-        message.success(
-          editModal.record ? "Updated successfully" : "Added successfully",
-        );
+        message.success("Product saved successfully");
         setEditModal({ open: false });
         setCreateFormOpen(false);
       } catch (error) {
-        message.error(
-          `${editModal.record ? "Update" : "Add"} failed: ${formatApiError(error, "Unknown error")}`,
-        );
+        message.error(`Save failed: ${formatApiError(error, "Unknown error")}`);
       }
     },
     [
@@ -418,7 +414,7 @@ export default function ProductsPage() {
       }));
       batchCreate.mutate(payload, {
         onSuccess: (response) => {
-          showBatchResult("Batch Import", response.data);
+          showBatchResult("Batch Import", response);
           setBatchImportOpen(false);
         },
         onError: (error) =>
