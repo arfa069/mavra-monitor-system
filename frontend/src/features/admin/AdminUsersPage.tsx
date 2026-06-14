@@ -39,6 +39,7 @@ import {
 import type {
   Permission,
   PermissionInfo,
+  RolePermissionInfo,
   ResourcePermission,
   ResourcePermissionUpdate,
   User,
@@ -535,8 +536,8 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
   if (isLoading) return <Spin />;
   if (!data) return null;
 
-  const groupedPermissions = data.all_permissions.reduce(
-    (groups, permission) => {
+  const groupedPermissions = (data.all_permissions as PermissionInfo[]).reduce(
+    (groups: Record<string, PermissionInfo[]>, permission: PermissionInfo) => {
       const group = permission.name.split(":")[0];
       groups[group] = groups[group] || [];
       groups[group].push(permission);
@@ -553,7 +554,7 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
 
   return (
     <Tabs
-      items={data.roles.map((roleInfo) => {
+      items={(data.roles as RolePermissionInfo[]).map((roleInfo: RolePermissionInfo) => {
         const value = drafts[roleInfo.role] ?? roleInfo.permissions;
         const disabledSuperAdminCore =
           roleInfo.role === "super_admin" ? ["rbac:read", "rbac:manage"] : [];
@@ -574,7 +575,7 @@ function RolePermissionsMatrix({ canEdit }: { canEdit: boolean }) {
                         marginTop: 8,
                       }}
                     >
-                      {permissions.map((permission) => (
+                      {(permissions as PermissionInfo[]).map((permission: PermissionInfo) => (
                         <Checkbox
                           key={permission.name}
                           checked={value.includes(permission.name)}
@@ -714,12 +715,12 @@ function GrantPermissionModal({
 
   const handleSubmit = async () => {
     if (!resourceIds.length || !permission) return;
-    const result = await grant.mutateAsync({
+    const result = (await grant.mutateAsync({
       subject_id: userId,
       resource_type: resourceType,
       resource_ids: resourceIds,
       permission,
-    });
+    })) as any;
     message.success(`Granted ${result.granted} permissions`);
     setRawResourceIds("");
     setPermission(undefined);

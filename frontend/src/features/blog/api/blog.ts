@@ -1,41 +1,43 @@
-import api from "@/shared/api/client";
+import {
+  blogListAdminPosts,
+  blogGetAdminPost,
+  blogCreateAdminPost,
+  blogUpdateAdminPost,
+  blogDeleteAdminPost,
+  blogUploadBlogMedia,
+  blogListCategories,
+  blogListTags,
+} from "@/shared/api/generated/blog/blog";
 import type {
-  BlogCategory,
-  BlogMedia,
-  BlogPost,
-  BlogPostListResponse,
-  BlogPostPayload,
-  BlogPostStatus,
-  BlogTag,
-} from "../types";
+  BlogPostCreate,
+  BlogPostUpdate,
+  BlogListAdminPostsStatus,
+} from "@/shared/api/generated/models";
 
 export const blogApi = {
   listAdminPosts: (params: {
     keyword?: string;
-    status?: BlogPostStatus;
+    status?: BlogListAdminPostsStatus;
     page?: number;
     size?: number;
-  }) => api.get<BlogPostListResponse>("/blog/admin/posts", { params }),
-
-  getAdminPost: (id: number) => api.get<BlogPost>(`/blog/admin/posts/${id}`),
-
-  createPost: (data: BlogPostPayload) =>
-    api.post<BlogPost>("/blog/admin/posts", data),
-
-  updatePost: (id: number, data: Partial<BlogPostPayload>) =>
-    api.patch<BlogPost>(`/blog/admin/posts/${id}`, data),
-
-  deletePost: (id: number) => api.delete(`/blog/admin/posts/${id}`),
-
-  uploadMedia: (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    return api.post<BlogMedia>("/blog/admin/uploads", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+  }) => {
+    return blogListAdminPosts(params);
   },
 
-  listCategories: () => api.get<BlogCategory[]>("/blog/categories"),
+  getAdminPost: (id: number) => blogGetAdminPost(id),
 
-  listTags: () => api.get<BlogTag[]>("/blog/tags"),
+  createPost: (data: BlogPostCreate) => blogCreateAdminPost(data),
+
+  updatePost: (id: number, data: BlogPostUpdate) => blogUpdateAdminPost(id, data),
+
+  deletePost: (id: number) => blogDeleteAdminPost(id),
+
+  uploadMedia: (file: File) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return blogUploadBlogMedia({ file } as any);
+  },
+
+  listCategories: () => blogListCategories(),
+
+  listTags: () => blogListTags(),
 };

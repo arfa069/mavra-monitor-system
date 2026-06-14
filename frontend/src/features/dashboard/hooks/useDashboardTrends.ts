@@ -14,6 +14,7 @@ export function useDashboardTrends(
   enabled = true,
 ): TrendsState {
   const { data, isLoading, isFetching, error } = useDashboardGetTrendData(
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     { type, days: days as any },
     { query: { enabled } }
   );

@@ -1,150 +1,97 @@
-import api from "@/shared/api/client";
+import {
+  adminListUsers,
+  adminCreateUser,
+  adminUpdateUser,
+  adminDeleteUser,
+  adminListAuditLogs,
+  adminListResourcePermissions,
+  adminGrantResourcePermission,
+  adminRevokeResourcePermission,
+  adminUpdateResourcePermission,
+  adminGetRolePermissionMatrix,
+  adminUpdateRolePermissions,
+} from "@/shared/api/generated/admin/admin";
 import type {
-  ResourcePermission,
+  UserCreate,
+  AdminUserUpdate as UserUpdate,
   ResourcePermissionGrant,
-  ResourcePermissionListResponse,
   ResourcePermissionUpdate,
-  RolePermissionInfo,
-  RolePermissionMatrix,
   RolePermissionUpdate,
-  User,
-} from "../types";
+  AuditLogResponse as AuditLog,
+  AuditLogListResponse,
+  AdminUserListResponse as UserListResponse,
+} from "@/shared/api/generated/models";
 
-export interface UserCreate {
-  username: string;
-  email: string;
-  password: string;
-  role: string;
-}
-
-export interface UserUpdate {
-  username?: string;
-  email?: string;
-  role?: string;
-  is_active?: boolean;
-}
-
-export interface UserListResponse {
-  items: User[];
-  total: number;
-  page: number;
-  page_size: number;
-}
-
-export interface AuditLog {
-  id: number;
-  actor_user_id: number | null;
-  action: string;
-  target_type: string | null;
-  target_id: number | null;
-  details: Record<string, unknown> | null;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-}
-
-export interface AuditLogListResponse {
-  items: AuditLog[];
-  total: number;
-  page: number;
-  page_size: number;
-}
+export type { AuditLog, AuditLogListResponse, UserListResponse, UserCreate, UserUpdate };
 
 export const adminApi = {
-  listUsers: async (params: {
+  listUsers: (params: {
     page?: number;
     page_size?: number;
     search?: string;
     role?: string;
-  }): Promise<UserListResponse> => {
-    const response = await api.get<UserListResponse>("/admin/users", {
-      params,
-    });
-    return response.data;
+  }) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminListUsers(params as any) as any;
   },
 
-  createUser: async (data: UserCreate): Promise<User> => {
-    const response = await api.post<User>("/admin/users", data);
-    return response.data;
+  createUser: (data: UserCreate) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminCreateUser(data) as any;
   },
 
-  updateUser: async (id: number, data: UserUpdate): Promise<User> => {
-    const response = await api.patch<User>(`/admin/users/${id}`, data);
-    return response.data;
+  updateUser: (id: number, data: UserUpdate) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminUpdateUser(id, data as any) as any;
   },
 
-  deleteUser: async (id: number): Promise<void> => {
-    await api.delete(`/admin/users/${id}`);
+  deleteUser: (id: number) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminDeleteUser(id) as any;
   },
 
-  getAuditLogs: async (params: {
+  getAuditLogs: (params: {
     page?: number;
     page_size?: number;
     actor_user_id?: number;
     action?: string;
-  }): Promise<AuditLogListResponse> => {
-    const response = await api.get<AuditLogListResponse>(
-      "/admin/audit-logs",
-      {
-        params,
-      },
-    );
-    return response.data;
+  }) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminListAuditLogs(params as any) as any;
   },
 
-  listResourcePermissions: async (params: {
+  listResourcePermissions: (params: {
     user_id?: number;
     resource_type?: string;
     page?: number;
     page_size?: number;
-  }): Promise<ResourcePermissionListResponse> => {
-    const response = await api.get<ResourcePermissionListResponse>(
-      "/admin/resource-permissions",
-      { params },
-    );
-    return response.data;
+  }) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminListResourcePermissions(params as any) as any;
   },
 
-  grantResourcePermission: async (
-    grant: ResourcePermissionGrant,
-  ): Promise<{ granted: number }> => {
-    const response = await api.post<{ granted: number }>(
-      "/admin/resource-permissions",
-      grant,
-    );
-    return response.data;
+  grantResourcePermission: (grant: ResourcePermissionGrant) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminGrantResourcePermission(grant) as any;
   },
 
-  revokeResourcePermission: async (id: number): Promise<void> => {
-    await api.delete(`/admin/resource-permissions/${id}`);
+  revokeResourcePermission: (id: number) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminRevokeResourcePermission(id) as any;
   },
 
-  updateResourcePermission: async (
-    id: number,
-    data: ResourcePermissionUpdate,
-  ): Promise<ResourcePermission> => {
-    const response = await api.patch<ResourcePermission>(
-      `/admin/resource-permissions/${id}`,
-      data,
-    );
-    return response.data;
+  updateResourcePermission: (id: number, data: ResourcePermissionUpdate) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminUpdateResourcePermission(id, data) as any;
   },
 
-  getRolePermissionMatrix: async (): Promise<RolePermissionMatrix> => {
-    const response = await api.get<RolePermissionMatrix>(
-      "/admin/roles/permissions",
-    );
-    return response.data;
+  getRolePermissionMatrix: () => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminGetRolePermissionMatrix() as any;
   },
 
-  updateRolePermissions: async (
-    role: string,
-    data: RolePermissionUpdate,
-  ): Promise<RolePermissionInfo> => {
-    const response = await api.patch<RolePermissionInfo>(
-      `/admin/roles/${role}/permissions`,
-      data,
-    );
-    return response.data;
+  updateRolePermissions: (role: string, data: RolePermissionUpdate) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    return adminUpdateRolePermissions(role, data) as any;
   },
 };

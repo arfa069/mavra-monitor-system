@@ -28,8 +28,9 @@ export default function WeChatAccountLinkPanel({
   const { login } = useAuth();
   const { message } = App.useApp();
 
-  const handleBound = async (user: Awaited<ReturnType<typeof authApi.bindWeChat>>["data"]) => {
-    login(user);
+  const handleBound = async (user: Awaited<ReturnType<typeof authApi.bindWeChat>>) => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    login(user as any);
     navigate(nextPath, { replace: true });
   };
 
@@ -39,7 +40,7 @@ export default function WeChatAccountLinkPanel({
         temp_token: tempToken,
         ...values,
       });
-      await handleBound(response.data);
+      await handleBound(response);
     } catch (error) {
       message.error(formatApiError(error, "绑定失败，请重新扫码"));
     }
@@ -51,7 +52,7 @@ export default function WeChatAccountLinkPanel({
         temp_token: tempToken,
         ...values,
       });
-      await handleBound(response.data);
+      await handleBound(response);
     } catch (error) {
       message.error(formatApiError(error, "注册失败，请重新扫码"));
     }

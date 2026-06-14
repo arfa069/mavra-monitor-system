@@ -22,7 +22,7 @@ export default function WeChatLoginPanel({ nextPath, onClose }: Props) {
       .getWeChatQr(nextPath)
       .then((response) => {
         if (!cancelled) {
-          setQrUrl(response.data.qr_url);
+          setQrUrl(response.qr_url);
         }
       })
       .catch((err) => {

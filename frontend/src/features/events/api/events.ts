@@ -6,6 +6,7 @@ export const eventsApi = {
   listEvents: async (
     params: EventCenterQuery,
   ): Promise<EventCenterListResponse> => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     return eventsListEvents(params as any);
   },
 

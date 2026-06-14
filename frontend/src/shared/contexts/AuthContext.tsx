@@ -35,7 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         restoreAuthPromise ??= authApi
           .getMe()
-          .then((response) => response.data)
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          .then((response) => response as any)
           .catch(() => null);
         const restoredUser = await restoreAuthPromise;
         restoreAuthPromise = null;

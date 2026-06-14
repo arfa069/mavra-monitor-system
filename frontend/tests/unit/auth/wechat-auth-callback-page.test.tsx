@@ -61,7 +61,7 @@ describe("WeChatAuthCallbackPage", () => {
 
   it("restores auth and navigates to the next path on success", async () => {
     mockLocation.search = "?status=success&next=%2Fjobs";
-    mockGetMe.mockResolvedValue({ data: testUser });
+    mockGetMe.mockResolvedValue(testUser);
 
     renderWithApp(<WeChatAuthCallbackPage />, { withAuth: false });
 

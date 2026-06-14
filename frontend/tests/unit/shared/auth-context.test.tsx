@@ -115,7 +115,7 @@ describe("AuthContext", () => {
   it("deduplicates auth restore during StrictMode remounts", async () => {
     const getMeSpy = vi
       .spyOn(authApi, "getMe")
-      .mockResolvedValue({ data: testUser } as never);
+      .mockResolvedValue(testUser as never);
 
     render(
       <StrictMode>

@@ -12,27 +12,25 @@ import { blogApi } from "@/features/blog/api/blog";
 import { renderWithApp } from "../test-utils";
 
 const listResponse = {
-  data: {
-    items: [
-      {
-        id: 1,
-        title: "First draft",
-        slug: "first-draft",
-        excerpt: "Opening note",
-        status: "draft" as const,
-        cover_url: null,
-        seo_title: null,
-        seo_description: null,
-        published_at: null,
-        updated_at: "2026-06-10T00:00:00Z",
-        category: { id: 1, name: "Updates", slug: "updates" },
-        tags: [{ id: 1, name: "Release", slug: "release" }],
-      },
-    ],
-    total: 1,
-    page: 1,
-    size: 20,
-  },
+  items: [
+    {
+      id: 1,
+      title: "First draft",
+      slug: "first-draft",
+      excerpt: "Opening note",
+      status: "draft" as const,
+      cover_url: null,
+      seo_title: null,
+      seo_description: null,
+      published_at: null,
+      updated_at: "2026-06-10T00:00:00Z",
+      category: { id: 1, name: "Updates", slug: "updates" },
+      tags: [{ id: 1, name: "Release", slug: "release" }],
+    },
+  ],
+  total: 1,
+  page: 1,
+  size: 20,
 };
 
 const taxonomyResponse = {
@@ -42,43 +40,37 @@ const taxonomyResponse = {
 
 function mockAdminPageApi() {
   vi.spyOn(blogApi, "listAdminPosts").mockResolvedValue(listResponse as never);
-  vi.spyOn(blogApi, "listCategories").mockResolvedValue({
-    data: taxonomyResponse.categories,
-  } as never);
-  vi.spyOn(blogApi, "listTags").mockResolvedValue({
-    data: taxonomyResponse.tags,
-  } as never);
+  vi.spyOn(blogApi, "listCategories").mockResolvedValue(
+    taxonomyResponse.categories as never,
+  );
+  vi.spyOn(blogApi, "listTags").mockResolvedValue(taxonomyResponse.tags as never);
   vi.spyOn(blogApi, "createPost").mockResolvedValue({
-    data: {
-      id: 2,
-      title: "Created post",
-      slug: "created-post",
-      excerpt: null,
-      content_json: { type: "doc", content: [] },
-      content_html: "<p></p>",
-      status: "draft",
-      cover_url: null,
-      seo_title: null,
-      seo_description: null,
-      canonical_url: null,
-      og_image_url: null,
-      published_at: null,
-      created_at: "2026-06-10T00:00:00Z",
-      updated_at: "2026-06-10T00:00:00Z",
-      category: null,
-      tags: [],
-    },
+    id: 2,
+    title: "Created post",
+    slug: "created-post",
+    excerpt: null,
+    content_json: { type: "doc", content: [] },
+    content_html: "<p></p>",
+    status: "draft",
+    cover_url: null,
+    seo_title: null,
+    seo_description: null,
+    canonical_url: null,
+    og_image_url: null,
+    published_at: null,
+    created_at: "2026-06-10T00:00:00Z",
+    updated_at: "2026-06-10T00:00:00Z",
+    category: null,
+    tags: [],
   } as never);
   vi.spyOn(blogApi, "uploadMedia").mockResolvedValue({
-    data: {
-      id: 9,
-      file_name: "cover.png",
-      original_name: "cover.png",
-      content_type: "image/png",
-      size_bytes: 12,
-      public_url: "/blog-media/cover.png",
-      created_at: "2026-06-10T00:00:00Z",
-    },
+    id: 9,
+    file_name: "cover.png",
+    original_name: "cover.png",
+    content_type: "image/png",
+    size_bytes: 12,
+    public_url: "/blog-media/cover.png",
+    created_at: "2026-06-10T00:00:00Z",
   } as never);
 }
 

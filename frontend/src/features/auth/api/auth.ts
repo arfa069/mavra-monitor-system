@@ -1,74 +1,43 @@
-import api from "@/shared/api/client";
-import type { User } from "../types";
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
-}
-
-export interface WeChatQrResponse {
-  qr_url: string;
-  state: string;
-}
-
-export interface WeChatBindRequest {
-  temp_token: string;
-  username: string;
-  password: string;
-}
-
-export interface WeChatRegisterRequest {
-  temp_token: string;
-  username: string;
-  email: string;
-  password: string;
-}
+import {
+  authLogin,
+  authRegister,
+  authLogout,
+  authGetMe,
+  authUpdateMe,
+  authChangePassword,
+} from "@/shared/api/generated/auth/auth";
+import {
+  wechatGetWechatQrUrl,
+  wechatBindWechatAccount,
+  wechatRegisterWithWechat,
+} from "@/shared/api/generated/wechat/wechat";
+import type {
+  UserLogin,
+  UserRegister,
+  WeChatBindRequest,
+  WeChatRegisterRequest,
+  ProfileUpdate,
+  PasswordChange,
+} from "@/shared/api/generated/models";
 
 export const authApi = {
-  login: (data: LoginRequest) => api.post<User>("/auth/login", data),
+  login: (data: UserLogin) => authLogin(data),
 
-  register: (data: RegisterRequest) =>
-    api.post<User>("/auth/register", data),
+  register: (data: UserRegister) => authRegister(data),
 
   getWeChatQr: (nextPath?: string) =>
-    api.get<WeChatQrResponse>("/auth/wechat/qr", {
-      params: nextPath ? { next: nextPath } : undefined,
-    }),
+    wechatGetWechatQrUrl({ next: nextPath || undefined }),
 
-  bindWeChat: (data: WeChatBindRequest) =>
-    api.post<User>("/auth/wechat/bind", data),
+  bindWeChat: (data: WeChatBindRequest) => wechatBindWechatAccount(data),
 
   registerWithWeChat: (data: WeChatRegisterRequest) =>
-    api.post<User>("/auth/wechat/register", data),
+    wechatRegisterWithWechat(data),
 
-  logout: () => api.post("/auth/logout"),
+  logout: () => authLogout(),
 
-  getMe: () => api.get<User>("/auth/me"),
+  getMe: () => authGetMe(),
 
-  updateProfile: async (data: { username?: string; email?: string }) => {
-    const response = await api.patch<User>("/auth/me", data);
-    return response;
-  },
+  updateProfile: (data: ProfileUpdate) => authUpdateMe(data),
 
-  changePassword: async (data: {
-    old_password: string;
-    new_password: string;
-  }) => {
-    const response = await api.post("/auth/me/password", data);
-    return response;
-  },
-
-  updateConfig: async (data: {
-    feishu_webhook_url?: string;
-    data_retention_days?: number;
-  }) => {
-    const response = await api.patch("/auth/me/config", data);
-    return response;
-  },
+  changePassword: (data: PasswordChange) => authChangePassword(data),
 };

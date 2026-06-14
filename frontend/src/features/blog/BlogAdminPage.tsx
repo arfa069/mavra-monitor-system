@@ -80,7 +80,7 @@ export function BlogAdminPage() {
         keyword: keyword || undefined,
         status: statusFilter,
       });
-      return response.data.items;
+      return response.items;
     },
   });
 
@@ -92,13 +92,13 @@ export function BlogAdminPage() {
         blogApi.listTags(),
       ]);
       return {
-        categories: categoryResponse.data,
-        tags: tagResponse.data,
+        categories: categoryResponse,
+        tags: tagResponse,
       };
     },
   });
 
-  const posts: BlogPostListItem[] = postsQuery.data ?? [];
+  const posts: BlogPostListItem[] = (postsQuery.data as unknown as BlogPostListItem[]) ?? [];
   const categories: BlogCategory[] = taxonomyQuery.data?.categories ?? [];
   const tags: BlogTag[] = taxonomyQuery.data?.tags ?? [];
 
@@ -113,7 +113,7 @@ export function BlogAdminPage() {
   const openEditPost = useCallback(async (postId: number) => {
     try {
       const response = await blogApi.getAdminPost(postId);
-      const post = response.data;
+      const post = response as unknown as BlogPost;
       setEditingPost(post);
       setEditorValue({
         html: post.content_html || "<p></p>",
@@ -185,7 +185,7 @@ export function BlogAdminPage() {
   const uploadCover = async (file: File) => {
     try {
       const response = await blogApi.uploadMedia(file);
-      form.setFieldValue("cover_url", response.data.public_url);
+      form.setFieldValue("cover_url", response.public_url);
       message.success("Image uploaded");
     } catch (error) {
       message.error(formatApiError(error, "Upload failed"));
@@ -219,7 +219,7 @@ export function BlogAdminPage() {
         render: (_value, record) => (
           <Space wrap size={[4, 4]}>
             {record.category ? <Tag>{record.category.name}</Tag> : null}
-            {record.tags.map((tag) => (
+            {(record.tags || []).map((tag) => (
               <Tag key={tag.id}>{tag.name}</Tag>
             ))}
           </Space>
