@@ -10,6 +10,14 @@
 
 ---
 
+## Implementation Status
+
+Implemented and verified on 2026-06-14. The final result is recorded in
+`docs/orval_api_contract_integration_report.md`; the follow-up cleanup commit
+kept only the profile backup blob export as a hand-written Axios transport in
+`frontend/src/features/jobs/api/profileBackupExport.ts` and moved profile backup
+import to the generated Orval client.
+
 ## Execution Boundaries
 
 - Execute this plan from a dedicated worktree.
@@ -34,16 +42,19 @@ npm run api:generate
 Set-Location ..
 ```
 
-## Current Baseline
+## Original Baseline Before Implementation
 
-- `frontend/openapi.json` contains 92 paths, 122 operations, and 101 component schemas.
-- All 213 declared response media entries are currently `application/json`.
-- 33 successful responses currently export an empty schema.
-- The generated directory contains stale `ApiV1`, `V1`, and unprefixed model variants because Orval cleanup is disabled.
-- Orval currently emits Fetch-style `RequestInit` code while `customInstance` accepts `AxiosRequestConfig`.
-- `npm run build` currently fails with generated-client TypeScript errors.
-- No application code imports `frontend/src/shared/api/generated/`.
-- Application code contains approximately 110 direct `api.get/post/put/patch/delete` calls.
+This section records the pre-implementation state from 2026-06-14 and is kept
+for historical comparison with the final remediation report.
+
+- `frontend/openapi.json` contained 92 paths, 122 operations, and 101 component schemas.
+- All 213 declared response media entries were `application/json`.
+- 33 successful responses exported an empty schema.
+- The generated directory contained stale `ApiV1`, `V1`, and unprefixed model variants because Orval cleanup was disabled.
+- Orval emitted Fetch-style `RequestInit` code while `customInstance` accepted `AxiosRequestConfig`.
+- `npm run build` failed with generated-client TypeScript errors.
+- No application code imported `frontend/src/shared/api/generated/`.
+- Application code contained approximately 110 direct `api.get/post/put/patch/delete` calls.
 - The shared Axios client already owns `baseURL = "/api/v1"`.
 - Generated OpenAPI paths also start with `/api/v1`, so the mutator must remove exactly one canonical prefix before handing a URL to Axios.
 
@@ -1457,7 +1468,7 @@ git commit -m "refactor(api): adopt generated admin blog auth clients"
 **Files:**
 - Modify ordinary JSON operations in `frontend/src/features/smart-home/`
 - Modify ordinary JSON operations in `frontend/src/features/jobs/`
-- Create: `frontend/src/features/jobs/api/profileBackup.ts`
+- Create: `frontend/src/features/jobs/api/profileBackupExport.ts`
 - Preserve Smart Home SSE adapter
 - Preserve profile export blob adapter
 - Test: smart-home, jobs, schedule, and profile-management unit tests
@@ -1602,7 +1613,7 @@ The final allowlist is:
 ```text
 frontend/src/shared/api/client.ts
 frontend/src/shared/api/mutator.ts
-frontend/src/features/jobs/api/profileBackup.ts
+frontend/src/features/jobs/api/profileBackupExport.ts
 ```
 
 SSE adapters use `EventSource`, not Axios, and therefore do not need an Axios allowlist entry.

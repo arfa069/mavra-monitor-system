@@ -28,7 +28,7 @@ The default unit and E2E commands must satisfy all of these constraints:
   - `POST /api/v1/jobs/match-results/analyze`
   - `POST /api/v1/jobs/match-results/analyze-async`
   - `POST /api/v1/smart-home/config/test`
-  - `POST /api/v1/smart-home/entities/{entity_id}/service`
+  - `POST /api/v1/smart-home/services/call`
 - E2E tests may verify that crawl/profile/control buttons are hidden or disabled. They must not click those buttons against a real backend.
 - Tests that exercise UI behavior around dangerous actions must replace the API module with a spy or a fully local mock response.
 - CI runs only the mock-backed Playwright project. There is no CI environment variable that enables real crawling.

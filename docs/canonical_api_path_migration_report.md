@@ -4,7 +4,7 @@
 
 **Canonical business API namespace:** `/api/v1/*`
 
-**Status:** Route migration verified; known frontend Orval type-check blocker remains.
+**Status:** Route migration verified; follow-up Orval type-check blocker resolved on 2026-06-14.
 
 ## Scope
 
@@ -80,9 +80,10 @@ architecture documentation, and adds this report.
 - Vitest: `11 passed`.
 - Next.js production build: passed.
 
-## Known Blocker
+## Follow-Up Orval Blocker Resolution
 
-The main frontend production build is not green:
+At the end of the route migration, the main frontend production build was not
+green:
 
 ```text
 npm run build
@@ -96,9 +97,11 @@ and `frontend/src/shared/api/mutator.ts`, primarily:
 - `GenericAbortSignal` versus DOM `AbortSignal`;
 - generated URL strings being passed where an Axios configuration is expected.
 
-This blocker predates the post-review firewall and documentation correction.
-It must be resolved before claiming the main frontend production build is
-release-ready.
+This blocker predated the post-review firewall and documentation correction.
+It was resolved by the 2026-06-14 Orval API contract integration follow-up,
+which regenerated Axios-compatible clients, migrated ordinary JSON feature
+calls to generated code, enforced the manual transport allowlist, and restored a
+green frontend production build.
 
 ## Verification Boundaries
 
