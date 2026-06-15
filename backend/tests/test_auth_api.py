@@ -239,6 +239,51 @@ async def test_login_success_returns_200_and_cookies(test_user, mock_get_db):
     assert "pm_csrf_token=" in set_cookie
 
 
+
+@pytest.mark.asyncio
+async def test_login_by_email_success(test_user, mock_get_db):
+    """POST /auth/login with valid email and password returns 200 and sets auth cookies."""
+    from app.core.security import get_password_hash
+
+    hashed = get_password_hash(test_user["password"])
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.hashed_password = hashed
+    mock_user.is_active = True
+    mock_user.role = "user"
+    mock_user.deleted_at = None
+    mock_user.created_at = "2024-01-01T00:00:00+00:00"
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_user
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
+    mock_result.scalars.return_value = mock_scalars
+
+    mock_get_db.execute.return_value = mock_result
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": test_user["email"],
+                "password": test_user["password"],
+            },
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == test_user["username"]
+    assert data["email"] == test_user["email"]
+    set_cookie = response.headers.get("set-cookie", "")
+    assert "pm_access_token=" in set_cookie
+    assert "pm_refresh_token=" in set_cookie
+    assert "pm_csrf_token=" in set_cookie
+
+
 @pytest.mark.asyncio
 async def test_login_user_not_found_returns_401(mock_get_db):
     """POST /auth/login with non-existent user returns 401."""

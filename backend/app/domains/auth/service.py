@@ -44,6 +44,8 @@ async def register_user(
 
 
 async def get_user_for_login(db: AsyncSession, *, username: str) -> User | None:
+    if "@" in username:
+        return await repository.get_user_by_email(db, email=username)
     return await repository.get_user_by_username(db, username=username)
 
 
