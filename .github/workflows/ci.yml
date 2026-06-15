@@ -153,12 +153,29 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.2"
+          channel: stable
+          cache: true
+
       - name: Install frontend dependencies
         run: npm ci
         working-directory: frontend
 
+      - name: Verify Dart API generator tooling
+        run: pwsh scripts/generate_dart_client.ps1 -Check
+        working-directory: .
+
       - name: Test API usage checker
-        run: uv run --extra dev pytest ../scripts/tests/test_check_frontend_api_usage.py -q
+        run: uv run --extra dev pytest ../scripts/tests/test_check_frontend_api_usage.py ../scripts/tests/test_check_dart_api_usage.py -q
         working-directory: backend
 
       - name: Verify generated API artifacts
