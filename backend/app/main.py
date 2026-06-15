@@ -1,11 +1,15 @@
 """FastAPI application entry point."""
 import logging
 from contextlib import asynccontextmanager
+from uuid import uuid4
 
 import redis.asyncio as redis
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import settings
 from app.core.openapi import generate_operation_id
@@ -231,6 +235,130 @@ def _include_application_routers() -> None:
 _include_application_routers()
 app.include_router(crawl_router, prefix=API_PREFIX)
 app.include_router(blog_media_router)
+
+
+def _trace_id_for_request(request: Request) -> str:
+    return (
+        request.headers.get("x-request-id")
+        or request.headers.get("x-correlation-id")
+        or uuid4().hex
+    )
+
+
+def _help_url(code: str) -> str:
+    return f"/docs/errors/{code}"
+
+
+def _http_error_code(status_code: int) -> str:
+    if status_code == 401:
+        return "session_expired"
+    if status_code == 403:
+        return "forbidden"
+    if status_code == 404:
+        return "not_found"
+    if status_code >= 500:
+        return "server_error"
+    return f"http_{status_code}"
+
+
+def _string_detail(detail: object, fallback: str) -> str:
+    if isinstance(detail, str) and detail:
+        return detail
+    return fallback
+
+
+def _error_envelope(
+    *,
+    request: Request,
+    code: str,
+    message: str,
+    details: dict | None = None,
+    detail: object | None = None,
+) -> dict:
+    payload = {
+        "code": code,
+        "message": message,
+        "details": details or {},
+        "trace_id": _trace_id_for_request(request),
+        "help_url": _help_url(code),
+    }
+    if detail is not None:
+        payload["detail"] = detail
+    return payload
+
+
+def _validation_details(exc: RequestValidationError) -> dict:
+    fields = []
+    for error in exc.errors():
+        path = ".".join(str(part) for part in error.get("loc", ()))
+        fields.append(
+            {
+                "path": path,
+                "message": error.get("msg", "Invalid value"),
+                "type": error.get("type", "validation_error"),
+            }
+        )
+    return {"fields": fields}
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    code = "validation_error"
+    details = _validation_details(exc)
+    return JSONResponse(
+        status_code=422,
+        content=_error_envelope(
+            request=request,
+            code=code,
+            message="请求参数有误，请检查表单字段。",
+            details=details,
+            detail=exc.errors(),
+        ),
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+) -> JSONResponse:
+    code = _http_error_code(exc.status_code)
+    if exc.status_code == 401:
+        message = "登录状态已过期；如果刷新会话失败，请重新登录。"
+    elif exc.status_code == 404:
+        message = "请求的资源不存在。"
+    elif exc.status_code >= 500:
+        message = _string_detail(exc.detail, "服务暂时不可用，请稍后重试。")
+    else:
+        message = _string_detail(exc.detail, "请求无法完成。")
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=getattr(exc, "headers", None),
+        content=_error_envelope(
+            request=request,
+            code=code,
+            message=message,
+            detail=exc.detail,
+        ),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    code = "internal_error"
+    logger.exception("Unhandled API exception for %s", request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content=_error_envelope(
+            request=request,
+            code=code,
+            message="服务暂时不可用，请稍后重试。",
+            detail="Internal Server Error",
+        ),
+    )
 
 
 @app.get(API_PREFIX, response_model=ServiceInfoResponse)
