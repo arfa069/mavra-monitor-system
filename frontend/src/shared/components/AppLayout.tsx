@@ -149,7 +149,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {
         key: "/schedule",
         icon: <ScheduleOutlined style={{ fontSize: 14 }} />,
-        label: "Rules",
+        label: "Schedules",
       },
       {
         key: "/smart-home",
