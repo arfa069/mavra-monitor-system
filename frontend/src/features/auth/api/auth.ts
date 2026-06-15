@@ -13,7 +13,7 @@ import {
 } from "@/shared/api/generated/wechat/wechat";
 import type {
   UserResponse,
-  UserLogin,
+  TokenLoginRequest,
   UserRegister,
   WeChatBindRequest,
   WeChatRegisterRequest,
@@ -66,7 +66,8 @@ export function normalizeUserResponse(response: UserResponse): User {
 }
 
 export const authApi = {
-  login: async (data: UserLogin) => normalizeUserResponse(await authLogin(data)),
+  login: async (data: TokenLoginRequest) =>
+    normalizeUserResponse((await authLogin(data)).user),
 
   register: async (data: UserRegister) =>
     normalizeUserResponse(await authRegister(data)),

@@ -124,6 +124,29 @@ class AuthSessionResponse(BaseModel):
     user: UserResponse
 
 
+class WeChatExchangeRequest(BaseModel):
+    """One-time WeChat callback exchange code."""
+
+    exchange_code: str = Field(..., min_length=20)
+    client_kind: LoginClientKind = LoginClientKind.web
+
+
+class WeChatUnboundResponse(BaseModel):
+    """Unbound WeChat account exchange result."""
+
+    status: str = "unbound"
+    temp_token: str
+    next_path: str = "/today"
+
+
+class WeChatExchangeResponse(BaseModel):
+    """Cross-platform WeChat exchange response."""
+
+    status: str
+    session: AuthSessionResponse | None = None
+    unbound: WeChatUnboundResponse | None = None
+
+
 class ProfileUpdate(BaseModel):
     """Schema for updating current user's profile (username, email only)."""
     username: str | None = Field(default=None, min_length=3, max_length=50)
