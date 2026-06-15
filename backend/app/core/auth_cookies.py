@@ -11,6 +11,33 @@ from fastapi import Response
 from app.config import settings
 
 
+def set_web_refresh_cookie(response: Response, refresh_token: str) -> None:
+    """Set the Web refresh cookie and remove legacy access/CSRF cookies."""
+    response.delete_cookie(
+        key=settings.auth_access_cookie_name,
+        path="/",
+        secure=settings.auth_cookie_secure,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+    )
+    response.delete_cookie(
+        key=settings.auth_csrf_cookie_name,
+        path="/",
+        secure=settings.auth_cookie_secure,
+        httponly=False,
+        samesite=settings.auth_cookie_samesite,
+    )
+    response.set_cookie(
+        key=settings.auth_refresh_cookie_name,
+        value=refresh_token,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+        secure=settings.auth_cookie_secure,
+        path="/",
+        max_age=settings.refresh_token_expire_days * 86400,
+    )
+
+
 def set_auth_cookies(
     response: Response,
     access_token: str,
@@ -48,9 +75,24 @@ def set_auth_cookies(
 
 def clear_auth_cookies(response: Response) -> None:
     """Clear all auth cookies on a response."""
-    for cookie_name in (
-        settings.auth_access_cookie_name,
-        settings.auth_refresh_cookie_name,
-        settings.auth_csrf_cookie_name,
-    ):
-        response.delete_cookie(key=cookie_name, path="/")
+    response.delete_cookie(
+        key=settings.auth_access_cookie_name,
+        path="/",
+        secure=settings.auth_cookie_secure,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+    )
+    response.delete_cookie(
+        key=settings.auth_refresh_cookie_name,
+        path="/",
+        secure=settings.auth_cookie_secure,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+    )
+    response.delete_cookie(
+        key=settings.auth_csrf_cookie_name,
+        path="/",
+        secure=settings.auth_cookie_secure,
+        httponly=False,
+        samesite=settings.auth_cookie_samesite,
+    )

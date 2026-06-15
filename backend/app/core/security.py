@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -37,6 +38,7 @@ from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
     create_session_with_token,
     delete_other_sessions,
     delete_session,
+    get_session_by_id,
     get_session_by_refresh_token,
     get_session_by_token,
     get_user_sessions,
@@ -54,6 +56,7 @@ from app.core.tokens import (  # noqa: F401  # re-exported for compatibility
     create_refresh_token,
     decode_access_token,
     decode_access_token_strict,
+    get_access_token_expires_in_seconds,
     hash_token,
 )
 from app.database import get_db
@@ -71,12 +74,11 @@ async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Unified auth dependency: cookie first, then Bearer header fallback.
+    """Unified auth dependency: strict Bearer first, then cookie fallback.
 
-    1. If ``pm_access_token`` cookie is present → delegates to
-       :func:`get_current_user_cookie` for ``sid``-based session lookup.
-    2. Otherwise → legacy ``Authorization: Bearer`` with ``token_hash``
-       session lookup (for API clients / scripts).
+    1. If ``Authorization: Bearer`` is present, validate its strict ``sid``
+       session lookup even when legacy cookies are also attached.
+    2. Otherwise, use ``pm_access_token`` cookie compatibility auth.
 
     Returns 401 for missing or invalid credentials.
     """
@@ -88,18 +90,16 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    access_token = request.cookies.get(settings.auth_access_cookie_name)
-    if access_token:
-        # ── Cookie-based auth (browser clients) ──
-        return await get_current_user_cookie(request, db)
-
-    # ── Bearer header fallback (API clients / scripts) ──
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
+        access_token = request.cookies.get(settings.auth_access_cookie_name)
+        if access_token:
+            return await get_current_user_cookie(request, db)
         raise credentials_exception
 
+    # Bearer wins over compatibility cookies to prevent stale-cookie identity mixups.
     token = auth_header[7:]
-    payload = decode_access_token(token)
+    payload = decode_access_token_strict(token)
     if payload is None:
         raise credentials_exception
 
@@ -112,17 +112,22 @@ async def get_current_user(
     except (ValueError, TypeError):
         raise credentials_exception
 
-    token_hash = hash_token(token)
     from app.models.session import Session
 
-    # Single query validates both user existence and session validity
+    sid = payload.get("sid")
+    try:
+        sid_int = int(sid)
+    except (ValueError, TypeError):
+        raise credentials_exception
+
     result = await db.execute(
         select(User)
         .join(Session, Session.user_id == User.id)
         .where(
             User.id == user_id_int,
             User.deleted_at.is_(None),
-            Session.token_hash == token_hash,
+            Session.id == sid_int,
+            Session.user_id == user_id_int,
         )
     )
     user = result.scalar_one_or_none()
@@ -246,6 +251,10 @@ async def csrf_protect(request: Request) -> None:
     if request.method in SAFE_METHODS:
         return
 
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return
+
     csrf_cookie = request.cookies.get(settings.auth_csrf_cookie_name)
     csrf_header = request.headers.get(settings.auth_csrf_header_name)
 
@@ -253,6 +262,23 @@ async def csrf_protect(request: Request) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="CSRF 验证失败：请求被拒绝",
+        )
+
+
+def validate_browser_origin(request: Request) -> None:
+    """Reject cookie-backed unsafe requests from untrusted browser origins."""
+    origin = request.headers.get("Origin")
+    referer = request.headers.get("Referer")
+    candidate = origin
+    if not candidate and referer:
+        parsed = urlsplit(referer)
+        if parsed.scheme and parsed.netloc:
+            candidate = f"{parsed.scheme}://{parsed.netloc}"
+
+    if not candidate or candidate not in settings.allowed_origins:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Origin 验证失败：请求来源不受信任",
         )
 
 

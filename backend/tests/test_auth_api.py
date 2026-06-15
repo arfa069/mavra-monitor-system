@@ -4,6 +4,7 @@ NOTE: These tests use TDD approach - tests define expected behavior
 for /auth/* endpoints. If auth router is not yet registered in app,
 tests will fail with RouterNotFound or similar errors.
 """
+import importlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -12,7 +13,21 @@ from httpx import ASGITransport, AsyncClient
 from app.database import get_db
 from app.main import app
 
+auth_router_module = importlib.import_module("app.domains.auth.router")
+
 # --- Fixtures ---
+
+
+@pytest.fixture(autouse=True)
+def mock_login_lockout(monkeypatch):
+    """Keep auth API tests independent from Redis."""
+    monkeypatch.setattr(
+        auth_router_module,
+        "is_account_locked",
+        AsyncMock(return_value=(False, 0)),
+    )
+    monkeypatch.setattr(auth_router_module, "record_failed_login", AsyncMock())
+    monkeypatch.setattr(auth_router_module, "clear_login_attempts", AsyncMock())
 
 
 @pytest.fixture
@@ -189,7 +204,7 @@ async def test_register_username_too_short_returns_422(mock_get_db):
 
 @pytest.mark.asyncio
 async def test_login_success_returns_200_and_cookies(test_user, mock_get_db):
-    """POST /auth/login with valid credentials returns 200 and sets auth cookies."""
+    """POST /auth/login returns a Web token session and refresh cookie."""
 
     from app.core.security import get_password_hash
 
@@ -226,17 +241,21 @@ async def test_login_success_returns_200_and_cookies(test_user, mock_get_db):
 
     assert response.status_code == 200
     data = response.json()
-    # UserResponse shape — no access_token in body
-    assert data["username"] == test_user["username"]
-    assert data["email"] == test_user["email"]
-    assert data["role"] == "user"
-    assert "id" in data
-    assert "access_token" not in data
-    # Cookies set via Set-Cookie header
-    set_cookie = response.headers.get("set-cookie", "")
-    assert "pm_access_token=" in set_cookie
-    assert "pm_refresh_token=" in set_cookie
-    assert "pm_csrf_token=" in set_cookie
+    assert data["access_token"]
+    assert data["refresh_token"] is None
+    assert data["user"]["username"] == test_user["username"]
+    assert data["user"]["email"] == test_user["email"]
+    assert data["user"]["role"] == "user"
+    set_cookie = response.headers.get_list("set-cookie")
+    assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+    access_clear = next(
+        value for value in set_cookie if value.startswith("pm_access_token=")
+    )
+    csrf_clear = next(
+        value for value in set_cookie if value.startswith("pm_csrf_token=")
+    )
+    assert "Max-Age=0" in access_clear
+    assert "Max-Age=0" in csrf_clear
 
 
 
@@ -276,12 +295,19 @@ async def test_login_by_email_success(test_user, mock_get_db):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["username"] == test_user["username"]
-    assert data["email"] == test_user["email"]
-    set_cookie = response.headers.get("set-cookie", "")
-    assert "pm_access_token=" in set_cookie
-    assert "pm_refresh_token=" in set_cookie
-    assert "pm_csrf_token=" in set_cookie
+    assert data["user"]["username"] == test_user["username"]
+    assert data["user"]["email"] == test_user["email"]
+    assert data["access_token"]
+    set_cookie = response.headers.get_list("set-cookie")
+    assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+    access_clear = next(
+        value for value in set_cookie if value.startswith("pm_access_token=")
+    )
+    csrf_clear = next(
+        value for value in set_cookie if value.startswith("pm_csrf_token=")
+    )
+    assert "Max-Age=0" in access_clear
+    assert "Max-Age=0" in csrf_clear
 
 
 @pytest.mark.asyncio
@@ -376,7 +402,7 @@ async def test_login_account_locked_after_5_failures(test_user, mock_get_db):
 
 @pytest.mark.asyncio
 async def test_refresh_success_returns_200_and_new_cookies(test_user, mock_get_db):
-    """POST /auth/refresh with valid refresh token returns 200 and new cookies."""
+    """POST /auth/refresh returns a new access token and refresh cookie."""
     from app.core.security import create_refresh_token
 
     old_refresh = create_refresh_token()
@@ -422,18 +448,25 @@ async def test_refresh_success_returns_200_and_new_cookies(test_user, mock_get_d
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
         )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["username"] == test_user["username"]
-    assert "access_token" not in data
-    # New cookies set
-    set_cookie = response.headers.get("set-cookie", "")
-    assert "pm_access_token=" in set_cookie
-    assert "pm_refresh_token=" in set_cookie
-    assert "pm_csrf_token=" in set_cookie
+    assert data["user"]["username"] == test_user["username"]
+    assert data["access_token"]
+    assert data["refresh_token"] is None
+    set_cookie = response.headers.get_list("set-cookie")
+    assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+    access_clear = next(
+        value for value in set_cookie if value.startswith("pm_access_token=")
+    )
+    csrf_clear = next(
+        value for value in set_cookie if value.startswith("pm_csrf_token=")
+    )
+    assert "Max-Age=0" in access_clear
+    assert "Max-Age=0" in csrf_clear
 
 
 @pytest.mark.asyncio
@@ -466,6 +499,7 @@ async def test_refresh_invalid_token_returns_401(mock_get_db):
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
         )
     assert response.status_code == 401
@@ -517,6 +551,7 @@ async def test_logout_success(test_user, mock_get_db):
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
         )
 
@@ -923,6 +958,7 @@ async def test_change_password_with_wrong_old_password_returns_400(test_user, mo
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
             json={
                 "old_password": "wrong_password",
@@ -969,12 +1005,14 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
     # stage_delete_other_sessions: (4) other sessions
     mock_other_sessions = MagicMock()
     mock_other_sessions.scalars.return_value.all.return_value = []
+    mock_permissions = MagicMock()
+    mock_permissions.scalars.return_value.all.return_value = []
 
     mock_get_db.execute.side_effect = [
-        mock_user_result,     # 1. get_current_user_cookie: user
-        mock_session_result,  # 2. get_current_user_cookie: session
-        mock_session_result,  # 3. get_session_by_refresh_token
-        mock_other_sessions,  # 4. stage_delete_other_sessions
+        mock_user_result,     # 1. get_current_user_cookie: JOIN query
+        mock_session_result,  # 2. get_session_by_refresh_token
+        mock_other_sessions,  # 3. stage_delete_other_sessions
+        mock_permissions,     # 4. get_role_permissions
     ]
 
     transport = ASGITransport(app=app)
@@ -988,6 +1026,7 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
             json={
                 "old_password": test_user["password"],
@@ -996,10 +1035,15 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
         )
 
     assert response.status_code == 200
-    assert "成功" in response.json().get("message", "")
-    # Cookies should be refreshed
-    set_cookie = response.headers.get("set-cookie", "")
-    assert "pm_access_token=" in set_cookie
+    assert response.json()["access_token"]
+    assert response.json()["refresh_token"] is None
+    assert response.json()["user"]["username"] == test_user["username"]
+    set_cookie = response.headers.get_list("set-cookie")
+    assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+    access_clear = next(
+        value for value in set_cookie if value.startswith("pm_access_token=")
+    )
+    assert "Max-Age=0" in access_clear
 
 
 @pytest.mark.asyncio
@@ -1109,12 +1153,14 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
 
     mock_other_sessions_result = MagicMock()
     mock_other_sessions_result.scalars.return_value.all.return_value = [MagicMock()]
+    mock_permissions = MagicMock()
+    mock_permissions.scalars.return_value.all.return_value = []
 
     mock_get_db.execute.side_effect = [
-        mock_user_result,              # 1. get_current_user_cookie: user
-        mock_session_result,           # 2. get_current_user_cookie: session
-        mock_session_result,           # 3. get_session_by_refresh_token
-        mock_other_sessions_result,    # 4. stage_delete_other_sessions
+        mock_user_result,              # 1. get_current_user_cookie: JOIN query
+        mock_session_result,           # 2. get_session_by_refresh_token
+        mock_other_sessions_result,    # 3. stage_delete_other_sessions
+        mock_permissions,              # 4. get_role_permissions
     ]
 
     transport = ASGITransport(app=app)
@@ -1128,6 +1174,7 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
             json={
                 "old_password": test_user["password"],
@@ -1189,6 +1236,7 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
             },
             headers={
                 "X-CSRF-Token": "csrf-value",
+                "Origin": "http://localhost:3000",
             },
             json={
                 "old_password": test_user["password"],
@@ -1206,11 +1254,11 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
 @pytest.mark.asyncio
 async def test_auth_endpoints_exist():
     """Verify auth endpoints are registered in the app."""
-    # Check router is included - this will fail with AttributeError if not
     from app.main import app
 
-    routes = [route.path for route in app.routes]
-    auth_routes = [r for r in routes if r.startswith("/api/v1/auth")]
+    auth_routes = {
+        path for path in app.openapi()["paths"] if path.startswith("/api/v1/auth")
+    }
 
     # At minimum, these routes should be registered
     expected_routes = ["/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/me", "/api/v1/auth/refresh"]

@@ -213,6 +213,8 @@ async def test_get_session_by_refresh_token_success(mock_db_session):
     assert result is mock_session
     # Verify query used hashed token
     mock_db_session.execute.assert_called_once()
+    statement = mock_db_session.execute.await_args.args[0]
+    assert statement._for_update_arg is not None
 
 
 @pytest.mark.asyncio

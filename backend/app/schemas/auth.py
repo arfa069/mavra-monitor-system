@@ -1,5 +1,6 @@
 """Authentication schemas for request/response validation."""
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -32,6 +33,31 @@ class UserLogin(BaseModel):
     """Request schema for user login."""
     username: str = Field(..., description="用户名")
     password: str = Field(..., description="密码")
+
+
+class LoginClientKind(StrEnum):
+    """Client storage mode for token delivery."""
+
+    web = "web"
+    native = "native"
+
+
+class TokenLoginRequest(UserLogin):
+    """Login request with explicit client token-storage mode."""
+
+    client_kind: LoginClientKind = LoginClientKind.web
+
+
+class RefreshTokenRequest(BaseModel):
+    """Optional body token for native refresh."""
+
+    refresh_token: str | None = Field(default=None, min_length=20)
+
+
+class LogoutRequest(BaseModel):
+    """Optional native refresh token used to identify the session."""
+
+    refresh_token: str | None = Field(default=None, min_length=20)
 
 
 class WeChatQrResponse(BaseModel):
@@ -88,6 +114,16 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class AuthSessionResponse(BaseModel):
+    """Token-first authentication response for Web and native clients."""
+
+    access_token: str
+    refresh_token: str | None = None
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserResponse
+
+
 class ProfileUpdate(BaseModel):
     """Schema for updating current user's profile (username, email only)."""
     username: str | None = Field(default=None, min_length=3, max_length=50)
@@ -98,6 +134,7 @@ class PasswordChange(BaseModel):
     """Schema for password change."""
     old_password: str
     new_password: str = Field(..., max_length=100)
+    refresh_token: str | None = Field(default=None, min_length=20)
 
     @field_validator("new_password")
     @classmethod
