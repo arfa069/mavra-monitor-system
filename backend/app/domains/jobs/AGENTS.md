@@ -34,7 +34,7 @@
 ## VERIFY
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest tests/test_jobs_api.py tests/test_job_crawl.py tests/test_job_config_profile_key.py tests/test_job_match_service.py tests/test_job_match_api.py"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest tests/test_boss_cloak_experimental.py tests/test_liepin_pipeline.py tests/test_liepin_http_only_phase3.py tests/test_job_phase3_integration.py"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check app/domains/jobs app/platforms/boss_cloak_experimental.py app/platforms/liepin.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m pytest tests/test_jobs_api.py tests/test_job_crawl.py tests/test_job_config_profile_key.py tests/test_job_match_service.py tests/test_job_match_api.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m pytest tests/test_boss_cloak_experimental.py tests/test_liepin_pipeline.py tests/test_liepin_http_only_phase3.py tests/test_job_phase3_integration.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m ruff check app/domains/jobs app/platforms/boss_cloak_experimental.py app/platforms/liepin.py"
 ```

@@ -34,6 +34,6 @@
 ## VERIFY
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest tests/test_crawl_profile_api.py tests/test_profile_pool.py tests/test_browser_manager.py tests/test_crawl_task_store.py tests/test_crawl_task_runner.py"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check app/domains/crawling tests/test_crawl_profile_api.py tests/test_profile_pool.py tests/test_browser_manager.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m pytest tests/test_crawl_profile_api.py tests/test_profile_pool.py tests/test_browser_manager.py tests/test_crawl_task_store.py tests/test_crawl_task_runner.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m ruff check app/domains/crawling tests/test_crawl_profile_api.py tests/test_profile_pool.py tests/test_browser_manager.py"
 ```

@@ -35,6 +35,6 @@
 ## VERIFY
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pytest tests/test_auth.py tests/test_auth_api.py tests/test_cookie_auth.py tests/test_tokens.py tests/test_sessions.py tests/test_resource_permission.py tests/test_db_rbac_permissions.py tests/test_cdp_security.py tests/test_log_redaction.py"
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; ruff check app/core tests/test_auth.py tests/test_cookie_auth.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m pytest tests/test_auth.py tests/test_auth_api.py tests/test_cookie_auth.py tests/test_tokens.py tests/test_sessions.py tests/test_resource_permission.py tests/test_db_rbac_permissions.py tests/test_cdp_security.py tests/test_log_redaction.py"
+powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; uv run --extra dev python -m ruff check app/core tests/test_auth.py tests/test_cookie_auth.py"
 ```

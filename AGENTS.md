@@ -69,14 +69,15 @@ Playwright/curl_cffi；前端是 React/Vite/TypeScript/Ant Design。
 
 ## 常用命令
 
-在 Windows PowerShell 运行。优先使用 `python -m pytest`，不要裸跑 `pytest`，
-避免走到 Anaconda shim。
+在 Windows PowerShell 运行。后端优先使用 `uv run --extra dev python -m ...`
+进入 `backend/.venv`；如果已手动激活 `.venv`，也要使用 `python -m pytest` /
+`python -m ruff`，不要裸跑 `pytest` / `ruff`，避免走到 Anaconda shim 或全局包。
 
 ```powershell
 # 后端
 cd C:/Users/arfac/Documents/mavra-monitor-system/backend
-python -m ruff check .
-python -m pytest
+uv run --extra dev python -m ruff check .
+uv run --extra dev python -m pytest
 
 # 前端
 cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
@@ -111,10 +112,10 @@ npm run build
 后端 OpenAPI 是唯一 API 契约。普通 JSON 前端请求必须使用 Orval 生成代码。
 
 1. 修改 FastAPI route/schema/`response_model` 和后端测试。
-2. 运行 `python scripts/export_openapi.py`。
+2. 运行 `cd backend; uv run --extra dev python ../scripts/export_openapi.py`。
 3. 运行 `cd frontend; npm run api:generate`。
 4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、轮询、缓存失效或 UI 映射，但不能手写 Axios。
-5. 运行 `python scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
+5. 运行 `cd backend; uv run --extra dev python ../scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
 6. 同一提交必须包含后端改动、`frontend/openapi.json`、生成客户端、前端适配和测试。
 
 URL 所有权：
