@@ -59,6 +59,7 @@ ignore = ["E501"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 cache_dir = ".pytest_tmp_cache"
 addopts = "-v --tb=short"
 filterwarnings = [

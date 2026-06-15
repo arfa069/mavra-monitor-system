@@ -71,7 +71,7 @@ async def test_new_job_notification_uses_liepin_label(monkeypatch):
     )
     monkeypatch.setattr(notification, "send_feishu_notification", fake_send)
 
-    config = SimpleNamespace(name="Liepin Python", platform="liepin")
+    config = SimpleNamespace(name="Liepin Python", platform="liepin", user_id=1)
     result = await notification.send_new_job_notification(config, 2, 20)
 
     assert result == {"ok": True}

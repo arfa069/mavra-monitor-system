@@ -24,7 +24,7 @@ async def test_new_job_notification_uses_51job_label(monkeypatch):
     )
     monkeypatch.setattr(notification, "send_feishu_notification", _fake_send)
 
-    config = SimpleNamespace(name="51job Python", platform="51job")
+    config = SimpleNamespace(name="51job Python", platform="51job", user_id=1)
     result = await notification.send_new_job_notification(config, 3, 50)
 
     assert result == {"ok": True}
