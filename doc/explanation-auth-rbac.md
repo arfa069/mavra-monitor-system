@@ -63,12 +63,12 @@
 
 ```text
 登录:   服务端生成 refresh token，存 SHA-256 哈希到 DB
-刷新:   POST /auth/refresh
+刷新:   POST /api/v1/auth/refresh
         校验哈希匹配 → 撤销旧 token → 生成新 token → 写新哈希
         客户端 Set-Cookie 拿新的三类 cookie
 ```
 
-**Rotation 意味着**：refresh token 一旦被攻击者用过，原 token 立刻失效。`/auth/refresh` 端点会同时把**所有 session**里相同指纹的 token 也撤销（防并发滥用）。
+**Rotation 意味着**：refresh token 一旦被攻击者用过，原 token 立刻失效。`/api/v1/auth/refresh` 端点会同时把**所有 session**里相同指纹的 token 也撤销（防并发滥用）。
 
 **为什么不存 refresh token 明文**
 
@@ -76,7 +76,7 @@
 
 ## CSRF
 
-Cookie 自动带 → 跨站请求会带 → 攻击者可以在别的网站用 `<form action="https://yourapi.com/auth/logout">` 偷你的 cookie。
+Cookie 自动带 → 跨站请求会带 → 攻击者可以在别的网站用 `<form action="https://yourapi.com/api/v1/auth/logout">` 偷你的 cookie。
 
 **对策**：
 
@@ -84,7 +84,7 @@ Cookie 自动带 → 跨站请求会带 → 攻击者可以在别的网站用 `<
 - token 存在**非 HttpOnly** cookie（前端能读）
 - 后端比较 cookie 值与头值
 
-`POST /auth/refresh` 例外（不要求 CSRF），因为它只依赖 `pm_refresh_token`（HttpOnly，攻击者读不到）。
+`POST /api/v1/auth/refresh` 例外（不要求 CSRF），因为它只依赖 `pm_refresh_token`（HttpOnly，攻击者读不到）。
 
 ## RBAC 表设计
 

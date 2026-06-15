@@ -142,9 +142,9 @@ worker 崩了 → 60s 后 lease_expires_at 过期
 ### 进程模型
 
 ```text
-[uvicorn app.main:app]      # API 进程：处理 HTTP + 写 crawl_tasks
-[python -m app.workers.crawler]  # worker 进程：抢任务、跑爬虫
-[python -m app.workers.crawler]  # （可选）第二个 worker：负载分摊
+[uv run --extra dev uvicorn app.main:app]             # API 进程：处理 HTTP + 写 crawl_tasks
+[uv run --extra dev python -m app.workers.crawler]    # worker 进程：抢任务、跑爬虫
+[uv run --extra dev python -m app.workers.crawler]    # （可选）第二个 worker：负载分摊
 ```
 
 每个 worker：

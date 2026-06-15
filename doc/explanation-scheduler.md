@@ -66,8 +66,8 @@ APScheduler.add_job(...)  # 内存注册
 
 新增 cron 不需要重启：
 
-- 商品平台：调 `POST /products/cron-configs` → DB 写行 → `ProductCronScheduler.sync_one(platform)`（admin API 内调用）
-- 职位 config：调 `PATCH /jobs/configs/{id}/cron` → DB 改字段 → `JobConfigScheduler.sync_one(config_id)`
+- 商品平台：调 `POST /api/v1/products/cron-configs` → DB 写行 → `ProductCronScheduler.sync_one(platform)`（admin API 内调用）
+- 职位 config：调 `PATCH /api/v1/jobs/configs/{id}/cron` → DB 改字段 → `JobConfigScheduler.sync_one(config_id)`
 
 ## 时区
 

@@ -129,8 +129,8 @@
 
 补充约定：
 
-- `GET /auth/wechat/qr` 支持可选 `next` 参数，但只接受站内相对路径；非法值会回退到 `/today`。
-- `GET /auth/wechat/callback` 不再直接给浏览器返回最终登录 JSON。
+- `GET /api/v1/auth/wechat/qr` 支持可选 `next` 参数，但只接受站内相对路径；非法值会回退到 `/today`。
+- `GET /api/v1/auth/wechat/callback` 不再直接给浏览器返回最终登录 JSON。
 - 已绑定用户：后端写入认证 Cookie 后，302 跳转到 `/auth/wechat/callback?status=success&next=...`。
 - 未绑定用户：302 跳转到 `/auth/wechat/callback?status=unbound&next=...#temp_token=...`。
 - 错误场景：302 跳转到 `/auth/wechat/callback?status=error&reason=...`。

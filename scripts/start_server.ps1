@@ -2,7 +2,7 @@ param(
     [switch]$BackendOnly,
     [switch]$NoCrawlerWorker,
     [switch]$NoBlogFrontend,
-    [string]$PythonExe = "C:\Users\arfac\AppData\Local\Programs\Python\Python314\python.exe",
+    [string]$PythonExe = "",
     [int]$CrawlerConcurrency = 3
 )
 
@@ -15,6 +15,7 @@ $frontendDir = Join-Path $projectRoot "frontend"
 $blogFrontendDir = Join-Path $projectRoot "blog-frontend"
 $backendLogDir = Join-Path $backendDir "logs"
 $workerLog = Join-Path $backendLogDir "crawler-worker.log"
+$defaultPythonExe = Join-Path $backendDir ".venv\Scripts\python.exe"
 
 function Get-PortUsage {
     param([int]$Port)
@@ -75,8 +76,12 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Price Monitor Launcher" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 
+if ([string]::IsNullOrWhiteSpace($PythonExe)) {
+    $PythonExe = $defaultPythonExe
+}
+
 if (-not (Test-Path -LiteralPath $PythonExe)) {
-    throw "Python executable not found: $PythonExe"
+    throw "Python executable not found: $PythonExe. Run 'cd backend; uv sync --extra dev' first, or pass -PythonExe explicitly."
 }
 
 if ($CrawlerConcurrency -lt 1) {

@@ -130,7 +130,7 @@ ExtractionError: no price selector matched
 
 ```python
 # powershell 进 backend/ 目录后
-python -c "
+uv run --extra dev python -c "
 import asyncio
 from app.platforms.jd import JDAdapter
 

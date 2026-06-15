@@ -30,7 +30,8 @@
 ```powershell
 git clone <your-fork-url> mavra-monitor-system
 cd mavra-monitor-system
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; pip install -e ."
+powershell.exe -Command "cd backend; uv sync --extra dev"
+powershell.exe -Command "cd frontend; npm install"
 ```
 
 ## Step 3：写 .env
@@ -48,7 +49,7 @@ REDIS_URL=redis://localhost:6379/0
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>
 
 # 必填：智能家居 token 加密密钥（即使是空也要填一个 32 字节 base64）
-# 生成方式：python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# 生成方式：uv run --project backend --extra dev python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 SMART_HOME_SECRET_KEY=<your-fernet-key>
 
 # 必填：CORS 允许的前端源
@@ -60,7 +61,7 @@ ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ## Step 4：初始化数据库
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backend; alembic upgrade head"
+powershell.exe -Command "cd backend; uv run --extra dev alembic upgrade head"
 ```
 
 期望输出末尾：`Running upgrade  -> <hash>, <message>`。
@@ -68,14 +69,14 @@ powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system/backen
 ## Step 5：启动服务
 
 ```powershell
-powershell.exe -Command "cd C:/Users/arfac/Documents/mavra-monitor-system; powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
+powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1' -NoBlogFrontend"
 ```
 
-`start_server.ps1` 会做三件事：
+`start_server.ps1` 默认使用 `backend/.venv/Scripts/python.exe`，会做四件事：
 
 1. 杀掉占用 3000 / 8000 端口的旧进程
 2. 启动后端（uvicorn，无 `--reload`，因为 Windows 上 Playwright 子进程会崩）
-3. 启动爬虫 worker（`python -m app.workers.crawler --kind all`）
+3. 启动爬虫 worker（`python -m app.workers.crawler --kind all`，使用后端虚拟环境）
 4. 启动前端（Vite，端口 3000）
 
 验证：

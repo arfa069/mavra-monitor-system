@@ -15,7 +15,7 @@ npm install
 npm run dev
 ```
 
-前端运行在 http://localhost:3000，自动代理 `/api` 请求到后端。
+前端运行在 http://localhost:3000，自动代理 `/api/v1` 请求到后端。
 
 ## 构建
 
@@ -36,7 +36,7 @@ src/
 │   ├── schedule/   # 商品/职位 cron 配置
 │   ├── admin/      # 用户、审计、RBAC 权限矩阵
 │   └── auth/       # 登录、注册、资料
-├── shared/         # axios client、AuthContext、布局、公共类型/组件
+├── shared/         # Orval generated client、mutator、AuthContext、布局、公共类型/组件
 ├── styles/         # Figma Design System（design-tokens.css + components.css）
 ├── App.tsx         # 路由与布局
 └── main.tsx        # 入口，QueryClientProvider
@@ -49,6 +49,7 @@ src/
 - **职位管理页**: 搜索配置管理、职位列表（含可点击链接跳转Boss详情页）、单配置/全量爬取
 - **定时配置页**: 商品 per-platform cron 配置表（添加/修改/删除定时器）、职位 per-config cron 配置表、数据保留天数 + 飞书 Webhook URL 设置
 - **权限控制**: UI 根据后端返回的 RBAC `permissions` 控制菜单和操作入口
+- **API 契约**: 普通 JSON 请求走 `src/shared/api/generated/`，通过 `mutator.ts` 接入共享 Axios 实例；不要在 feature 层新增手写 Axios 调用
 - **告警管理**: 商品级别价格告警设置，在编辑弹窗内集成
 - **爬取日志面板**: 实时查看爬取状态和历史记录
 - **无障碍支持**: WCAG 合规（键盘导航、aria 属性、减少动画偏好）

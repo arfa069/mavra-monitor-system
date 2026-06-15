@@ -12,7 +12,7 @@
 | `DATABASE_URL`          | PostgreSQL 异步连接          | `postgresql+asyncpg://<user>:<password>@<host>:5432/pricemonitor`                           |
 | `REDIS_URL`             | Redis 连接                   | `redis://localhost:6379/0`                                                                  |
 | `FEISHU_WEBHOOK_URL`    | 默认飞书 webhook             | `https://open.feishu.cn/open-apis/bot/v2/hook/xxx`                                          |
-| `SMART_HOME_SECRET_KEY` | Fernet key（32 字节 base64） | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `SMART_HOME_SECRET_KEY` | Fernet key（32 字节 base64） | `uv run --project backend --extra dev python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 | `ALLOWED_ORIGINS`       | CORS 来源                    | `http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001` 或 JSON list |
 
 > `FEISHU_WEBHOOK_URL` 在 user 级 PATCH 后**会被覆盖**；`ALLOWED_ORIGINS` 必须在启动时存在。

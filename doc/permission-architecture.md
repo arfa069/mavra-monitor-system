@@ -147,7 +147,7 @@
 - **算法**: HS256
 - **Access JWT**: 15 分钟，存储于 HttpOnly `pm_access_token` Cookie
 - **Refresh Token**: 14 天，opaque token，仅 SHA-256 hash 存储于 `users_sessions.refresh_token_hash`
-- **刷新机制**: `POST /auth/refresh` 读取 `pm_refresh_token` Cookie，轮换 refresh token 并重设 access/refresh/CSRF Cookie；该端点不要求 CSRF
+- **刷新机制**: `POST /api/v1/auth/refresh` 读取 `pm_refresh_token` Cookie，轮换 refresh token 并重设 access/refresh/CSRF Cookie；该端点不要求 CSRF
 - **CSRF**: POST/PATCH/PUT/DELETE 等不安全方法比较 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
 - **Bearer fallback**: `get_current_user` 保留 `Authorization: Bearer <token>` fallback 给脚本/API 客户端；浏览器主链路使用 Cookie
 - **登录失败**: 5 次失败锁 15 分钟（Redis 计数）

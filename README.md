@@ -21,23 +21,29 @@ E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 5
 ## Quick Start
 
 ```powershell
-# Install dependencies
-cd backend && pip install -e .
+# Install backend dependencies into backend/.venv
+cd backend
+uv sync --extra dev
 
 # 1. Create and edit .env at project root
-# Required: DATABASE_URL, REDIS_URL, FEISHU_WEBHOOK_URL
+# Required: DATABASE_URL, REDIS_URL, FEISHU_WEBHOOK_URL, SMART_HOME_SECRET_KEY
 # See the Configuration section below for the full .env content.
 
 # 2. Run migrations
-cd backend && alembic upgrade head
+uv run --extra dev alembic upgrade head
 
-# 3. Start the server
-cd backend && uvicorn app.main:app
+# 3. Start the backend API
+uv run --extra dev uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 4. Start the frontend in another terminal
+cd ../frontend
+npm install
+npm run dev
 ```
 
-> **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Use `python -m uvicorn app.main:app` or `uvicorn app.main:app` instead (without `--reload`).
+> **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Run uvicorn through the backend uv environment as shown above.
 >
-> `scripts/start_server.ps1` starts backend `8000`, Vite console `3000`, crawler worker, and the Next.js public blog `3001`. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
+> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts backend `8000`, Vite console `3000`, crawler worker, and the Next.js public blog `3001`. Run `cd backend; uv sync --extra dev` first. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
 
 ## Configuration
 
@@ -90,72 +96,74 @@ JD_COOKIE=...
 
 ## API Endpoints
 
-> **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
+> **认证说明**：浏览器端使用 HttpOnly Cookie 认证。`/api/v1/auth/login` 设置 `pm_access_token`、`pm_refresh_token` 和 `pm_csrf_token`；前端通过 `withCredentials` 自动携带 Cookie，不安全方法需要 `X-CSRF-Token`。脚本/API 客户端仍可使用 legacy `Authorization: Bearer <token>` fallback。
 >
 > **密码策略**：新注册、用户改密和微信注册绑定密码统一要求至少 10 位，且必须同时包含大写字母、小写字母、数字和特殊字符。
+>
+> **路径约定**：业务 API 只使用 `/api/v1` 前缀；根路径业务别名（如 `/products`）和 `/v1` 业务别名应返回 404。`/health`、`/health/detailed` 和 `/blog-media/{file_name}` 是非业务例外。
 
 | Method           | Path                                              | Description                                        | 认证  |
 | ---------------- | ------------------------------------------------- | -------------------------------------------------- | ----- |
 | GET              | /health                                           | Health check (database + Redis + scheduler)        | 否    |
-| GET              | /config                                           | Get current configuration                          | 是    |
-| POST             | /config                                           | Create or update full configuration                | 是    |
-| PATCH            | /config                                           | Partial update configuration (cron/tz/hours)       | 是    |
-| POST             | /products                                         | Add a product to track                             | 是    |
-| GET              | /products                                         | List products (paginated: page, size, total, etc.) | 是    |
-| GET              | /products/{id}                                    | Get product details                                | 是    |
-| GET              | /products/{id}/history                            | Get price history                                  | 是    |
-| POST             | /products/batch-create                            | Batch import products                              | 是    |
-| POST             | /products/batch-delete                            | Batch delete products                              | 是    |
-| POST             | /products/batch-update                            | Batch enable/disable products                      | 是    |
-| POST             | /alerts                                           | Create an alert                                    | 是    |
-| GET              | /alerts                                           | List all alerts                                    | 是    |
-| POST             | /products/crawl/crawl-now                         | Crawl all active products                          | 是    |
-| GET              | /products/crawl/workers                           | List crawler worker heartbeats/capabilities        | 是    |
-| GET              | /products/crawl/logs                              | Get recent crawl logs                              | 是    |
-| POST             | /products/crawl/cleanup                           | Delete old price history and crawl logs            | 是    |
-| GET/PUT          | /smart-home/config                                | Get or update Home Assistant connection config     | 是    |
-| POST             | /smart-home/config/test                           | Test Home Assistant connection                     | 是    |
-| GET              | /smart-home/entities                              | List Home Assistant entities                       | 是    |
-| POST             | /smart-home/services/call                          | Call a Home Assistant entity service               | 是    |
-| GET              | /smart-home/entities/stream                       | SSE stream for live Home Assistant state           | 是    |
-| GET              | /scheduler/status                                 | Scheduler status (both product and job crawl)      | 是    |
-| GET              | /dashboard/kpi                                    | User KPI and admin system KPI                      | 是    |
-| GET              | /dashboard/events                                 | Dashboard KPI SSE stream                           | 是    |
-| GET              | /dashboard/trends                                 | Dashboard chart data (`type`, `days`)              | 是    |
-| GET              | /dashboard/alerts/recent                          | Recent alerts for admin dashboard                  | admin |
-| GET              | /blog/posts                                       | Public published blog posts                        | 否    |
-| GET              | /blog/posts/{slug}                                | Public published blog post detail                  | 否    |
-| GET              | /blog/categories                                  | Public blog categories                             | 否    |
-| GET              | /blog/tags                                        | Public blog tags                                   | 否    |
+| GET              | /api/v1/config                                    | Get current configuration                          | 是    |
+| POST             | /api/v1/config                                    | Create or update full configuration                | 是    |
+| PATCH            | /api/v1/config                                    | Partial update configuration (cron/tz/hours)       | 是    |
+| POST             | /api/v1/products                                  | Add a product to track                             | 是    |
+| GET              | /api/v1/products                                  | List products (paginated: page, size, total, etc.) | 是    |
+| GET              | /api/v1/products/{id}                             | Get product details                                | 是    |
+| GET              | /api/v1/products/{id}/history                     | Get price history                                  | 是    |
+| POST             | /api/v1/products/batch-create                     | Batch import products                              | 是    |
+| POST             | /api/v1/products/batch-delete                     | Batch delete products                              | 是    |
+| POST             | /api/v1/products/batch-update                     | Batch enable/disable products                      | 是    |
+| POST             | /api/v1/alerts                                    | Create an alert                                    | 是    |
+| GET              | /api/v1/alerts                                    | List all alerts                                    | 是    |
+| POST             | /api/v1/crawl/crawl-now                           | Crawl all active products                          | 是    |
+| GET              | /api/v1/crawl/workers                             | List crawler worker heartbeats/capabilities        | 是    |
+| GET              | /api/v1/crawl/logs                                | Get recent crawl logs                              | 是    |
+| POST             | /api/v1/crawl/cleanup                             | Delete old price history and crawl logs            | 是    |
+| GET/PUT          | /api/v1/smart-home/config                         | Get or update Home Assistant connection config     | 是    |
+| POST             | /api/v1/smart-home/config/test                    | Test Home Assistant connection                     | 是    |
+| GET              | /api/v1/smart-home/entities                       | List Home Assistant entities                       | 是    |
+| POST             | /api/v1/smart-home/services/call                  | Call a Home Assistant entity service               | 是    |
+| GET              | /api/v1/smart-home/entities/stream                | SSE stream for live Home Assistant state           | 是    |
+| GET              | /api/v1/scheduler/status                          | Scheduler status (both product and job crawl)      | 是    |
+| GET              | /api/v1/dashboard/kpi                             | User KPI and admin system KPI                      | 是    |
+| GET              | /api/v1/dashboard/events                          | Dashboard KPI SSE stream                           | 是    |
+| GET              | /api/v1/dashboard/trends                          | Dashboard chart data (`type`, `days`)              | 是    |
+| GET              | /api/v1/dashboard/alerts/recent                   | Recent alerts for admin dashboard                  | admin |
+| GET              | /api/v1/blog/posts                                | Public published blog posts                        | 否    |
+| GET              | /api/v1/blog/posts/{slug}                         | Public published blog post detail                  | 否    |
+| GET              | /api/v1/blog/categories                           | Public blog categories                             | 否    |
+| GET              | /api/v1/blog/tags                                 | Public blog tags                                   | 否    |
 | GET              | /blog-media/{file_name}                           | Public uploaded blog media                         | 否    |
-| GET/POST         | /blog/admin/posts                                 | List/Create blog posts for writers                 | admin |
-| GET/PATCH/DELETE | /blog/admin/posts/{post_id}                       | Manage draft, scheduled, published, archived posts | admin |
-| POST             | /blog/admin/uploads                               | Upload local blog images                           | admin |
-| GET/POST/DELETE  | /jobs/resumes                                     | List/Create/Delete resumes                         | 是    |
-| PATCH            | /jobs/resumes/{id}                                | Update a resume                                    | 是    |
-| GET              | /jobs/match-results                               | List match results                                 | 是    |
-| POST             | /jobs/match-results/analyze                       | Analyze resume vs jobs (sync)                      | 是    |
-| POST             | /jobs/match-results/analyze-async                 | Analyze resume vs jobs (async)                     | 是    |
-| GET              | /jobs/tasks/{task_id}                             | Poll async task status                             | 是    |
-| GET/POST         | /jobs/configs                                     | List/Create job search configs                     | 是    |
-| GET/PATCH/DELETE | /jobs/configs/{id}                                | Manage a job search config                         | 是    |
-| GET              | /jobs                                             | List crawled jobs (paginated)                      | 是    |
-| POST             | /jobs/crawl-now                                   | Crawl all active job configs                       | 是    |
-| POST             | /jobs/crawl-now/{id}                              | Crawl single job config                            | 是    |
-| GET              | /jobs/crawl/status/{task_id}                      | Poll persisted job crawl task status               | 是    |
-| GET              | /jobs/crawl/result/{task_id}                      | Get completed job crawl result                     | 是    |
-| GET/POST         | /crawl-profiles                                   | List/Create crawler browser profiles               | 是    |
-| GET              | /crawl-profiles/runtime-capabilities              | Show local browser/profile runtime support         | 是    |
-| PATCH            | /crawl-profiles/{profile_key}                     | Update profile status/platform hint/error          | 是    |
-| POST             | /crawl-profiles/{profile_key}/rename              | Rename profile and sync config references          | 是    |
-| POST             | /crawl-profiles/{profile_key}/copy                | Copy profile directory and metadata                | 是    |
-| DELETE           | /crawl-profiles/{profile_key}                     | Delete unused, idle profile and local directory    | 是    |
-| POST             | /crawl-profiles/{profile_key}/release-stale       | Release expired profile lease only                 | 是    |
-| POST/GET         | /crawl-profiles/{profile_key}/login-session       | Open or inspect local login browser session        | 是    |
-| POST             | /crawl-profiles/{profile_key}/login-session/close | Close local login browser session                  | 是    |
-| POST             | /crawl-profiles/{profile_key}/test                | Test profile login/runtime state                   | 是    |
-| POST             | /crawl-profiles/{profile_key}/export              | Export encrypted profile backup                    | admin |
-| POST             | /crawl-profiles/{profile_key}/import              | Import encrypted profile backup                    | admin |
+| GET/POST         | /api/v1/blog/admin/posts                          | List/Create blog posts for writers                 | admin |
+| GET/PATCH/DELETE | /api/v1/blog/admin/posts/{post_id}                | Manage draft, scheduled, published, archived posts | admin |
+| POST             | /api/v1/blog/admin/uploads                        | Upload local blog images                           | admin |
+| GET/POST/DELETE  | /api/v1/jobs/resumes                              | List/Create/Delete resumes                         | 是    |
+| PATCH            | /api/v1/jobs/resumes/{id}                         | Update a resume                                    | 是    |
+| GET              | /api/v1/jobs/match-results                        | List match results                                 | 是    |
+| POST             | /api/v1/jobs/match-results/analyze                | Analyze resume vs jobs (sync)                      | 是    |
+| POST             | /api/v1/jobs/match-results/analyze-async          | Analyze resume vs jobs (async)                     | 是    |
+| GET              | /api/v1/jobs/tasks/{task_id}                      | Poll async task status                             | 是    |
+| GET/POST         | /api/v1/jobs/configs                              | List/Create job search configs                     | 是    |
+| GET/PATCH/DELETE | /api/v1/jobs/configs/{id}                         | Manage a job search config                         | 是    |
+| GET              | /api/v1/jobs                                      | List crawled jobs (paginated)                      | 是    |
+| POST             | /api/v1/jobs/crawl-now                            | Crawl all active job configs                       | 是    |
+| POST             | /api/v1/jobs/crawl-now/{id}                       | Crawl single job config                            | 是    |
+| GET              | /api/v1/jobs/crawl/status/{task_id}               | Poll persisted job crawl task status               | 是    |
+| GET              | /api/v1/jobs/crawl/result/{task_id}               | Get completed job crawl result                     | 是    |
+| GET/POST         | /api/v1/crawl-profiles                            | List/Create crawler browser profiles               | 是    |
+| GET              | /api/v1/crawl-profiles/runtime-capabilities       | Show local browser/profile runtime support         | 是    |
+| PATCH            | /api/v1/crawl-profiles/{profile_key}              | Update profile status/platform hint/error          | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/rename       | Rename profile and sync config references          | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/copy         | Copy profile directory and metadata                | 是    |
+| DELETE           | /api/v1/crawl-profiles/{profile_key}              | Delete unused, idle profile and local directory    | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/release-stale | Release expired profile lease only                 | 是    |
+| POST/GET         | /api/v1/crawl-profiles/{profile_key}/login-session | Open or inspect local login browser session        | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/login-session/close | Close local login browser session                  | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/test         | Test profile login/runtime state                   | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/export       | Export encrypted profile backup                    | admin |
+| POST             | /api/v1/crawl-profiles/{profile_key}/import       | Import encrypted profile backup                    | admin |
 
 ## 认证 API
 
@@ -165,11 +173,11 @@ JD_COOKIE=...
 
 | Method | Path           | Description                         | 认证                    |
 | ------ | -------------- | ----------------------------------- | ----------------------- |
-| POST   | /auth/register | 注册新用户                          | 否                      |
-| POST   | /auth/login    | 用户登录并设置认证 Cookie           | 否                      |
-| POST   | /auth/refresh  | 通过 refresh Cookie 轮换认证 Cookie | 否（需 refresh Cookie） |
-| POST   | /auth/logout   | 用户登出并清理 Cookie               | 是                      |
-| GET    | /auth/me       | 获取当前用户信息                    | 是                      |
+| POST   | /api/v1/auth/register | 注册新用户                          | 否                      |
+| POST   | /api/v1/auth/login    | 用户登录并设置认证 Cookie           | 否                      |
+| POST   | /api/v1/auth/refresh  | 通过 refresh Cookie 轮换认证 Cookie | 否（需 refresh Cookie） |
+| POST   | /api/v1/auth/logout   | 用户登出并清理 Cookie               | 是                      |
+| GET    | /api/v1/auth/me       | 获取当前用户信息                    | 是                      |
 
 ### 注册
 
@@ -234,7 +242,7 @@ curl -c cookies.txt -X POST http://localhost:8000/api/v1/auth/login \
 curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 ```
 
-对 `POST` / `PATCH` / `PUT` / `DELETE` 等不安全方法，还需要把 `pm_csrf_token` Cookie 值作为 `X-CSRF-Token` 请求头发送。`POST /auth/refresh` 只依赖 HttpOnly refresh Cookie，不要求 CSRF header。
+对 `POST` / `PATCH` / `PUT` / `DELETE` 等不安全方法，还需要把 `pm_csrf_token` Cookie 值作为 `X-CSRF-Token` 请求头发送。`POST /api/v1/auth/refresh` 只依赖 HttpOnly refresh Cookie，不要求 CSRF header。
 
 ### 错误码
 
@@ -253,11 +261,11 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 - **登录失败锁定**：连续5次登录失败后，账户将被锁定15分钟
 - **强密码策略**：注册、改密和微信注册绑定密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符
 - **Access Token 有效期**：15分钟；Refresh Token 有效期：14天
-- **Refresh 轮换**：`POST /auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
+- **Refresh 轮换**：`POST /api/v1/auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
 - **CSRF 保护**：不安全方法校验 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
 - **密码加密**：使用 bcrypt 算法加密存储
 - **数据隔离**：所有数据按 `user_id` 隔离，用户只能访问自己的数据
-- **强制认证**：除 `/auth/register`、`/auth/login`、`/auth/refresh` 外，业务接口均需认证
+- **强制认证**：除 `/api/v1/auth/register`、`/api/v1/auth/login`、`/api/v1/auth/refresh` 外，业务接口均需认证
 
 ## Admin API
 
@@ -284,26 +292,27 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 
 ```powershell
 # Export backend OpenAPI schema and generate the frontend Orval client
-python scripts/export_openapi.py
+uv run --project backend --extra dev python scripts/export_openapi.py
 cd frontend && npm run api:generate
 
 # Check API contract drift, checker tests, and direct Axios/api usage
-python scripts/check_api_contract.py
-python -m pytest scripts/tests/test_check_frontend_api_usage.py -q
+cd ..
+uv run --project backend --extra dev python scripts/check_api_contract.py
+uv run --project backend --extra dev python -m pytest scripts/tests/test_check_frontend_api_usage.py -q
 cd frontend && npm run api:check-usage
 
 # Run linter
-cd backend && ruff check .
+cd ../backend && uv run --extra dev python -m ruff check .
 
 # Run tests
-cd backend && pytest
+uv run --extra dev python -m pytest
 
 # Run with coverage
-cd backend && coverage run -m pytest
-cd backend && coverage report
+uv run --extra dev coverage run -m pytest
+uv run --extra dev coverage report
 
 # Start frontend
-cd frontend && npm run dev
+cd ../frontend && npm run dev
 ```
 
 普通 HTTP 请求使用 `frontend/src/shared/api/generated/` 中的生成函数、hooks
@@ -361,7 +370,7 @@ Product crawls still use the app-level crawl semaphore. Job crawls use database-
 
 ### Products Pagination
 
-`GET /products` supports pagination with full metadata:
+`GET /api/v1/products` supports pagination with full metadata:
 
 ```json
 {

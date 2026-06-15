@@ -22,14 +22,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: uv sync --extra dev
 
       - name: Run ruff
-        run: poetry run ruff check .
+        run: uv run --extra dev ruff check .
 
   test:
     name: Test
@@ -42,14 +45,17 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
-        run: poetry install --with dev
+        run: uv sync --extra dev
 
       - name: Run pytest
-        run: poetry run pytest -v --tb=short
+        run: uv run --extra dev pytest -v --tb=short
 
   compile:
     name: Compile check
@@ -62,20 +68,18 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
       - name: Install dependencies
-        run: pip install -e . --quiet
+        run: uv sync --extra dev
 
       - name: Compile Python files
         run: |
-          python -m py_compile alembic/versions/001_initial.py
-          python -m py_compile app/models/user.py
-          python -m py_compile app/models/crawl_log.py
-          python -m py_compile app/models/alert.py
-          python -m py_compile app/models/product.py
-          python -m py_compile app/models/price_history.py
-          python -m py_compile app/models/base.py
-          python -m py_compile app/services/crawl.py
-          python -m py_compile app/main.py
+          uv run --extra dev python -m compileall app alembic
           echo "All files compiled successfully"
 
   frontend:
@@ -83,6 +87,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        run: uv sync --extra dev
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -118,11 +136,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
 
       - name: Install backend dependencies
-        run: poetry install --with dev
+        run: uv sync --extra dev
         working-directory: backend
 
       - name: Set up Node.js
@@ -137,11 +158,11 @@ jobs:
         working-directory: frontend
 
       - name: Test API usage checker
-        run: poetry run pytest ../scripts/tests/test_check_frontend_api_usage.py -q
+        run: uv run --extra dev pytest ../scripts/tests/test_check_frontend_api_usage.py -q
         working-directory: backend
 
       - name: Verify generated API artifacts
-        run: poetry run python ../scripts/check_api_contract.py
+        run: uv run --extra dev python ../scripts/check_api_contract.py
         working-directory: backend
 
       - name: Verify API usage

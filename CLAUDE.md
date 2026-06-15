@@ -5,7 +5,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mavra-monitor-system** (10670 symbols, 19369 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mavra-monitor-system** (10671 symbols, 19370 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -71,14 +71,16 @@ Playwright/curl_cffi；前端是 React/Vite/TypeScript/Ant Design。
 
 ## 常用命令
 
-在 Windows PowerShell 运行。优先使用 `python -m pytest`，不要裸跑 `pytest`，
-避免走到 Anaconda shim。
+在 Windows PowerShell 运行。后端命令优先通过 `uv run --extra dev` 进入
+`backend/.venv`，不要裸跑 `python` / `pytest` / `ruff`，避免走到全局 Python
+或 Anaconda shim。
 
 ```powershell
 # 后端
 cd C:/Users/arfac/Documents/mavra-monitor-system/backend
-python -m ruff check .
-python -m pytest
+uv sync --extra dev
+uv run --extra dev python -m ruff check .
+uv run --extra dev python -m pytest
 
 # 前端
 cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
@@ -113,10 +115,10 @@ npm run build
 后端 OpenAPI 是唯一 API 契约。普通 JSON 前端请求必须使用 Orval 生成代码。
 
 1. 修改 FastAPI route/schema/`response_model` 和后端测试。
-2. 运行 `python scripts/export_openapi.py`。
+2. 运行 `uv run --project backend --extra dev python scripts/export_openapi.py`。
 3. 运行 `cd frontend; npm run api:generate`。
 4. 前端通过 `frontend/src/shared/api/generated/` 适配；wrapper 可以做数据归一化、轮询、缓存失效或 UI 映射，但不能手写 Axios。
-5. 运行 `python scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
+5. 运行 `uv run --project backend --extra dev python scripts/check_api_contract.py` 和 `cd frontend; npm run api:check-usage`。
 6. 同一提交必须包含后端改动、`frontend/openapi.json`、生成客户端、前端适配和测试。
 
 URL 所有权：

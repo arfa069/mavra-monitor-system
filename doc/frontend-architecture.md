@@ -9,7 +9,7 @@
 | UI 框架     | React 18 + Ant Design 5                                                                             |
 | 路由        | React Router DOM v6                                                                                 |
 | 状态管理    | React Context（AuthContext）+ TanStack React Query                                                  |
-| HTTP 客户端 | Axios                                                                                               |
+| HTTP 客户端 | Orval generated client + Axios mutator                                                              |
 | CSS         | CSS Design Tokens + Ant Design token + `components.css` 全局覆盖                                    |
 | 字体        | General Sans（标题）+ DM Sans（正文）+ Geist（表格数字）+ JetBrains Mono（标签/代码）+ CSS 变量系统 |
 | 图标        | Ant Design Icons（线性风格）                                                                        |
@@ -67,7 +67,9 @@ frontend/src/
 │       ├── SettingsPage.tsx # 账号设置页
 │       └── api/config.ts    # 用户配置与 scheduler status API
 ├── shared/
-│   ├── api/client.ts        # Axios 实例（拦截器 + 错误处理）
+│   ├── api/client.ts        # 共享 Axios 实例（拦截器 + 错误处理）
+│   ├── api/mutator.ts       # Orval 自定义 mutator，桥接 generated client
+│   ├── api/generated/       # OpenAPI/Orval 生成代码，不手改
 │   ├── components/          # 全局布局、主题、过渡、权限标识组件
 │   ├── contexts/
 │       └── AuthContext.tsx  # 全局认证上下文（用户状态 + 权限）
@@ -185,11 +187,11 @@ interface AuthContextType {
 
 前端使用 AuthContext 暴露的 `hasPermission()` / `hasAnyPermission()` / `hasAllPermissions()` 进行 UX 级别权限控制。`user.role` 仅用于展示和少数角色边界提示；菜单、路由、按钮和只读态以 `user.permissions` 为准。`AuthProvider` memoizes callbacks and the Provider value to keep context references stable across unrelated renders.
 
-**认证方式**：HttpOnly Cookie 传递 access/refresh token。前端不管理 token 字符串。初始化时通过 `GET /auth/me` 验证登录状态（Cookie 自动携带）。
+**认证方式**：HttpOnly Cookie 传递 access/refresh token。前端不管理 token 字符串。初始化时通过 `GET /api/v1/auth/me` 验证登录状态（Cookie 自动携带）。
 
 **登出流程**：
 
-1. 调用 `POST /auth/logout`，后端清除 Cookie 并删除 session
+1. 调用 `POST /api/v1/auth/logout`，后端清除 Cookie 并删除 session
 2. 重置 `user` 状态
 3. 跳转到 `/login`
 
@@ -225,11 +227,11 @@ const api = axios.create({
 
 **请求拦截器**：Axios 自动携带凭据（`withCredentials: true`），不安全方法（POST/PATCH/PUT/DELETE）自动注入 `X-CSRF-Token` 请求头（从 `pm_csrf_token` Cookie 读取）。
 
-**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。并发 401 期间只有第一个请求触发 refresh，其余请求进入 `failedQueue` 并保存各自 the Axios config；刷新成功后按原请求逐个重试。排队请求入队前标记 `_retry`，避免刷新风暴。失败后重定向到 /login。排除 `/auth/login` 和 `/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
+**401 自动刷新**：响应拦截器检测 401 时，自动调用 `POST /api/v1/auth/refresh` 刷新 access token。并发 401 期间只有第一个请求触发 refresh，其余请求进入 `failedQueue` 并保存各自 the Axios config；刷新成功后按原请求逐个重试。排队请求入队前标记 `_retry`，避免刷新风暴。失败后重定向到 /login。排除 `/api/v1/auth/login` 和 `/api/v1/auth/me` 的刷新循环，避免未登录初始化时反复 refresh/redirect。
 
 **响应拦截器**：
 
-- `401` — 除登录和初始化 `/auth/me` 外，尝试 refresh；refresh 失败后重定向到 `/login`
+- `401` — 除登录和初始化 `/api/v1/auth/me` 外，尝试 refresh；refresh 失败后重定向到 `/login`
 - `>= 500` — 全局错误提示（notification.error）
 - `>= 400` — 从 `response.data.detail` 提取错误信息
 - `ECONNABORTED` / 无响应 — 超时提示（notification.warning）
@@ -241,10 +243,10 @@ const api = axios.create({
 **API 自动生成工作流：**
 
 1. 后端修改 FastAPI routes 和 Pydantic schemas。
-2. 在项目根目录运行 `python scripts/export_openapi.py` 导出 `openapi.json`。
+2. 在项目根目录运行 `uv run --project backend --extra dev python scripts/export_openapi.py` 导出 `openapi.json`。
 3. 在 `frontend/` 目录运行 `npm run api:generate` 生成代码。
 4. 运行契约和使用规范检查：
-   - 在根目录运行 `python scripts/check_api_contract.py` 确保生成物与 openapi 契约无漂移。
+   - 在根目录运行 `uv run --project backend --extra dev python scripts/check_api_contract.py` 确保生成物与 openapi 契约无漂移。
    - 在 `frontend/` 目录运行 `npm run api:check-usage` 确保业务代码中无非法的手写 Axios/api 直接调用。
 5. 普通 HTTP 请求使用 `src/shared/api/generated/` 中的生成函数、React Query Hooks 或 query options。业务 wrapper 仅保留轮询、缓存失效、稳定 query key 和 UI 数据映射。
 
@@ -288,8 +290,8 @@ server: {
 - 新增/编辑商品（ProductFormModal）：表单 + 告警设置
 - 批量导入（BatchImportModal）：Excel/CSV 格式解析
 - 批量操作：删除、启用、停用
-- 手动爬取：触发 `POST /crawl/crawl-now`，轮询任务状态
-- 价格趋势（PriceTrendModal）：展示 `GET /products/{id}/history`
+- 手动爬取：触发 `POST /api/v1/crawl/crawl-now`，轮询任务状态
+- 价格趋势（PriceTrendModal）：展示 `GET /api/v1/products/{id}/history`
 - 爬取日志：最近 10 条记录（60s 自动刷新）
 - **翻页自动回退**：批量删除后若当前页为空，自动回退到上一页
 
