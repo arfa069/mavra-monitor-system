@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../features/alerts/domain/alert_models.dart';
 import '../features/alerts/presentation/alerts_page.dart';
+import '../features/admin/domain/admin_models.dart';
+import '../features/admin/presentation/admin_page.dart';
 import '../features/analytics/domain/analytics_models.dart';
 import '../features/analytics/presentation/analytics_page.dart';
 import '../features/auth/domain/auth_models.dart';
@@ -10,6 +12,9 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/profile_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/wechat_callback_page.dart';
+import '../features/blog/domain/blog_models.dart';
+import '../features/blog/presentation/blog_page.dart';
+import '../core/config/app_config.dart';
 import '../features/events/domain/event_models.dart';
 import '../features/events/presentation/events_page.dart';
 import '../features/jobs/domain/job_models.dart';
@@ -18,6 +23,8 @@ import '../features/products/domain/product_models.dart';
 import '../features/products/presentation/products_page.dart';
 import '../features/schedule/domain/schedule_models.dart';
 import '../features/schedule/presentation/schedule_page.dart';
+import '../features/settings/domain/settings_models.dart';
+import '../features/settings/presentation/settings_page.dart';
 import '../features/smart_home/domain/smart_home_models.dart';
 import '../features/smart_home/presentation/smart_home_page.dart';
 import '../features/today/domain/today_models.dart';
@@ -25,13 +32,17 @@ import '../features/today/presentation/today_page.dart';
 
 GoRouter createMavraRouter({
   required AuthController authController,
+  AppConfig config = AppConfig.current,
   required TodayRepository todayRepository,
   required EventRepository eventRepository,
   required AlertRepository alertRepository,
+  required AdminRepository adminRepository,
   required AnalyticsRepository analyticsRepository,
+  required BlogRepository blogRepository,
   required JobsRepository jobsRepository,
   required ProductRepository productRepository,
   required ScheduleRepository scheduleRepository,
+  required SettingsRepository settingsRepository,
   required SmartHomeRepository smartHomeRepository,
   String? initialLocation,
 }) {
@@ -117,19 +128,37 @@ GoRouter createMavraRouter({
             ProfilePage(authController: authController),
       ),
       GoRoute(
+        path: '/settings',
+        builder: (context, state) => _permissionPage(
+          authController,
+          'config:read',
+          SettingsPage(
+            repository: settingsRepository,
+            config: config,
+            permissions: _settingsPermissions(authController),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/admin/users',
         builder: (context, state) => _permissionPage(
           authController,
           'user:read',
-          const PlaceholderScreen(title: 'Admin Users'),
+          AdminPage(
+            repository: adminRepository,
+            permissions: _adminPermissions(authController),
+          ),
         ),
       ),
       GoRoute(
         path: '/admin/audit-logs',
         builder: (context, state) => _permissionPage(
           authController,
-          'rbac:read',
-          const PlaceholderScreen(title: 'Audit Logs'),
+          'user:read',
+          AdminPage(
+            repository: adminRepository,
+            permissions: _adminPermissions(authController),
+          ),
         ),
       ),
       GoRoute(
@@ -137,11 +166,38 @@ GoRouter createMavraRouter({
         builder: (context, state) => _permissionPage(
           authController,
           'blog:read_admin',
-          const PlaceholderScreen(title: 'Blog Admin'),
+          BlogPage(
+            repository: blogRepository,
+            permissions: _blogPermissions(authController),
+          ),
         ),
       ),
     ],
   );
+}
+
+Set<String> _adminPermissions(AuthController authController) {
+  return _permissions(authController, const {
+    'user:read',
+    'user:manage',
+    'rbac:read',
+    'rbac:manage',
+  });
+}
+
+Set<String> _blogPermissions(AuthController authController) {
+  return _permissions(authController, const {'blog:read_admin', 'blog:write'});
+}
+
+Set<String> _settingsPermissions(AuthController authController) {
+  return _permissions(authController, const {'config:read', 'config:write'});
+}
+
+Set<String> _permissions(AuthController authController, Set<String> names) {
+  return {
+    for (final name in names)
+      if (authController.hasPermission(name)) name,
+  };
 }
 
 Widget _permissionPage(

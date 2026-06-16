@@ -14,10 +14,12 @@ does not remain a runtime product after Task 7.
   preserving the requested location.
 - Authenticated access to `/login` or `/register` redirects to `/today`.
 - `/` and unknown routes redirect to `/today`.
-- `/admin/users` and `/admin/audit-logs` require `user:read`.
+- `/settings` requires `config:read`.
+- `/admin/users` requires `user:read`.
+- `/admin/audit-logs` requires `user:read`.
 - `/admin/blog` requires `blog:read_admin`.
-- Permission failures currently redirect to `/today`; Flutter replaces this
-  with an explicit permission state where the migration plan requires one.
+- Permission failures render an explicit permission state with a return path to
+  `/today`.
 
 ## Routes
 
@@ -34,10 +36,10 @@ does not remain a runtime product after Task 7.
 | `/schedule` | `frontend/src/features/schedule/ScheduleConfigPage.tsx` | `frontend/lib/features/schedule/` | cron generation, product/job schedules, status | Implemented in Task 12; widget coverage for product/job schedules, cron preview, validation, scheduler status, loading/empty/error/permission states |
 | `/smart-home` | `frontend/src/features/smart-home/SmartHomePage.tsx` | `frontend/lib/features/smart_home/` | config, entities, service calls, realtime state | Implemented in Task 12; widget coverage for config edit, entity filters, mocked service calls, realtime updates, loading/empty/error/permission states |
 | `/profile` | `frontend/src/features/auth/ProfilePage.tsx` | `frontend/lib/features/auth/` | profile update, password, sessions, login history | Not started |
-| `/settings` | `frontend/src/features/settings/SettingsPage.tsx` | `frontend/lib/features/settings/` | user/system config, theme and validation | Not started |
-| `/admin/users` | `frontend/src/features/admin/AdminUsersPage.tsx` | `frontend/lib/features/admin/` | user administration and permissions | Not started |
-| `/admin/audit-logs` | `frontend/src/features/admin/AdminAuditLogsPage.tsx` | `frontend/lib/features/admin/` | audit filters and dense table | Not started |
-| `/admin/blog` | `frontend/src/features/blog/BlogAdminPage.tsx` | `frontend/lib/features/blog/` | posts, editor, statuses and media upload | Not started |
+| `/settings` | `frontend/src/features/settings/SettingsPage.tsx` | `frontend/lib/features/settings/` | user/system config, theme and validation | Implemented in Task 13; widget coverage for config load/update validation, theme preference, API environment, platform status, loading/empty/error/permission states |
+| `/admin/users` | `frontend/src/features/admin/AdminUsersPage.tsx` | `frontend/lib/features/admin/` | user administration and permissions | Implemented in Task 13; widget coverage for users, permission matrix, row permission actions, filters, loading/empty/error/permission states |
+| `/admin/audit-logs` | `frontend/src/features/admin/AdminAuditLogsPage.tsx` | `frontend/lib/features/admin/` | audit filters and dense table | Implemented in Task 13; shares Admin page with audit filters and `rbac:read` route gate |
+| `/admin/blog` | `frontend/src/features/blog/BlogAdminPage.tsx` | `frontend/lib/features/blog/` | posts, editor, statuses and media upload | Implemented in Task 13; widget coverage for list, create/edit, status changes, media upload, validation, editor persistence, loading/empty/error/permission states |
 
 ## Shared Shell Parity
 
