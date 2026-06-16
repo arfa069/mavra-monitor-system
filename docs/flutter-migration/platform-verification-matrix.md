@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Web | Ready | None |
 | Windows | Ready | Packaging/signing is a release concern, not a development blocker |
-| Android | Toolchain installed but locally blocked | Local NDK `28.2.13676358` is a malformed download and no Android device/emulator is connected |
+| Android | Build-ready | Local NDK `28.2.13676358` and CMake `3.22.1` are installed; emulator/device smoke evidence is still required |
 | iOS | CI required | The Windows Flutter tool exposes no iOS build subcommand; macOS runner, simulator, signing and provisioning remain required |
 
 ## CI Evidence Matrix
@@ -120,10 +120,21 @@ Recorded during final verification on 2026-06-16:
 | Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed. |
 | Flutter analyzer | `flutter analyze` | Passed. |
 | Flutter tests | `flutter test` | Passed: 65 tests. |
-| Web build | `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed; Flutter also emitted a WebAssembly dry-run warning for `file_picker` using `dart:html`. |
+| Web build | `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed after removing the unused `file_picker` dependency; Wasm dry run succeeded. |
 | Windows build | `flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1` | Passed. |
-| Android build | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Blocked locally by malformed NDK download at `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`. |
+| Android build | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed after reinstalling NDK `28.2.13676358`, installing CMake `3.22.1`, and removing the unused `file_picker` dependency. |
 | iOS build | `flutter build ios -h` | Not available on Windows; available build subcommands are `aar`, `apk`, `appbundle`, `bundle`, `web`, and `windows`. |
 | Windows integration | `flutter test integration_test -d windows`; single-file reruns | Full command passed the first smoke then hit Flutter Windows app-start instability; `auth_smoke_test.dart` and `platform_capability_smoke_test.dart` passed when run individually. |
 | Web integration | `flutter test integration_test -d chrome` | Blocked by Flutter tool: `Web devices are not supported for integration tests yet.` |
 | Android integration | `flutter test integration_test -d android` | Blocked locally: no supported Android device or emulator is connected. |
+
+### Android Environment Repair Evidence
+
+Recorded after Task 15 on 2026-06-16:
+
+| Check | Result |
+| --- | --- |
+| NDK install | Reinstalled `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`; `source.properties` reports `Pkg.Revision = 28.2.13676358`. |
+| CMake install | Reinstalled `C:\Users\arfac\AppData\Local\Android\Sdk\cmake\3.22.1`; `source.properties` reports `Pkg.Path = cmake;3.22.1`. |
+| Android doctor | `flutter doctor -v` passed with Android SDK `36.1.0` and all Android licenses accepted. |
+| Android APK | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` passed and built `build\app\outputs\flutter-apk\app-release.apk` at 53.8 MB. |

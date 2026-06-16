@@ -12,11 +12,10 @@ Flutter Web and Windows are buildable and covered by analyzer, unit/widget
 tests, API usage checks, and focused Windows integration smoke tests.
 
 The full final gate is not completely green in this local environment. The
-remaining blockers are local backend database credentials, a malformed Android
-NDK download, unavailable Android device/emulator evidence, unavailable iOS
-build support on Windows, unsupported Flutter Web integration tests, missing
-Web/Windows screenshot comparison evidence, and the separate final code-review
-pass.
+remaining blockers are local backend database credentials, unavailable Android
+device/emulator evidence, unavailable iOS build support on Windows, unsupported
+Flutter Web integration tests, missing Web/Windows screenshot comparison
+evidence, and the separate final code-review pass.
 
 ## Backend Commands
 
@@ -47,8 +46,9 @@ local failures were reproduced in:
 | `flutter pub get` | Passed. |
 | `flutter analyze` | Passed. |
 | `flutter test` | Passed: 65 tests. |
-| `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed; WebAssembly dry-run warned that `file_picker` depends on `dart:html`. |
+| `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed after removing the unused `file_picker` dependency; Wasm dry run succeeded. |
 | `flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1` | Passed and produced `build\windows\x64\runner\Release\mavra_frontend.exe`. |
+| `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed and produced `build\app\outputs\flutter-apk\app-release.apk` at 53.8 MB. |
 
 ## Platform Builds
 
@@ -56,7 +56,7 @@ local failures were reproduced in:
 | --- | --- | --- |
 | Web | Passed | `flutter build web --dart-define=API_BASE_URL=/api/v1`. |
 | Windows | Passed | `flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1`. |
-| Android | Blocked locally | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` fails because Flutter reports a malformed NDK download at `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`. Earlier quiet runs timed out because Gradle child processes remained active; the verbose run exposed the NDK root cause. |
+| Android | Passed | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` passes after reinstalling local NDK `28.2.13676358`, installing CMake `3.22.1`, and removing the unused `file_picker` dependency that pulled an incompatible Android Gradle plugin. |
 | iOS | Not run locally | Windows Flutter exposes no iOS build subcommand. The local help output lists `aar`, `apk`, `appbundle`, `bundle`, `web`, and `windows` only. macOS CI/simulator evidence is still required. |
 
 ## Integration Smoke
@@ -81,6 +81,28 @@ or Home Assistant service calls.
 | Active non-doc React/Vite/Orval references | Clean for the migrated app. The only non-doc `npm run` hits are `scripts/start_server.*` entries for the independent `blog-frontend`. |
 | Legacy business `/v1` usage | Clean in `frontend/lib`, `frontend/test`, and `frontend/integration_test`. |
 | Dart business API usage | Passed with `scripts/check_dart_api_usage.py`. |
+
+## Android Environment Repair
+
+The local Android blocker recorded during Task 15 was repaired after the
+initial final report:
+
+- The malformed `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`
+  directory only contained `.installer` and no `source.properties`.
+- The damaged NDK directory was moved to
+  `C:\Users\arfac\AppData\Local\Android\Sdk\_ndk_broken_backups`.
+- `android-ndk-r28c-windows.zip` was downloaded directly from Google's Android
+  repository and verified with SHA1
+  `086BBA43FF2F5EB0E387B15C8278BB4E0D89BA1D`.
+- NDK `source.properties` now reports `Pkg.Revision = 28.2.13676358`.
+- The Android build then exposed a damaged CMake `3.22.1` SDK component; it was
+  reinstalled from `cmake-3.22.1-windows.zip`, verified with SHA1
+  `292778F32A7D5183E1C49C7897B870653F2D2C1B`.
+- `flutter doctor -v` now reports no issues, Android SDK `36.1.0`, and all
+  Android licenses accepted.
+- The unused `file_picker` direct dependency was removed because it was not
+  imported by Dart code and its Android Gradle plugin was incompatible with the
+  current Gradle/AGP stack.
 
 ## Accessibility And Visual Status
 
@@ -116,8 +138,7 @@ Accepted route-level replacements:
 
 ## Remaining Risk
 
-- Repair local Android NDK `28.2.13676358`, then rerun `flutter build apk` and
-  Android integration smoke on a connected emulator or device.
+- Run Android integration smoke on a connected emulator or device.
 - Run iOS build and simulator smoke on macOS CI or a macOS developer machine.
 - Provide backend PostgreSQL/Redis credentials that match the test suite, then
   rerun full `uv run --extra dev python -m pytest`.
