@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import redis.asyncio as redis
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -315,7 +316,10 @@ async def request_validation_exception_handler(
             code=code,
             message="请求参数有误，请检查表单字段。",
             details=details,
-            detail=exc.errors(),
+            detail=jsonable_encoder(
+                exc.errors(),
+                custom_encoder={Exception: str},
+            ),
         ),
     )
 

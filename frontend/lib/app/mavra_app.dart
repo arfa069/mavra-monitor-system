@@ -11,6 +11,10 @@ import '../features/auth/data/auth_api.dart';
 import '../features/auth/domain/auth_models.dart';
 import '../features/events/data/events_api.dart';
 import '../features/events/domain/event_models.dart';
+import '../features/jobs/data/jobs_api.dart';
+import '../features/jobs/domain/job_models.dart';
+import '../features/products/data/products_api.dart';
+import '../features/products/domain/product_models.dart';
 import '../features/today/data/today_api.dart';
 import '../features/today/domain/today_models.dart';
 import 'router.dart';
@@ -25,6 +29,8 @@ class MavraApp extends StatelessWidget {
     this.eventRepository,
     this.alertRepository,
     this.analyticsRepository,
+    this.jobsRepository,
+    this.productRepository,
     this.initialLocation,
   });
 
@@ -35,6 +41,8 @@ class MavraApp extends StatelessWidget {
   final EventRepository? eventRepository;
   final AlertRepository? alertRepository;
   final AnalyticsRepository? analyticsRepository;
+  final JobsRepository? jobsRepository;
+  final ProductRepository? productRepository;
   final String? initialLocation;
 
   @override
@@ -46,6 +54,8 @@ class MavraApp extends StatelessWidget {
       eventRepository: eventRepository ?? _defaultEventRepository(),
       alertRepository: alertRepository ?? _defaultAlertRepository(),
       analyticsRepository: analyticsRepository ?? _defaultAnalyticsRepository(),
+      jobsRepository: jobsRepository ?? _defaultJobsRepository(),
+      productRepository: productRepository ?? _defaultProductRepository(),
       initialLocation: initialLocation,
     );
 
@@ -87,5 +97,13 @@ class MavraApp extends StatelessWidget {
 
   AnalyticsRepository _defaultAnalyticsRepository() {
     return GeneratedAnalyticsRepository(config: config);
+  }
+
+  JobsRepository _defaultJobsRepository() {
+    return GeneratedJobsRepository(config: config);
+  }
+
+  ProductRepository _defaultProductRepository() {
+    return GeneratedProductRepository(config: config);
   }
 }

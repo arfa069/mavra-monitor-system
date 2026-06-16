@@ -29,8 +29,8 @@ does not remain a runtime product after Task 7.
 | `/today` | `frontend/src/features/today/TodayPage.tsx` | `frontend/lib/features/today/` | summary, attention queue, quiet state, module status | Not started |
 | `/dashboard` | `frontend/src/features/dashboard/DashboardPage.tsx` | `frontend/lib/features/analytics/` | KPIs, charts, recent alerts, realtime updates | Not started |
 | `/events` | `frontend/src/features/events/EventCenterPage.tsx` | `frontend/lib/features/events/` | filters, list, empty state, realtime stream | Not started |
-| `/jobs` | `frontend/src/features/jobs/JobsPage.tsx` | `frontend/lib/features/jobs/` | configs, jobs, resumes, matching, profiles, backup | Not started |
-| `/products` | `frontend/src/features/products/ProductsPage.tsx` | `frontend/lib/features/products/` | product CRUD, price history, batch import, crawl logs | Not started |
+| `/jobs` | `frontend/src/features/jobs/JobsPage.tsx` | `frontend/lib/features/jobs/` | configs, jobs, resumes, matching, profiles, backup | Implemented in Task 11; widget coverage for list/config/resume/profile backup/matches/logs |
+| `/products` | `frontend/src/features/products/ProductsPage.tsx` | `frontend/lib/features/products/` | product CRUD, price history, batch import, crawl logs | Implemented in Task 11; widget coverage for CRUD/history/profile binding/cron/import/log states |
 | `/schedule` | `frontend/src/features/schedule/ScheduleConfigPage.tsx` | `frontend/lib/features/schedule/` | cron generation, product/job schedules, status | Not started |
 | `/smart-home` | `frontend/src/features/smart-home/SmartHomePage.tsx` | `frontend/lib/features/smart_home/` | config, entities, service calls, realtime state | Not started |
 | `/profile` | `frontend/src/features/auth/ProfilePage.tsx` | `frontend/lib/features/auth/` | profile update, password, sessions, login history | Not started |

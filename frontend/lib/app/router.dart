@@ -12,6 +12,10 @@ import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/wechat_callback_page.dart';
 import '../features/events/domain/event_models.dart';
 import '../features/events/presentation/events_page.dart';
+import '../features/jobs/domain/job_models.dart';
+import '../features/jobs/presentation/jobs_page.dart';
+import '../features/products/domain/product_models.dart';
+import '../features/products/presentation/products_page.dart';
 import '../features/today/domain/today_models.dart';
 import '../features/today/presentation/today_page.dart';
 
@@ -21,6 +25,8 @@ GoRouter createMavraRouter({
   required EventRepository eventRepository,
   required AlertRepository alertRepository,
   required AnalyticsRepository analyticsRepository,
+  required JobsRepository jobsRepository,
+  required ProductRepository productRepository,
   String? initialLocation,
 }) {
   return GoRouter(
@@ -78,6 +84,15 @@ GoRouter createMavraRouter({
         path: '/analytics',
         builder: (context, state) =>
             AnalyticsPage(repository: analyticsRepository),
+      ),
+      GoRoute(
+        path: '/jobs',
+        builder: (context, state) => JobsPage(repository: jobsRepository),
+      ),
+      GoRoute(
+        path: '/products',
+        builder: (context, state) =>
+            ProductsPage(repository: productRepository),
       ),
       GoRoute(path: '/dashboard', redirect: (context, state) => '/analytics'),
       GoRoute(
