@@ -1,0 +1,541 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/widgets/adaptive_scaffold.dart';
+import '../domain/schedule_models.dart';
+
+class SchedulePage extends StatefulWidget {
+  const SchedulePage({super.key, required this.repository});
+
+  final ScheduleRepository repository;
+
+  @override
+  State<SchedulePage> createState() => _SchedulePageState();
+}
+
+class _SchedulePageState extends State<SchedulePage> {
+  Future<ScheduleSnapshot>? _scheduleFuture;
+  ScheduleSnapshot? _snapshot;
+  Object? _error;
+  String? _statusMessage;
+  String? _validationMessage;
+  String? _previewExpression;
+  bool _showForm = false;
+  ScheduleRuleTarget _targetType = ScheduleRuleTarget.productPlatform;
+
+  final _targetController = TextEditingController();
+  final _hourController = TextEditingController(text: '9');
+  final _minuteController = TextEditingController(text: '0');
+  final _weekdaysController = TextEditingController(text: '*');
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant SchedulePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository) {
+      _snapshot = null;
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _targetController.dispose();
+    _hourController.dispose();
+    _minuteController.dispose();
+    _weekdaysController.dispose();
+    super.dispose();
+  }
+
+  void _load() {
+    setState(() {
+      _error = null;
+      _scheduleFuture = Future.sync(widget.repository.loadSchedule)
+        ..then((snapshot) {
+          if (mounted) {
+            setState(() => _snapshot = snapshot);
+          }
+        }).catchError((Object error) {
+          if (mounted) {
+            setState(() => _error = error);
+          }
+        });
+    });
+  }
+
+  void _newRule() {
+    setState(() {
+      _showForm = true;
+      _targetType = ScheduleRuleTarget.productPlatform;
+      _targetController.clear();
+      _hourController.text = '9';
+      _minuteController.text = '0';
+      _weekdaysController.text = '*';
+      _validationMessage = null;
+      _previewExpression = null;
+    });
+  }
+
+  Future<void> _previewCron() async {
+    final draft = _draftFromForm();
+    if (draft == null) {
+      return;
+    }
+    try {
+      final preview = await widget.repository.previewCron(draft);
+      if (mounted) {
+        setState(() {
+          _previewExpression = preview.expression;
+          _validationMessage = null;
+        });
+      }
+    } on ScheduleValidationException catch (error) {
+      if (mounted) {
+        setState(() => _validationMessage = error.message);
+      }
+    }
+  }
+
+  Future<void> _saveRule() async {
+    final draft = _draftFromForm();
+    if (draft == null) {
+      return;
+    }
+    try {
+      await widget.repository.saveRule(draft);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statusMessage = 'Saved ${draft.targetName}';
+        _showForm = false;
+        _validationMessage = null;
+      });
+      _load();
+    } on ScheduleValidationException catch (error) {
+      if (mounted) {
+        setState(() => _validationMessage = error.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Save failed: $error');
+      }
+    }
+  }
+
+  ScheduleRuleDraft? _draftFromForm() {
+    final target = _targetController.text.trim();
+    final hour = int.tryParse(_hourController.text.trim());
+    final minute = int.tryParse(_minuteController.text.trim());
+    if (hour == null) {
+      setState(() => _validationMessage = 'Hour must be 0-23');
+      return null;
+    }
+    if (minute == null) {
+      setState(() => _validationMessage = 'Minute must be 0-59');
+      return null;
+    }
+
+    final configId = _targetType == ScheduleRuleTarget.jobConfig
+        ? int.tryParse(target)
+        : null;
+    final draft = ScheduleRuleDraft(
+      targetType: _targetType,
+      targetName: target,
+      hour: hour,
+      minute: minute,
+      weekdays: _weekdaysController.text.trim(),
+      configId: configId,
+    );
+    try {
+      CronGenerator.validateDraft(draft);
+      return draft;
+    } on ScheduleValidationException catch (error) {
+      setState(() => _validationMessage = error.message);
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: AdaptiveScaffold(
+        destinations: const [
+          AdaptiveDestination(icon: Icons.today, label: 'Today'),
+          AdaptiveDestination(icon: Icons.schedule, label: 'Schedule'),
+          AdaptiveDestination(icon: Icons.work, label: 'Jobs'),
+          AdaptiveDestination(icon: Icons.inventory_2, label: 'Products'),
+          AdaptiveDestination(icon: Icons.analytics, label: 'Analytics'),
+        ],
+        selectedIndex: 1,
+        onDestinationSelected: (index) {
+          switch (index) {
+            case 0:
+              context.go('/today');
+            case 2:
+              context.go('/jobs');
+            case 3:
+              context.go('/products');
+            case 4:
+              context.go('/analytics');
+          }
+        },
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: FutureBuilder<ScheduleSnapshot>(
+              future: _scheduleFuture,
+              builder: (context, snapshot) {
+                if (_error != null) {
+                  return const Center(child: Text('规则加载失败。'));
+                }
+                if (snapshot.connectionState != ConnectionState.done &&
+                    _snapshot == null) {
+                  return const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text('正在加载自动规则...'),
+                      ],
+                    ),
+                  );
+                }
+                final current = _snapshot ?? const ScheduleSnapshot.empty();
+                return _ScheduleContent(
+                  snapshot: current,
+                  statusMessage: _statusMessage,
+                  validationMessage: _validationMessage,
+                  previewExpression: _previewExpression,
+                  showForm: _showForm,
+                  targetType: _targetType,
+                  targetController: _targetController,
+                  hourController: _hourController,
+                  minuteController: _minuteController,
+                  weekdaysController: _weekdaysController,
+                  onNewRule: current.canConfigure ? _newRule : null,
+                  onTargetTypeChanged: (target) {
+                    if (target == null) {
+                      return;
+                    }
+                    setState(() => _targetType = target);
+                  },
+                  onPreviewCron: _previewCron,
+                  onSaveRule: _saveRule,
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleContent extends StatelessWidget {
+  const _ScheduleContent({
+    required this.snapshot,
+    required this.statusMessage,
+    required this.validationMessage,
+    required this.previewExpression,
+    required this.showForm,
+    required this.targetType,
+    required this.targetController,
+    required this.hourController,
+    required this.minuteController,
+    required this.weekdaysController,
+    required this.onNewRule,
+    required this.onTargetTypeChanged,
+    required this.onPreviewCron,
+    required this.onSaveRule,
+  });
+
+  final ScheduleSnapshot snapshot;
+  final String? statusMessage;
+  final String? validationMessage;
+  final String? previewExpression;
+  final bool showForm;
+  final ScheduleRuleTarget targetType;
+  final TextEditingController targetController;
+  final TextEditingController hourController;
+  final TextEditingController minuteController;
+  final TextEditingController weekdaysController;
+  final VoidCallback? onNewRule;
+  final ValueChanged<ScheduleRuleTarget?> onTargetTypeChanged;
+  final Future<void> Function() onPreviewCron;
+  final Future<void> Function() onSaveRule;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Rules',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: onNewRule,
+                icon: const Icon(Icons.add),
+                label: const Text('New rule'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: const Icon(Icons.autorenew),
+                label: Text(snapshot.status.label),
+              ),
+              if (snapshot.status.timezone != null)
+                Chip(
+                  avatar: const Icon(Icons.public),
+                  label: Text(snapshot.status.timezone!),
+                ),
+            ],
+          ),
+          if (!snapshot.canConfigure) ...[
+            const SizedBox(height: 8),
+            const Text('没有权限修改自动规则。'),
+          ],
+          if (statusMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(statusMessage!),
+          ],
+          if (showForm) ...[
+            const SizedBox(height: 12),
+            _ScheduleRuleForm(
+              targetType: targetType,
+              targetController: targetController,
+              hourController: hourController,
+              minuteController: minuteController,
+              weekdaysController: weekdaysController,
+              validationMessage: validationMessage,
+              previewExpression: previewExpression,
+              onTargetTypeChanged: onTargetTypeChanged,
+              onPreviewCron: onPreviewCron,
+              onSaveRule: onSaveRule,
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (!snapshot.hasRules)
+            const Center(child: Text('还没有自动运行规则。'))
+          else ...[
+            _ScheduleSection(
+              title: 'Product schedules',
+              children: [
+                for (final schedule in snapshot.productSchedules)
+                  _ScheduleTile(
+                    title: schedule.platform,
+                    subtitle: schedule.cronExpression,
+                    nextRunAt: schedule.nextRunAt,
+                    icon: Icons.inventory_2,
+                  ),
+              ],
+            ),
+            _ScheduleSection(
+              title: 'Job schedules',
+              children: [
+                for (final schedule in snapshot.jobSchedules)
+                  _ScheduleTile(
+                    title: schedule.name,
+                    subtitle: schedule.cronExpression,
+                    nextRunAt: schedule.nextRunAt,
+                    icon: Icons.work,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleRuleForm extends StatelessWidget {
+  const _ScheduleRuleForm({
+    required this.targetType,
+    required this.targetController,
+    required this.hourController,
+    required this.minuteController,
+    required this.weekdaysController,
+    required this.validationMessage,
+    required this.previewExpression,
+    required this.onTargetTypeChanged,
+    required this.onPreviewCron,
+    required this.onSaveRule,
+  });
+
+  final ScheduleRuleTarget targetType;
+  final TextEditingController targetController;
+  final TextEditingController hourController;
+  final TextEditingController minuteController;
+  final TextEditingController weekdaysController;
+  final String? validationMessage;
+  final String? previewExpression;
+  final ValueChanged<ScheduleRuleTarget?> onTargetTypeChanged;
+  final Future<void> Function() onPreviewCron;
+  final Future<void> Function() onSaveRule;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Rule form', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<ScheduleRuleTarget>(
+              initialValue: targetType,
+              decoration: const InputDecoration(labelText: 'Target type'),
+              items: const [
+                DropdownMenuItem(
+                  value: ScheduleRuleTarget.productPlatform,
+                  child: Text('Product platform'),
+                ),
+                DropdownMenuItem(
+                  value: ScheduleRuleTarget.jobConfig,
+                  child: Text('Job config id'),
+                ),
+              ],
+              onChanged: onTargetTypeChanged,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('schedule-target-field'),
+              controller: targetController,
+              decoration: const InputDecoration(labelText: 'Target'),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('schedule-hour-field'),
+                    controller: hourController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Hour'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    key: const Key('schedule-minute-field'),
+                    controller: minuteController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Minute'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('schedule-weekdays-field'),
+              controller: weekdaysController,
+              decoration: const InputDecoration(labelText: 'Weekdays'),
+            ),
+            if (validationMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                validationMessage!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            if (previewExpression != null) ...[
+              const SizedBox(height: 8),
+              Text(previewExpression!),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onPreviewCron,
+                  icon: const Icon(Icons.preview),
+                  label: const Text('预览 cron'),
+                ),
+                FilledButton.icon(
+                  onPressed: onSaveRule,
+                  icon: const Icon(Icons.save),
+                  label: const Text('保存规则'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleSection extends StatelessWidget {
+  const _ScheduleSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleTile extends StatelessWidget {
+  const _ScheduleTile({
+    required this.title,
+    required this.subtitle,
+    required this.nextRunAt,
+    required this.icon,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? nextRunAt;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(subtitle),
+            if (nextRunAt != null) Text('Next run $nextRunAt'),
+          ],
+        ),
+      ),
+    );
+  }
+}

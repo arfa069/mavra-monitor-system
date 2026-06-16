@@ -15,6 +15,10 @@ import '../features/jobs/data/jobs_api.dart';
 import '../features/jobs/domain/job_models.dart';
 import '../features/products/data/products_api.dart';
 import '../features/products/domain/product_models.dart';
+import '../features/schedule/data/schedule_api.dart';
+import '../features/schedule/domain/schedule_models.dart';
+import '../features/smart_home/data/smart_home_api.dart';
+import '../features/smart_home/domain/smart_home_models.dart';
 import '../features/today/data/today_api.dart';
 import '../features/today/domain/today_models.dart';
 import 'router.dart';
@@ -31,6 +35,8 @@ class MavraApp extends StatelessWidget {
     this.analyticsRepository,
     this.jobsRepository,
     this.productRepository,
+    this.scheduleRepository,
+    this.smartHomeRepository,
     this.initialLocation,
   });
 
@@ -43,6 +49,8 @@ class MavraApp extends StatelessWidget {
   final AnalyticsRepository? analyticsRepository;
   final JobsRepository? jobsRepository;
   final ProductRepository? productRepository;
+  final ScheduleRepository? scheduleRepository;
+  final SmartHomeRepository? smartHomeRepository;
   final String? initialLocation;
 
   @override
@@ -56,6 +64,8 @@ class MavraApp extends StatelessWidget {
       analyticsRepository: analyticsRepository ?? _defaultAnalyticsRepository(),
       jobsRepository: jobsRepository ?? _defaultJobsRepository(),
       productRepository: productRepository ?? _defaultProductRepository(),
+      scheduleRepository: scheduleRepository ?? _defaultScheduleRepository(),
+      smartHomeRepository: smartHomeRepository ?? _defaultSmartHomeRepository(),
       initialLocation: initialLocation,
     );
 
@@ -77,7 +87,12 @@ class MavraApp extends StatelessWidget {
               refreshToken: 'local-preview-refresh',
               expiresAt: DateTime.now().toUtc().add(const Duration(hours: 1)),
               username: 'mavra',
-              permissions: const {'schedule:read', 'user:read'},
+              permissions: const {
+                'schedule:read',
+                'smart_home:read',
+                'smart_home:control',
+                'user:read',
+              },
             )
           : null,
     );
@@ -105,5 +120,13 @@ class MavraApp extends StatelessWidget {
 
   ProductRepository _defaultProductRepository() {
     return GeneratedProductRepository(config: config);
+  }
+
+  ScheduleRepository _defaultScheduleRepository() {
+    return GeneratedScheduleRepository(config: config);
+  }
+
+  SmartHomeRepository _defaultSmartHomeRepository() {
+    return GeneratedSmartHomeRepository(config: config);
   }
 }

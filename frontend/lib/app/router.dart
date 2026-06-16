@@ -16,6 +16,10 @@ import '../features/jobs/domain/job_models.dart';
 import '../features/jobs/presentation/jobs_page.dart';
 import '../features/products/domain/product_models.dart';
 import '../features/products/presentation/products_page.dart';
+import '../features/schedule/domain/schedule_models.dart';
+import '../features/schedule/presentation/schedule_page.dart';
+import '../features/smart_home/domain/smart_home_models.dart';
+import '../features/smart_home/presentation/smart_home_page.dart';
 import '../features/today/domain/today_models.dart';
 import '../features/today/presentation/today_page.dart';
 
@@ -27,6 +31,8 @@ GoRouter createMavraRouter({
   required AnalyticsRepository analyticsRepository,
   required JobsRepository jobsRepository,
   required ProductRepository productRepository,
+  required ScheduleRepository scheduleRepository,
+  required SmartHomeRepository smartHomeRepository,
   String? initialLocation,
 }) {
   return GoRouter(
@@ -93,6 +99,16 @@ GoRouter createMavraRouter({
         path: '/products',
         builder: (context, state) =>
             ProductsPage(repository: productRepository),
+      ),
+      GoRoute(
+        path: '/schedule',
+        builder: (context, state) =>
+            SchedulePage(repository: scheduleRepository),
+      ),
+      GoRoute(
+        path: '/smart-home',
+        builder: (context, state) =>
+            SmartHomePage(repository: smartHomeRepository),
       ),
       GoRoute(path: '/dashboard', redirect: (context, state) => '/analytics'),
       GoRoute(
