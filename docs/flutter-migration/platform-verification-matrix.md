@@ -6,8 +6,8 @@
 | --- | --- | --- |
 | Web | Ready | None |
 | Windows | Ready | Packaging/signing is a release concern, not a development blocker |
-| Android | Toolchain ready | Full emulator smoke evidence is collected in CI or a local AVD run |
-| iOS | CI required | macOS runner, simulator, signing and provisioning |
+| Android | Toolchain installed but locally blocked | Local NDK `28.2.13676358` is a malformed download and no Android device/emulator is connected |
+| iOS | CI required | The Windows Flutter tool exposes no iOS build subcommand; macOS runner, simulator, signing and provisioning remain required |
 
 ## CI Evidence Matrix
 
@@ -107,3 +107,23 @@ Recorded during Task 10 on 2026-06-16:
 | Windows | `flutter test integration_test\auth_smoke_test.dart -d windows` | Passed; Debug Windows app built and auth-to-Today smoke completed. |
 | Android | `flutter test integration_test\auth_smoke_test.dart -d emulator-5554` | Blocked locally; `Pixel_10_Pro_XL` AVD booted as Android 16/API 36, but Gradle `assembleDebug` did not complete before timeout. |
 | iOS | not run locally | Requires macOS CI/simulator evidence. |
+
+## Task 15 Evidence
+
+Recorded during final verification on 2026-06-16:
+
+| Target | Command | Result |
+| --- | --- | --- |
+| Backend lint | `uv run --extra dev python -m ruff check .` | Passed. |
+| Backend tests | `uv run --extra dev python -m pytest` | Failed locally: 669 passed, 50 failed, 41 skipped. Failures are dominated by local PostgreSQL password authentication failures, with additional route/audit test failures recorded in the final report. |
+| API contract | `uv run --extra dev python ../scripts/export_openapi.py`; `uv run --extra dev python ../scripts/check_api_contract.py` | Passed. |
+| Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed. |
+| Flutter analyzer | `flutter analyze` | Passed. |
+| Flutter tests | `flutter test` | Passed: 65 tests. |
+| Web build | `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed; Flutter also emitted a WebAssembly dry-run warning for `file_picker` using `dart:html`. |
+| Windows build | `flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1` | Passed. |
+| Android build | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Blocked locally by malformed NDK download at `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`. |
+| iOS build | `flutter build ios -h` | Not available on Windows; available build subcommands are `aar`, `apk`, `appbundle`, `bundle`, `web`, and `windows`. |
+| Windows integration | `flutter test integration_test -d windows`; single-file reruns | Full command passed the first smoke then hit Flutter Windows app-start instability; `auth_smoke_test.dart` and `platform_capability_smoke_test.dart` passed when run individually. |
+| Web integration | `flutter test integration_test -d chrome` | Blocked by Flutter tool: `Web devices are not supported for integration tests yet.` |
+| Android integration | `flutter test integration_test -d android` | Blocked locally: no supported Android device or emulator is connected. |
