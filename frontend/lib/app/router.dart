@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/alerts/domain/alert_models.dart';
+import '../features/alerts/presentation/alerts_page.dart';
+import '../features/analytics/domain/analytics_models.dart';
+import '../features/analytics/presentation/analytics_page.dart';
 import '../features/auth/domain/auth_models.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/profile_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/auth/presentation/wechat_callback_page.dart';
+import '../features/events/domain/event_models.dart';
+import '../features/events/presentation/events_page.dart';
+import '../features/today/domain/today_models.dart';
+import '../features/today/presentation/today_page.dart';
 
 GoRouter createMavraRouter({
   required AuthController authController,
+  required TodayRepository todayRepository,
+  required EventRepository eventRepository,
+  required AlertRepository alertRepository,
+  required AnalyticsRepository analyticsRepository,
   String? initialLocation,
 }) {
   return GoRouter(
@@ -52,8 +64,22 @@ GoRouter createMavraRouter({
       ),
       GoRoute(
         path: '/today',
-        builder: (context, state) => const PlaceholderScreen(title: 'Today'),
+        builder: (context, state) => TodayPage(repository: todayRepository),
       ),
+      GoRoute(
+        path: '/events',
+        builder: (context, state) => EventsPage(repository: eventRepository),
+      ),
+      GoRoute(
+        path: '/alerts',
+        builder: (context, state) => AlertsPage(repository: alertRepository),
+      ),
+      GoRoute(
+        path: '/analytics',
+        builder: (context, state) =>
+            AnalyticsPage(repository: analyticsRepository),
+      ),
+      GoRoute(path: '/dashboard', redirect: (context, state) => '/analytics'),
       GoRoute(
         path: '/profile',
         builder: (context, state) =>

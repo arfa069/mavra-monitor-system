@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Web | Ready | None |
 | Windows | Ready | Packaging/signing is a release concern, not a development blocker |
-| Android | Installing | Android Studio, SDK, ADB, licenses, and AVD verification |
+| Android | Toolchain ready | AVD exists, but first `assembleDebug` for integration smoke timed out locally |
 | iOS | CI required | macOS runner, simulator, signing and provisioning |
 
 ## Capability Matrix
@@ -82,3 +82,14 @@ The final verification report must include the macOS CI run URL.
 - Android installation in progress is not an accepted final exception.
 - Real crawls, profile logins, matching, and Home Assistant service calls stay
   disabled during automated platform tests.
+
+## Gate C Evidence
+
+Recorded during Task 10 on 2026-06-16:
+
+| Target | Command | Result |
+| --- | --- | --- |
+| Web | `flutter test integration_test\auth_smoke_test.dart -d chrome` | Blocked by Flutter tool: `Web devices are not supported for integration tests yet.` |
+| Windows | `flutter test integration_test\auth_smoke_test.dart -d windows` | Passed; Debug Windows app built and auth-to-Today smoke completed. |
+| Android | `flutter test integration_test\auth_smoke_test.dart -d emulator-5554` | Blocked locally; `Pixel_10_Pro_XL` AVD booted as Android 16/API 36, but Gradle `assembleDebug` did not complete before timeout. |
+| iOS | not run locally | Requires macOS CI/simulator evidence. |
