@@ -18,7 +18,7 @@ class _$AlertCreate extends AlertCreate {
       (AlertCreateBuilder()..update(updates))._build();
 
   _$AlertCreate._({required this.productId, this.active, this.thresholdPercent})
-      : super._();
+    : super._();
   @override
   AlertCreate rebuild(void Function(AlertCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -103,10 +103,14 @@ class AlertCreateBuilder implements Builder<AlertCreate, AlertCreateBuilder> {
   _$AlertCreate _build() {
     _$AlertCreate _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AlertCreate._(
             productId: BuiltValueNullFieldError.checkNotNull(
-                productId, r'AlertCreate', 'productId'),
+              productId,
+              r'AlertCreate',
+              'productId',
+            ),
             active: active,
             thresholdPercent: _thresholdPercent?.build(),
           );
@@ -117,7 +121,10 @@ class AlertCreateBuilder implements Builder<AlertCreate, AlertCreateBuilder> {
         _thresholdPercent?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AlertCreate', _$failedField, e.toString());
+          r'AlertCreate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

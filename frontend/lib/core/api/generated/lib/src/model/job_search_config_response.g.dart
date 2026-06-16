@@ -7,17 +7,17 @@ part of 'job_search_config_response.dart';
 // **************************************************************************
 
 const JobSearchConfigResponsePlatformEnum
-    _$jobSearchConfigResponsePlatformEnum_boss =
+_$jobSearchConfigResponsePlatformEnum_boss =
     const JobSearchConfigResponsePlatformEnum._('boss');
 const JobSearchConfigResponsePlatformEnum
-    _$jobSearchConfigResponsePlatformEnum_n51job =
+_$jobSearchConfigResponsePlatformEnum_n51job =
     const JobSearchConfigResponsePlatformEnum._('n51job');
 const JobSearchConfigResponsePlatformEnum
-    _$jobSearchConfigResponsePlatformEnum_liepin =
+_$jobSearchConfigResponsePlatformEnum_liepin =
     const JobSearchConfigResponsePlatformEnum._('liepin');
 
 JobSearchConfigResponsePlatformEnum
-    _$jobSearchConfigResponsePlatformEnumValueOf(String name) {
+_$jobSearchConfigResponsePlatformEnumValueOf(String name) {
   switch (name) {
     case 'boss':
       return _$jobSearchConfigResponsePlatformEnum_boss;
@@ -31,15 +31,17 @@ JobSearchConfigResponsePlatformEnum
 }
 
 final BuiltSet<JobSearchConfigResponsePlatformEnum>
-    _$jobSearchConfigResponsePlatformEnumValues = BuiltSet<
-        JobSearchConfigResponsePlatformEnum>(const <JobSearchConfigResponsePlatformEnum>[
-  _$jobSearchConfigResponsePlatformEnum_boss,
-  _$jobSearchConfigResponsePlatformEnum_n51job,
-  _$jobSearchConfigResponsePlatformEnum_liepin,
-]);
+_$jobSearchConfigResponsePlatformEnumValues =
+    BuiltSet<JobSearchConfigResponsePlatformEnum>(
+      const <JobSearchConfigResponsePlatformEnum>[
+        _$jobSearchConfigResponsePlatformEnum_boss,
+        _$jobSearchConfigResponsePlatformEnum_n51job,
+        _$jobSearchConfigResponsePlatformEnum_liepin,
+      ],
+    );
 
 Serializer<JobSearchConfigResponsePlatformEnum>
-    _$jobSearchConfigResponsePlatformEnumSerializer =
+_$jobSearchConfigResponsePlatformEnumSerializer =
     _$JobSearchConfigResponsePlatformEnumSerializer();
 
 class _$JobSearchConfigResponsePlatformEnumSerializer
@@ -57,23 +59,26 @@ class _$JobSearchConfigResponsePlatformEnumSerializer
 
   @override
   final Iterable<Type> types = const <Type>[
-    JobSearchConfigResponsePlatformEnum
+    JobSearchConfigResponsePlatformEnum,
   ];
   @override
   final String wireName = 'JobSearchConfigResponsePlatformEnum';
 
   @override
   Object serialize(
-          Serializers serializers, JobSearchConfigResponsePlatformEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    JobSearchConfigResponsePlatformEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   JobSearchConfigResponsePlatformEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      JobSearchConfigResponsePlatformEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => JobSearchConfigResponsePlatformEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$JobSearchConfigResponse extends JobSearchConfigResponse {
@@ -118,36 +123,36 @@ class _$JobSearchConfigResponse extends JobSearchConfigResponse {
   @override
   final JobSearchConfigResponsePlatformEnum? platform;
 
-  factory _$JobSearchConfigResponse(
-          [void Function(JobSearchConfigResponseBuilder)? updates]) =>
-      (JobSearchConfigResponseBuilder()..update(updates))._build();
+  factory _$JobSearchConfigResponse([
+    void Function(JobSearchConfigResponseBuilder)? updates,
+  ]) => (JobSearchConfigResponseBuilder()..update(updates))._build();
 
-  _$JobSearchConfigResponse._(
-      {required this.active,
-      this.cityCode,
-      required this.createdAt,
-      this.cronExpression,
-      this.cronTimezone,
-      required this.deactivationThreshold,
-      this.education,
-      required this.enableMatchAnalysis,
-      this.experience,
-      required this.id,
-      this.keyword,
-      required this.name,
-      required this.notifyOnNew,
-      required this.profileKey,
-      this.salaryMax,
-      this.salaryMin,
-      required this.updatedAt,
-      required this.url,
-      required this.userId,
-      this.platform})
-      : super._();
+  _$JobSearchConfigResponse._({
+    required this.active,
+    this.cityCode,
+    required this.createdAt,
+    this.cronExpression,
+    this.cronTimezone,
+    required this.deactivationThreshold,
+    this.education,
+    required this.enableMatchAnalysis,
+    this.experience,
+    required this.id,
+    this.keyword,
+    required this.name,
+    required this.notifyOnNew,
+    required this.profileKey,
+    this.salaryMax,
+    this.salaryMin,
+    required this.updatedAt,
+    required this.url,
+    required this.userId,
+    this.platform,
+  }) : super._();
   @override
   JobSearchConfigResponse rebuild(
-          void Function(JobSearchConfigResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobSearchConfigResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobSearchConfigResponseBuilder toBuilder() =>
@@ -368,42 +373,72 @@ class JobSearchConfigResponseBuilder
   JobSearchConfigResponse build() => _build();
 
   _$JobSearchConfigResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobSearchConfigResponse._(
           active: BuiltValueNullFieldError.checkNotNull(
-              active, r'JobSearchConfigResponse', 'active'),
+            active,
+            r'JobSearchConfigResponse',
+            'active',
+          ),
           cityCode: cityCode,
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'JobSearchConfigResponse', 'createdAt'),
+            createdAt,
+            r'JobSearchConfigResponse',
+            'createdAt',
+          ),
           cronExpression: cronExpression,
           cronTimezone: cronTimezone,
           deactivationThreshold: BuiltValueNullFieldError.checkNotNull(
-              deactivationThreshold,
-              r'JobSearchConfigResponse',
-              'deactivationThreshold'),
+            deactivationThreshold,
+            r'JobSearchConfigResponse',
+            'deactivationThreshold',
+          ),
           education: education,
           enableMatchAnalysis: BuiltValueNullFieldError.checkNotNull(
-              enableMatchAnalysis,
-              r'JobSearchConfigResponse',
-              'enableMatchAnalysis'),
+            enableMatchAnalysis,
+            r'JobSearchConfigResponse',
+            'enableMatchAnalysis',
+          ),
           experience: experience,
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'JobSearchConfigResponse', 'id'),
+            id,
+            r'JobSearchConfigResponse',
+            'id',
+          ),
           keyword: keyword,
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'JobSearchConfigResponse', 'name'),
+            name,
+            r'JobSearchConfigResponse',
+            'name',
+          ),
           notifyOnNew: BuiltValueNullFieldError.checkNotNull(
-              notifyOnNew, r'JobSearchConfigResponse', 'notifyOnNew'),
+            notifyOnNew,
+            r'JobSearchConfigResponse',
+            'notifyOnNew',
+          ),
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'JobSearchConfigResponse', 'profileKey'),
+            profileKey,
+            r'JobSearchConfigResponse',
+            'profileKey',
+          ),
           salaryMax: salaryMax,
           salaryMin: salaryMin,
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'JobSearchConfigResponse', 'updatedAt'),
+            updatedAt,
+            r'JobSearchConfigResponse',
+            'updatedAt',
+          ),
           url: BuiltValueNullFieldError.checkNotNull(
-              url, r'JobSearchConfigResponse', 'url'),
+            url,
+            r'JobSearchConfigResponse',
+            'url',
+          ),
           userId: BuiltValueNullFieldError.checkNotNull(
-              userId, r'JobSearchConfigResponse', 'userId'),
+            userId,
+            r'JobSearchConfigResponse',
+            'userId',
+          ),
           platform: platform,
         );
     replace(_$result);

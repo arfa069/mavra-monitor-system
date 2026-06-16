@@ -89,12 +89,19 @@ class TrendDataPointBuilder
   TrendDataPoint build() => _build();
 
   _$TrendDataPoint _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$TrendDataPoint._(
           label: BuiltValueNullFieldError.checkNotNull(
-              label, r'TrendDataPoint', 'label'),
+            label,
+            r'TrendDataPoint',
+            'label',
+          ),
           value: BuiltValueNullFieldError.checkNotNull(
-              value, r'TrendDataPoint', 'value'),
+            value,
+            r'TrendDataPoint',
+            'value',
+          ),
         );
     replace(_$result);
     return _$result;

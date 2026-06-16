@@ -20,7 +20,7 @@ class _$ProductUpdate extends ProductUpdate {
       (ProductUpdateBuilder()..update(updates))._build();
 
   _$ProductUpdate._({this.active, this.platform, this.title, this.url})
-      : super._();
+    : super._();
   @override
   ProductUpdate rebuild(void Function(ProductUpdateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -110,7 +110,8 @@ class ProductUpdateBuilder
   ProductUpdate build() => _build();
 
   _$ProductUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductUpdate._(
           active: active,
           platform: platform,

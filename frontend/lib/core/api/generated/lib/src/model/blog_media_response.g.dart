@@ -22,19 +22,19 @@ class _$BlogMediaResponse extends BlogMediaResponse {
   @override
   final int sizeBytes;
 
-  factory _$BlogMediaResponse(
-          [void Function(BlogMediaResponseBuilder)? updates]) =>
-      (BlogMediaResponseBuilder()..update(updates))._build();
+  factory _$BlogMediaResponse([
+    void Function(BlogMediaResponseBuilder)? updates,
+  ]) => (BlogMediaResponseBuilder()..update(updates))._build();
 
-  _$BlogMediaResponse._(
-      {required this.contentType,
-      required this.createdAt,
-      required this.fileName,
-      required this.id,
-      required this.originalName,
-      required this.publicUrl,
-      required this.sizeBytes})
-      : super._();
+  _$BlogMediaResponse._({
+    required this.contentType,
+    required this.createdAt,
+    required this.fileName,
+    required this.id,
+    required this.originalName,
+    required this.publicUrl,
+    required this.sizeBytes,
+  }) : super._();
   @override
   BlogMediaResponse rebuild(void Function(BlogMediaResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -149,22 +149,44 @@ class BlogMediaResponseBuilder
   BlogMediaResponse build() => _build();
 
   _$BlogMediaResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$BlogMediaResponse._(
           contentType: BuiltValueNullFieldError.checkNotNull(
-              contentType, r'BlogMediaResponse', 'contentType'),
+            contentType,
+            r'BlogMediaResponse',
+            'contentType',
+          ),
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'BlogMediaResponse', 'createdAt'),
+            createdAt,
+            r'BlogMediaResponse',
+            'createdAt',
+          ),
           fileName: BuiltValueNullFieldError.checkNotNull(
-              fileName, r'BlogMediaResponse', 'fileName'),
+            fileName,
+            r'BlogMediaResponse',
+            'fileName',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'BlogMediaResponse', 'id'),
+            id,
+            r'BlogMediaResponse',
+            'id',
+          ),
           originalName: BuiltValueNullFieldError.checkNotNull(
-              originalName, r'BlogMediaResponse', 'originalName'),
+            originalName,
+            r'BlogMediaResponse',
+            'originalName',
+          ),
           publicUrl: BuiltValueNullFieldError.checkNotNull(
-              publicUrl, r'BlogMediaResponse', 'publicUrl'),
+            publicUrl,
+            r'BlogMediaResponse',
+            'publicUrl',
+          ),
           sizeBytes: BuiltValueNullFieldError.checkNotNull(
-              sizeBytes, r'BlogMediaResponse', 'sizeBytes'),
+            sizeBytes,
+            r'BlogMediaResponse',
+            'sizeBytes',
+          ),
         );
     replace(_$result);
     return _$result;

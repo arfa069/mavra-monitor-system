@@ -14,16 +14,16 @@ class _$SmartHomeConfigUpdate extends SmartHomeConfigUpdate {
   @override
   final String? token;
 
-  factory _$SmartHomeConfigUpdate(
-          [void Function(SmartHomeConfigUpdateBuilder)? updates]) =>
-      (SmartHomeConfigUpdateBuilder()..update(updates))._build();
+  factory _$SmartHomeConfigUpdate([
+    void Function(SmartHomeConfigUpdateBuilder)? updates,
+  ]) => (SmartHomeConfigUpdateBuilder()..update(updates))._build();
 
   _$SmartHomeConfigUpdate._({required this.baseUrl, this.enabled, this.token})
-      : super._();
+    : super._();
   @override
   SmartHomeConfigUpdate rebuild(
-          void Function(SmartHomeConfigUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeConfigUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeConfigUpdateBuilder toBuilder() =>
@@ -103,10 +103,14 @@ class SmartHomeConfigUpdateBuilder
   SmartHomeConfigUpdate build() => _build();
 
   _$SmartHomeConfigUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SmartHomeConfigUpdate._(
           baseUrl: BuiltValueNullFieldError.checkNotNull(
-              baseUrl, r'SmartHomeConfigUpdate', 'baseUrl'),
+            baseUrl,
+            r'SmartHomeConfigUpdate',
+            'baseUrl',
+          ),
           enabled: enabled,
           token: token,
         );

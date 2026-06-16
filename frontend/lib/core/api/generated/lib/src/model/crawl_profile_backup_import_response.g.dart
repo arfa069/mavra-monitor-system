@@ -13,17 +13,18 @@ class _$CrawlProfileBackupImportResponse
   @override
   final String profileKey;
 
-  factory _$CrawlProfileBackupImportResponse(
-          [void Function(CrawlProfileBackupImportResponseBuilder)? updates]) =>
-      (CrawlProfileBackupImportResponseBuilder()..update(updates))._build();
+  factory _$CrawlProfileBackupImportResponse([
+    void Function(CrawlProfileBackupImportResponseBuilder)? updates,
+  ]) => (CrawlProfileBackupImportResponseBuilder()..update(updates))._build();
 
-  _$CrawlProfileBackupImportResponse._(
-      {required this.imported, required this.profileKey})
-      : super._();
+  _$CrawlProfileBackupImportResponse._({
+    required this.imported,
+    required this.profileKey,
+  }) : super._();
   @override
   CrawlProfileBackupImportResponse rebuild(
-          void Function(CrawlProfileBackupImportResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileBackupImportResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileBackupImportResponseBuilder toBuilder() =>
@@ -57,8 +58,10 @@ class _$CrawlProfileBackupImportResponse
 
 class CrawlProfileBackupImportResponseBuilder
     implements
-        Builder<CrawlProfileBackupImportResponse,
-            CrawlProfileBackupImportResponseBuilder> {
+        Builder<
+          CrawlProfileBackupImportResponse,
+          CrawlProfileBackupImportResponseBuilder
+        > {
   _$CrawlProfileBackupImportResponse? _$v;
 
   bool? _imported;
@@ -97,12 +100,19 @@ class CrawlProfileBackupImportResponseBuilder
   CrawlProfileBackupImportResponse build() => _build();
 
   _$CrawlProfileBackupImportResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileBackupImportResponse._(
           imported: BuiltValueNullFieldError.checkNotNull(
-              imported, r'CrawlProfileBackupImportResponse', 'imported'),
+            imported,
+            r'CrawlProfileBackupImportResponse',
+            'imported',
+          ),
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileBackupImportResponse', 'profileKey'),
+            profileKey,
+            r'CrawlProfileBackupImportResponse',
+            'profileKey',
+          ),
         );
     replace(_$result);
     return _$result;

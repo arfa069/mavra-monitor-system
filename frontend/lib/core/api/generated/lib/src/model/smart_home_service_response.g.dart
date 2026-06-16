@@ -16,20 +16,20 @@ class _$SmartHomeServiceResponse extends SmartHomeServiceResponse {
   @override
   final String service;
 
-  factory _$SmartHomeServiceResponse(
-          [void Function(SmartHomeServiceResponseBuilder)? updates]) =>
-      (SmartHomeServiceResponseBuilder()..update(updates))._build();
+  factory _$SmartHomeServiceResponse([
+    void Function(SmartHomeServiceResponseBuilder)? updates,
+  ]) => (SmartHomeServiceResponseBuilder()..update(updates))._build();
 
-  _$SmartHomeServiceResponse._(
-      {required this.entityId,
-      required this.message,
-      required this.ok,
-      required this.service})
-      : super._();
+  _$SmartHomeServiceResponse._({
+    required this.entityId,
+    required this.message,
+    required this.ok,
+    required this.service,
+  }) : super._();
   @override
   SmartHomeServiceResponse rebuild(
-          void Function(SmartHomeServiceResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeServiceResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeServiceResponseBuilder toBuilder() =>
@@ -118,16 +118,29 @@ class SmartHomeServiceResponseBuilder
   SmartHomeServiceResponse build() => _build();
 
   _$SmartHomeServiceResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SmartHomeServiceResponse._(
           entityId: BuiltValueNullFieldError.checkNotNull(
-              entityId, r'SmartHomeServiceResponse', 'entityId'),
+            entityId,
+            r'SmartHomeServiceResponse',
+            'entityId',
+          ),
           message: BuiltValueNullFieldError.checkNotNull(
-              message, r'SmartHomeServiceResponse', 'message'),
+            message,
+            r'SmartHomeServiceResponse',
+            'message',
+          ),
           ok: BuiltValueNullFieldError.checkNotNull(
-              ok, r'SmartHomeServiceResponse', 'ok'),
+            ok,
+            r'SmartHomeServiceResponse',
+            'ok',
+          ),
           service: BuiltValueNullFieldError.checkNotNull(
-              service, r'SmartHomeServiceResponse', 'service'),
+            service,
+            r'SmartHomeServiceResponse',
+            'service',
+          ),
         );
     replace(_$result);
     return _$result;

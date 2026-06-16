@@ -24,20 +24,20 @@ class _$CrawlLogResponse extends CrawlLogResponse {
   @override
   final DateTime timestamp;
 
-  factory _$CrawlLogResponse(
-          [void Function(CrawlLogResponseBuilder)? updates]) =>
-      (CrawlLogResponseBuilder()..update(updates))._build();
+  factory _$CrawlLogResponse([
+    void Function(CrawlLogResponseBuilder)? updates,
+  ]) => (CrawlLogResponseBuilder()..update(updates))._build();
 
-  _$CrawlLogResponse._(
-      {this.currency,
-      this.errorMessage,
-      required this.id,
-      this.platform,
-      this.price,
-      this.productId,
-      this.status,
-      required this.timestamp})
-      : super._();
+  _$CrawlLogResponse._({
+    this.currency,
+    this.errorMessage,
+    required this.id,
+    this.platform,
+    this.price,
+    this.productId,
+    this.status,
+    required this.timestamp,
+  }) : super._();
   @override
   CrawlLogResponse rebuild(void Function(CrawlLogResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -160,18 +160,25 @@ class CrawlLogResponseBuilder
   CrawlLogResponse build() => _build();
 
   _$CrawlLogResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlLogResponse._(
           currency: currency,
           errorMessage: errorMessage,
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'CrawlLogResponse', 'id'),
+            id,
+            r'CrawlLogResponse',
+            'id',
+          ),
           platform: platform,
           price: price,
           productId: productId,
           status: status,
           timestamp: BuiltValueNullFieldError.checkNotNull(
-              timestamp, r'CrawlLogResponse', 'timestamp'),
+            timestamp,
+            r'CrawlLogResponse',
+            'timestamp',
+          ),
         );
     replace(_$result);
     return _$result;

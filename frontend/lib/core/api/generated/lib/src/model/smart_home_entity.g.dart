@@ -44,14 +44,14 @@ SmartHomeEntityDomainEnum _$smartHomeEntityDomainEnumValueOf(String name) {
 
 final BuiltSet<SmartHomeEntityDomainEnum> _$smartHomeEntityDomainEnumValues =
     BuiltSet<SmartHomeEntityDomainEnum>(const <SmartHomeEntityDomainEnum>[
-  _$smartHomeEntityDomainEnum_light,
-  _$smartHomeEntityDomainEnum_switch_,
-  _$smartHomeEntityDomainEnum_fan,
-  _$smartHomeEntityDomainEnum_cover,
-  _$smartHomeEntityDomainEnum_climate,
-  _$smartHomeEntityDomainEnum_scene,
-  _$smartHomeEntityDomainEnum_script,
-]);
+      _$smartHomeEntityDomainEnum_light,
+      _$smartHomeEntityDomainEnum_switch_,
+      _$smartHomeEntityDomainEnum_fan,
+      _$smartHomeEntityDomainEnum_cover,
+      _$smartHomeEntityDomainEnum_climate,
+      _$smartHomeEntityDomainEnum_scene,
+      _$smartHomeEntityDomainEnum_script,
+    ]);
 
 Serializer<SmartHomeEntityDomainEnum> _$smartHomeEntityDomainEnumSerializer =
     _$SmartHomeEntityDomainEnumSerializer();
@@ -83,16 +83,20 @@ class _$SmartHomeEntityDomainEnumSerializer
   final String wireName = 'SmartHomeEntityDomainEnum';
 
   @override
-  Object serialize(Serializers serializers, SmartHomeEntityDomainEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    SmartHomeEntityDomainEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   SmartHomeEntityDomainEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      SmartHomeEntityDomainEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => SmartHomeEntityDomainEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$SmartHomeEntity extends SmartHomeEntity {
@@ -118,17 +122,17 @@ class _$SmartHomeEntity extends SmartHomeEntity {
   factory _$SmartHomeEntity([void Function(SmartHomeEntityBuilder)? updates]) =>
       (SmartHomeEntityBuilder()..update(updates))._build();
 
-  _$SmartHomeEntity._(
-      {required this.domain,
-      required this.entityId,
-      required this.name,
-      required this.state,
-      this.area,
-      this.attributes,
-      this.available,
-      this.lastChanged,
-      this.lastUpdated})
-      : super._();
+  _$SmartHomeEntity._({
+    required this.domain,
+    required this.entityId,
+    required this.name,
+    required this.state,
+    this.area,
+    this.attributes,
+    this.available,
+    this.lastChanged,
+    this.lastUpdated,
+  }) : super._();
   @override
   SmartHomeEntity rebuild(void Function(SmartHomeEntityBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -262,16 +266,29 @@ class SmartHomeEntityBuilder
   _$SmartHomeEntity _build() {
     _$SmartHomeEntity _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$SmartHomeEntity._(
             domain: BuiltValueNullFieldError.checkNotNull(
-                domain, r'SmartHomeEntity', 'domain'),
+              domain,
+              r'SmartHomeEntity',
+              'domain',
+            ),
             entityId: BuiltValueNullFieldError.checkNotNull(
-                entityId, r'SmartHomeEntity', 'entityId'),
+              entityId,
+              r'SmartHomeEntity',
+              'entityId',
+            ),
             name: BuiltValueNullFieldError.checkNotNull(
-                name, r'SmartHomeEntity', 'name'),
+              name,
+              r'SmartHomeEntity',
+              'name',
+            ),
             state: BuiltValueNullFieldError.checkNotNull(
-                state, r'SmartHomeEntity', 'state'),
+              state,
+              r'SmartHomeEntity',
+              'state',
+            ),
             area: area,
             attributes: _attributes?.build(),
             available: available,
@@ -285,7 +302,10 @@ class SmartHomeEntityBuilder
         _attributes?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'SmartHomeEntity', _$failedField, e.toString());
+          r'SmartHomeEntity',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

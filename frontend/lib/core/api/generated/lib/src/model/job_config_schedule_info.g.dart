@@ -14,17 +14,19 @@ class _$JobConfigScheduleInfo extends JobConfigScheduleInfo {
   @override
   final String? nextRunAt;
 
-  factory _$JobConfigScheduleInfo(
-          [void Function(JobConfigScheduleInfoBuilder)? updates]) =>
-      (JobConfigScheduleInfoBuilder()..update(updates))._build();
+  factory _$JobConfigScheduleInfo([
+    void Function(JobConfigScheduleInfoBuilder)? updates,
+  ]) => (JobConfigScheduleInfoBuilder()..update(updates))._build();
 
-  _$JobConfigScheduleInfo._(
-      {required this.configId, this.cronExpression, this.nextRunAt})
-      : super._();
+  _$JobConfigScheduleInfo._({
+    required this.configId,
+    this.cronExpression,
+    this.nextRunAt,
+  }) : super._();
   @override
   JobConfigScheduleInfo rebuild(
-          void Function(JobConfigScheduleInfoBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobConfigScheduleInfoBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobConfigScheduleInfoBuilder toBuilder() =>
@@ -105,10 +107,14 @@ class JobConfigScheduleInfoBuilder
   JobConfigScheduleInfo build() => _build();
 
   _$JobConfigScheduleInfo _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobConfigScheduleInfo._(
           configId: BuiltValueNullFieldError.checkNotNull(
-              configId, r'JobConfigScheduleInfo', 'configId'),
+            configId,
+            r'JobConfigScheduleInfo',
+            'configId',
+          ),
           cronExpression: cronExpression,
           nextRunAt: nextRunAt,
         );

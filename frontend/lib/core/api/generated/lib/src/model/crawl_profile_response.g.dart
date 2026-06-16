@@ -7,21 +7,22 @@ part of 'crawl_profile_response.dart';
 // **************************************************************************
 
 const CrawlProfileResponseStatusEnum
-    _$crawlProfileResponseStatusEnum_available =
+_$crawlProfileResponseStatusEnum_available =
     const CrawlProfileResponseStatusEnum._('available');
 const CrawlProfileResponseStatusEnum _$crawlProfileResponseStatusEnum_leased =
     const CrawlProfileResponseStatusEnum._('leased');
 const CrawlProfileResponseStatusEnum
-    _$crawlProfileResponseStatusEnum_loginRequired =
+_$crawlProfileResponseStatusEnum_loginRequired =
     const CrawlProfileResponseStatusEnum._('loginRequired');
 const CrawlProfileResponseStatusEnum
-    _$crawlProfileResponseStatusEnum_coolingDown =
+_$crawlProfileResponseStatusEnum_coolingDown =
     const CrawlProfileResponseStatusEnum._('coolingDown');
 const CrawlProfileResponseStatusEnum _$crawlProfileResponseStatusEnum_disabled =
     const CrawlProfileResponseStatusEnum._('disabled');
 
 CrawlProfileResponseStatusEnum _$crawlProfileResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'available':
       return _$crawlProfileResponseStatusEnum_available;
@@ -39,17 +40,19 @@ CrawlProfileResponseStatusEnum _$crawlProfileResponseStatusEnumValueOf(
 }
 
 final BuiltSet<CrawlProfileResponseStatusEnum>
-    _$crawlProfileResponseStatusEnumValues = BuiltSet<
-        CrawlProfileResponseStatusEnum>(const <CrawlProfileResponseStatusEnum>[
-  _$crawlProfileResponseStatusEnum_available,
-  _$crawlProfileResponseStatusEnum_leased,
-  _$crawlProfileResponseStatusEnum_loginRequired,
-  _$crawlProfileResponseStatusEnum_coolingDown,
-  _$crawlProfileResponseStatusEnum_disabled,
-]);
+_$crawlProfileResponseStatusEnumValues =
+    BuiltSet<CrawlProfileResponseStatusEnum>(
+      const <CrawlProfileResponseStatusEnum>[
+        _$crawlProfileResponseStatusEnum_available,
+        _$crawlProfileResponseStatusEnum_leased,
+        _$crawlProfileResponseStatusEnum_loginRequired,
+        _$crawlProfileResponseStatusEnum_coolingDown,
+        _$crawlProfileResponseStatusEnum_disabled,
+      ],
+    );
 
 Serializer<CrawlProfileResponseStatusEnum>
-    _$crawlProfileResponseStatusEnumSerializer =
+_$crawlProfileResponseStatusEnumSerializer =
     _$CrawlProfileResponseStatusEnumSerializer();
 
 class _$CrawlProfileResponseStatusEnumSerializer
@@ -76,16 +79,19 @@ class _$CrawlProfileResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, CrawlProfileResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    CrawlProfileResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileResponse extends CrawlProfileResponse {
@@ -112,27 +118,27 @@ class _$CrawlProfileResponse extends CrawlProfileResponse {
   @override
   final DateTime updatedAt;
 
-  factory _$CrawlProfileResponse(
-          [void Function(CrawlProfileResponseBuilder)? updates]) =>
-      (CrawlProfileResponseBuilder()..update(updates))._build();
+  factory _$CrawlProfileResponse([
+    void Function(CrawlProfileResponseBuilder)? updates,
+  ]) => (CrawlProfileResponseBuilder()..update(updates))._build();
 
-  _$CrawlProfileResponse._(
-      {required this.createdAt,
-      this.lastError,
-      this.lastUsedAt,
-      this.leaseOwner,
-      this.leaseTaskId,
-      this.leaseUntil,
-      this.platformHint,
-      required this.profileDir,
-      required this.profileKey,
-      required this.status,
-      required this.updatedAt})
-      : super._();
+  _$CrawlProfileResponse._({
+    required this.createdAt,
+    this.lastError,
+    this.lastUsedAt,
+    this.leaseOwner,
+    this.leaseTaskId,
+    this.leaseUntil,
+    this.platformHint,
+    required this.profileDir,
+    required this.profileKey,
+    required this.status,
+    required this.updatedAt,
+  }) : super._();
   @override
   CrawlProfileResponse rebuild(
-          void Function(CrawlProfileResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileResponseBuilder toBuilder() =>
@@ -276,10 +282,14 @@ class CrawlProfileResponseBuilder
   CrawlProfileResponse build() => _build();
 
   _$CrawlProfileResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'CrawlProfileResponse', 'createdAt'),
+            createdAt,
+            r'CrawlProfileResponse',
+            'createdAt',
+          ),
           lastError: lastError,
           lastUsedAt: lastUsedAt,
           leaseOwner: leaseOwner,
@@ -287,13 +297,25 @@ class CrawlProfileResponseBuilder
           leaseUntil: leaseUntil,
           platformHint: platformHint,
           profileDir: BuiltValueNullFieldError.checkNotNull(
-              profileDir, r'CrawlProfileResponse', 'profileDir'),
+            profileDir,
+            r'CrawlProfileResponse',
+            'profileDir',
+          ),
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileResponse', 'profileKey'),
+            profileKey,
+            r'CrawlProfileResponse',
+            'profileKey',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'CrawlProfileResponse', 'status'),
+            status,
+            r'CrawlProfileResponse',
+            'status',
+          ),
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'CrawlProfileResponse', 'updatedAt'),
+            updatedAt,
+            r'CrawlProfileResponse',
+            'updatedAt',
+          ),
         );
     replace(_$result);
     return _$result;

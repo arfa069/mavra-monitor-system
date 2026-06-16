@@ -7,20 +7,21 @@ part of 'crawl_profile_test_response.dart';
 // **************************************************************************
 
 const CrawlProfileTestResponseStatusEnum
-    _$crawlProfileTestResponseStatusEnum_ready =
+_$crawlProfileTestResponseStatusEnum_ready =
     const CrawlProfileTestResponseStatusEnum._('ready');
 const CrawlProfileTestResponseStatusEnum
-    _$crawlProfileTestResponseStatusEnum_loginRequired =
+_$crawlProfileTestResponseStatusEnum_loginRequired =
     const CrawlProfileTestResponseStatusEnum._('loginRequired');
 const CrawlProfileTestResponseStatusEnum
-    _$crawlProfileTestResponseStatusEnum_riskBlocked =
+_$crawlProfileTestResponseStatusEnum_riskBlocked =
     const CrawlProfileTestResponseStatusEnum._('riskBlocked');
 const CrawlProfileTestResponseStatusEnum
-    _$crawlProfileTestResponseStatusEnum_error =
+_$crawlProfileTestResponseStatusEnum_error =
     const CrawlProfileTestResponseStatusEnum._('error');
 
 CrawlProfileTestResponseStatusEnum _$crawlProfileTestResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'ready':
       return _$crawlProfileTestResponseStatusEnum_ready;
@@ -36,16 +37,18 @@ CrawlProfileTestResponseStatusEnum _$crawlProfileTestResponseStatusEnumValueOf(
 }
 
 final BuiltSet<CrawlProfileTestResponseStatusEnum>
-    _$crawlProfileTestResponseStatusEnumValues = BuiltSet<
-        CrawlProfileTestResponseStatusEnum>(const <CrawlProfileTestResponseStatusEnum>[
-  _$crawlProfileTestResponseStatusEnum_ready,
-  _$crawlProfileTestResponseStatusEnum_loginRequired,
-  _$crawlProfileTestResponseStatusEnum_riskBlocked,
-  _$crawlProfileTestResponseStatusEnum_error,
-]);
+_$crawlProfileTestResponseStatusEnumValues =
+    BuiltSet<CrawlProfileTestResponseStatusEnum>(
+      const <CrawlProfileTestResponseStatusEnum>[
+        _$crawlProfileTestResponseStatusEnum_ready,
+        _$crawlProfileTestResponseStatusEnum_loginRequired,
+        _$crawlProfileTestResponseStatusEnum_riskBlocked,
+        _$crawlProfileTestResponseStatusEnum_error,
+      ],
+    );
 
 Serializer<CrawlProfileTestResponseStatusEnum>
-    _$crawlProfileTestResponseStatusEnumSerializer =
+_$crawlProfileTestResponseStatusEnumSerializer =
     _$CrawlProfileTestResponseStatusEnumSerializer();
 
 class _$CrawlProfileTestResponseStatusEnumSerializer
@@ -70,16 +73,19 @@ class _$CrawlProfileTestResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, CrawlProfileTestResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    CrawlProfileTestResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileTestResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileTestResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileTestResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileTestResponse extends CrawlProfileTestResponse {
@@ -92,20 +98,20 @@ class _$CrawlProfileTestResponse extends CrawlProfileTestResponse {
   @override
   final String? message;
 
-  factory _$CrawlProfileTestResponse(
-          [void Function(CrawlProfileTestResponseBuilder)? updates]) =>
-      (CrawlProfileTestResponseBuilder()..update(updates))._build();
+  factory _$CrawlProfileTestResponse([
+    void Function(CrawlProfileTestResponseBuilder)? updates,
+  ]) => (CrawlProfileTestResponseBuilder()..update(updates))._build();
 
-  _$CrawlProfileTestResponse._(
-      {required this.platform,
-      required this.profileKey,
-      required this.status,
-      this.message})
-      : super._();
+  _$CrawlProfileTestResponse._({
+    required this.platform,
+    required this.profileKey,
+    required this.status,
+    this.message,
+  }) : super._();
   @override
   CrawlProfileTestResponse rebuild(
-          void Function(CrawlProfileTestResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileTestResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileTestResponseBuilder toBuilder() =>
@@ -195,14 +201,24 @@ class CrawlProfileTestResponseBuilder
   CrawlProfileTestResponse build() => _build();
 
   _$CrawlProfileTestResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileTestResponse._(
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'CrawlProfileTestResponse', 'platform'),
+            platform,
+            r'CrawlProfileTestResponse',
+            'platform',
+          ),
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileTestResponse', 'profileKey'),
+            profileKey,
+            r'CrawlProfileTestResponse',
+            'profileKey',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'CrawlProfileTestResponse', 'status'),
+            status,
+            r'CrawlProfileTestResponse',
+            'status',
+          ),
           message: message,
         );
     replace(_$result);

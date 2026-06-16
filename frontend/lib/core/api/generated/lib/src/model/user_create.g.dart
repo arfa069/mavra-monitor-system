@@ -19,12 +19,12 @@ class _$UserCreate extends UserCreate {
   factory _$UserCreate([void Function(UserCreateBuilder)? updates]) =>
       (UserCreateBuilder()..update(updates))._build();
 
-  _$UserCreate._(
-      {required this.email,
-      required this.password,
-      required this.username,
-      this.role})
-      : super._();
+  _$UserCreate._({
+    required this.email,
+    required this.password,
+    required this.username,
+    this.role,
+  }) : super._();
   @override
   UserCreate rebuild(void Function(UserCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -113,14 +113,24 @@ class UserCreateBuilder implements Builder<UserCreate, UserCreateBuilder> {
   UserCreate build() => _build();
 
   _$UserCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserCreate._(
           email: BuiltValueNullFieldError.checkNotNull(
-              email, r'UserCreate', 'email'),
+            email,
+            r'UserCreate',
+            'email',
+          ),
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'UserCreate', 'password'),
+            password,
+            r'UserCreate',
+            'password',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'UserCreate', 'username'),
+            username,
+            r'UserCreate',
+            'username',
+          ),
           role: role,
         );
     replace(_$result);

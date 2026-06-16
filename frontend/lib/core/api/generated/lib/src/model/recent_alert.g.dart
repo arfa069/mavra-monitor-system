@@ -27,16 +27,16 @@ class _$RecentAlert extends RecentAlert {
   factory _$RecentAlert([void Function(RecentAlertBuilder)? updates]) =>
       (RecentAlertBuilder()..update(updates))._build();
 
-  _$RecentAlert._(
-      {required this.active,
-      required this.alertType,
-      this.createdAt,
-      required this.id,
-      required this.message,
-      this.productId,
-      this.platform,
-      this.productTitle})
-      : super._();
+  _$RecentAlert._({
+    required this.active,
+    required this.alertType,
+    this.createdAt,
+    required this.id,
+    required this.message,
+    this.productId,
+    this.platform,
+    this.productTitle,
+  }) : super._();
   @override
   RecentAlert rebuild(void Function(RecentAlertBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -157,16 +157,26 @@ class RecentAlertBuilder implements Builder<RecentAlert, RecentAlertBuilder> {
   RecentAlert build() => _build();
 
   _$RecentAlert _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$RecentAlert._(
           active: BuiltValueNullFieldError.checkNotNull(
-              active, r'RecentAlert', 'active'),
+            active,
+            r'RecentAlert',
+            'active',
+          ),
           alertType: BuiltValueNullFieldError.checkNotNull(
-              alertType, r'RecentAlert', 'alertType'),
+            alertType,
+            r'RecentAlert',
+            'alertType',
+          ),
           createdAt: createdAt,
           id: BuiltValueNullFieldError.checkNotNull(id, r'RecentAlert', 'id'),
           message: BuiltValueNullFieldError.checkNotNull(
-              message, r'RecentAlert', 'message'),
+            message,
+            r'RecentAlert',
+            'message',
+          ),
           productId: productId,
           platform: platform,
           productTitle: productTitle,

@@ -32,11 +32,11 @@ BlogPostCreateStatusEnum _$blogPostCreateStatusEnumValueOf(String name) {
 
 final BuiltSet<BlogPostCreateStatusEnum> _$blogPostCreateStatusEnumValues =
     BuiltSet<BlogPostCreateStatusEnum>(const <BlogPostCreateStatusEnum>[
-  _$blogPostCreateStatusEnum_draft,
-  _$blogPostCreateStatusEnum_scheduled,
-  _$blogPostCreateStatusEnum_published,
-  _$blogPostCreateStatusEnum_archived,
-]);
+      _$blogPostCreateStatusEnum_draft,
+      _$blogPostCreateStatusEnum_scheduled,
+      _$blogPostCreateStatusEnum_published,
+      _$blogPostCreateStatusEnum_archived,
+    ]);
 
 Serializer<BlogPostCreateStatusEnum> _$blogPostCreateStatusEnumSerializer =
     _$BlogPostCreateStatusEnumSerializer();
@@ -62,16 +62,20 @@ class _$BlogPostCreateStatusEnumSerializer
   final String wireName = 'BlogPostCreateStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, BlogPostCreateStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    BlogPostCreateStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   BlogPostCreateStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      BlogPostCreateStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BlogPostCreateStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$BlogPostCreate extends BlogPostCreate {
@@ -113,25 +117,25 @@ class _$BlogPostCreate extends BlogPostCreate {
   factory _$BlogPostCreate([void Function(BlogPostCreateBuilder)? updates]) =>
       (BlogPostCreateBuilder()..update(updates))._build();
 
-  _$BlogPostCreate._(
-      {required this.title,
-      this.canonicalUrl,
-      this.categoryId,
-      this.categoryName,
-      this.contentHtml,
-      this.contentJson,
-      this.coverMediaId,
-      this.coverUrl,
-      this.excerpt,
-      this.ogImageUrl,
-      this.publishedAt,
-      this.seoDescription,
-      this.seoTitle,
-      this.slug,
-      this.status,
-      this.tagIds,
-      this.tagNames})
-      : super._();
+  _$BlogPostCreate._({
+    required this.title,
+    this.canonicalUrl,
+    this.categoryId,
+    this.categoryName,
+    this.contentHtml,
+    this.contentJson,
+    this.coverMediaId,
+    this.coverUrl,
+    this.excerpt,
+    this.ogImageUrl,
+    this.publishedAt,
+    this.seoDescription,
+    this.seoTitle,
+    this.slug,
+    this.status,
+    this.tagIds,
+    this.tagNames,
+  }) : super._();
   @override
   BlogPostCreate rebuild(void Function(BlogPostCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -331,10 +335,14 @@ class BlogPostCreateBuilder
   _$BlogPostCreate _build() {
     _$BlogPostCreate _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$BlogPostCreate._(
             title: BuiltValueNullFieldError.checkNotNull(
-                title, r'BlogPostCreate', 'title'),
+              title,
+              r'BlogPostCreate',
+              'title',
+            ),
             canonicalUrl: canonicalUrl,
             categoryId: categoryId,
             categoryName: categoryName,
@@ -364,7 +372,10 @@ class BlogPostCreateBuilder
         _tagNames?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'BlogPostCreate', _$failedField, e.toString());
+          r'BlogPostCreate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

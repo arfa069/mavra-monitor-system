@@ -24,24 +24,24 @@ class _$SmartHomeConfigResponse extends SmartHomeConfigResponse {
   @override
   final bool? tokenConfigured;
 
-  factory _$SmartHomeConfigResponse(
-          [void Function(SmartHomeConfigResponseBuilder)? updates]) =>
-      (SmartHomeConfigResponseBuilder()..update(updates))._build();
+  factory _$SmartHomeConfigResponse([
+    void Function(SmartHomeConfigResponseBuilder)? updates,
+  ]) => (SmartHomeConfigResponseBuilder()..update(updates))._build();
 
-  _$SmartHomeConfigResponse._(
-      {required this.baseUrl,
-      required this.createdAt,
-      required this.enabled,
-      required this.id,
-      required this.updatedAt,
-      this.lastError,
-      this.lastStatus,
-      this.tokenConfigured})
-      : super._();
+  _$SmartHomeConfigResponse._({
+    required this.baseUrl,
+    required this.createdAt,
+    required this.enabled,
+    required this.id,
+    required this.updatedAt,
+    this.lastError,
+    this.lastStatus,
+    this.tokenConfigured,
+  }) : super._();
   @override
   SmartHomeConfigResponse rebuild(
-          void Function(SmartHomeConfigResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeConfigResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeConfigResponseBuilder toBuilder() =>
@@ -163,18 +163,34 @@ class SmartHomeConfigResponseBuilder
   SmartHomeConfigResponse build() => _build();
 
   _$SmartHomeConfigResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SmartHomeConfigResponse._(
           baseUrl: BuiltValueNullFieldError.checkNotNull(
-              baseUrl, r'SmartHomeConfigResponse', 'baseUrl'),
+            baseUrl,
+            r'SmartHomeConfigResponse',
+            'baseUrl',
+          ),
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'SmartHomeConfigResponse', 'createdAt'),
+            createdAt,
+            r'SmartHomeConfigResponse',
+            'createdAt',
+          ),
           enabled: BuiltValueNullFieldError.checkNotNull(
-              enabled, r'SmartHomeConfigResponse', 'enabled'),
+            enabled,
+            r'SmartHomeConfigResponse',
+            'enabled',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'SmartHomeConfigResponse', 'id'),
+            id,
+            r'SmartHomeConfigResponse',
+            'id',
+          ),
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'SmartHomeConfigResponse', 'updatedAt'),
+            updatedAt,
+            r'SmartHomeConfigResponse',
+            'updatedAt',
+          ),
           lastError: lastError,
           lastStatus: lastStatus,
           tokenConfigured: tokenConfigured,

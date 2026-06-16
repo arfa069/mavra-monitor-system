@@ -12,16 +12,16 @@ class _$ProductPlatformCronUpdate extends ProductPlatformCronUpdate {
   @override
   final String? cronTimezone;
 
-  factory _$ProductPlatformCronUpdate(
-          [void Function(ProductPlatformCronUpdateBuilder)? updates]) =>
-      (ProductPlatformCronUpdateBuilder()..update(updates))._build();
+  factory _$ProductPlatformCronUpdate([
+    void Function(ProductPlatformCronUpdateBuilder)? updates,
+  ]) => (ProductPlatformCronUpdateBuilder()..update(updates))._build();
 
   _$ProductPlatformCronUpdate._({this.cronExpression, this.cronTimezone})
-      : super._();
+    : super._();
   @override
   ProductPlatformCronUpdate rebuild(
-          void Function(ProductPlatformCronUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductPlatformCronUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductPlatformCronUpdateBuilder toBuilder() =>
@@ -95,7 +95,8 @@ class ProductPlatformCronUpdateBuilder
   ProductPlatformCronUpdate build() => _build();
 
   _$ProductPlatformCronUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductPlatformCronUpdate._(
           cronExpression: cronExpression,
           cronTimezone: cronTimezone,

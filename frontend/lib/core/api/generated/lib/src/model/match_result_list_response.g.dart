@@ -16,20 +16,20 @@ class _$MatchResultListResponse extends MatchResultListResponse {
   @override
   final int total;
 
-  factory _$MatchResultListResponse(
-          [void Function(MatchResultListResponseBuilder)? updates]) =>
-      (MatchResultListResponseBuilder()..update(updates))._build();
+  factory _$MatchResultListResponse([
+    void Function(MatchResultListResponseBuilder)? updates,
+  ]) => (MatchResultListResponseBuilder()..update(updates))._build();
 
-  _$MatchResultListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$MatchResultListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   MatchResultListResponse rebuild(
-          void Function(MatchResultListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(MatchResultListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   MatchResultListResponseBuilder toBuilder() =>
@@ -121,15 +121,25 @@ class MatchResultListResponseBuilder
   _$MatchResultListResponse _build() {
     _$MatchResultListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$MatchResultListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'MatchResultListResponse', 'page'),
+              page,
+              r'MatchResultListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'MatchResultListResponse', 'pageSize'),
+              pageSize,
+              r'MatchResultListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'MatchResultListResponse', 'total'),
+              total,
+              r'MatchResultListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -138,7 +148,10 @@ class MatchResultListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'MatchResultListResponse', _$failedField, e.toString());
+          r'MatchResultListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

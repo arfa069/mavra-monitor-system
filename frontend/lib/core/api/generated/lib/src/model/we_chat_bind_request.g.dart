@@ -14,13 +14,15 @@ class _$WeChatBindRequest extends WeChatBindRequest {
   @override
   final String username;
 
-  factory _$WeChatBindRequest(
-          [void Function(WeChatBindRequestBuilder)? updates]) =>
-      (WeChatBindRequestBuilder()..update(updates))._build();
+  factory _$WeChatBindRequest([
+    void Function(WeChatBindRequestBuilder)? updates,
+  ]) => (WeChatBindRequestBuilder()..update(updates))._build();
 
-  _$WeChatBindRequest._(
-      {required this.password, required this.tempToken, required this.username})
-      : super._();
+  _$WeChatBindRequest._({
+    required this.password,
+    required this.tempToken,
+    required this.username,
+  }) : super._();
   @override
   WeChatBindRequest rebuild(void Function(WeChatBindRequestBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -103,14 +105,24 @@ class WeChatBindRequestBuilder
   WeChatBindRequest build() => _build();
 
   _$WeChatBindRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$WeChatBindRequest._(
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'WeChatBindRequest', 'password'),
+            password,
+            r'WeChatBindRequest',
+            'password',
+          ),
           tempToken: BuiltValueNullFieldError.checkNotNull(
-              tempToken, r'WeChatBindRequest', 'tempToken'),
+            tempToken,
+            r'WeChatBindRequest',
+            'tempToken',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'WeChatBindRequest', 'username'),
+            username,
+            r'WeChatBindRequest',
+            'username',
+          ),
         );
     replace(_$result);
     return _$result;

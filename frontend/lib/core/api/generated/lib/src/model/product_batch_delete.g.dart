@@ -10,15 +10,15 @@ class _$ProductBatchDelete extends ProductBatchDelete {
   @override
   final BuiltList<int> ids;
 
-  factory _$ProductBatchDelete(
-          [void Function(ProductBatchDeleteBuilder)? updates]) =>
-      (ProductBatchDeleteBuilder()..update(updates))._build();
+  factory _$ProductBatchDelete([
+    void Function(ProductBatchDeleteBuilder)? updates,
+  ]) => (ProductBatchDeleteBuilder()..update(updates))._build();
 
   _$ProductBatchDelete._({required this.ids}) : super._();
   @override
   ProductBatchDelete rebuild(
-          void Function(ProductBatchDeleteBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductBatchDeleteBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductBatchDeleteBuilder toBuilder() =>
@@ -40,8 +40,9 @@ class _$ProductBatchDelete extends ProductBatchDelete {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ProductBatchDelete')..add('ids', ids))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ProductBatchDelete',
+    )..add('ids', ids)).toString();
   }
 }
 
@@ -82,10 +83,7 @@ class ProductBatchDeleteBuilder
   _$ProductBatchDelete _build() {
     _$ProductBatchDelete _$result;
     try {
-      _$result = _$v ??
-          _$ProductBatchDelete._(
-            ids: ids.build(),
-          );
+      _$result = _$v ?? _$ProductBatchDelete._(ids: ids.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -93,7 +91,10 @@ class ProductBatchDeleteBuilder
         ids.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ProductBatchDelete', _$failedField, e.toString());
+          r'ProductBatchDelete',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

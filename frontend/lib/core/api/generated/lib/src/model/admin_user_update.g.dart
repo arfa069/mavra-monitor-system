@@ -20,7 +20,7 @@ class _$AdminUserUpdate extends AdminUserUpdate {
       (AdminUserUpdateBuilder()..update(updates))._build();
 
   _$AdminUserUpdate._({this.email, this.isActive, this.role, this.username})
-      : super._();
+    : super._();
   @override
   AdminUserUpdate rebuild(void Function(AdminUserUpdateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -110,7 +110,8 @@ class AdminUserUpdateBuilder
   AdminUserUpdate build() => _build();
 
   _$AdminUserUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$AdminUserUpdate._(
           email: email,
           isActive: isActive,

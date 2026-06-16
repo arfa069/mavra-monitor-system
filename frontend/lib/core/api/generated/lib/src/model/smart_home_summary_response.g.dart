@@ -16,20 +16,20 @@ class _$SmartHomeSummaryResponse extends SmartHomeSummaryResponse {
   @override
   final int unavailableCount;
 
-  factory _$SmartHomeSummaryResponse(
-          [void Function(SmartHomeSummaryResponseBuilder)? updates]) =>
-      (SmartHomeSummaryResponseBuilder()..update(updates))._build();
+  factory _$SmartHomeSummaryResponse([
+    void Function(SmartHomeSummaryResponseBuilder)? updates,
+  ]) => (SmartHomeSummaryResponseBuilder()..update(updates))._build();
 
-  _$SmartHomeSummaryResponse._(
-      {required this.activeCount,
-      required this.configured,
-      required this.connected,
-      required this.unavailableCount})
-      : super._();
+  _$SmartHomeSummaryResponse._({
+    required this.activeCount,
+    required this.configured,
+    required this.connected,
+    required this.unavailableCount,
+  }) : super._();
   @override
   SmartHomeSummaryResponse rebuild(
-          void Function(SmartHomeSummaryResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeSummaryResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeSummaryResponseBuilder toBuilder() =>
@@ -119,18 +119,29 @@ class SmartHomeSummaryResponseBuilder
   SmartHomeSummaryResponse build() => _build();
 
   _$SmartHomeSummaryResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SmartHomeSummaryResponse._(
           activeCount: BuiltValueNullFieldError.checkNotNull(
-              activeCount, r'SmartHomeSummaryResponse', 'activeCount'),
+            activeCount,
+            r'SmartHomeSummaryResponse',
+            'activeCount',
+          ),
           configured: BuiltValueNullFieldError.checkNotNull(
-              configured, r'SmartHomeSummaryResponse', 'configured'),
+            configured,
+            r'SmartHomeSummaryResponse',
+            'configured',
+          ),
           connected: BuiltValueNullFieldError.checkNotNull(
-              connected, r'SmartHomeSummaryResponse', 'connected'),
+            connected,
+            r'SmartHomeSummaryResponse',
+            'connected',
+          ),
           unavailableCount: BuiltValueNullFieldError.checkNotNull(
-              unavailableCount,
-              r'SmartHomeSummaryResponse',
-              'unavailableCount'),
+            unavailableCount,
+            r'SmartHomeSummaryResponse',
+            'unavailableCount',
+          ),
         );
     replace(_$result);
     return _$result;

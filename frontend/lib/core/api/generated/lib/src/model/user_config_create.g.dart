@@ -12,12 +12,12 @@ class _$UserConfigCreate extends UserConfigCreate {
   @override
   final String? feishuWebhookUrl;
 
-  factory _$UserConfigCreate(
-          [void Function(UserConfigCreateBuilder)? updates]) =>
-      (UserConfigCreateBuilder()..update(updates))._build();
+  factory _$UserConfigCreate([
+    void Function(UserConfigCreateBuilder)? updates,
+  ]) => (UserConfigCreateBuilder()..update(updates))._build();
 
   _$UserConfigCreate._({this.dataRetentionDays, this.feishuWebhookUrl})
-      : super._();
+    : super._();
   @override
   UserConfigCreate rebuild(void Function(UserConfigCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -94,7 +94,8 @@ class UserConfigCreateBuilder
   UserConfigCreate build() => _build();
 
   _$UserConfigCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserConfigCreate._(
           dataRetentionDays: dataRetentionDays,
           feishuWebhookUrl: feishuWebhookUrl,

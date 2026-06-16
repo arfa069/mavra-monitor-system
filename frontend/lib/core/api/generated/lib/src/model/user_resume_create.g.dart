@@ -12,12 +12,12 @@ class _$UserResumeCreate extends UserResumeCreate {
   @override
   final String resumeText;
 
-  factory _$UserResumeCreate(
-          [void Function(UserResumeCreateBuilder)? updates]) =>
-      (UserResumeCreateBuilder()..update(updates))._build();
+  factory _$UserResumeCreate([
+    void Function(UserResumeCreateBuilder)? updates,
+  ]) => (UserResumeCreateBuilder()..update(updates))._build();
 
   _$UserResumeCreate._({required this.name, required this.resumeText})
-      : super._();
+    : super._();
   @override
   UserResumeCreate rebuild(void Function(UserResumeCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -92,12 +92,19 @@ class UserResumeCreateBuilder
   UserResumeCreate build() => _build();
 
   _$UserResumeCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserResumeCreate._(
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'UserResumeCreate', 'name'),
+            name,
+            r'UserResumeCreate',
+            'name',
+          ),
           resumeText: BuiltValueNullFieldError.checkNotNull(
-              resumeText, r'UserResumeCreate', 'resumeText'),
+            resumeText,
+            r'UserResumeCreate',
+            'resumeText',
+          ),
         );
     replace(_$result);
     return _$result;

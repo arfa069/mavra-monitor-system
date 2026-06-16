@@ -12,15 +12,15 @@ class _$PermissionResponse extends PermissionResponse {
   @override
   final String? description;
 
-  factory _$PermissionResponse(
-          [void Function(PermissionResponseBuilder)? updates]) =>
-      (PermissionResponseBuilder()..update(updates))._build();
+  factory _$PermissionResponse([
+    void Function(PermissionResponseBuilder)? updates,
+  ]) => (PermissionResponseBuilder()..update(updates))._build();
 
   _$PermissionResponse._({required this.name, this.description}) : super._();
   @override
   PermissionResponse rebuild(
-          void Function(PermissionResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(PermissionResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   PermissionResponseBuilder toBuilder() =>
@@ -92,10 +92,14 @@ class PermissionResponseBuilder
   PermissionResponse build() => _build();
 
   _$PermissionResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$PermissionResponse._(
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'PermissionResponse', 'name'),
+            name,
+            r'PermissionResponse',
+            'name',
+          ),
           description: description,
         );
     replace(_$result);

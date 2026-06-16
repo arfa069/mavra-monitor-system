@@ -21,25 +21,23 @@ class _$ProductPlatformProfileBindingResponse
   @override
   final DateTime? updatedAt;
 
-  factory _$ProductPlatformProfileBindingResponse(
-          [void Function(ProductPlatformProfileBindingResponseBuilder)?
-              updates]) =>
-      (ProductPlatformProfileBindingResponseBuilder()..update(updates))
-          ._build();
+  factory _$ProductPlatformProfileBindingResponse([
+    void Function(ProductPlatformProfileBindingResponseBuilder)? updates,
+  ]) => (ProductPlatformProfileBindingResponseBuilder()..update(updates))
+      ._build();
 
-  _$ProductPlatformProfileBindingResponse._(
-      {required this.platform,
-      this.createdAt,
-      this.profileKey,
-      this.profileLastError,
-      this.profileStatus,
-      this.updatedAt})
-      : super._();
+  _$ProductPlatformProfileBindingResponse._({
+    required this.platform,
+    this.createdAt,
+    this.profileKey,
+    this.profileLastError,
+    this.profileStatus,
+    this.updatedAt,
+  }) : super._();
   @override
   ProductPlatformProfileBindingResponse rebuild(
-          void Function(ProductPlatformProfileBindingResponseBuilder)
-              updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductPlatformProfileBindingResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductPlatformProfileBindingResponseBuilder toBuilder() =>
@@ -73,7 +71,8 @@ class _$ProductPlatformProfileBindingResponse
   @override
   String toString() {
     return (newBuiltValueToStringHelper(
-            r'ProductPlatformProfileBindingResponse')
+            r'ProductPlatformProfileBindingResponse',
+          )
           ..add('platform', platform)
           ..add('createdAt', createdAt)
           ..add('profileKey', profileKey)
@@ -86,8 +85,10 @@ class _$ProductPlatformProfileBindingResponse
 
 class ProductPlatformProfileBindingResponseBuilder
     implements
-        Builder<ProductPlatformProfileBindingResponse,
-            ProductPlatformProfileBindingResponseBuilder> {
+        Builder<
+          ProductPlatformProfileBindingResponse,
+          ProductPlatformProfileBindingResponseBuilder
+        > {
   _$ProductPlatformProfileBindingResponse? _$v;
 
   String? _platform;
@@ -141,7 +142,8 @@ class ProductPlatformProfileBindingResponseBuilder
 
   @override
   void update(
-      void Function(ProductPlatformProfileBindingResponseBuilder)? updates) {
+    void Function(ProductPlatformProfileBindingResponseBuilder)? updates,
+  ) {
     if (updates != null) updates(this);
   }
 
@@ -149,10 +151,14 @@ class ProductPlatformProfileBindingResponseBuilder
   ProductPlatformProfileBindingResponse build() => _build();
 
   _$ProductPlatformProfileBindingResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductPlatformProfileBindingResponse._(
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'ProductPlatformProfileBindingResponse', 'platform'),
+            platform,
+            r'ProductPlatformProfileBindingResponse',
+            'platform',
+          ),
           createdAt: createdAt,
           profileKey: profileKey,
           profileLastError: profileLastError,

@@ -7,11 +7,12 @@ part of 'cleanup_result_response.dart';
 // **************************************************************************
 
 const CleanupResultResponseStatusEnum
-    _$cleanupResultResponseStatusEnum_completed =
+_$cleanupResultResponseStatusEnum_completed =
     const CleanupResultResponseStatusEnum._('completed');
 
 CleanupResultResponseStatusEnum _$cleanupResultResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'completed':
       return _$cleanupResultResponseStatusEnum_completed;
@@ -21,13 +22,15 @@ CleanupResultResponseStatusEnum _$cleanupResultResponseStatusEnumValueOf(
 }
 
 final BuiltSet<CleanupResultResponseStatusEnum>
-    _$cleanupResultResponseStatusEnumValues = BuiltSet<
-        CleanupResultResponseStatusEnum>(const <CleanupResultResponseStatusEnum>[
-  _$cleanupResultResponseStatusEnum_completed,
-]);
+_$cleanupResultResponseStatusEnumValues =
+    BuiltSet<CleanupResultResponseStatusEnum>(
+      const <CleanupResultResponseStatusEnum>[
+        _$cleanupResultResponseStatusEnum_completed,
+      ],
+    );
 
 Serializer<CleanupResultResponseStatusEnum>
-    _$cleanupResultResponseStatusEnumSerializer =
+_$cleanupResultResponseStatusEnumSerializer =
     _$CleanupResultResponseStatusEnumSerializer();
 
 class _$CleanupResultResponseStatusEnumSerializer
@@ -46,16 +49,19 @@ class _$CleanupResultResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, CleanupResultResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    CleanupResultResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CleanupResultResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CleanupResultResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CleanupResultResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CleanupResultResponse extends CleanupResultResponse {
@@ -70,21 +76,21 @@ class _$CleanupResultResponse extends CleanupResultResponse {
   @override
   final CleanupResultResponseStatusEnum status;
 
-  factory _$CleanupResultResponse(
-          [void Function(CleanupResultResponseBuilder)? updates]) =>
-      (CleanupResultResponseBuilder()..update(updates))._build();
+  factory _$CleanupResultResponse([
+    void Function(CleanupResultResponseBuilder)? updates,
+  ]) => (CleanupResultResponseBuilder()..update(updates))._build();
 
-  _$CleanupResultResponse._(
-      {required this.cutoffDate,
-      required this.deletedCrawlLogs,
-      required this.deletedPriceHistory,
-      required this.retentionDays,
-      required this.status})
-      : super._();
+  _$CleanupResultResponse._({
+    required this.cutoffDate,
+    required this.deletedCrawlLogs,
+    required this.deletedPriceHistory,
+    required this.retentionDays,
+    required this.status,
+  }) : super._();
   @override
   CleanupResultResponse rebuild(
-          void Function(CleanupResultResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CleanupResultResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CleanupResultResponseBuilder toBuilder() =>
@@ -184,20 +190,34 @@ class CleanupResultResponseBuilder
   CleanupResultResponse build() => _build();
 
   _$CleanupResultResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CleanupResultResponse._(
           cutoffDate: BuiltValueNullFieldError.checkNotNull(
-              cutoffDate, r'CleanupResultResponse', 'cutoffDate'),
+            cutoffDate,
+            r'CleanupResultResponse',
+            'cutoffDate',
+          ),
           deletedCrawlLogs: BuiltValueNullFieldError.checkNotNull(
-              deletedCrawlLogs, r'CleanupResultResponse', 'deletedCrawlLogs'),
+            deletedCrawlLogs,
+            r'CleanupResultResponse',
+            'deletedCrawlLogs',
+          ),
           deletedPriceHistory: BuiltValueNullFieldError.checkNotNull(
-              deletedPriceHistory,
-              r'CleanupResultResponse',
-              'deletedPriceHistory'),
+            deletedPriceHistory,
+            r'CleanupResultResponse',
+            'deletedPriceHistory',
+          ),
           retentionDays: BuiltValueNullFieldError.checkNotNull(
-              retentionDays, r'CleanupResultResponse', 'retentionDays'),
+            retentionDays,
+            r'CleanupResultResponse',
+            'retentionDays',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'CleanupResultResponse', 'status'),
+            status,
+            r'CleanupResultResponse',
+            'status',
+          ),
         );
     replace(_$result);
     return _$result;

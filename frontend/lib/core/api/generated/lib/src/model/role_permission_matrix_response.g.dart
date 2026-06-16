@@ -12,17 +12,18 @@ class _$RolePermissionMatrixResponse extends RolePermissionMatrixResponse {
   @override
   final BuiltList<RolePermissionResponse> roles;
 
-  factory _$RolePermissionMatrixResponse(
-          [void Function(RolePermissionMatrixResponseBuilder)? updates]) =>
-      (RolePermissionMatrixResponseBuilder()..update(updates))._build();
+  factory _$RolePermissionMatrixResponse([
+    void Function(RolePermissionMatrixResponseBuilder)? updates,
+  ]) => (RolePermissionMatrixResponseBuilder()..update(updates))._build();
 
-  _$RolePermissionMatrixResponse._(
-      {required this.allPermissions, required this.roles})
-      : super._();
+  _$RolePermissionMatrixResponse._({
+    required this.allPermissions,
+    required this.roles,
+  }) : super._();
   @override
   RolePermissionMatrixResponse rebuild(
-          void Function(RolePermissionMatrixResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(RolePermissionMatrixResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   RolePermissionMatrixResponseBuilder toBuilder() =>
@@ -56,8 +57,10 @@ class _$RolePermissionMatrixResponse extends RolePermissionMatrixResponse {
 
 class RolePermissionMatrixResponseBuilder
     implements
-        Builder<RolePermissionMatrixResponse,
-            RolePermissionMatrixResponseBuilder> {
+        Builder<
+          RolePermissionMatrixResponse,
+          RolePermissionMatrixResponseBuilder
+        > {
   _$RolePermissionMatrixResponse? _$v;
 
   ListBuilder<PermissionResponse>? _allPermissions;
@@ -102,7 +105,8 @@ class RolePermissionMatrixResponseBuilder
   _$RolePermissionMatrixResponse _build() {
     _$RolePermissionMatrixResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$RolePermissionMatrixResponse._(
             allPermissions: allPermissions.build(),
             roles: roles.build(),
@@ -116,7 +120,10 @@ class RolePermissionMatrixResponseBuilder
         roles.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'RolePermissionMatrixResponse', _$failedField, e.toString());
+          r'RolePermissionMatrixResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -14,17 +14,19 @@ class _$SmartHomeConfigTestResponse extends SmartHomeConfigTestResponse {
   @override
   final String? homeAssistantVersion;
 
-  factory _$SmartHomeConfigTestResponse(
-          [void Function(SmartHomeConfigTestResponseBuilder)? updates]) =>
-      (SmartHomeConfigTestResponseBuilder()..update(updates))._build();
+  factory _$SmartHomeConfigTestResponse([
+    void Function(SmartHomeConfigTestResponseBuilder)? updates,
+  ]) => (SmartHomeConfigTestResponseBuilder()..update(updates))._build();
 
-  _$SmartHomeConfigTestResponse._(
-      {required this.message, required this.ok, this.homeAssistantVersion})
-      : super._();
+  _$SmartHomeConfigTestResponse._({
+    required this.message,
+    required this.ok,
+    this.homeAssistantVersion,
+  }) : super._();
   @override
   SmartHomeConfigTestResponse rebuild(
-          void Function(SmartHomeConfigTestResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeConfigTestResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeConfigTestResponseBuilder toBuilder() =>
@@ -61,8 +63,10 @@ class _$SmartHomeConfigTestResponse extends SmartHomeConfigTestResponse {
 
 class SmartHomeConfigTestResponseBuilder
     implements
-        Builder<SmartHomeConfigTestResponse,
-            SmartHomeConfigTestResponseBuilder> {
+        Builder<
+          SmartHomeConfigTestResponse,
+          SmartHomeConfigTestResponseBuilder
+        > {
   _$SmartHomeConfigTestResponse? _$v;
 
   String? _message;
@@ -107,12 +111,19 @@ class SmartHomeConfigTestResponseBuilder
   SmartHomeConfigTestResponse build() => _build();
 
   _$SmartHomeConfigTestResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SmartHomeConfigTestResponse._(
           message: BuiltValueNullFieldError.checkNotNull(
-              message, r'SmartHomeConfigTestResponse', 'message'),
+            message,
+            r'SmartHomeConfigTestResponse',
+            'message',
+          ),
           ok: BuiltValueNullFieldError.checkNotNull(
-              ok, r'SmartHomeConfigTestResponse', 'ok'),
+            ok,
+            r'SmartHomeConfigTestResponse',
+            'ok',
+          ),
           homeAssistantVersion: homeAssistantVersion,
         );
     replace(_$result);

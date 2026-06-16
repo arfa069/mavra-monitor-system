@@ -7,17 +7,18 @@ part of 'job_search_config_create.dart';
 // **************************************************************************
 
 const JobSearchConfigCreatePlatformEnum
-    _$jobSearchConfigCreatePlatformEnum_boss =
+_$jobSearchConfigCreatePlatformEnum_boss =
     const JobSearchConfigCreatePlatformEnum._('boss');
 const JobSearchConfigCreatePlatformEnum
-    _$jobSearchConfigCreatePlatformEnum_n51job =
+_$jobSearchConfigCreatePlatformEnum_n51job =
     const JobSearchConfigCreatePlatformEnum._('n51job');
 const JobSearchConfigCreatePlatformEnum
-    _$jobSearchConfigCreatePlatformEnum_liepin =
+_$jobSearchConfigCreatePlatformEnum_liepin =
     const JobSearchConfigCreatePlatformEnum._('liepin');
 
 JobSearchConfigCreatePlatformEnum _$jobSearchConfigCreatePlatformEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'boss':
       return _$jobSearchConfigCreatePlatformEnum_boss;
@@ -31,15 +32,17 @@ JobSearchConfigCreatePlatformEnum _$jobSearchConfigCreatePlatformEnumValueOf(
 }
 
 final BuiltSet<JobSearchConfigCreatePlatformEnum>
-    _$jobSearchConfigCreatePlatformEnumValues = BuiltSet<
-        JobSearchConfigCreatePlatformEnum>(const <JobSearchConfigCreatePlatformEnum>[
-  _$jobSearchConfigCreatePlatformEnum_boss,
-  _$jobSearchConfigCreatePlatformEnum_n51job,
-  _$jobSearchConfigCreatePlatformEnum_liepin,
-]);
+_$jobSearchConfigCreatePlatformEnumValues =
+    BuiltSet<JobSearchConfigCreatePlatformEnum>(
+      const <JobSearchConfigCreatePlatformEnum>[
+        _$jobSearchConfigCreatePlatformEnum_boss,
+        _$jobSearchConfigCreatePlatformEnum_n51job,
+        _$jobSearchConfigCreatePlatformEnum_liepin,
+      ],
+    );
 
 Serializer<JobSearchConfigCreatePlatformEnum>
-    _$jobSearchConfigCreatePlatformEnumSerializer =
+_$jobSearchConfigCreatePlatformEnumSerializer =
     _$JobSearchConfigCreatePlatformEnumSerializer();
 
 class _$JobSearchConfigCreatePlatformEnumSerializer
@@ -62,16 +65,19 @@ class _$JobSearchConfigCreatePlatformEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, JobSearchConfigCreatePlatformEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    JobSearchConfigCreatePlatformEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   JobSearchConfigCreatePlatformEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      JobSearchConfigCreatePlatformEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => JobSearchConfigCreatePlatformEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$JobSearchConfigCreate extends JobSearchConfigCreate {
@@ -108,32 +114,32 @@ class _$JobSearchConfigCreate extends JobSearchConfigCreate {
   @override
   final int? salaryMin;
 
-  factory _$JobSearchConfigCreate(
-          [void Function(JobSearchConfigCreateBuilder)? updates]) =>
-      (JobSearchConfigCreateBuilder()..update(updates))._build();
+  factory _$JobSearchConfigCreate([
+    void Function(JobSearchConfigCreateBuilder)? updates,
+  ]) => (JobSearchConfigCreateBuilder()..update(updates))._build();
 
-  _$JobSearchConfigCreate._(
-      {required this.name,
-      required this.url,
-      this.active,
-      this.cityCode,
-      this.cronExpression,
-      this.cronTimezone,
-      this.deactivationThreshold,
-      this.education,
-      this.enableMatchAnalysis,
-      this.experience,
-      this.keyword,
-      this.notifyOnNew,
-      this.platform,
-      this.profileKey,
-      this.salaryMax,
-      this.salaryMin})
-      : super._();
+  _$JobSearchConfigCreate._({
+    required this.name,
+    required this.url,
+    this.active,
+    this.cityCode,
+    this.cronExpression,
+    this.cronTimezone,
+    this.deactivationThreshold,
+    this.education,
+    this.enableMatchAnalysis,
+    this.experience,
+    this.keyword,
+    this.notifyOnNew,
+    this.platform,
+    this.profileKey,
+    this.salaryMax,
+    this.salaryMin,
+  }) : super._();
   @override
   JobSearchConfigCreate rebuild(
-          void Function(JobSearchConfigCreateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobSearchConfigCreateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobSearchConfigCreateBuilder toBuilder() =>
@@ -321,12 +327,19 @@ class JobSearchConfigCreateBuilder
   JobSearchConfigCreate build() => _build();
 
   _$JobSearchConfigCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobSearchConfigCreate._(
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'JobSearchConfigCreate', 'name'),
+            name,
+            r'JobSearchConfigCreate',
+            'name',
+          ),
           url: BuiltValueNullFieldError.checkNotNull(
-              url, r'JobSearchConfigCreate', 'url'),
+            url,
+            r'JobSearchConfigCreate',
+            'url',
+          ),
           active: active,
           cityCode: cityCode,
           cronExpression: cronExpression,

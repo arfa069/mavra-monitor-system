@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-GoRouter createMavraRouter({required bool isAuthenticated}) {
+import '../features/auth/domain/auth_models.dart';
+import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/profile_page.dart';
+import '../features/auth/presentation/register_page.dart';
+import '../features/auth/presentation/wechat_callback_page.dart';
+
+GoRouter createMavraRouter({
+  required AuthController authController,
+  String? initialLocation,
+}) {
   return GoRouter(
-    initialLocation: isAuthenticated ? '/today' : '/login',
+    initialLocation:
+        initialLocation ??
+        (authController.isAuthenticated ? '/today' : '/login'),
+    refreshListenable: authController,
     redirect: (context, state) {
       final location = state.matchedLocation;
       final publicRoute =
@@ -11,10 +23,10 @@ GoRouter createMavraRouter({required bool isAuthenticated}) {
           location == '/register' ||
           location == '/auth/wechat/callback';
 
-      if (!isAuthenticated && !publicRoute) {
+      if (!authController.isAuthenticated && !publicRoute) {
         return '/login';
       }
-      if (isAuthenticated &&
+      if (authController.isAuthenticated &&
           (location == '/login' || location == '/register')) {
         return '/today';
       }
@@ -22,84 +34,106 @@ GoRouter createMavraRouter({required bool isAuthenticated}) {
     },
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/today'),
-      GoRoute(path: '/login', builder: (context, state) => const LoginShell()),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => LoginPage(authController: authController),
+      ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const PlaceholderScreen(title: 'Register'),
+        builder: (context, state) =>
+            RegisterPage(authController: authController),
       ),
       GoRoute(
         path: '/auth/wechat/callback',
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'WeChat Callback'),
+        builder: (context, state) => WeChatCallbackPage(
+          authController: authController,
+          queryParameters: state.uri.queryParameters,
+        ),
       ),
       GoRoute(
         path: '/today',
         builder: (context, state) => const PlaceholderScreen(title: 'Today'),
       ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) =>
+            ProfilePage(authController: authController),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (context, state) => _permissionPage(
+          authController,
+          'user:read',
+          const PlaceholderScreen(title: 'Admin Users'),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/audit-logs',
+        builder: (context, state) => _permissionPage(
+          authController,
+          'rbac:read',
+          const PlaceholderScreen(title: 'Audit Logs'),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/blog',
+        builder: (context, state) => _permissionPage(
+          authController,
+          'blog:read_admin',
+          const PlaceholderScreen(title: 'Blog Admin'),
+        ),
+      ),
     ],
   );
 }
 
-class LoginShell extends StatelessWidget {
-  const LoginShell({super.key});
+Widget _permissionPage(
+  AuthController authController,
+  String permission,
+  Widget child,
+) {
+  if (authController.hasPermission(permission)) {
+    return child;
+  }
+  return PermissionDeniedPage(permission: permission);
+}
+
+class PermissionDeniedPage extends StatelessWidget {
+  const PermissionDeniedPage({super.key, required this.permission});
+
+  final String permission;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: SafeArea(
-        child: Center(
+      appBar: AppBar(title: const Text('Access denied')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Mavra',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.displaySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Mavra watches quietly',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      border: OutlineInputBorder(),
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.login),
-                    label: const Text('Login'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('WeChat login'),
-                  ),
-                ],
-              ),
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline, size: 44),
+                const SizedBox(height: 16),
+                Text(
+                  'Permission required',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'This route needs $permission.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () => context.go('/today'),
+                  icon: const Icon(Icons.today),
+                  label: const Text('Go to Today'),
+                ),
+              ],
             ),
           ),
         ),

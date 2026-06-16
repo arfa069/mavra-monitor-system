@@ -16,20 +16,20 @@ class _$EventCenterListResponse extends EventCenterListResponse {
   @override
   final int total;
 
-  factory _$EventCenterListResponse(
-          [void Function(EventCenterListResponseBuilder)? updates]) =>
-      (EventCenterListResponseBuilder()..update(updates))._build();
+  factory _$EventCenterListResponse([
+    void Function(EventCenterListResponseBuilder)? updates,
+  ]) => (EventCenterListResponseBuilder()..update(updates))._build();
 
-  _$EventCenterListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$EventCenterListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   EventCenterListResponse rebuild(
-          void Function(EventCenterListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(EventCenterListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   EventCenterListResponseBuilder toBuilder() =>
@@ -121,15 +121,25 @@ class EventCenterListResponseBuilder
   _$EventCenterListResponse _build() {
     _$EventCenterListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$EventCenterListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'EventCenterListResponse', 'page'),
+              page,
+              r'EventCenterListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'EventCenterListResponse', 'pageSize'),
+              pageSize,
+              r'EventCenterListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'EventCenterListResponse', 'total'),
+              total,
+              r'EventCenterListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -138,7 +148,10 @@ class EventCenterListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'EventCenterListResponse', _$failedField, e.toString());
+          r'EventCenterListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -11,17 +11,17 @@ class _$ProductPlatformProfileBindingUpdate
   @override
   final String profileKey;
 
-  factory _$ProductPlatformProfileBindingUpdate(
-          [void Function(ProductPlatformProfileBindingUpdateBuilder)?
-              updates]) =>
+  factory _$ProductPlatformProfileBindingUpdate([
+    void Function(ProductPlatformProfileBindingUpdateBuilder)? updates,
+  ]) =>
       (ProductPlatformProfileBindingUpdateBuilder()..update(updates))._build();
 
   _$ProductPlatformProfileBindingUpdate._({required this.profileKey})
-      : super._();
+    : super._();
   @override
   ProductPlatformProfileBindingUpdate rebuild(
-          void Function(ProductPlatformProfileBindingUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductPlatformProfileBindingUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductPlatformProfileBindingUpdateBuilder toBuilder() =>
@@ -44,16 +44,18 @@ class _$ProductPlatformProfileBindingUpdate
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ProductPlatformProfileBindingUpdate')
-          ..add('profileKey', profileKey))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ProductPlatformProfileBindingUpdate',
+    )..add('profileKey', profileKey)).toString();
   }
 }
 
 class ProductPlatformProfileBindingUpdateBuilder
     implements
-        Builder<ProductPlatformProfileBindingUpdate,
-            ProductPlatformProfileBindingUpdateBuilder> {
+        Builder<
+          ProductPlatformProfileBindingUpdate,
+          ProductPlatformProfileBindingUpdateBuilder
+        > {
   _$ProductPlatformProfileBindingUpdate? _$v;
 
   String? _profileKey;
@@ -80,7 +82,8 @@ class ProductPlatformProfileBindingUpdateBuilder
 
   @override
   void update(
-      void Function(ProductPlatformProfileBindingUpdateBuilder)? updates) {
+    void Function(ProductPlatformProfileBindingUpdateBuilder)? updates,
+  ) {
     if (updates != null) updates(this);
   }
 
@@ -88,10 +91,14 @@ class ProductPlatformProfileBindingUpdateBuilder
   ProductPlatformProfileBindingUpdate build() => _build();
 
   _$ProductPlatformProfileBindingUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductPlatformProfileBindingUpdate._(
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'ProductPlatformProfileBindingUpdate', 'profileKey'),
+            profileKey,
+            r'ProductPlatformProfileBindingUpdate',
+            'profileKey',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -12,15 +12,15 @@ class _$MatchAnalyzeRequest extends MatchAnalyzeRequest {
   @override
   final BuiltList<int>? jobIds;
 
-  factory _$MatchAnalyzeRequest(
-          [void Function(MatchAnalyzeRequestBuilder)? updates]) =>
-      (MatchAnalyzeRequestBuilder()..update(updates))._build();
+  factory _$MatchAnalyzeRequest([
+    void Function(MatchAnalyzeRequestBuilder)? updates,
+  ]) => (MatchAnalyzeRequestBuilder()..update(updates))._build();
 
   _$MatchAnalyzeRequest._({required this.resumeId, this.jobIds}) : super._();
   @override
   MatchAnalyzeRequest rebuild(
-          void Function(MatchAnalyzeRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(MatchAnalyzeRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   MatchAnalyzeRequestBuilder toBuilder() =>
@@ -94,10 +94,14 @@ class MatchAnalyzeRequestBuilder
   _$MatchAnalyzeRequest _build() {
     _$MatchAnalyzeRequest _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$MatchAnalyzeRequest._(
             resumeId: BuiltValueNullFieldError.checkNotNull(
-                resumeId, r'MatchAnalyzeRequest', 'resumeId'),
+              resumeId,
+              r'MatchAnalyzeRequest',
+              'resumeId',
+            ),
             jobIds: _jobIds?.build(),
           );
     } catch (_) {
@@ -107,7 +111,10 @@ class MatchAnalyzeRequestBuilder
         _jobIds?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'MatchAnalyzeRequest', _$failedField, e.toString());
+          r'MatchAnalyzeRequest',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

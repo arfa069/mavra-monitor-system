@@ -16,20 +16,20 @@ class _$ResourcePermissionListResponse extends ResourcePermissionListResponse {
   @override
   final int total;
 
-  factory _$ResourcePermissionListResponse(
-          [void Function(ResourcePermissionListResponseBuilder)? updates]) =>
-      (ResourcePermissionListResponseBuilder()..update(updates))._build();
+  factory _$ResourcePermissionListResponse([
+    void Function(ResourcePermissionListResponseBuilder)? updates,
+  ]) => (ResourcePermissionListResponseBuilder()..update(updates))._build();
 
-  _$ResourcePermissionListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$ResourcePermissionListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   ResourcePermissionListResponse rebuild(
-          void Function(ResourcePermissionListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ResourcePermissionListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ResourcePermissionListResponseBuilder toBuilder() =>
@@ -69,8 +69,10 @@ class _$ResourcePermissionListResponse extends ResourcePermissionListResponse {
 
 class ResourcePermissionListResponseBuilder
     implements
-        Builder<ResourcePermissionListResponse,
-            ResourcePermissionListResponseBuilder> {
+        Builder<
+          ResourcePermissionListResponse,
+          ResourcePermissionListResponseBuilder
+        > {
   _$ResourcePermissionListResponse? _$v;
 
   ListBuilder<ResourcePermissionResponse>? _items;
@@ -123,15 +125,25 @@ class ResourcePermissionListResponseBuilder
   _$ResourcePermissionListResponse _build() {
     _$ResourcePermissionListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$ResourcePermissionListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'ResourcePermissionListResponse', 'page'),
+              page,
+              r'ResourcePermissionListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'ResourcePermissionListResponse', 'pageSize'),
+              pageSize,
+              r'ResourcePermissionListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'ResourcePermissionListResponse', 'total'),
+              total,
+              r'ResourcePermissionListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -140,7 +152,10 @@ class ResourcePermissionListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ResourcePermissionListResponse', _$failedField, e.toString());
+          r'ResourcePermissionListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

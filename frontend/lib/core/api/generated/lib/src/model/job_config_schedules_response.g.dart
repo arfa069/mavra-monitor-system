@@ -10,15 +10,15 @@ class _$JobConfigSchedulesResponse extends JobConfigSchedulesResponse {
   @override
   final BuiltList<JobConfigScheduleInfo>? configs;
 
-  factory _$JobConfigSchedulesResponse(
-          [void Function(JobConfigSchedulesResponseBuilder)? updates]) =>
-      (JobConfigSchedulesResponseBuilder()..update(updates))._build();
+  factory _$JobConfigSchedulesResponse([
+    void Function(JobConfigSchedulesResponseBuilder)? updates,
+  ]) => (JobConfigSchedulesResponseBuilder()..update(updates))._build();
 
   _$JobConfigSchedulesResponse._({this.configs}) : super._();
   @override
   JobConfigSchedulesResponse rebuild(
-          void Function(JobConfigSchedulesResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobConfigSchedulesResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobConfigSchedulesResponseBuilder toBuilder() =>
@@ -40,9 +40,9 @@ class _$JobConfigSchedulesResponse extends JobConfigSchedulesResponse {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'JobConfigSchedulesResponse')
-          ..add('configs', configs))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'JobConfigSchedulesResponse',
+    )..add('configs', configs)).toString();
   }
 }
 
@@ -86,10 +86,8 @@ class JobConfigSchedulesResponseBuilder
   _$JobConfigSchedulesResponse _build() {
     _$JobConfigSchedulesResponse _$result;
     try {
-      _$result = _$v ??
-          _$JobConfigSchedulesResponse._(
-            configs: _configs?.build(),
-          );
+      _$result =
+          _$v ?? _$JobConfigSchedulesResponse._(configs: _configs?.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -97,7 +95,10 @@ class JobConfigSchedulesResponseBuilder
         _configs?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'JobConfigSchedulesResponse', _$failedField, e.toString());
+          r'JobConfigSchedulesResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

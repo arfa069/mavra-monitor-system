@@ -89,11 +89,7 @@ class ProfileUpdateBuilder
   ProfileUpdate build() => _build();
 
   _$ProfileUpdate _build() {
-    final _$result = _$v ??
-        _$ProfileUpdate._(
-          email: email,
-          username: username,
-        );
+    final _$result = _$v ?? _$ProfileUpdate._(email: email, username: username);
     replace(_$result);
     return _$result;
   }

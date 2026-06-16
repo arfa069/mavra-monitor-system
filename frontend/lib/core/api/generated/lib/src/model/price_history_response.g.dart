@@ -18,21 +18,21 @@ class _$PriceHistoryResponse extends PriceHistoryResponse {
   @override
   final DateTime scrapedAt;
 
-  factory _$PriceHistoryResponse(
-          [void Function(PriceHistoryResponseBuilder)? updates]) =>
-      (PriceHistoryResponseBuilder()..update(updates))._build();
+  factory _$PriceHistoryResponse([
+    void Function(PriceHistoryResponseBuilder)? updates,
+  ]) => (PriceHistoryResponseBuilder()..update(updates))._build();
 
-  _$PriceHistoryResponse._(
-      {required this.currency,
-      required this.id,
-      required this.price,
-      required this.productId,
-      required this.scrapedAt})
-      : super._();
+  _$PriceHistoryResponse._({
+    required this.currency,
+    required this.id,
+    required this.price,
+    required this.productId,
+    required this.scrapedAt,
+  }) : super._();
   @override
   PriceHistoryResponse rebuild(
-          void Function(PriceHistoryResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(PriceHistoryResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   PriceHistoryResponseBuilder toBuilder() =>
@@ -128,18 +128,34 @@ class PriceHistoryResponseBuilder
   PriceHistoryResponse build() => _build();
 
   _$PriceHistoryResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$PriceHistoryResponse._(
           currency: BuiltValueNullFieldError.checkNotNull(
-              currency, r'PriceHistoryResponse', 'currency'),
+            currency,
+            r'PriceHistoryResponse',
+            'currency',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'PriceHistoryResponse', 'id'),
+            id,
+            r'PriceHistoryResponse',
+            'id',
+          ),
           price: BuiltValueNullFieldError.checkNotNull(
-              price, r'PriceHistoryResponse', 'price'),
+            price,
+            r'PriceHistoryResponse',
+            'price',
+          ),
           productId: BuiltValueNullFieldError.checkNotNull(
-              productId, r'PriceHistoryResponse', 'productId'),
+            productId,
+            r'PriceHistoryResponse',
+            'productId',
+          ),
           scrapedAt: BuiltValueNullFieldError.checkNotNull(
-              scrapedAt, r'PriceHistoryResponse', 'scrapedAt'),
+            scrapedAt,
+            r'PriceHistoryResponse',
+            'scrapedAt',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -10,15 +10,15 @@ class _$ProductCronSchedulesResponse extends ProductCronSchedulesResponse {
   @override
   final BuiltMap<String, ScheduleInfo>? platforms;
 
-  factory _$ProductCronSchedulesResponse(
-          [void Function(ProductCronSchedulesResponseBuilder)? updates]) =>
-      (ProductCronSchedulesResponseBuilder()..update(updates))._build();
+  factory _$ProductCronSchedulesResponse([
+    void Function(ProductCronSchedulesResponseBuilder)? updates,
+  ]) => (ProductCronSchedulesResponseBuilder()..update(updates))._build();
 
   _$ProductCronSchedulesResponse._({this.platforms}) : super._();
   @override
   ProductCronSchedulesResponse rebuild(
-          void Function(ProductCronSchedulesResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductCronSchedulesResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductCronSchedulesResponseBuilder toBuilder() =>
@@ -41,16 +41,18 @@ class _$ProductCronSchedulesResponse extends ProductCronSchedulesResponse {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ProductCronSchedulesResponse')
-          ..add('platforms', platforms))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ProductCronSchedulesResponse',
+    )..add('platforms', platforms)).toString();
   }
 }
 
 class ProductCronSchedulesResponseBuilder
     implements
-        Builder<ProductCronSchedulesResponse,
-            ProductCronSchedulesResponseBuilder> {
+        Builder<
+          ProductCronSchedulesResponse,
+          ProductCronSchedulesResponseBuilder
+        > {
   _$ProductCronSchedulesResponse? _$v;
 
   MapBuilder<String, ScheduleInfo>? _platforms;
@@ -88,10 +90,9 @@ class ProductCronSchedulesResponseBuilder
   _$ProductCronSchedulesResponse _build() {
     _$ProductCronSchedulesResponse _$result;
     try {
-      _$result = _$v ??
-          _$ProductCronSchedulesResponse._(
-            platforms: _platforms?.build(),
-          );
+      _$result =
+          _$v ??
+          _$ProductCronSchedulesResponse._(platforms: _platforms?.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -99,7 +100,10 @@ class ProductCronSchedulesResponseBuilder
         _platforms?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ProductCronSchedulesResponse', _$failedField, e.toString());
+          r'ProductCronSchedulesResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

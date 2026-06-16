@@ -32,11 +32,11 @@ BlogPostResponseStatusEnum _$blogPostResponseStatusEnumValueOf(String name) {
 
 final BuiltSet<BlogPostResponseStatusEnum> _$blogPostResponseStatusEnumValues =
     BuiltSet<BlogPostResponseStatusEnum>(const <BlogPostResponseStatusEnum>[
-  _$blogPostResponseStatusEnum_draft,
-  _$blogPostResponseStatusEnum_scheduled,
-  _$blogPostResponseStatusEnum_published,
-  _$blogPostResponseStatusEnum_archived,
-]);
+      _$blogPostResponseStatusEnum_draft,
+      _$blogPostResponseStatusEnum_scheduled,
+      _$blogPostResponseStatusEnum_published,
+      _$blogPostResponseStatusEnum_archived,
+    ]);
 
 Serializer<BlogPostResponseStatusEnum> _$blogPostResponseStatusEnumSerializer =
     _$BlogPostResponseStatusEnumSerializer();
@@ -62,16 +62,20 @@ class _$BlogPostResponseStatusEnumSerializer
   final String wireName = 'BlogPostResponseStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, BlogPostResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    BlogPostResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   BlogPostResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      BlogPostResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BlogPostResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$BlogPostResponse extends BlogPostResponse {
@@ -112,30 +116,30 @@ class _$BlogPostResponse extends BlogPostResponse {
   @override
   final BuiltList<BlogTagResponse>? tags;
 
-  factory _$BlogPostResponse(
-          [void Function(BlogPostResponseBuilder)? updates]) =>
-      (BlogPostResponseBuilder()..update(updates))._build();
+  factory _$BlogPostResponse([
+    void Function(BlogPostResponseBuilder)? updates,
+  ]) => (BlogPostResponseBuilder()..update(updates))._build();
 
-  _$BlogPostResponse._(
-      {required this.contentHtml,
-      required this.contentJson,
-      required this.contentText,
-      required this.createdAt,
-      required this.id,
-      required this.slug,
-      required this.status,
-      required this.title,
-      required this.updatedAt,
-      this.canonicalUrl,
-      this.category,
-      this.coverUrl,
-      this.excerpt,
-      this.ogImageUrl,
-      this.publishedAt,
-      this.seoDescription,
-      this.seoTitle,
-      this.tags})
-      : super._();
+  _$BlogPostResponse._({
+    required this.contentHtml,
+    required this.contentJson,
+    required this.contentText,
+    required this.createdAt,
+    required this.id,
+    required this.slug,
+    required this.status,
+    required this.title,
+    required this.updatedAt,
+    this.canonicalUrl,
+    this.category,
+    this.coverUrl,
+    this.excerpt,
+    this.ogImageUrl,
+    this.publishedAt,
+    this.seoDescription,
+    this.seoTitle,
+    this.tags,
+  }) : super._();
   @override
   BlogPostResponse rebuild(void Function(BlogPostResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -346,25 +350,50 @@ class BlogPostResponseBuilder
   _$BlogPostResponse _build() {
     _$BlogPostResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$BlogPostResponse._(
             contentHtml: BuiltValueNullFieldError.checkNotNull(
-                contentHtml, r'BlogPostResponse', 'contentHtml'),
+              contentHtml,
+              r'BlogPostResponse',
+              'contentHtml',
+            ),
             contentJson: contentJson.build(),
             contentText: BuiltValueNullFieldError.checkNotNull(
-                contentText, r'BlogPostResponse', 'contentText'),
+              contentText,
+              r'BlogPostResponse',
+              'contentText',
+            ),
             createdAt: BuiltValueNullFieldError.checkNotNull(
-                createdAt, r'BlogPostResponse', 'createdAt'),
+              createdAt,
+              r'BlogPostResponse',
+              'createdAt',
+            ),
             id: BuiltValueNullFieldError.checkNotNull(
-                id, r'BlogPostResponse', 'id'),
+              id,
+              r'BlogPostResponse',
+              'id',
+            ),
             slug: BuiltValueNullFieldError.checkNotNull(
-                slug, r'BlogPostResponse', 'slug'),
+              slug,
+              r'BlogPostResponse',
+              'slug',
+            ),
             status: BuiltValueNullFieldError.checkNotNull(
-                status, r'BlogPostResponse', 'status'),
+              status,
+              r'BlogPostResponse',
+              'status',
+            ),
             title: BuiltValueNullFieldError.checkNotNull(
-                title, r'BlogPostResponse', 'title'),
+              title,
+              r'BlogPostResponse',
+              'title',
+            ),
             updatedAt: BuiltValueNullFieldError.checkNotNull(
-                updatedAt, r'BlogPostResponse', 'updatedAt'),
+              updatedAt,
+              r'BlogPostResponse',
+              'updatedAt',
+            ),
             canonicalUrl: canonicalUrl,
             category: _category?.build(),
             coverUrl: coverUrl,
@@ -388,7 +417,10 @@ class BlogPostResponseBuilder
         _tags?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'BlogPostResponse', _$failedField, e.toString());
+          r'BlogPostResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

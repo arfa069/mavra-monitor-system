@@ -11,15 +11,15 @@ class _$CrawlProfileBackupExportRequest
   @override
   final String password;
 
-  factory _$CrawlProfileBackupExportRequest(
-          [void Function(CrawlProfileBackupExportRequestBuilder)? updates]) =>
-      (CrawlProfileBackupExportRequestBuilder()..update(updates))._build();
+  factory _$CrawlProfileBackupExportRequest([
+    void Function(CrawlProfileBackupExportRequestBuilder)? updates,
+  ]) => (CrawlProfileBackupExportRequestBuilder()..update(updates))._build();
 
   _$CrawlProfileBackupExportRequest._({required this.password}) : super._();
   @override
   CrawlProfileBackupExportRequest rebuild(
-          void Function(CrawlProfileBackupExportRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileBackupExportRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileBackupExportRequestBuilder toBuilder() =>
@@ -42,16 +42,18 @@ class _$CrawlProfileBackupExportRequest
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'CrawlProfileBackupExportRequest')
-          ..add('password', password))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'CrawlProfileBackupExportRequest',
+    )..add('password', password)).toString();
   }
 }
 
 class CrawlProfileBackupExportRequestBuilder
     implements
-        Builder<CrawlProfileBackupExportRequest,
-            CrawlProfileBackupExportRequestBuilder> {
+        Builder<
+          CrawlProfileBackupExportRequest,
+          CrawlProfileBackupExportRequestBuilder
+        > {
   _$CrawlProfileBackupExportRequest? _$v;
 
   String? _password;
@@ -85,10 +87,14 @@ class CrawlProfileBackupExportRequestBuilder
   CrawlProfileBackupExportRequest build() => _build();
 
   _$CrawlProfileBackupExportRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileBackupExportRequest._(
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'CrawlProfileBackupExportRequest', 'password'),
+            password,
+            r'CrawlProfileBackupExportRequest',
+            'password',
+          ),
         );
     replace(_$result);
     return _$result;

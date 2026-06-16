@@ -12,9 +12,9 @@ class _$WeChatQrResponse extends WeChatQrResponse {
   @override
   final String state;
 
-  factory _$WeChatQrResponse(
-          [void Function(WeChatQrResponseBuilder)? updates]) =>
-      (WeChatQrResponseBuilder()..update(updates))._build();
+  factory _$WeChatQrResponse([
+    void Function(WeChatQrResponseBuilder)? updates,
+  ]) => (WeChatQrResponseBuilder()..update(updates))._build();
 
   _$WeChatQrResponse._({required this.qrUrl, required this.state}) : super._();
   @override
@@ -91,12 +91,19 @@ class WeChatQrResponseBuilder
   WeChatQrResponse build() => _build();
 
   _$WeChatQrResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$WeChatQrResponse._(
           qrUrl: BuiltValueNullFieldError.checkNotNull(
-              qrUrl, r'WeChatQrResponse', 'qrUrl'),
+            qrUrl,
+            r'WeChatQrResponse',
+            'qrUrl',
+          ),
           state: BuiltValueNullFieldError.checkNotNull(
-              state, r'WeChatQrResponse', 'state'),
+            state,
+            r'WeChatQrResponse',
+            'state',
+          ),
         );
     replace(_$result);
     return _$result;

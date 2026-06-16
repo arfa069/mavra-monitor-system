@@ -12,16 +12,16 @@ class _$CrawlProfileCreate extends CrawlProfileCreate {
   @override
   final String? platformHint;
 
-  factory _$CrawlProfileCreate(
-          [void Function(CrawlProfileCreateBuilder)? updates]) =>
-      (CrawlProfileCreateBuilder()..update(updates))._build();
+  factory _$CrawlProfileCreate([
+    void Function(CrawlProfileCreateBuilder)? updates,
+  ]) => (CrawlProfileCreateBuilder()..update(updates))._build();
 
   _$CrawlProfileCreate._({required this.profileKey, this.platformHint})
-      : super._();
+    : super._();
   @override
   CrawlProfileCreate rebuild(
-          void Function(CrawlProfileCreateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileCreateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileCreateBuilder toBuilder() =>
@@ -93,10 +93,14 @@ class CrawlProfileCreateBuilder
   CrawlProfileCreate build() => _build();
 
   _$CrawlProfileCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileCreate._(
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileCreate', 'profileKey'),
+            profileKey,
+            r'CrawlProfileCreate',
+            'profileKey',
+          ),
           platformHint: platformHint,
         );
     replace(_$result);

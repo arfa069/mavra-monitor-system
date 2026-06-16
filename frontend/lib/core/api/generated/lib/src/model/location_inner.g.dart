@@ -37,8 +37,9 @@ class _$LocationInner extends LocationInner {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'LocationInner')..add('anyOf', anyOf))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'LocationInner',
+    )..add('anyOf', anyOf)).toString();
   }
 }
 
@@ -77,10 +78,14 @@ class LocationInnerBuilder
   LocationInner build() => _build();
 
   _$LocationInner _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$LocationInner._(
           anyOf: BuiltValueNullFieldError.checkNotNull(
-              anyOf, r'LocationInner', 'anyOf'),
+            anyOf,
+            r'LocationInner',
+            'anyOf',
+          ),
         );
     replace(_$result);
     return _$result;

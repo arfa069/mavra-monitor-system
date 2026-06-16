@@ -92,7 +92,8 @@ class AlertUpdateBuilder implements Builder<AlertUpdate, AlertUpdateBuilder> {
   _$AlertUpdate _build() {
     _$AlertUpdate _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AlertUpdate._(
             active: active,
             thresholdPercent: _thresholdPercent?.build(),
@@ -104,7 +105,10 @@ class AlertUpdateBuilder implements Builder<AlertUpdate, AlertUpdateBuilder> {
         _thresholdPercent?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AlertUpdate', _$failedField, e.toString());
+          r'AlertUpdate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

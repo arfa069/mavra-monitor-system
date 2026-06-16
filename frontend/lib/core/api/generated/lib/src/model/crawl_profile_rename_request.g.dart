@@ -10,15 +10,15 @@ class _$CrawlProfileRenameRequest extends CrawlProfileRenameRequest {
   @override
   final String profileKey;
 
-  factory _$CrawlProfileRenameRequest(
-          [void Function(CrawlProfileRenameRequestBuilder)? updates]) =>
-      (CrawlProfileRenameRequestBuilder()..update(updates))._build();
+  factory _$CrawlProfileRenameRequest([
+    void Function(CrawlProfileRenameRequestBuilder)? updates,
+  ]) => (CrawlProfileRenameRequestBuilder()..update(updates))._build();
 
   _$CrawlProfileRenameRequest._({required this.profileKey}) : super._();
   @override
   CrawlProfileRenameRequest rebuild(
-          void Function(CrawlProfileRenameRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileRenameRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileRenameRequestBuilder toBuilder() =>
@@ -40,9 +40,9 @@ class _$CrawlProfileRenameRequest extends CrawlProfileRenameRequest {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'CrawlProfileRenameRequest')
-          ..add('profileKey', profileKey))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'CrawlProfileRenameRequest',
+    )..add('profileKey', profileKey)).toString();
   }
 }
 
@@ -82,10 +82,14 @@ class CrawlProfileRenameRequestBuilder
   CrawlProfileRenameRequest build() => _build();
 
   _$CrawlProfileRenameRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileRenameRequest._(
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileRenameRequest', 'profileKey'),
+            profileKey,
+            r'CrawlProfileRenameRequest',
+            'profileKey',
+          ),
         );
     replace(_$result);
     return _$result;

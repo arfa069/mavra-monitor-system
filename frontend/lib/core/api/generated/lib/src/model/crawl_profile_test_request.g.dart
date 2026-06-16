@@ -12,15 +12,15 @@ class _$CrawlProfileTestRequest extends CrawlProfileTestRequest {
   @override
   final String? startUrl;
 
-  factory _$CrawlProfileTestRequest(
-          [void Function(CrawlProfileTestRequestBuilder)? updates]) =>
-      (CrawlProfileTestRequestBuilder()..update(updates))._build();
+  factory _$CrawlProfileTestRequest([
+    void Function(CrawlProfileTestRequestBuilder)? updates,
+  ]) => (CrawlProfileTestRequestBuilder()..update(updates))._build();
 
   _$CrawlProfileTestRequest._({this.platform, this.startUrl}) : super._();
   @override
   CrawlProfileTestRequest rebuild(
-          void Function(CrawlProfileTestRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileTestRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileTestRequestBuilder toBuilder() =>
@@ -93,11 +93,9 @@ class CrawlProfileTestRequestBuilder
   CrawlProfileTestRequest build() => _build();
 
   _$CrawlProfileTestRequest _build() {
-    final _$result = _$v ??
-        _$CrawlProfileTestRequest._(
-          platform: platform,
-          startUrl: startUrl,
-        );
+    final _$result =
+        _$v ??
+        _$CrawlProfileTestRequest._(platform: platform, startUrl: startUrl);
     replace(_$result);
     return _$result;
   }

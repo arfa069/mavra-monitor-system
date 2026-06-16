@@ -12,15 +12,15 @@ class _$DashboardKPIResponse extends DashboardKPIResponse {
   @override
   final SystemKPI? system;
 
-  factory _$DashboardKPIResponse(
-          [void Function(DashboardKPIResponseBuilder)? updates]) =>
-      (DashboardKPIResponseBuilder()..update(updates))._build();
+  factory _$DashboardKPIResponse([
+    void Function(DashboardKPIResponseBuilder)? updates,
+  ]) => (DashboardKPIResponseBuilder()..update(updates))._build();
 
   _$DashboardKPIResponse._({required this.user, this.system}) : super._();
   @override
   DashboardKPIResponse rebuild(
-          void Function(DashboardKPIResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(DashboardKPIResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   DashboardKPIResponseBuilder toBuilder() =>
@@ -94,7 +94,8 @@ class DashboardKPIResponseBuilder
   _$DashboardKPIResponse _build() {
     _$DashboardKPIResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$DashboardKPIResponse._(
             user: user.build(),
             system: _system?.build(),
@@ -108,7 +109,10 @@ class DashboardKPIResponseBuilder
         _system?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'DashboardKPIResponse', _$failedField, e.toString());
+          r'DashboardKPIResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

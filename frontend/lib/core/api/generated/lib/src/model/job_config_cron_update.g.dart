@@ -12,15 +12,15 @@ class _$JobConfigCronUpdate extends JobConfigCronUpdate {
   @override
   final String? cronTimezone;
 
-  factory _$JobConfigCronUpdate(
-          [void Function(JobConfigCronUpdateBuilder)? updates]) =>
-      (JobConfigCronUpdateBuilder()..update(updates))._build();
+  factory _$JobConfigCronUpdate([
+    void Function(JobConfigCronUpdateBuilder)? updates,
+  ]) => (JobConfigCronUpdateBuilder()..update(updates))._build();
 
   _$JobConfigCronUpdate._({this.cronExpression, this.cronTimezone}) : super._();
   @override
   JobConfigCronUpdate rebuild(
-          void Function(JobConfigCronUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobConfigCronUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobConfigCronUpdateBuilder toBuilder() =>
@@ -93,7 +93,8 @@ class JobConfigCronUpdateBuilder
   JobConfigCronUpdate build() => _build();
 
   _$JobConfigCronUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobConfigCronUpdate._(
           cronExpression: cronExpression,
           cronTimezone: cronTimezone,

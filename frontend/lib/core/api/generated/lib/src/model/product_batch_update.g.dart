@@ -12,15 +12,15 @@ class _$ProductBatchUpdate extends ProductBatchUpdate {
   @override
   final bool? active;
 
-  factory _$ProductBatchUpdate(
-          [void Function(ProductBatchUpdateBuilder)? updates]) =>
-      (ProductBatchUpdateBuilder()..update(updates))._build();
+  factory _$ProductBatchUpdate([
+    void Function(ProductBatchUpdateBuilder)? updates,
+  ]) => (ProductBatchUpdateBuilder()..update(updates))._build();
 
   _$ProductBatchUpdate._({required this.ids, this.active}) : super._();
   @override
   ProductBatchUpdate rebuild(
-          void Function(ProductBatchUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductBatchUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductBatchUpdateBuilder toBuilder() =>
@@ -94,11 +94,8 @@ class ProductBatchUpdateBuilder
   _$ProductBatchUpdate _build() {
     _$ProductBatchUpdate _$result;
     try {
-      _$result = _$v ??
-          _$ProductBatchUpdate._(
-            ids: ids.build(),
-            active: active,
-          );
+      _$result =
+          _$v ?? _$ProductBatchUpdate._(ids: ids.build(), active: active);
     } catch (_) {
       late String _$failedField;
       try {
@@ -106,7 +103,10 @@ class ProductBatchUpdateBuilder
         ids.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ProductBatchUpdate', _$failedField, e.toString());
+          r'ProductBatchUpdate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

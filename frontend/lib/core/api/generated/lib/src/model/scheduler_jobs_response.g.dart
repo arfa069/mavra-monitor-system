@@ -12,16 +12,16 @@ class _$SchedulerJobsResponse extends SchedulerJobsResponse {
   @override
   final BuiltMap<String, ScheduleInfo>? productPlatforms;
 
-  factory _$SchedulerJobsResponse(
-          [void Function(SchedulerJobsResponseBuilder)? updates]) =>
-      (SchedulerJobsResponseBuilder()..update(updates))._build();
+  factory _$SchedulerJobsResponse([
+    void Function(SchedulerJobsResponseBuilder)? updates,
+  ]) => (SchedulerJobsResponseBuilder()..update(updates))._build();
 
   _$SchedulerJobsResponse._({this.jobConfigs, this.productPlatforms})
-      : super._();
+    : super._();
   @override
   SchedulerJobsResponse rebuild(
-          void Function(SchedulerJobsResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SchedulerJobsResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SchedulerJobsResponseBuilder toBuilder() =>
@@ -99,7 +99,8 @@ class SchedulerJobsResponseBuilder
   _$SchedulerJobsResponse _build() {
     _$SchedulerJobsResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$SchedulerJobsResponse._(
             jobConfigs: _jobConfigs?.build(),
             productPlatforms: _productPlatforms?.build(),
@@ -113,7 +114,10 @@ class SchedulerJobsResponseBuilder
         _productPlatforms?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'SchedulerJobsResponse', _$failedField, e.toString());
+          r'SchedulerJobsResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

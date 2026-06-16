@@ -10,15 +10,15 @@ class _$AppSchemasAuthMessageResponse extends AppSchemasAuthMessageResponse {
   @override
   final String message;
 
-  factory _$AppSchemasAuthMessageResponse(
-          [void Function(AppSchemasAuthMessageResponseBuilder)? updates]) =>
-      (AppSchemasAuthMessageResponseBuilder()..update(updates))._build();
+  factory _$AppSchemasAuthMessageResponse([
+    void Function(AppSchemasAuthMessageResponseBuilder)? updates,
+  ]) => (AppSchemasAuthMessageResponseBuilder()..update(updates))._build();
 
   _$AppSchemasAuthMessageResponse._({required this.message}) : super._();
   @override
   AppSchemasAuthMessageResponse rebuild(
-          void Function(AppSchemasAuthMessageResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(AppSchemasAuthMessageResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   AppSchemasAuthMessageResponseBuilder toBuilder() =>
@@ -40,16 +40,18 @@ class _$AppSchemasAuthMessageResponse extends AppSchemasAuthMessageResponse {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'AppSchemasAuthMessageResponse')
-          ..add('message', message))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'AppSchemasAuthMessageResponse',
+    )..add('message', message)).toString();
   }
 }
 
 class AppSchemasAuthMessageResponseBuilder
     implements
-        Builder<AppSchemasAuthMessageResponse,
-            AppSchemasAuthMessageResponseBuilder> {
+        Builder<
+          AppSchemasAuthMessageResponse,
+          AppSchemasAuthMessageResponseBuilder
+        > {
   _$AppSchemasAuthMessageResponse? _$v;
 
   String? _message;
@@ -83,10 +85,14 @@ class AppSchemasAuthMessageResponseBuilder
   AppSchemasAuthMessageResponse build() => _build();
 
   _$AppSchemasAuthMessageResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$AppSchemasAuthMessageResponse._(
           message: BuiltValueNullFieldError.checkNotNull(
-              message, r'AppSchemasAuthMessageResponse', 'message'),
+            message,
+            r'AppSchemasAuthMessageResponse',
+            'message',
+          ),
         );
     replace(_$result);
     return _$result;

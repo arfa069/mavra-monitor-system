@@ -25,15 +25,15 @@ class _$UserResponse extends UserResponse {
   factory _$UserResponse([void Function(UserResponseBuilder)? updates]) =>
       (UserResponseBuilder()..update(updates))._build();
 
-  _$UserResponse._(
-      {required this.createdAt,
-      required this.email,
-      required this.id,
-      required this.username,
-      this.isActive,
-      this.permissions,
-      this.role})
-      : super._();
+  _$UserResponse._({
+    required this.createdAt,
+    required this.email,
+    required this.id,
+    required this.username,
+    this.isActive,
+    this.permissions,
+    this.role,
+  }) : super._();
   @override
   UserResponse rebuild(void Function(UserResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -151,16 +151,29 @@ class UserResponseBuilder
   _$UserResponse _build() {
     _$UserResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$UserResponse._(
             createdAt: BuiltValueNullFieldError.checkNotNull(
-                createdAt, r'UserResponse', 'createdAt'),
+              createdAt,
+              r'UserResponse',
+              'createdAt',
+            ),
             email: BuiltValueNullFieldError.checkNotNull(
-                email, r'UserResponse', 'email'),
+              email,
+              r'UserResponse',
+              'email',
+            ),
             id: BuiltValueNullFieldError.checkNotNull(
-                id, r'UserResponse', 'id'),
+              id,
+              r'UserResponse',
+              'id',
+            ),
             username: BuiltValueNullFieldError.checkNotNull(
-                username, r'UserResponse', 'username'),
+              username,
+              r'UserResponse',
+              'username',
+            ),
             isActive: isActive,
             permissions: _permissions?.build(),
             role: role,
@@ -172,7 +185,10 @@ class UserResponseBuilder
         _permissions?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'UserResponse', _$failedField, e.toString());
+          r'UserResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

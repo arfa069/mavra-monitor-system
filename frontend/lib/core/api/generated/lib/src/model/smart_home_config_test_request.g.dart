@@ -12,15 +12,15 @@ class _$SmartHomeConfigTestRequest extends SmartHomeConfigTestRequest {
   @override
   final String? token;
 
-  factory _$SmartHomeConfigTestRequest(
-          [void Function(SmartHomeConfigTestRequestBuilder)? updates]) =>
-      (SmartHomeConfigTestRequestBuilder()..update(updates))._build();
+  factory _$SmartHomeConfigTestRequest([
+    void Function(SmartHomeConfigTestRequestBuilder)? updates,
+  ]) => (SmartHomeConfigTestRequestBuilder()..update(updates))._build();
 
   _$SmartHomeConfigTestRequest._({this.baseUrl, this.token}) : super._();
   @override
   SmartHomeConfigTestRequest rebuild(
-          void Function(SmartHomeConfigTestRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeConfigTestRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeConfigTestRequestBuilder toBuilder() =>
@@ -93,11 +93,8 @@ class SmartHomeConfigTestRequestBuilder
   SmartHomeConfigTestRequest build() => _build();
 
   _$SmartHomeConfigTestRequest _build() {
-    final _$result = _$v ??
-        _$SmartHomeConfigTestRequest._(
-          baseUrl: baseUrl,
-          token: token,
-        );
+    final _$result =
+        _$v ?? _$SmartHomeConfigTestRequest._(baseUrl: baseUrl, token: token);
     replace(_$result);
     return _$result;
   }

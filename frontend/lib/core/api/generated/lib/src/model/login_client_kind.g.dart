@@ -20,11 +20,9 @@ LoginClientKind _$valueOf(String name) {
   }
 }
 
-final BuiltSet<LoginClientKind> _$values =
-    BuiltSet<LoginClientKind>(const <LoginClientKind>[
-  _$web,
-  _$native_,
-]);
+final BuiltSet<LoginClientKind> _$values = BuiltSet<LoginClientKind>(
+  const <LoginClientKind>[_$web, _$native_],
+);
 
 class _$LoginClientKindMeta {
   const _$LoginClientKindMeta();
@@ -34,7 +32,7 @@ class _$LoginClientKindMeta {
   BuiltSet<LoginClientKind> get values => _$values;
 }
 
-abstract class _$LoginClientKindMixin {
+mixin _$LoginClientKindMixin {
   // ignore: non_constant_identifier_names
   _$LoginClientKindMeta get LoginClientKind => const _$LoginClientKindMeta();
 }
@@ -59,15 +57,20 @@ class _$LoginClientKindSerializer
   final String wireName = 'LoginClientKind';
 
   @override
-  Object serialize(Serializers serializers, LoginClientKind object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    LoginClientKind object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
-  LoginClientKind deserialize(Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      LoginClientKind.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+  LoginClientKind deserialize(
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => LoginClientKind.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 // ignore_for_file: deprecated_member_use_from_same_package,type=lint

@@ -90,11 +90,15 @@ class TrendDatasetBuilder
   _$TrendDataset _build() {
     _$TrendDataset _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$TrendDataset._(
             data: data.build(),
             label: BuiltValueNullFieldError.checkNotNull(
-                label, r'TrendDataset', 'label'),
+              label,
+              r'TrendDataset',
+              'label',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -103,7 +107,10 @@ class TrendDatasetBuilder
         data.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'TrendDataset', _$failedField, e.toString());
+          r'TrendDataset',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

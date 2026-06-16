@@ -28,10 +28,10 @@ EventCenterItemKindEnum _$eventCenterItemKindEnumValueOf(String name) {
 
 final BuiltSet<EventCenterItemKindEnum> _$eventCenterItemKindEnumValues =
     BuiltSet<EventCenterItemKindEnum>(const <EventCenterItemKindEnum>[
-  _$eventCenterItemKindEnum_audit,
-  _$eventCenterItemKindEnum_system,
-  _$eventCenterItemKindEnum_platform,
-]);
+      _$eventCenterItemKindEnum_audit,
+      _$eventCenterItemKindEnum_system,
+      _$eventCenterItemKindEnum_platform,
+    ]);
 
 Serializer<EventCenterItemKindEnum> _$eventCenterItemKindEnumSerializer =
     _$EventCenterItemKindEnumSerializer();
@@ -55,16 +55,20 @@ class _$EventCenterItemKindEnumSerializer
   final String wireName = 'EventCenterItemKindEnum';
 
   @override
-  Object serialize(Serializers serializers, EventCenterItemKindEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    EventCenterItemKindEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   EventCenterItemKindEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      EventCenterItemKindEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => EventCenterItemKindEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$EventCenterItem extends EventCenterItem {
@@ -100,22 +104,22 @@ class _$EventCenterItem extends EventCenterItem {
   factory _$EventCenterItem([void Function(EventCenterItemBuilder)? updates]) =>
       (EventCenterItemBuilder()..update(updates))._build();
 
-  _$EventCenterItem._(
-      {required this.category,
-      this.entityId,
-      this.entityType,
-      required this.eventType,
-      required this.id,
-      required this.kind,
-      required this.message,
-      required this.occurredAt,
-      this.payload,
-      required this.severity,
-      required this.source_,
-      this.status,
-      this.traceId,
-      this.userId})
-      : super._();
+  _$EventCenterItem._({
+    required this.category,
+    this.entityId,
+    this.entityType,
+    required this.eventType,
+    required this.id,
+    required this.kind,
+    required this.message,
+    required this.occurredAt,
+    this.payload,
+    required this.severity,
+    required this.source_,
+    this.status,
+    this.traceId,
+    this.userId,
+  }) : super._();
   @override
   EventCenterItem rebuild(void Function(EventCenterItemBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -289,27 +293,52 @@ class EventCenterItemBuilder
   _$EventCenterItem _build() {
     _$EventCenterItem _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$EventCenterItem._(
             category: BuiltValueNullFieldError.checkNotNull(
-                category, r'EventCenterItem', 'category'),
+              category,
+              r'EventCenterItem',
+              'category',
+            ),
             entityId: entityId,
             entityType: entityType,
             eventType: BuiltValueNullFieldError.checkNotNull(
-                eventType, r'EventCenterItem', 'eventType'),
+              eventType,
+              r'EventCenterItem',
+              'eventType',
+            ),
             id: BuiltValueNullFieldError.checkNotNull(
-                id, r'EventCenterItem', 'id'),
+              id,
+              r'EventCenterItem',
+              'id',
+            ),
             kind: BuiltValueNullFieldError.checkNotNull(
-                kind, r'EventCenterItem', 'kind'),
+              kind,
+              r'EventCenterItem',
+              'kind',
+            ),
             message: BuiltValueNullFieldError.checkNotNull(
-                message, r'EventCenterItem', 'message'),
+              message,
+              r'EventCenterItem',
+              'message',
+            ),
             occurredAt: BuiltValueNullFieldError.checkNotNull(
-                occurredAt, r'EventCenterItem', 'occurredAt'),
+              occurredAt,
+              r'EventCenterItem',
+              'occurredAt',
+            ),
             payload: _payload?.build(),
             severity: BuiltValueNullFieldError.checkNotNull(
-                severity, r'EventCenterItem', 'severity'),
+              severity,
+              r'EventCenterItem',
+              'severity',
+            ),
             source_: BuiltValueNullFieldError.checkNotNull(
-                source_, r'EventCenterItem', 'source_'),
+              source_,
+              r'EventCenterItem',
+              'source_',
+            ),
             status: status,
             traceId: traceId,
             userId: userId,
@@ -321,7 +350,10 @@ class EventCenterItemBuilder
         _payload?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'EventCenterItem', _$failedField, e.toString());
+          r'EventCenterItem',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -16,20 +16,20 @@ class _$WeChatRegisterRequest extends WeChatRegisterRequest {
   @override
   final String username;
 
-  factory _$WeChatRegisterRequest(
-          [void Function(WeChatRegisterRequestBuilder)? updates]) =>
-      (WeChatRegisterRequestBuilder()..update(updates))._build();
+  factory _$WeChatRegisterRequest([
+    void Function(WeChatRegisterRequestBuilder)? updates,
+  ]) => (WeChatRegisterRequestBuilder()..update(updates))._build();
 
-  _$WeChatRegisterRequest._(
-      {required this.email,
-      required this.password,
-      required this.tempToken,
-      required this.username})
-      : super._();
+  _$WeChatRegisterRequest._({
+    required this.email,
+    required this.password,
+    required this.tempToken,
+    required this.username,
+  }) : super._();
   @override
   WeChatRegisterRequest rebuild(
-          void Function(WeChatRegisterRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(WeChatRegisterRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   WeChatRegisterRequestBuilder toBuilder() =>
@@ -117,16 +117,29 @@ class WeChatRegisterRequestBuilder
   WeChatRegisterRequest build() => _build();
 
   _$WeChatRegisterRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$WeChatRegisterRequest._(
           email: BuiltValueNullFieldError.checkNotNull(
-              email, r'WeChatRegisterRequest', 'email'),
+            email,
+            r'WeChatRegisterRequest',
+            'email',
+          ),
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'WeChatRegisterRequest', 'password'),
+            password,
+            r'WeChatRegisterRequest',
+            'password',
+          ),
           tempToken: BuiltValueNullFieldError.checkNotNull(
-              tempToken, r'WeChatRegisterRequest', 'tempToken'),
+            tempToken,
+            r'WeChatRegisterRequest',
+            'tempToken',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'WeChatRegisterRequest', 'username'),
+            username,
+            r'WeChatRegisterRequest',
+            'username',
+          ),
         );
     replace(_$result);
     return _$result;

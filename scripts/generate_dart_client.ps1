@@ -75,6 +75,36 @@ function Invoke-DartGenerator {
     }
 }
 
+function Normalize-DartPackagePubspec {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    $GeneratedPubspecPath = Join-Path $Destination "pubspec.yaml"
+    if (!(Test-Path $GeneratedPubspecPath)) {
+        throw "Generated Dart package pubspec is missing: $GeneratedPubspecPath"
+    }
+    $content = Get-Content $GeneratedPubspecPath -Raw
+    $content = $content -replace "sdk: '>=2\.18\.0 <4\.0\.0'", "sdk: '>=3.12.0 <4.0.0'"
+    $content = $content -replace "built_value_generator: '>=8\.4\.0 <9\.0\.0'", "built_value_generator: 8.12.5"
+    $content = $content -replace "build_runner: any", "build_runner: 2.15.0"
+    if ($content -notmatch "dependency_overrides:") {
+        $content = $content.TrimEnd() + "`n`ndependency_overrides:`n  dart_style: 3.1.8`n"
+    }
+    Set-Content -LiteralPath $GeneratedPubspecPath -Value $content -NoNewline
+}
+
+function Normalize-DartGeneratedSources {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    Get-ChildItem -Path (Join-Path $Destination "lib") -Recurse -Filter "*.dart" | ForEach-Object {
+        $path = $_.FullName
+        $content = Get-Content $path -Raw
+        $normalized = $content -replace "abstract class (\w+Mixin) = Object with (_\$\w+Mixin);", "abstract class `$1 implements `$2 {}"
+        if ($normalized -ne $content) {
+            Set-Content -LiteralPath $path -Value $normalized -NoNewline
+        }
+    }
+}
+
 function Invoke-DartPackageBuild {
     param([Parameter(Mandatory = $true)][string]$Destination)
 
@@ -116,6 +146,8 @@ if ($Check) {
     New-Item -ItemType Directory -Path $TempRoot | Out-Null
     try {
         Invoke-DartGenerator -Destination $TempRoot
+        Normalize-DartPackagePubspec -Destination $TempRoot
+        Normalize-DartGeneratedSources -Destination $TempRoot
         Invoke-DartPackageBuild -Destination $TempRoot
         Remove-DartPackageVolatileFiles -Destination $OutputPath
         git diff --no-index --exit-code -- $OutputPath $TempRoot
@@ -134,4 +166,6 @@ if ($Clean -and (Test-Path $OutputPath)) {
 }
 
 Invoke-DartGenerator -Destination $OutputPath
+Normalize-DartPackagePubspec -Destination $OutputPath
+Normalize-DartGeneratedSources -Destination $OutputPath
 Invoke-DartPackageBuild -Destination $OutputPath

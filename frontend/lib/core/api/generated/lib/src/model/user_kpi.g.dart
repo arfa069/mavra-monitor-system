@@ -21,13 +21,13 @@ class _$UserKPI extends UserKPI {
   factory _$UserKPI([void Function(UserKPIBuilder)? updates]) =>
       (UserKPIBuilder()..update(updates))._build();
 
-  _$UserKPI._(
-      {required this.crawlCountToday,
-      required this.matchCount,
-      required this.newJobsToday,
-      required this.priceDropsToday,
-      required this.totalProducts})
-      : super._();
+  _$UserKPI._({
+    required this.crawlCountToday,
+    required this.matchCount,
+    required this.newJobsToday,
+    required this.priceDropsToday,
+    required this.totalProducts,
+  }) : super._();
   @override
   UserKPI rebuild(void Function(UserKPIBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -127,18 +127,34 @@ class UserKPIBuilder implements Builder<UserKPI, UserKPIBuilder> {
   UserKPI build() => _build();
 
   _$UserKPI _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserKPI._(
           crawlCountToday: BuiltValueNullFieldError.checkNotNull(
-              crawlCountToday, r'UserKPI', 'crawlCountToday'),
+            crawlCountToday,
+            r'UserKPI',
+            'crawlCountToday',
+          ),
           matchCount: BuiltValueNullFieldError.checkNotNull(
-              matchCount, r'UserKPI', 'matchCount'),
+            matchCount,
+            r'UserKPI',
+            'matchCount',
+          ),
           newJobsToday: BuiltValueNullFieldError.checkNotNull(
-              newJobsToday, r'UserKPI', 'newJobsToday'),
+            newJobsToday,
+            r'UserKPI',
+            'newJobsToday',
+          ),
           priceDropsToday: BuiltValueNullFieldError.checkNotNull(
-              priceDropsToday, r'UserKPI', 'priceDropsToday'),
+            priceDropsToday,
+            r'UserKPI',
+            'priceDropsToday',
+          ),
           totalProducts: BuiltValueNullFieldError.checkNotNull(
-              totalProducts, r'UserKPI', 'totalProducts'),
+            totalProducts,
+            r'UserKPI',
+            'totalProducts',
+          ),
         );
     replace(_$result);
     return _$result;

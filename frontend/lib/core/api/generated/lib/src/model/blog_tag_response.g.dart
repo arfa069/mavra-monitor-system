@@ -17,9 +17,11 @@ class _$BlogTagResponse extends BlogTagResponse {
   factory _$BlogTagResponse([void Function(BlogTagResponseBuilder)? updates]) =>
       (BlogTagResponseBuilder()..update(updates))._build();
 
-  _$BlogTagResponse._(
-      {required this.id, required this.name, required this.slug})
-      : super._();
+  _$BlogTagResponse._({
+    required this.id,
+    required this.name,
+    required this.slug,
+  }) : super._();
   @override
   BlogTagResponse rebuild(void Function(BlogTagResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -101,14 +103,24 @@ class BlogTagResponseBuilder
   BlogTagResponse build() => _build();
 
   _$BlogTagResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$BlogTagResponse._(
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'BlogTagResponse', 'id'),
+            id,
+            r'BlogTagResponse',
+            'id',
+          ),
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'BlogTagResponse', 'name'),
+            name,
+            r'BlogTagResponse',
+            'name',
+          ),
           slug: BuiltValueNullFieldError.checkNotNull(
-              slug, r'BlogTagResponse', 'slug'),
+            slug,
+            r'BlogTagResponse',
+            'slug',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -7,14 +7,14 @@ part of 'crawl_profile_runtime_capabilities.dart';
 // **************************************************************************
 
 const CrawlProfileRuntimeCapabilitiesModeEnum
-    _$crawlProfileRuntimeCapabilitiesModeEnum_localGui =
+_$crawlProfileRuntimeCapabilitiesModeEnum_localGui =
     const CrawlProfileRuntimeCapabilitiesModeEnum._('localGui');
 const CrawlProfileRuntimeCapabilitiesModeEnum
-    _$crawlProfileRuntimeCapabilitiesModeEnum_headlessServer =
+_$crawlProfileRuntimeCapabilitiesModeEnum_headlessServer =
     const CrawlProfileRuntimeCapabilitiesModeEnum._('headlessServer');
 
 CrawlProfileRuntimeCapabilitiesModeEnum
-    _$crawlProfileRuntimeCapabilitiesModeEnumValueOf(String name) {
+_$crawlProfileRuntimeCapabilitiesModeEnumValueOf(String name) {
   switch (name) {
     case 'localGui':
       return _$crawlProfileRuntimeCapabilitiesModeEnum_localGui;
@@ -26,23 +26,27 @@ CrawlProfileRuntimeCapabilitiesModeEnum
 }
 
 final BuiltSet<CrawlProfileRuntimeCapabilitiesModeEnum>
-    _$crawlProfileRuntimeCapabilitiesModeEnumValues = BuiltSet<
-        CrawlProfileRuntimeCapabilitiesModeEnum>(const <CrawlProfileRuntimeCapabilitiesModeEnum>[
-  _$crawlProfileRuntimeCapabilitiesModeEnum_localGui,
-  _$crawlProfileRuntimeCapabilitiesModeEnum_headlessServer,
-]);
+_$crawlProfileRuntimeCapabilitiesModeEnumValues =
+    BuiltSet<CrawlProfileRuntimeCapabilitiesModeEnum>(
+      const <CrawlProfileRuntimeCapabilitiesModeEnum>[
+        _$crawlProfileRuntimeCapabilitiesModeEnum_localGui,
+        _$crawlProfileRuntimeCapabilitiesModeEnum_headlessServer,
+      ],
+    );
 
 const CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
-    _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_openLoginBrowser =
+_$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_openLoginBrowser =
     const CrawlProfileRuntimeCapabilitiesRecommendedActionEnum._(
-        'openLoginBrowser');
+      'openLoginBrowser',
+    );
 const CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
-    _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_importProfileBackup =
+_$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_importProfileBackup =
     const CrawlProfileRuntimeCapabilitiesRecommendedActionEnum._(
-        'importProfileBackup');
+      'importProfileBackup',
+    );
 
 CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
-    _$crawlProfileRuntimeCapabilitiesRecommendedActionEnumValueOf(String name) {
+_$crawlProfileRuntimeCapabilitiesRecommendedActionEnumValueOf(String name) {
   switch (name) {
     case 'openLoginBrowser':
       return _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_openLoginBrowser;
@@ -54,17 +58,19 @@ CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
 }
 
 final BuiltSet<CrawlProfileRuntimeCapabilitiesRecommendedActionEnum>
-    _$crawlProfileRuntimeCapabilitiesRecommendedActionEnumValues = BuiltSet<
-        CrawlProfileRuntimeCapabilitiesRecommendedActionEnum>(const <CrawlProfileRuntimeCapabilitiesRecommendedActionEnum>[
-  _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_openLoginBrowser,
-  _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_importProfileBackup,
-]);
+_$crawlProfileRuntimeCapabilitiesRecommendedActionEnumValues =
+    BuiltSet<CrawlProfileRuntimeCapabilitiesRecommendedActionEnum>(const <
+      CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
+    >[
+      _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_openLoginBrowser,
+      _$crawlProfileRuntimeCapabilitiesRecommendedActionEnum_importProfileBackup,
+    ]);
 
 Serializer<CrawlProfileRuntimeCapabilitiesModeEnum>
-    _$crawlProfileRuntimeCapabilitiesModeEnumSerializer =
+_$crawlProfileRuntimeCapabilitiesModeEnumSerializer =
     _$CrawlProfileRuntimeCapabilitiesModeEnumSerializer();
 Serializer<CrawlProfileRuntimeCapabilitiesRecommendedActionEnum>
-    _$crawlProfileRuntimeCapabilitiesRecommendedActionEnumSerializer =
+_$crawlProfileRuntimeCapabilitiesRecommendedActionEnumSerializer =
     _$CrawlProfileRuntimeCapabilitiesRecommendedActionEnumSerializer();
 
 class _$CrawlProfileRuntimeCapabilitiesModeEnumSerializer
@@ -80,29 +86,33 @@ class _$CrawlProfileRuntimeCapabilitiesModeEnumSerializer
 
   @override
   final Iterable<Type> types = const <Type>[
-    CrawlProfileRuntimeCapabilitiesModeEnum
+    CrawlProfileRuntimeCapabilitiesModeEnum,
   ];
   @override
   final String wireName = 'CrawlProfileRuntimeCapabilitiesModeEnum';
 
   @override
-  Object serialize(Serializers serializers,
-          CrawlProfileRuntimeCapabilitiesModeEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    CrawlProfileRuntimeCapabilitiesModeEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileRuntimeCapabilitiesModeEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileRuntimeCapabilitiesModeEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileRuntimeCapabilitiesModeEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileRuntimeCapabilitiesRecommendedActionEnumSerializer
     implements
         PrimitiveSerializer<
-            CrawlProfileRuntimeCapabilitiesRecommendedActionEnum> {
+          CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
+        > {
   static const Map<String, Object> _toWire = const <String, Object>{
     'openLoginBrowser': 'open_login_browser',
     'importProfileBackup': 'import_profile_backup',
@@ -114,24 +124,27 @@ class _$CrawlProfileRuntimeCapabilitiesRecommendedActionEnumSerializer
 
   @override
   final Iterable<Type> types = const <Type>[
-    CrawlProfileRuntimeCapabilitiesRecommendedActionEnum
+    CrawlProfileRuntimeCapabilitiesRecommendedActionEnum,
   ];
   @override
   final String wireName =
       'CrawlProfileRuntimeCapabilitiesRecommendedActionEnum';
 
   @override
-  Object serialize(Serializers serializers,
-          CrawlProfileRuntimeCapabilitiesRecommendedActionEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    CrawlProfileRuntimeCapabilitiesRecommendedActionEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileRuntimeCapabilitiesRecommendedActionEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileRuntimeCapabilitiesRecommendedActionEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileRuntimeCapabilitiesRecommendedActionEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileRuntimeCapabilities
@@ -149,22 +162,22 @@ class _$CrawlProfileRuntimeCapabilities
   @override
   final bool supportsProfileImport;
 
-  factory _$CrawlProfileRuntimeCapabilities(
-          [void Function(CrawlProfileRuntimeCapabilitiesBuilder)? updates]) =>
-      (CrawlProfileRuntimeCapabilitiesBuilder()..update(updates))._build();
+  factory _$CrawlProfileRuntimeCapabilities([
+    void Function(CrawlProfileRuntimeCapabilitiesBuilder)? updates,
+  ]) => (CrawlProfileRuntimeCapabilitiesBuilder()..update(updates))._build();
 
-  _$CrawlProfileRuntimeCapabilities._(
-      {required this.mode,
-      required this.os,
-      required this.recommendedAction,
-      required this.supportsLoginSession,
-      required this.supportsProfileExport,
-      required this.supportsProfileImport})
-      : super._();
+  _$CrawlProfileRuntimeCapabilities._({
+    required this.mode,
+    required this.os,
+    required this.recommendedAction,
+    required this.supportsLoginSession,
+    required this.supportsProfileExport,
+    required this.supportsProfileImport,
+  }) : super._();
   @override
   CrawlProfileRuntimeCapabilities rebuild(
-          void Function(CrawlProfileRuntimeCapabilitiesBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileRuntimeCapabilitiesBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileRuntimeCapabilitiesBuilder toBuilder() =>
@@ -210,8 +223,10 @@ class _$CrawlProfileRuntimeCapabilities
 
 class CrawlProfileRuntimeCapabilitiesBuilder
     implements
-        Builder<CrawlProfileRuntimeCapabilities,
-            CrawlProfileRuntimeCapabilitiesBuilder> {
+        Builder<
+          CrawlProfileRuntimeCapabilities,
+          CrawlProfileRuntimeCapabilitiesBuilder
+        > {
   _$CrawlProfileRuntimeCapabilities? _$v;
 
   CrawlProfileRuntimeCapabilitiesModeEnum? _mode;
@@ -227,9 +242,8 @@ class CrawlProfileRuntimeCapabilitiesBuilder
   CrawlProfileRuntimeCapabilitiesRecommendedActionEnum? get recommendedAction =>
       _$this._recommendedAction;
   set recommendedAction(
-          CrawlProfileRuntimeCapabilitiesRecommendedActionEnum?
-              recommendedAction) =>
-      _$this._recommendedAction = recommendedAction;
+    CrawlProfileRuntimeCapabilitiesRecommendedActionEnum? recommendedAction,
+  ) => _$this._recommendedAction = recommendedAction;
 
   bool? _supportsLoginSession;
   bool? get supportsLoginSession => _$this._supportsLoginSession;
@@ -278,28 +292,39 @@ class CrawlProfileRuntimeCapabilitiesBuilder
   CrawlProfileRuntimeCapabilities build() => _build();
 
   _$CrawlProfileRuntimeCapabilities _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileRuntimeCapabilities._(
           mode: BuiltValueNullFieldError.checkNotNull(
-              mode, r'CrawlProfileRuntimeCapabilities', 'mode'),
+            mode,
+            r'CrawlProfileRuntimeCapabilities',
+            'mode',
+          ),
           os: BuiltValueNullFieldError.checkNotNull(
-              os, r'CrawlProfileRuntimeCapabilities', 'os'),
+            os,
+            r'CrawlProfileRuntimeCapabilities',
+            'os',
+          ),
           recommendedAction: BuiltValueNullFieldError.checkNotNull(
-              recommendedAction,
-              r'CrawlProfileRuntimeCapabilities',
-              'recommendedAction'),
+            recommendedAction,
+            r'CrawlProfileRuntimeCapabilities',
+            'recommendedAction',
+          ),
           supportsLoginSession: BuiltValueNullFieldError.checkNotNull(
-              supportsLoginSession,
-              r'CrawlProfileRuntimeCapabilities',
-              'supportsLoginSession'),
+            supportsLoginSession,
+            r'CrawlProfileRuntimeCapabilities',
+            'supportsLoginSession',
+          ),
           supportsProfileExport: BuiltValueNullFieldError.checkNotNull(
-              supportsProfileExport,
-              r'CrawlProfileRuntimeCapabilities',
-              'supportsProfileExport'),
+            supportsProfileExport,
+            r'CrawlProfileRuntimeCapabilities',
+            'supportsProfileExport',
+          ),
           supportsProfileImport: BuiltValueNullFieldError.checkNotNull(
-              supportsProfileImport,
-              r'CrawlProfileRuntimeCapabilities',
-              'supportsProfileImport'),
+            supportsProfileImport,
+            r'CrawlProfileRuntimeCapabilities',
+            'supportsProfileImport',
+          ),
         );
     replace(_$result);
     return _$result;

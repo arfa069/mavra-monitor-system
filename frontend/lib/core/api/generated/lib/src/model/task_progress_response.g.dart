@@ -11,7 +11,7 @@ const TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnum_pending =
 const TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnum_running =
     const TaskProgressResponseStatusEnum._('running');
 const TaskProgressResponseStatusEnum
-    _$taskProgressResponseStatusEnum_completed =
+_$taskProgressResponseStatusEnum_completed =
     const TaskProgressResponseStatusEnum._('completed');
 const TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnum_failed =
     const TaskProgressResponseStatusEnum._('failed');
@@ -19,7 +19,8 @@ const TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnum_error =
     const TaskProgressResponseStatusEnum._('error');
 
 TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'pending':
       return _$taskProgressResponseStatusEnum_pending;
@@ -37,17 +38,19 @@ TaskProgressResponseStatusEnum _$taskProgressResponseStatusEnumValueOf(
 }
 
 final BuiltSet<TaskProgressResponseStatusEnum>
-    _$taskProgressResponseStatusEnumValues = BuiltSet<
-        TaskProgressResponseStatusEnum>(const <TaskProgressResponseStatusEnum>[
-  _$taskProgressResponseStatusEnum_pending,
-  _$taskProgressResponseStatusEnum_running,
-  _$taskProgressResponseStatusEnum_completed,
-  _$taskProgressResponseStatusEnum_failed,
-  _$taskProgressResponseStatusEnum_error,
-]);
+_$taskProgressResponseStatusEnumValues =
+    BuiltSet<TaskProgressResponseStatusEnum>(
+      const <TaskProgressResponseStatusEnum>[
+        _$taskProgressResponseStatusEnum_pending,
+        _$taskProgressResponseStatusEnum_running,
+        _$taskProgressResponseStatusEnum_completed,
+        _$taskProgressResponseStatusEnum_failed,
+        _$taskProgressResponseStatusEnum_error,
+      ],
+    );
 
 Serializer<TaskProgressResponseStatusEnum>
-    _$taskProgressResponseStatusEnumSerializer =
+_$taskProgressResponseStatusEnumSerializer =
     _$TaskProgressResponseStatusEnumSerializer();
 
 class _$TaskProgressResponseStatusEnumSerializer
@@ -74,16 +77,19 @@ class _$TaskProgressResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, TaskProgressResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    TaskProgressResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   TaskProgressResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      TaskProgressResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => TaskProgressResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$TaskProgressResponse extends TaskProgressResponse {
@@ -112,28 +118,28 @@ class _$TaskProgressResponse extends TaskProgressResponse {
   @override
   final String? workerId;
 
-  factory _$TaskProgressResponse(
-          [void Function(TaskProgressResponseBuilder)? updates]) =>
-      (TaskProgressResponseBuilder()..update(updates))._build();
+  factory _$TaskProgressResponse([
+    void Function(TaskProgressResponseBuilder)? updates,
+  ]) => (TaskProgressResponseBuilder()..update(updates))._build();
 
-  _$TaskProgressResponse._(
-      {required this.status,
-      required this.taskId,
-      this.details,
-      this.errors,
-      this.finishedAt,
-      this.heartbeatAt,
-      this.leaseUntil,
-      this.reason,
-      this.startedAt,
-      this.success,
-      this.total,
-      this.workerId})
-      : super._();
+  _$TaskProgressResponse._({
+    required this.status,
+    required this.taskId,
+    this.details,
+    this.errors,
+    this.finishedAt,
+    this.heartbeatAt,
+    this.leaseUntil,
+    this.reason,
+    this.startedAt,
+    this.success,
+    this.total,
+    this.workerId,
+  }) : super._();
   @override
   TaskProgressResponse rebuild(
-          void Function(TaskProgressResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(TaskProgressResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   TaskProgressResponseBuilder toBuilder() =>
@@ -288,12 +294,19 @@ class TaskProgressResponseBuilder
   _$TaskProgressResponse _build() {
     _$TaskProgressResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$TaskProgressResponse._(
             status: BuiltValueNullFieldError.checkNotNull(
-                status, r'TaskProgressResponse', 'status'),
+              status,
+              r'TaskProgressResponse',
+              'status',
+            ),
             taskId: BuiltValueNullFieldError.checkNotNull(
-                taskId, r'TaskProgressResponse', 'taskId'),
+              taskId,
+              r'TaskProgressResponse',
+              'taskId',
+            ),
             details: _details?.build(),
             errors: errors,
             finishedAt: finishedAt,
@@ -312,7 +325,10 @@ class TaskProgressResponseBuilder
         _details?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'TaskProgressResponse', _$failedField, e.toString());
+          r'TaskProgressResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

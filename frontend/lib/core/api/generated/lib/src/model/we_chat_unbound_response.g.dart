@@ -14,17 +14,19 @@ class _$WeChatUnboundResponse extends WeChatUnboundResponse {
   @override
   final String? status;
 
-  factory _$WeChatUnboundResponse(
-          [void Function(WeChatUnboundResponseBuilder)? updates]) =>
-      (WeChatUnboundResponseBuilder()..update(updates))._build();
+  factory _$WeChatUnboundResponse([
+    void Function(WeChatUnboundResponseBuilder)? updates,
+  ]) => (WeChatUnboundResponseBuilder()..update(updates))._build();
 
-  _$WeChatUnboundResponse._(
-      {required this.tempToken, this.nextPath, this.status})
-      : super._();
+  _$WeChatUnboundResponse._({
+    required this.tempToken,
+    this.nextPath,
+    this.status,
+  }) : super._();
   @override
   WeChatUnboundResponse rebuild(
-          void Function(WeChatUnboundResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(WeChatUnboundResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   WeChatUnboundResponseBuilder toBuilder() =>
@@ -104,10 +106,14 @@ class WeChatUnboundResponseBuilder
   WeChatUnboundResponse build() => _build();
 
   _$WeChatUnboundResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$WeChatUnboundResponse._(
           tempToken: BuiltValueNullFieldError.checkNotNull(
-              tempToken, r'WeChatUnboundResponse', 'tempToken'),
+            tempToken,
+            r'WeChatUnboundResponse',
+            'tempToken',
+          ),
           nextPath: nextPath,
           status: status,
         );

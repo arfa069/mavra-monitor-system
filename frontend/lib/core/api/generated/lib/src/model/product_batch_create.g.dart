@@ -10,15 +10,15 @@ class _$ProductBatchCreate extends ProductBatchCreate {
   @override
   final BuiltList<ProductBatchCreateItem> items;
 
-  factory _$ProductBatchCreate(
-          [void Function(ProductBatchCreateBuilder)? updates]) =>
-      (ProductBatchCreateBuilder()..update(updates))._build();
+  factory _$ProductBatchCreate([
+    void Function(ProductBatchCreateBuilder)? updates,
+  ]) => (ProductBatchCreateBuilder()..update(updates))._build();
 
   _$ProductBatchCreate._({required this.items}) : super._();
   @override
   ProductBatchCreate rebuild(
-          void Function(ProductBatchCreateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductBatchCreateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductBatchCreateBuilder toBuilder() =>
@@ -40,9 +40,9 @@ class _$ProductBatchCreate extends ProductBatchCreate {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ProductBatchCreate')
-          ..add('items', items))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ProductBatchCreate',
+    )..add('items', items)).toString();
   }
 }
 
@@ -85,10 +85,7 @@ class ProductBatchCreateBuilder
   _$ProductBatchCreate _build() {
     _$ProductBatchCreate _$result;
     try {
-      _$result = _$v ??
-          _$ProductBatchCreate._(
-            items: items.build(),
-          );
+      _$result = _$v ?? _$ProductBatchCreate._(items: items.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -96,7 +93,10 @@ class ProductBatchCreateBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ProductBatchCreate', _$failedField, e.toString());
+          r'ProductBatchCreate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -20,22 +20,22 @@ class _$UserConfigResponse extends UserConfigResponse {
   @override
   final DateTime? updatedAt;
 
-  factory _$UserConfigResponse(
-          [void Function(UserConfigResponseBuilder)? updates]) =>
-      (UserConfigResponseBuilder()..update(updates))._build();
+  factory _$UserConfigResponse([
+    void Function(UserConfigResponseBuilder)? updates,
+  ]) => (UserConfigResponseBuilder()..update(updates))._build();
 
-  _$UserConfigResponse._(
-      {required this.id,
-      required this.username,
-      this.createdAt,
-      this.dataRetentionDays,
-      this.feishuWebhookUrl,
-      this.updatedAt})
-      : super._();
+  _$UserConfigResponse._({
+    required this.id,
+    required this.username,
+    this.createdAt,
+    this.dataRetentionDays,
+    this.feishuWebhookUrl,
+    this.updatedAt,
+  }) : super._();
   @override
   UserConfigResponse rebuild(
-          void Function(UserConfigResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(UserConfigResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   UserConfigResponseBuilder toBuilder() =>
@@ -141,12 +141,19 @@ class UserConfigResponseBuilder
   UserConfigResponse build() => _build();
 
   _$UserConfigResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserConfigResponse._(
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'UserConfigResponse', 'id'),
+            id,
+            r'UserConfigResponse',
+            'id',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'UserConfigResponse', 'username'),
+            username,
+            r'UserConfigResponse',
+            'username',
+          ),
           createdAt: createdAt,
           dataRetentionDays: dataRetentionDays,
           feishuWebhookUrl: feishuWebhookUrl,

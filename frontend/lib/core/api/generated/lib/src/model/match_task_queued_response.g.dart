@@ -7,14 +7,15 @@ part of 'match_task_queued_response.dart';
 // **************************************************************************
 
 const MatchTaskQueuedResponseStatusEnum
-    _$matchTaskQueuedResponseStatusEnum_pending =
+_$matchTaskQueuedResponseStatusEnum_pending =
     const MatchTaskQueuedResponseStatusEnum._('pending');
 const MatchTaskQueuedResponseStatusEnum
-    _$matchTaskQueuedResponseStatusEnum_completed =
+_$matchTaskQueuedResponseStatusEnum_completed =
     const MatchTaskQueuedResponseStatusEnum._('completed');
 
 MatchTaskQueuedResponseStatusEnum _$matchTaskQueuedResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'pending':
       return _$matchTaskQueuedResponseStatusEnum_pending;
@@ -26,14 +27,16 @@ MatchTaskQueuedResponseStatusEnum _$matchTaskQueuedResponseStatusEnumValueOf(
 }
 
 final BuiltSet<MatchTaskQueuedResponseStatusEnum>
-    _$matchTaskQueuedResponseStatusEnumValues = BuiltSet<
-        MatchTaskQueuedResponseStatusEnum>(const <MatchTaskQueuedResponseStatusEnum>[
-  _$matchTaskQueuedResponseStatusEnum_pending,
-  _$matchTaskQueuedResponseStatusEnum_completed,
-]);
+_$matchTaskQueuedResponseStatusEnumValues =
+    BuiltSet<MatchTaskQueuedResponseStatusEnum>(
+      const <MatchTaskQueuedResponseStatusEnum>[
+        _$matchTaskQueuedResponseStatusEnum_pending,
+        _$matchTaskQueuedResponseStatusEnum_completed,
+      ],
+    );
 
 Serializer<MatchTaskQueuedResponseStatusEnum>
-    _$matchTaskQueuedResponseStatusEnumSerializer =
+_$matchTaskQueuedResponseStatusEnumSerializer =
     _$MatchTaskQueuedResponseStatusEnumSerializer();
 
 class _$MatchTaskQueuedResponseStatusEnumSerializer
@@ -54,16 +57,19 @@ class _$MatchTaskQueuedResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, MatchTaskQueuedResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    MatchTaskQueuedResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   MatchTaskQueuedResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      MatchTaskQueuedResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => MatchTaskQueuedResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$MatchTaskQueuedResponse extends MatchTaskQueuedResponse {
@@ -76,17 +82,20 @@ class _$MatchTaskQueuedResponse extends MatchTaskQueuedResponse {
   @override
   final String? reason;
 
-  factory _$MatchTaskQueuedResponse(
-          [void Function(MatchTaskQueuedResponseBuilder)? updates]) =>
-      (MatchTaskQueuedResponseBuilder()..update(updates))._build();
+  factory _$MatchTaskQueuedResponse([
+    void Function(MatchTaskQueuedResponseBuilder)? updates,
+  ]) => (MatchTaskQueuedResponseBuilder()..update(updates))._build();
 
-  _$MatchTaskQueuedResponse._(
-      {required this.status, this.taskId, required this.total, this.reason})
-      : super._();
+  _$MatchTaskQueuedResponse._({
+    required this.status,
+    this.taskId,
+    required this.total,
+    this.reason,
+  }) : super._();
   @override
   MatchTaskQueuedResponse rebuild(
-          void Function(MatchTaskQueuedResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(MatchTaskQueuedResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   MatchTaskQueuedResponseBuilder toBuilder() =>
@@ -176,13 +185,20 @@ class MatchTaskQueuedResponseBuilder
   MatchTaskQueuedResponse build() => _build();
 
   _$MatchTaskQueuedResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$MatchTaskQueuedResponse._(
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'MatchTaskQueuedResponse', 'status'),
+            status,
+            r'MatchTaskQueuedResponse',
+            'status',
+          ),
           taskId: taskId,
           total: BuiltValueNullFieldError.checkNotNull(
-              total, r'MatchTaskQueuedResponse', 'total'),
+            total,
+            r'MatchTaskQueuedResponse',
+            'total',
+          ),
           reason: reason,
         );
     replace(_$result);

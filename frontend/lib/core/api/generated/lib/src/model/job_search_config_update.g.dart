@@ -7,17 +7,18 @@ part of 'job_search_config_update.dart';
 // **************************************************************************
 
 const JobSearchConfigUpdatePlatformEnum
-    _$jobSearchConfigUpdatePlatformEnum_boss =
+_$jobSearchConfigUpdatePlatformEnum_boss =
     const JobSearchConfigUpdatePlatformEnum._('boss');
 const JobSearchConfigUpdatePlatformEnum
-    _$jobSearchConfigUpdatePlatformEnum_n51job =
+_$jobSearchConfigUpdatePlatformEnum_n51job =
     const JobSearchConfigUpdatePlatformEnum._('n51job');
 const JobSearchConfigUpdatePlatformEnum
-    _$jobSearchConfigUpdatePlatformEnum_liepin =
+_$jobSearchConfigUpdatePlatformEnum_liepin =
     const JobSearchConfigUpdatePlatformEnum._('liepin');
 
 JobSearchConfigUpdatePlatformEnum _$jobSearchConfigUpdatePlatformEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'boss':
       return _$jobSearchConfigUpdatePlatformEnum_boss;
@@ -31,15 +32,17 @@ JobSearchConfigUpdatePlatformEnum _$jobSearchConfigUpdatePlatformEnumValueOf(
 }
 
 final BuiltSet<JobSearchConfigUpdatePlatformEnum>
-    _$jobSearchConfigUpdatePlatformEnumValues = BuiltSet<
-        JobSearchConfigUpdatePlatformEnum>(const <JobSearchConfigUpdatePlatformEnum>[
-  _$jobSearchConfigUpdatePlatformEnum_boss,
-  _$jobSearchConfigUpdatePlatformEnum_n51job,
-  _$jobSearchConfigUpdatePlatformEnum_liepin,
-]);
+_$jobSearchConfigUpdatePlatformEnumValues =
+    BuiltSet<JobSearchConfigUpdatePlatformEnum>(
+      const <JobSearchConfigUpdatePlatformEnum>[
+        _$jobSearchConfigUpdatePlatformEnum_boss,
+        _$jobSearchConfigUpdatePlatformEnum_n51job,
+        _$jobSearchConfigUpdatePlatformEnum_liepin,
+      ],
+    );
 
 Serializer<JobSearchConfigUpdatePlatformEnum>
-    _$jobSearchConfigUpdatePlatformEnumSerializer =
+_$jobSearchConfigUpdatePlatformEnumSerializer =
     _$JobSearchConfigUpdatePlatformEnumSerializer();
 
 class _$JobSearchConfigUpdatePlatformEnumSerializer
@@ -62,16 +65,19 @@ class _$JobSearchConfigUpdatePlatformEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, JobSearchConfigUpdatePlatformEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    JobSearchConfigUpdatePlatformEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   JobSearchConfigUpdatePlatformEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      JobSearchConfigUpdatePlatformEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => JobSearchConfigUpdatePlatformEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$JobSearchConfigUpdate extends JobSearchConfigUpdate {
@@ -108,32 +114,32 @@ class _$JobSearchConfigUpdate extends JobSearchConfigUpdate {
   @override
   final String? url;
 
-  factory _$JobSearchConfigUpdate(
-          [void Function(JobSearchConfigUpdateBuilder)? updates]) =>
-      (JobSearchConfigUpdateBuilder()..update(updates))._build();
+  factory _$JobSearchConfigUpdate([
+    void Function(JobSearchConfigUpdateBuilder)? updates,
+  ]) => (JobSearchConfigUpdateBuilder()..update(updates))._build();
 
-  _$JobSearchConfigUpdate._(
-      {this.active,
-      this.cityCode,
-      this.cronExpression,
-      this.cronTimezone,
-      this.deactivationThreshold,
-      this.education,
-      this.enableMatchAnalysis,
-      this.experience,
-      this.keyword,
-      this.name,
-      this.notifyOnNew,
-      this.platform,
-      this.profileKey,
-      this.salaryMax,
-      this.salaryMin,
-      this.url})
-      : super._();
+  _$JobSearchConfigUpdate._({
+    this.active,
+    this.cityCode,
+    this.cronExpression,
+    this.cronTimezone,
+    this.deactivationThreshold,
+    this.education,
+    this.enableMatchAnalysis,
+    this.experience,
+    this.keyword,
+    this.name,
+    this.notifyOnNew,
+    this.platform,
+    this.profileKey,
+    this.salaryMax,
+    this.salaryMin,
+    this.url,
+  }) : super._();
   @override
   JobSearchConfigUpdate rebuild(
-          void Function(JobSearchConfigUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobSearchConfigUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobSearchConfigUpdateBuilder toBuilder() =>
@@ -321,7 +327,8 @@ class JobSearchConfigUpdateBuilder
   JobSearchConfigUpdate build() => _build();
 
   _$JobSearchConfigUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobSearchConfigUpdate._(
           active: active,
           cityCode: cityCode,

@@ -29,17 +29,17 @@ class _$AlertResponse extends AlertResponse {
   factory _$AlertResponse([void Function(AlertResponseBuilder)? updates]) =>
       (AlertResponseBuilder()..update(updates))._build();
 
-  _$AlertResponse._(
-      {required this.active,
-      required this.alertType,
-      required this.createdAt,
-      required this.id,
-      this.lastNotifiedAt,
-      this.lastNotifiedPrice,
-      required this.productId,
-      this.thresholdPercent,
-      required this.updatedAt})
-      : super._();
+  _$AlertResponse._({
+    required this.active,
+    required this.alertType,
+    required this.createdAt,
+    required this.id,
+    this.lastNotifiedAt,
+    this.lastNotifiedPrice,
+    required this.productId,
+    this.thresholdPercent,
+    required this.updatedAt,
+  }) : super._();
   @override
   AlertResponse rebuild(void Function(AlertResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -172,22 +172,38 @@ class AlertResponseBuilder
   AlertResponse build() => _build();
 
   _$AlertResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$AlertResponse._(
           active: BuiltValueNullFieldError.checkNotNull(
-              active, r'AlertResponse', 'active'),
+            active,
+            r'AlertResponse',
+            'active',
+          ),
           alertType: BuiltValueNullFieldError.checkNotNull(
-              alertType, r'AlertResponse', 'alertType'),
+            alertType,
+            r'AlertResponse',
+            'alertType',
+          ),
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'AlertResponse', 'createdAt'),
+            createdAt,
+            r'AlertResponse',
+            'createdAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(id, r'AlertResponse', 'id'),
           lastNotifiedAt: lastNotifiedAt,
           lastNotifiedPrice: lastNotifiedPrice,
           productId: BuiltValueNullFieldError.checkNotNull(
-              productId, r'AlertResponse', 'productId'),
+            productId,
+            r'AlertResponse',
+            'productId',
+          ),
           thresholdPercent: thresholdPercent,
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'AlertResponse', 'updatedAt'),
+            updatedAt,
+            r'AlertResponse',
+            'updatedAt',
+          ),
         );
     replace(_$result);
     return _$result;

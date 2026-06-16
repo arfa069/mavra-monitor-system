@@ -28,10 +28,10 @@ JobResponsePlatformEnum _$jobResponsePlatformEnumValueOf(String name) {
 
 final BuiltSet<JobResponsePlatformEnum> _$jobResponsePlatformEnumValues =
     BuiltSet<JobResponsePlatformEnum>(const <JobResponsePlatformEnum>[
-  _$jobResponsePlatformEnum_boss,
-  _$jobResponsePlatformEnum_n51job,
-  _$jobResponsePlatformEnum_liepin,
-]);
+      _$jobResponsePlatformEnum_boss,
+      _$jobResponsePlatformEnum_n51job,
+      _$jobResponsePlatformEnum_liepin,
+    ]);
 
 Serializer<JobResponsePlatformEnum> _$jobResponsePlatformEnumSerializer =
     _$JobResponsePlatformEnumSerializer();
@@ -55,16 +55,20 @@ class _$JobResponsePlatformEnumSerializer
   final String wireName = 'JobResponsePlatformEnum';
 
   @override
-  Object serialize(Serializers serializers, JobResponsePlatformEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    JobResponsePlatformEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   JobResponsePlatformEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      JobResponsePlatformEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => JobResponsePlatformEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$JobResponse extends JobResponse {
@@ -112,28 +116,28 @@ class _$JobResponse extends JobResponse {
   factory _$JobResponse([void Function(JobResponseBuilder)? updates]) =>
       (JobResponseBuilder()..update(updates))._build();
 
-  _$JobResponse._(
-      {this.address,
-      this.company,
-      this.companyId,
-      this.description,
-      this.education,
-      this.experience,
-      required this.firstSeenAt,
-      required this.id,
-      required this.isActive,
-      required this.jobId,
-      required this.lastUpdatedAt,
-      this.location,
-      required this.platform,
-      this.salary,
-      this.salaryMax,
-      this.salaryMin,
-      required this.searchConfigId,
-      this.title,
-      this.url,
-      this.applyRecommendation})
-      : super._();
+  _$JobResponse._({
+    this.address,
+    this.company,
+    this.companyId,
+    this.description,
+    this.education,
+    this.experience,
+    required this.firstSeenAt,
+    required this.id,
+    required this.isActive,
+    required this.jobId,
+    required this.lastUpdatedAt,
+    this.location,
+    required this.platform,
+    this.salary,
+    this.salaryMax,
+    this.salaryMin,
+    required this.searchConfigId,
+    this.title,
+    this.url,
+    this.applyRecommendation,
+  }) : super._();
   @override
   JobResponse rebuild(void Function(JobResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -354,7 +358,8 @@ class JobResponseBuilder implements Builder<JobResponse, JobResponseBuilder> {
   JobResponse build() => _build();
 
   _$JobResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobResponse._(
           address: address,
           company: company,
@@ -363,22 +368,40 @@ class JobResponseBuilder implements Builder<JobResponse, JobResponseBuilder> {
           education: education,
           experience: experience,
           firstSeenAt: BuiltValueNullFieldError.checkNotNull(
-              firstSeenAt, r'JobResponse', 'firstSeenAt'),
+            firstSeenAt,
+            r'JobResponse',
+            'firstSeenAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(id, r'JobResponse', 'id'),
           isActive: BuiltValueNullFieldError.checkNotNull(
-              isActive, r'JobResponse', 'isActive'),
+            isActive,
+            r'JobResponse',
+            'isActive',
+          ),
           jobId: BuiltValueNullFieldError.checkNotNull(
-              jobId, r'JobResponse', 'jobId'),
+            jobId,
+            r'JobResponse',
+            'jobId',
+          ),
           lastUpdatedAt: BuiltValueNullFieldError.checkNotNull(
-              lastUpdatedAt, r'JobResponse', 'lastUpdatedAt'),
+            lastUpdatedAt,
+            r'JobResponse',
+            'lastUpdatedAt',
+          ),
           location: location,
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'JobResponse', 'platform'),
+            platform,
+            r'JobResponse',
+            'platform',
+          ),
           salary: salary,
           salaryMax: salaryMax,
           salaryMin: salaryMin,
           searchConfigId: BuiltValueNullFieldError.checkNotNull(
-              searchConfigId, r'JobResponse', 'searchConfigId'),
+            searchConfigId,
+            r'JobResponse',
+            'searchConfigId',
+          ),
           title: title,
           url: url,
           applyRecommendation: applyRecommendation,

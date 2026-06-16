@@ -16,20 +16,20 @@ class _$AuditLogListResponse extends AuditLogListResponse {
   @override
   final int total;
 
-  factory _$AuditLogListResponse(
-          [void Function(AuditLogListResponseBuilder)? updates]) =>
-      (AuditLogListResponseBuilder()..update(updates))._build();
+  factory _$AuditLogListResponse([
+    void Function(AuditLogListResponseBuilder)? updates,
+  ]) => (AuditLogListResponseBuilder()..update(updates))._build();
 
-  _$AuditLogListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$AuditLogListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   AuditLogListResponse rebuild(
-          void Function(AuditLogListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(AuditLogListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   AuditLogListResponseBuilder toBuilder() =>
@@ -120,15 +120,25 @@ class AuditLogListResponseBuilder
   _$AuditLogListResponse _build() {
     _$AuditLogListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AuditLogListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'AuditLogListResponse', 'page'),
+              page,
+              r'AuditLogListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'AuditLogListResponse', 'pageSize'),
+              pageSize,
+              r'AuditLogListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'AuditLogListResponse', 'total'),
+              total,
+              r'AuditLogListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -137,7 +147,10 @@ class AuditLogListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AuditLogListResponse', _$failedField, e.toString());
+          r'AuditLogListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

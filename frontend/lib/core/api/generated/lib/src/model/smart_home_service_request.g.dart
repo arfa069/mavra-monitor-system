@@ -14,17 +14,19 @@ class _$SmartHomeServiceRequest extends SmartHomeServiceRequest {
   @override
   final BuiltMap<String, JsonObject?>? serviceData;
 
-  factory _$SmartHomeServiceRequest(
-          [void Function(SmartHomeServiceRequestBuilder)? updates]) =>
-      (SmartHomeServiceRequestBuilder()..update(updates))._build();
+  factory _$SmartHomeServiceRequest([
+    void Function(SmartHomeServiceRequestBuilder)? updates,
+  ]) => (SmartHomeServiceRequestBuilder()..update(updates))._build();
 
-  _$SmartHomeServiceRequest._(
-      {required this.entityId, required this.service, this.serviceData})
-      : super._();
+  _$SmartHomeServiceRequest._({
+    required this.entityId,
+    required this.service,
+    this.serviceData,
+  }) : super._();
   @override
   SmartHomeServiceRequest rebuild(
-          void Function(SmartHomeServiceRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeServiceRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeServiceRequestBuilder toBuilder() =>
@@ -109,12 +111,19 @@ class SmartHomeServiceRequestBuilder
   _$SmartHomeServiceRequest _build() {
     _$SmartHomeServiceRequest _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$SmartHomeServiceRequest._(
             entityId: BuiltValueNullFieldError.checkNotNull(
-                entityId, r'SmartHomeServiceRequest', 'entityId'),
+              entityId,
+              r'SmartHomeServiceRequest',
+              'entityId',
+            ),
             service: BuiltValueNullFieldError.checkNotNull(
-                service, r'SmartHomeServiceRequest', 'service'),
+              service,
+              r'SmartHomeServiceRequest',
+              'service',
+            ),
             serviceData: _serviceData?.build(),
           );
     } catch (_) {
@@ -124,7 +133,10 @@ class SmartHomeServiceRequestBuilder
         _serviceData?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'SmartHomeServiceRequest', _$failedField, e.toString());
+          r'SmartHomeServiceRequest',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

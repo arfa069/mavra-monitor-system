@@ -23,14 +23,14 @@ class _$SystemKPI extends SystemKPI {
   factory _$SystemKPI([void Function(SystemKPIBuilder)? updates]) =>
       (SystemKPIBuilder()..update(updates))._build();
 
-  _$SystemKPI._(
-      {required this.activeAlerts,
-      required this.diskUsage,
-      required this.memoryUsage,
-      required this.successRate,
-      required this.totalCrawls,
-      required this.totalUsers})
-      : super._();
+  _$SystemKPI._({
+    required this.activeAlerts,
+    required this.diskUsage,
+    required this.memoryUsage,
+    required this.successRate,
+    required this.totalCrawls,
+    required this.totalUsers,
+  }) : super._();
   @override
   SystemKPI rebuild(void Function(SystemKPIBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -135,20 +135,39 @@ class SystemKPIBuilder implements Builder<SystemKPI, SystemKPIBuilder> {
   SystemKPI build() => _build();
 
   _$SystemKPI _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SystemKPI._(
           activeAlerts: BuiltValueNullFieldError.checkNotNull(
-              activeAlerts, r'SystemKPI', 'activeAlerts'),
+            activeAlerts,
+            r'SystemKPI',
+            'activeAlerts',
+          ),
           diskUsage: BuiltValueNullFieldError.checkNotNull(
-              diskUsage, r'SystemKPI', 'diskUsage'),
+            diskUsage,
+            r'SystemKPI',
+            'diskUsage',
+          ),
           memoryUsage: BuiltValueNullFieldError.checkNotNull(
-              memoryUsage, r'SystemKPI', 'memoryUsage'),
+            memoryUsage,
+            r'SystemKPI',
+            'memoryUsage',
+          ),
           successRate: BuiltValueNullFieldError.checkNotNull(
-              successRate, r'SystemKPI', 'successRate'),
+            successRate,
+            r'SystemKPI',
+            'successRate',
+          ),
           totalCrawls: BuiltValueNullFieldError.checkNotNull(
-              totalCrawls, r'SystemKPI', 'totalCrawls'),
+            totalCrawls,
+            r'SystemKPI',
+            'totalCrawls',
+          ),
           totalUsers: BuiltValueNullFieldError.checkNotNull(
-              totalUsers, r'SystemKPI', 'totalUsers'),
+            totalUsers,
+            r'SystemKPI',
+            'totalUsers',
+          ),
         );
     replace(_$result);
     return _$result;

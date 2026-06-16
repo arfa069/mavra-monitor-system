@@ -14,7 +14,8 @@ const TaskQueuedResponseStatusEnum _$taskQueuedResponseStatusEnum_error =
     const TaskQueuedResponseStatusEnum._('error');
 
 TaskQueuedResponseStatusEnum _$taskQueuedResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'pending':
       return _$taskQueuedResponseStatusEnum_pending;
@@ -28,15 +29,15 @@ TaskQueuedResponseStatusEnum _$taskQueuedResponseStatusEnumValueOf(
 }
 
 final BuiltSet<TaskQueuedResponseStatusEnum>
-    _$taskQueuedResponseStatusEnumValues =
+_$taskQueuedResponseStatusEnumValues =
     BuiltSet<TaskQueuedResponseStatusEnum>(const <TaskQueuedResponseStatusEnum>[
-  _$taskQueuedResponseStatusEnum_pending,
-  _$taskQueuedResponseStatusEnum_skipped,
-  _$taskQueuedResponseStatusEnum_error,
-]);
+      _$taskQueuedResponseStatusEnum_pending,
+      _$taskQueuedResponseStatusEnum_skipped,
+      _$taskQueuedResponseStatusEnum_error,
+    ]);
 
 Serializer<TaskQueuedResponseStatusEnum>
-    _$taskQueuedResponseStatusEnumSerializer =
+_$taskQueuedResponseStatusEnumSerializer =
     _$TaskQueuedResponseStatusEnumSerializer();
 
 class _$TaskQueuedResponseStatusEnumSerializer
@@ -58,16 +59,20 @@ class _$TaskQueuedResponseStatusEnumSerializer
   final String wireName = 'TaskQueuedResponseStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, TaskQueuedResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    TaskQueuedResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   TaskQueuedResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      TaskQueuedResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => TaskQueuedResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$TaskQueuedResponse extends TaskQueuedResponse {
@@ -80,17 +85,20 @@ class _$TaskQueuedResponse extends TaskQueuedResponse {
   @override
   final String? taskId;
 
-  factory _$TaskQueuedResponse(
-          [void Function(TaskQueuedResponseBuilder)? updates]) =>
-      (TaskQueuedResponseBuilder()..update(updates))._build();
+  factory _$TaskQueuedResponse([
+    void Function(TaskQueuedResponseBuilder)? updates,
+  ]) => (TaskQueuedResponseBuilder()..update(updates))._build();
 
-  _$TaskQueuedResponse._(
-      {required this.status, this.message, this.reason, this.taskId})
-      : super._();
+  _$TaskQueuedResponse._({
+    required this.status,
+    this.message,
+    this.reason,
+    this.taskId,
+  }) : super._();
   @override
   TaskQueuedResponse rebuild(
-          void Function(TaskQueuedResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(TaskQueuedResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   TaskQueuedResponseBuilder toBuilder() =>
@@ -178,10 +186,14 @@ class TaskQueuedResponseBuilder
   TaskQueuedResponse build() => _build();
 
   _$TaskQueuedResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$TaskQueuedResponse._(
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'TaskQueuedResponse', 'status'),
+            status,
+            r'TaskQueuedResponse',
+            'status',
+          ),
           message: message,
           reason: reason,
           taskId: taskId,

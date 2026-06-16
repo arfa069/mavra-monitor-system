@@ -22,23 +22,23 @@ class _$ProductListResponse extends ProductListResponse {
   @override
   final int totalPages;
 
-  factory _$ProductListResponse(
-          [void Function(ProductListResponseBuilder)? updates]) =>
-      (ProductListResponseBuilder()..update(updates))._build();
+  factory _$ProductListResponse([
+    void Function(ProductListResponseBuilder)? updates,
+  ]) => (ProductListResponseBuilder()..update(updates))._build();
 
-  _$ProductListResponse._(
-      {required this.hasNext,
-      required this.hasPrev,
-      required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total,
-      required this.totalPages})
-      : super._();
+  _$ProductListResponse._({
+    required this.hasNext,
+    required this.hasPrev,
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+    required this.totalPages,
+  }) : super._();
   @override
   ProductListResponse rebuild(
-          void Function(ProductListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductListResponseBuilder toBuilder() =>
@@ -153,21 +153,40 @@ class ProductListResponseBuilder
   _$ProductListResponse _build() {
     _$ProductListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$ProductListResponse._(
             hasNext: BuiltValueNullFieldError.checkNotNull(
-                hasNext, r'ProductListResponse', 'hasNext'),
+              hasNext,
+              r'ProductListResponse',
+              'hasNext',
+            ),
             hasPrev: BuiltValueNullFieldError.checkNotNull(
-                hasPrev, r'ProductListResponse', 'hasPrev'),
+              hasPrev,
+              r'ProductListResponse',
+              'hasPrev',
+            ),
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'ProductListResponse', 'page'),
+              page,
+              r'ProductListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'ProductListResponse', 'pageSize'),
+              pageSize,
+              r'ProductListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'ProductListResponse', 'total'),
+              total,
+              r'ProductListResponse',
+              'total',
+            ),
             totalPages: BuiltValueNullFieldError.checkNotNull(
-                totalPages, r'ProductListResponse', 'totalPages'),
+              totalPages,
+              r'ProductListResponse',
+              'totalPages',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -176,7 +195,10 @@ class ProductListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ProductListResponse', _$failedField, e.toString());
+          r'ProductListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

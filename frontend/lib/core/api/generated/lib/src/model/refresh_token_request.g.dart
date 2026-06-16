@@ -10,15 +10,15 @@ class _$RefreshTokenRequest extends RefreshTokenRequest {
   @override
   final String? refreshToken;
 
-  factory _$RefreshTokenRequest(
-          [void Function(RefreshTokenRequestBuilder)? updates]) =>
-      (RefreshTokenRequestBuilder()..update(updates))._build();
+  factory _$RefreshTokenRequest([
+    void Function(RefreshTokenRequestBuilder)? updates,
+  ]) => (RefreshTokenRequestBuilder()..update(updates))._build();
 
   _$RefreshTokenRequest._({this.refreshToken}) : super._();
   @override
   RefreshTokenRequest rebuild(
-          void Function(RefreshTokenRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(RefreshTokenRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   RefreshTokenRequestBuilder toBuilder() =>
@@ -40,9 +40,9 @@ class _$RefreshTokenRequest extends RefreshTokenRequest {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'RefreshTokenRequest')
-          ..add('refreshToken', refreshToken))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'RefreshTokenRequest',
+    )..add('refreshToken', refreshToken)).toString();
   }
 }
 
@@ -81,10 +81,7 @@ class RefreshTokenRequestBuilder
   RefreshTokenRequest build() => _build();
 
   _$RefreshTokenRequest _build() {
-    final _$result = _$v ??
-        _$RefreshTokenRequest._(
-          refreshToken: refreshToken,
-        );
+    final _$result = _$v ?? _$RefreshTokenRequest._(refreshToken: refreshToken);
     replace(_$result);
     return _$result;
   }

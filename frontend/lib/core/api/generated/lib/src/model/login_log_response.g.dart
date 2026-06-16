@@ -16,16 +16,16 @@ class _$LoginLogResponse extends LoginLogResponse {
   @override
   final String? userAgent;
 
-  factory _$LoginLogResponse(
-          [void Function(LoginLogResponseBuilder)? updates]) =>
-      (LoginLogResponseBuilder()..update(updates))._build();
+  factory _$LoginLogResponse([
+    void Function(LoginLogResponseBuilder)? updates,
+  ]) => (LoginLogResponseBuilder()..update(updates))._build();
 
-  _$LoginLogResponse._(
-      {required this.createdAt,
-      required this.id,
-      this.ipAddress,
-      this.userAgent})
-      : super._();
+  _$LoginLogResponse._({
+    required this.createdAt,
+    required this.id,
+    this.ipAddress,
+    this.userAgent,
+  }) : super._();
   @override
   LoginLogResponse rebuild(void Function(LoginLogResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -116,12 +116,19 @@ class LoginLogResponseBuilder
   LoginLogResponse build() => _build();
 
   _$LoginLogResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$LoginLogResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'LoginLogResponse', 'createdAt'),
+            createdAt,
+            r'LoginLogResponse',
+            'createdAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'LoginLogResponse', 'id'),
+            id,
+            r'LoginLogResponse',
+            'id',
+          ),
           ipAddress: ipAddress,
           userAgent: userAgent,
         );

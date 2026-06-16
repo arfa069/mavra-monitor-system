@@ -18,21 +18,21 @@ class _$AuthSessionResponse extends AuthSessionResponse {
   @override
   final String? tokenType;
 
-  factory _$AuthSessionResponse(
-          [void Function(AuthSessionResponseBuilder)? updates]) =>
-      (AuthSessionResponseBuilder()..update(updates))._build();
+  factory _$AuthSessionResponse([
+    void Function(AuthSessionResponseBuilder)? updates,
+  ]) => (AuthSessionResponseBuilder()..update(updates))._build();
 
-  _$AuthSessionResponse._(
-      {required this.accessToken,
-      required this.expiresIn,
-      required this.user,
-      this.refreshToken,
-      this.tokenType})
-      : super._();
+  _$AuthSessionResponse._({
+    required this.accessToken,
+    required this.expiresIn,
+    required this.user,
+    this.refreshToken,
+    this.tokenType,
+  }) : super._();
   @override
   AuthSessionResponse rebuild(
-          void Function(AuthSessionResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(AuthSessionResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   AuthSessionResponseBuilder toBuilder() =>
@@ -130,12 +130,19 @@ class AuthSessionResponseBuilder
   _$AuthSessionResponse _build() {
     _$AuthSessionResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AuthSessionResponse._(
             accessToken: BuiltValueNullFieldError.checkNotNull(
-                accessToken, r'AuthSessionResponse', 'accessToken'),
+              accessToken,
+              r'AuthSessionResponse',
+              'accessToken',
+            ),
             expiresIn: BuiltValueNullFieldError.checkNotNull(
-                expiresIn, r'AuthSessionResponse', 'expiresIn'),
+              expiresIn,
+              r'AuthSessionResponse',
+              'expiresIn',
+            ),
             user: user.build(),
             refreshToken: refreshToken,
             tokenType: tokenType,
@@ -147,7 +154,10 @@ class AuthSessionResponseBuilder
         user.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AuthSessionResponse', _$failedField, e.toString());
+          r'AuthSessionResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -10,15 +10,15 @@ class _$RolePermissionUpdate extends RolePermissionUpdate {
   @override
   final BuiltList<String>? permissions;
 
-  factory _$RolePermissionUpdate(
-          [void Function(RolePermissionUpdateBuilder)? updates]) =>
-      (RolePermissionUpdateBuilder()..update(updates))._build();
+  factory _$RolePermissionUpdate([
+    void Function(RolePermissionUpdateBuilder)? updates,
+  ]) => (RolePermissionUpdateBuilder()..update(updates))._build();
 
   _$RolePermissionUpdate._({this.permissions}) : super._();
   @override
   RolePermissionUpdate rebuild(
-          void Function(RolePermissionUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(RolePermissionUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   RolePermissionUpdateBuilder toBuilder() =>
@@ -40,9 +40,9 @@ class _$RolePermissionUpdate extends RolePermissionUpdate {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'RolePermissionUpdate')
-          ..add('permissions', permissions))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'RolePermissionUpdate',
+    )..add('permissions', permissions)).toString();
   }
 }
 
@@ -85,10 +85,8 @@ class RolePermissionUpdateBuilder
   _$RolePermissionUpdate _build() {
     _$RolePermissionUpdate _$result;
     try {
-      _$result = _$v ??
-          _$RolePermissionUpdate._(
-            permissions: _permissions?.build(),
-          );
+      _$result =
+          _$v ?? _$RolePermissionUpdate._(permissions: _permissions?.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -96,7 +94,10 @@ class RolePermissionUpdateBuilder
         _permissions?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'RolePermissionUpdate', _$failedField, e.toString());
+          r'RolePermissionUpdate',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -16,20 +16,20 @@ class _$SmartHomeEntityListResponse extends SmartHomeEntityListResponse {
   @override
   final String? lastError;
 
-  factory _$SmartHomeEntityListResponse(
-          [void Function(SmartHomeEntityListResponseBuilder)? updates]) =>
-      (SmartHomeEntityListResponseBuilder()..update(updates))._build();
+  factory _$SmartHomeEntityListResponse([
+    void Function(SmartHomeEntityListResponseBuilder)? updates,
+  ]) => (SmartHomeEntityListResponseBuilder()..update(updates))._build();
 
-  _$SmartHomeEntityListResponse._(
-      {required this.connected,
-      required this.items,
-      required this.total,
-      this.lastError})
-      : super._();
+  _$SmartHomeEntityListResponse._({
+    required this.connected,
+    required this.items,
+    required this.total,
+    this.lastError,
+  }) : super._();
   @override
   SmartHomeEntityListResponse rebuild(
-          void Function(SmartHomeEntityListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SmartHomeEntityListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SmartHomeEntityListResponseBuilder toBuilder() =>
@@ -69,8 +69,10 @@ class _$SmartHomeEntityListResponse extends SmartHomeEntityListResponse {
 
 class SmartHomeEntityListResponseBuilder
     implements
-        Builder<SmartHomeEntityListResponse,
-            SmartHomeEntityListResponseBuilder> {
+        Builder<
+          SmartHomeEntityListResponse,
+          SmartHomeEntityListResponseBuilder
+        > {
   _$SmartHomeEntityListResponse? _$v;
 
   bool? _connected;
@@ -122,13 +124,20 @@ class SmartHomeEntityListResponseBuilder
   _$SmartHomeEntityListResponse _build() {
     _$SmartHomeEntityListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$SmartHomeEntityListResponse._(
             connected: BuiltValueNullFieldError.checkNotNull(
-                connected, r'SmartHomeEntityListResponse', 'connected'),
+              connected,
+              r'SmartHomeEntityListResponse',
+              'connected',
+            ),
             items: items.build(),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'SmartHomeEntityListResponse', 'total'),
+              total,
+              r'SmartHomeEntityListResponse',
+              'total',
+            ),
             lastError: lastError,
           );
     } catch (_) {
@@ -138,7 +147,10 @@ class SmartHomeEntityListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'SmartHomeEntityListResponse', _$failedField, e.toString());
+          r'SmartHomeEntityListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

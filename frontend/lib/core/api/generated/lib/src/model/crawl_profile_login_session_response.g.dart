@@ -7,17 +7,17 @@ part of 'crawl_profile_login_session_response.dart';
 // **************************************************************************
 
 const CrawlProfileLoginSessionResponseStatusEnum
-    _$crawlProfileLoginSessionResponseStatusEnum_active =
+_$crawlProfileLoginSessionResponseStatusEnum_active =
     const CrawlProfileLoginSessionResponseStatusEnum._('active');
 const CrawlProfileLoginSessionResponseStatusEnum
-    _$crawlProfileLoginSessionResponseStatusEnum_closed =
+_$crawlProfileLoginSessionResponseStatusEnum_closed =
     const CrawlProfileLoginSessionResponseStatusEnum._('closed');
 const CrawlProfileLoginSessionResponseStatusEnum
-    _$crawlProfileLoginSessionResponseStatusEnum_failed =
+_$crawlProfileLoginSessionResponseStatusEnum_failed =
     const CrawlProfileLoginSessionResponseStatusEnum._('failed');
 
 CrawlProfileLoginSessionResponseStatusEnum
-    _$crawlProfileLoginSessionResponseStatusEnumValueOf(String name) {
+_$crawlProfileLoginSessionResponseStatusEnumValueOf(String name) {
   switch (name) {
     case 'active':
       return _$crawlProfileLoginSessionResponseStatusEnum_active;
@@ -31,15 +31,17 @@ CrawlProfileLoginSessionResponseStatusEnum
 }
 
 final BuiltSet<CrawlProfileLoginSessionResponseStatusEnum>
-    _$crawlProfileLoginSessionResponseStatusEnumValues = BuiltSet<
-        CrawlProfileLoginSessionResponseStatusEnum>(const <CrawlProfileLoginSessionResponseStatusEnum>[
-  _$crawlProfileLoginSessionResponseStatusEnum_active,
-  _$crawlProfileLoginSessionResponseStatusEnum_closed,
-  _$crawlProfileLoginSessionResponseStatusEnum_failed,
-]);
+_$crawlProfileLoginSessionResponseStatusEnumValues =
+    BuiltSet<CrawlProfileLoginSessionResponseStatusEnum>(
+      const <CrawlProfileLoginSessionResponseStatusEnum>[
+        _$crawlProfileLoginSessionResponseStatusEnum_active,
+        _$crawlProfileLoginSessionResponseStatusEnum_closed,
+        _$crawlProfileLoginSessionResponseStatusEnum_failed,
+      ],
+    );
 
 Serializer<CrawlProfileLoginSessionResponseStatusEnum>
-    _$crawlProfileLoginSessionResponseStatusEnumSerializer =
+_$crawlProfileLoginSessionResponseStatusEnumSerializer =
     _$CrawlProfileLoginSessionResponseStatusEnumSerializer();
 
 class _$CrawlProfileLoginSessionResponseStatusEnumSerializer
@@ -57,23 +59,26 @@ class _$CrawlProfileLoginSessionResponseStatusEnumSerializer
 
   @override
   final Iterable<Type> types = const <Type>[
-    CrawlProfileLoginSessionResponseStatusEnum
+    CrawlProfileLoginSessionResponseStatusEnum,
   ];
   @override
   final String wireName = 'CrawlProfileLoginSessionResponseStatusEnum';
 
   @override
-  Object serialize(Serializers serializers,
-          CrawlProfileLoginSessionResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    CrawlProfileLoginSessionResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileLoginSessionResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileLoginSessionResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileLoginSessionResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileLoginSessionResponse
@@ -89,21 +94,21 @@ class _$CrawlProfileLoginSessionResponse
   @override
   final String? message;
 
-  factory _$CrawlProfileLoginSessionResponse(
-          [void Function(CrawlProfileLoginSessionResponseBuilder)? updates]) =>
-      (CrawlProfileLoginSessionResponseBuilder()..update(updates))._build();
+  factory _$CrawlProfileLoginSessionResponse([
+    void Function(CrawlProfileLoginSessionResponseBuilder)? updates,
+  ]) => (CrawlProfileLoginSessionResponseBuilder()..update(updates))._build();
 
-  _$CrawlProfileLoginSessionResponse._(
-      {required this.platform,
-      required this.profileKey,
-      required this.startUrl,
-      required this.status,
-      this.message})
-      : super._();
+  _$CrawlProfileLoginSessionResponse._({
+    required this.platform,
+    required this.profileKey,
+    required this.startUrl,
+    required this.status,
+    this.message,
+  }) : super._();
   @override
   CrawlProfileLoginSessionResponse rebuild(
-          void Function(CrawlProfileLoginSessionResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileLoginSessionResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileLoginSessionResponseBuilder toBuilder() =>
@@ -146,8 +151,10 @@ class _$CrawlProfileLoginSessionResponse
 
 class CrawlProfileLoginSessionResponseBuilder
     implements
-        Builder<CrawlProfileLoginSessionResponse,
-            CrawlProfileLoginSessionResponseBuilder> {
+        Builder<
+          CrawlProfileLoginSessionResponse,
+          CrawlProfileLoginSessionResponseBuilder
+        > {
   _$CrawlProfileLoginSessionResponse? _$v;
 
   String? _platform;
@@ -202,16 +209,29 @@ class CrawlProfileLoginSessionResponseBuilder
   CrawlProfileLoginSessionResponse build() => _build();
 
   _$CrawlProfileLoginSessionResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileLoginSessionResponse._(
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'CrawlProfileLoginSessionResponse', 'platform'),
+            platform,
+            r'CrawlProfileLoginSessionResponse',
+            'platform',
+          ),
           profileKey: BuiltValueNullFieldError.checkNotNull(
-              profileKey, r'CrawlProfileLoginSessionResponse', 'profileKey'),
+            profileKey,
+            r'CrawlProfileLoginSessionResponse',
+            'profileKey',
+          ),
           startUrl: BuiltValueNullFieldError.checkNotNull(
-              startUrl, r'CrawlProfileLoginSessionResponse', 'startUrl'),
+            startUrl,
+            r'CrawlProfileLoginSessionResponse',
+            'startUrl',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'CrawlProfileLoginSessionResponse', 'status'),
+            status,
+            r'CrawlProfileLoginSessionResponse',
+            'status',
+          ),
           message: message,
         );
     replace(_$result);

@@ -14,13 +14,15 @@ class _$TokenLoginRequest extends TokenLoginRequest {
   @override
   final LoginClientKind? clientKind;
 
-  factory _$TokenLoginRequest(
-          [void Function(TokenLoginRequestBuilder)? updates]) =>
-      (TokenLoginRequestBuilder()..update(updates))._build();
+  factory _$TokenLoginRequest([
+    void Function(TokenLoginRequestBuilder)? updates,
+  ]) => (TokenLoginRequestBuilder()..update(updates))._build();
 
-  _$TokenLoginRequest._(
-      {required this.password, required this.username, this.clientKind})
-      : super._();
+  _$TokenLoginRequest._({
+    required this.password,
+    required this.username,
+    this.clientKind,
+  }) : super._();
   @override
   TokenLoginRequest rebuild(void Function(TokenLoginRequestBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -104,12 +106,19 @@ class TokenLoginRequestBuilder
   TokenLoginRequest build() => _build();
 
   _$TokenLoginRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$TokenLoginRequest._(
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'TokenLoginRequest', 'password'),
+            password,
+            r'TokenLoginRequest',
+            'password',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'TokenLoginRequest', 'username'),
+            username,
+            r'TokenLoginRequest',
+            'username',
+          ),
           clientKind: clientKind,
         );
     replace(_$result);

@@ -20,18 +20,18 @@ class _$AdminUserResponse extends AdminUserResponse {
   @override
   final bool? isActive;
 
-  factory _$AdminUserResponse(
-          [void Function(AdminUserResponseBuilder)? updates]) =>
-      (AdminUserResponseBuilder()..update(updates))._build();
+  factory _$AdminUserResponse([
+    void Function(AdminUserResponseBuilder)? updates,
+  ]) => (AdminUserResponseBuilder()..update(updates))._build();
 
-  _$AdminUserResponse._(
-      {required this.createdAt,
-      required this.email,
-      required this.id,
-      required this.role,
-      required this.username,
-      this.isActive})
-      : super._();
+  _$AdminUserResponse._({
+    required this.createdAt,
+    required this.email,
+    required this.id,
+    required this.role,
+    required this.username,
+    this.isActive,
+  }) : super._();
   @override
   AdminUserResponse rebuild(void Function(AdminUserResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -138,18 +138,34 @@ class AdminUserResponseBuilder
   AdminUserResponse build() => _build();
 
   _$AdminUserResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$AdminUserResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'AdminUserResponse', 'createdAt'),
+            createdAt,
+            r'AdminUserResponse',
+            'createdAt',
+          ),
           email: BuiltValueNullFieldError.checkNotNull(
-              email, r'AdminUserResponse', 'email'),
+            email,
+            r'AdminUserResponse',
+            'email',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'AdminUserResponse', 'id'),
+            id,
+            r'AdminUserResponse',
+            'id',
+          ),
           role: BuiltValueNullFieldError.checkNotNull(
-              role, r'AdminUserResponse', 'role'),
+            role,
+            r'AdminUserResponse',
+            'role',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'AdminUserResponse', 'username'),
+            username,
+            r'AdminUserResponse',
+            'username',
+          ),
           isActive: isActive,
         );
     replace(_$result);

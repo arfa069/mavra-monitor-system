@@ -26,25 +26,25 @@ class _$CrawlerWorkerResponse extends CrawlerWorkerResponse {
   @override
   final String workerId;
 
-  factory _$CrawlerWorkerResponse(
-          [void Function(CrawlerWorkerResponseBuilder)? updates]) =>
-      (CrawlerWorkerResponseBuilder()..update(updates))._build();
+  factory _$CrawlerWorkerResponse([
+    void Function(CrawlerWorkerResponseBuilder)? updates,
+  ]) => (CrawlerWorkerResponseBuilder()..update(updates))._build();
 
-  _$CrawlerWorkerResponse._(
-      {required this.hostname,
-      required this.kind,
-      this.lastHeartbeatAt,
-      required this.pid,
-      this.platform,
-      this.startedAt,
-      required this.status,
-      this.stoppedAt,
-      required this.workerId})
-      : super._();
+  _$CrawlerWorkerResponse._({
+    required this.hostname,
+    required this.kind,
+    this.lastHeartbeatAt,
+    required this.pid,
+    this.platform,
+    this.startedAt,
+    required this.status,
+    this.stoppedAt,
+    required this.workerId,
+  }) : super._();
   @override
   CrawlerWorkerResponse rebuild(
-          void Function(CrawlerWorkerResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlerWorkerResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlerWorkerResponseBuilder toBuilder() =>
@@ -173,22 +173,38 @@ class CrawlerWorkerResponseBuilder
   CrawlerWorkerResponse build() => _build();
 
   _$CrawlerWorkerResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlerWorkerResponse._(
           hostname: BuiltValueNullFieldError.checkNotNull(
-              hostname, r'CrawlerWorkerResponse', 'hostname'),
+            hostname,
+            r'CrawlerWorkerResponse',
+            'hostname',
+          ),
           kind: BuiltValueNullFieldError.checkNotNull(
-              kind, r'CrawlerWorkerResponse', 'kind'),
+            kind,
+            r'CrawlerWorkerResponse',
+            'kind',
+          ),
           lastHeartbeatAt: lastHeartbeatAt,
           pid: BuiltValueNullFieldError.checkNotNull(
-              pid, r'CrawlerWorkerResponse', 'pid'),
+            pid,
+            r'CrawlerWorkerResponse',
+            'pid',
+          ),
           platform: platform,
           startedAt: startedAt,
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'CrawlerWorkerResponse', 'status'),
+            status,
+            r'CrawlerWorkerResponse',
+            'status',
+          ),
           stoppedAt: stoppedAt,
           workerId: BuiltValueNullFieldError.checkNotNull(
-              workerId, r'CrawlerWorkerResponse', 'workerId'),
+            workerId,
+            r'CrawlerWorkerResponse',
+            'workerId',
+          ),
         );
     replace(_$result);
     return _$result;

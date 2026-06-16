@@ -26,21 +26,21 @@ class _$AuditLogResponse extends AuditLogResponse {
   @override
   final String? userAgent;
 
-  factory _$AuditLogResponse(
-          [void Function(AuditLogResponseBuilder)? updates]) =>
-      (AuditLogResponseBuilder()..update(updates))._build();
+  factory _$AuditLogResponse([
+    void Function(AuditLogResponseBuilder)? updates,
+  ]) => (AuditLogResponseBuilder()..update(updates))._build();
 
-  _$AuditLogResponse._(
-      {required this.action,
-      this.actorUserId,
-      required this.createdAt,
-      this.details,
-      required this.id,
-      this.ipAddress,
-      this.targetId,
-      this.targetType,
-      this.userAgent})
-      : super._();
+  _$AuditLogResponse._({
+    required this.action,
+    this.actorUserId,
+    required this.createdAt,
+    this.details,
+    required this.id,
+    this.ipAddress,
+    this.targetId,
+    this.targetType,
+    this.userAgent,
+  }) : super._();
   @override
   AuditLogResponse rebuild(void Function(AuditLogResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -175,16 +175,26 @@ class AuditLogResponseBuilder
   _$AuditLogResponse _build() {
     _$AuditLogResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AuditLogResponse._(
             action: BuiltValueNullFieldError.checkNotNull(
-                action, r'AuditLogResponse', 'action'),
+              action,
+              r'AuditLogResponse',
+              'action',
+            ),
             actorUserId: actorUserId,
             createdAt: BuiltValueNullFieldError.checkNotNull(
-                createdAt, r'AuditLogResponse', 'createdAt'),
+              createdAt,
+              r'AuditLogResponse',
+              'createdAt',
+            ),
             details: _details?.build(),
             id: BuiltValueNullFieldError.checkNotNull(
-                id, r'AuditLogResponse', 'id'),
+              id,
+              r'AuditLogResponse',
+              'id',
+            ),
             ipAddress: ipAddress,
             targetId: targetId,
             targetType: targetType,
@@ -197,7 +207,10 @@ class AuditLogResponseBuilder
         _details?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AuditLogResponse', _$failedField, e.toString());
+          r'AuditLogResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

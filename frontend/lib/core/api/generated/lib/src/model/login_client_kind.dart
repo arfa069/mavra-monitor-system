@@ -32,5 +32,5 @@ class LoginClientKind extends EnumClass {
 /// corresponding Angular template.
 ///
 /// Trigger mixin generation by writing a line like this one next to your enum.
-abstract class LoginClientKindMixin = Object with _$LoginClientKindMixin;
+abstract class LoginClientKindMixin implements _$LoginClientKindMixin {}
 

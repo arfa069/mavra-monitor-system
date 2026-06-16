@@ -13,16 +13,16 @@ class _$CrawlProfileLoginSessionRequest
   @override
   final String? startUrl;
 
-  factory _$CrawlProfileLoginSessionRequest(
-          [void Function(CrawlProfileLoginSessionRequestBuilder)? updates]) =>
-      (CrawlProfileLoginSessionRequestBuilder()..update(updates))._build();
+  factory _$CrawlProfileLoginSessionRequest([
+    void Function(CrawlProfileLoginSessionRequestBuilder)? updates,
+  ]) => (CrawlProfileLoginSessionRequestBuilder()..update(updates))._build();
 
   _$CrawlProfileLoginSessionRequest._({this.platform, this.startUrl})
-      : super._();
+    : super._();
   @override
   CrawlProfileLoginSessionRequest rebuild(
-          void Function(CrawlProfileLoginSessionRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileLoginSessionRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileLoginSessionRequestBuilder toBuilder() =>
@@ -56,8 +56,10 @@ class _$CrawlProfileLoginSessionRequest
 
 class CrawlProfileLoginSessionRequestBuilder
     implements
-        Builder<CrawlProfileLoginSessionRequest,
-            CrawlProfileLoginSessionRequestBuilder> {
+        Builder<
+          CrawlProfileLoginSessionRequest,
+          CrawlProfileLoginSessionRequestBuilder
+        > {
   _$CrawlProfileLoginSessionRequest? _$v;
 
   String? _platform;
@@ -96,7 +98,8 @@ class CrawlProfileLoginSessionRequestBuilder
   CrawlProfileLoginSessionRequest build() => _build();
 
   _$CrawlProfileLoginSessionRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileLoginSessionRequest._(
           platform: platform,
           startUrl: startUrl,

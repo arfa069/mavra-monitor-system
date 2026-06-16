@@ -32,11 +32,11 @@ BlogPostListItemStatusEnum _$blogPostListItemStatusEnumValueOf(String name) {
 
 final BuiltSet<BlogPostListItemStatusEnum> _$blogPostListItemStatusEnumValues =
     BuiltSet<BlogPostListItemStatusEnum>(const <BlogPostListItemStatusEnum>[
-  _$blogPostListItemStatusEnum_draft,
-  _$blogPostListItemStatusEnum_scheduled,
-  _$blogPostListItemStatusEnum_published,
-  _$blogPostListItemStatusEnum_archived,
-]);
+      _$blogPostListItemStatusEnum_draft,
+      _$blogPostListItemStatusEnum_scheduled,
+      _$blogPostListItemStatusEnum_published,
+      _$blogPostListItemStatusEnum_archived,
+    ]);
 
 Serializer<BlogPostListItemStatusEnum> _$blogPostListItemStatusEnumSerializer =
     _$BlogPostListItemStatusEnumSerializer();
@@ -62,16 +62,20 @@ class _$BlogPostListItemStatusEnumSerializer
   final String wireName = 'BlogPostListItemStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, BlogPostListItemStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    BlogPostListItemStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   BlogPostListItemStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      BlogPostListItemStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => BlogPostListItemStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$BlogPostListItem extends BlogPostListItem {
@@ -100,24 +104,24 @@ class _$BlogPostListItem extends BlogPostListItem {
   @override
   final BuiltList<BlogTagResponse>? tags;
 
-  factory _$BlogPostListItem(
-          [void Function(BlogPostListItemBuilder)? updates]) =>
-      (BlogPostListItemBuilder()..update(updates))._build();
+  factory _$BlogPostListItem([
+    void Function(BlogPostListItemBuilder)? updates,
+  ]) => (BlogPostListItemBuilder()..update(updates))._build();
 
-  _$BlogPostListItem._(
-      {required this.id,
-      required this.slug,
-      required this.status,
-      required this.title,
-      required this.updatedAt,
-      this.category,
-      this.coverUrl,
-      this.excerpt,
-      this.publishedAt,
-      this.seoDescription,
-      this.seoTitle,
-      this.tags})
-      : super._();
+  _$BlogPostListItem._({
+    required this.id,
+    required this.slug,
+    required this.status,
+    required this.title,
+    required this.updatedAt,
+    this.category,
+    this.coverUrl,
+    this.excerpt,
+    this.publishedAt,
+    this.seoDescription,
+    this.seoTitle,
+    this.tags,
+  }) : super._();
   @override
   BlogPostListItem rebuild(void Function(BlogPostListItemBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -278,18 +282,34 @@ class BlogPostListItemBuilder
   _$BlogPostListItem _build() {
     _$BlogPostListItem _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$BlogPostListItem._(
             id: BuiltValueNullFieldError.checkNotNull(
-                id, r'BlogPostListItem', 'id'),
+              id,
+              r'BlogPostListItem',
+              'id',
+            ),
             slug: BuiltValueNullFieldError.checkNotNull(
-                slug, r'BlogPostListItem', 'slug'),
+              slug,
+              r'BlogPostListItem',
+              'slug',
+            ),
             status: BuiltValueNullFieldError.checkNotNull(
-                status, r'BlogPostListItem', 'status'),
+              status,
+              r'BlogPostListItem',
+              'status',
+            ),
             title: BuiltValueNullFieldError.checkNotNull(
-                title, r'BlogPostListItem', 'title'),
+              title,
+              r'BlogPostListItem',
+              'title',
+            ),
             updatedAt: BuiltValueNullFieldError.checkNotNull(
-                updatedAt, r'BlogPostListItem', 'updatedAt'),
+              updatedAt,
+              r'BlogPostListItem',
+              'updatedAt',
+            ),
             category: _category?.build(),
             coverUrl: coverUrl,
             excerpt: excerpt,
@@ -308,7 +328,10 @@ class BlogPostListItemBuilder
         _tags?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'BlogPostListItem', _$failedField, e.toString());
+          r'BlogPostListItem',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

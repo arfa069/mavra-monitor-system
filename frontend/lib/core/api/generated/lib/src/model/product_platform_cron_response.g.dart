@@ -24,24 +24,24 @@ class _$ProductPlatformCronResponse extends ProductPlatformCronResponse {
   @override
   final int userId;
 
-  factory _$ProductPlatformCronResponse(
-          [void Function(ProductPlatformCronResponseBuilder)? updates]) =>
-      (ProductPlatformCronResponseBuilder()..update(updates))._build();
+  factory _$ProductPlatformCronResponse([
+    void Function(ProductPlatformCronResponseBuilder)? updates,
+  ]) => (ProductPlatformCronResponseBuilder()..update(updates))._build();
 
-  _$ProductPlatformCronResponse._(
-      {required this.createdAt,
-      this.cronExpression,
-      required this.cronTimezone,
-      required this.id,
-      required this.platform,
-      this.profileKey,
-      required this.updatedAt,
-      required this.userId})
-      : super._();
+  _$ProductPlatformCronResponse._({
+    required this.createdAt,
+    this.cronExpression,
+    required this.cronTimezone,
+    required this.id,
+    required this.platform,
+    this.profileKey,
+    required this.updatedAt,
+    required this.userId,
+  }) : super._();
   @override
   ProductPlatformCronResponse rebuild(
-          void Function(ProductPlatformCronResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductPlatformCronResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductPlatformCronResponseBuilder toBuilder() =>
@@ -93,8 +93,10 @@ class _$ProductPlatformCronResponse extends ProductPlatformCronResponse {
 
 class ProductPlatformCronResponseBuilder
     implements
-        Builder<ProductPlatformCronResponse,
-            ProductPlatformCronResponseBuilder> {
+        Builder<
+          ProductPlatformCronResponse,
+          ProductPlatformCronResponseBuilder
+        > {
   _$ProductPlatformCronResponse? _$v;
 
   DateTime? _createdAt;
@@ -164,22 +166,41 @@ class ProductPlatformCronResponseBuilder
   ProductPlatformCronResponse build() => _build();
 
   _$ProductPlatformCronResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductPlatformCronResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'ProductPlatformCronResponse', 'createdAt'),
+            createdAt,
+            r'ProductPlatformCronResponse',
+            'createdAt',
+          ),
           cronExpression: cronExpression,
           cronTimezone: BuiltValueNullFieldError.checkNotNull(
-              cronTimezone, r'ProductPlatformCronResponse', 'cronTimezone'),
+            cronTimezone,
+            r'ProductPlatformCronResponse',
+            'cronTimezone',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'ProductPlatformCronResponse', 'id'),
+            id,
+            r'ProductPlatformCronResponse',
+            'id',
+          ),
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'ProductPlatformCronResponse', 'platform'),
+            platform,
+            r'ProductPlatformCronResponse',
+            'platform',
+          ),
           profileKey: profileKey,
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'ProductPlatformCronResponse', 'updatedAt'),
+            updatedAt,
+            r'ProductPlatformCronResponse',
+            'updatedAt',
+          ),
           userId: BuiltValueNullFieldError.checkNotNull(
-              userId, r'ProductPlatformCronResponse', 'userId'),
+            userId,
+            r'ProductPlatformCronResponse',
+            'userId',
+          ),
         );
     replace(_$result);
     return _$result;

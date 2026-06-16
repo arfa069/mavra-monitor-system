@@ -21,13 +21,13 @@ class _$SessionResponse extends SessionResponse {
   factory _$SessionResponse([void Function(SessionResponseBuilder)? updates]) =>
       (SessionResponseBuilder()..update(updates))._build();
 
-  _$SessionResponse._(
-      {required this.createdAt,
-      this.device,
-      required this.id,
-      this.ipAddress,
-      required this.lastActiveAt})
-      : super._();
+  _$SessionResponse._({
+    required this.createdAt,
+    this.device,
+    required this.id,
+    this.ipAddress,
+    required this.lastActiveAt,
+  }) : super._();
   @override
   SessionResponse rebuild(void Function(SessionResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -126,16 +126,26 @@ class SessionResponseBuilder
   SessionResponse build() => _build();
 
   _$SessionResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$SessionResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'SessionResponse', 'createdAt'),
+            createdAt,
+            r'SessionResponse',
+            'createdAt',
+          ),
           device: device,
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'SessionResponse', 'id'),
+            id,
+            r'SessionResponse',
+            'id',
+          ),
           ipAddress: ipAddress,
           lastActiveAt: BuiltValueNullFieldError.checkNotNull(
-              lastActiveAt, r'SessionResponse', 'lastActiveAt'),
+            lastActiveAt,
+            r'SessionResponse',
+            'lastActiveAt',
+          ),
         );
     replace(_$result);
     return _$result;

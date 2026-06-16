@@ -12,9 +12,9 @@ class _$UserResumeUpdate extends UserResumeUpdate {
   @override
   final String? resumeText;
 
-  factory _$UserResumeUpdate(
-          [void Function(UserResumeUpdateBuilder)? updates]) =>
-      (UserResumeUpdateBuilder()..update(updates))._build();
+  factory _$UserResumeUpdate([
+    void Function(UserResumeUpdateBuilder)? updates,
+  ]) => (UserResumeUpdateBuilder()..update(updates))._build();
 
   _$UserResumeUpdate._({this.name, this.resumeText}) : super._();
   @override
@@ -91,11 +91,8 @@ class UserResumeUpdateBuilder
   UserResumeUpdate build() => _build();
 
   _$UserResumeUpdate _build() {
-    final _$result = _$v ??
-        _$UserResumeUpdate._(
-          name: name,
-          resumeText: resumeText,
-        );
+    final _$result =
+        _$v ?? _$UserResumeUpdate._(name: name, resumeText: resumeText);
     replace(_$result);
     return _$result;
   }

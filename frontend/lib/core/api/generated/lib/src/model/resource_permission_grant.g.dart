@@ -16,20 +16,20 @@ class _$ResourcePermissionGrant extends ResourcePermissionGrant {
   @override
   final int subjectId;
 
-  factory _$ResourcePermissionGrant(
-          [void Function(ResourcePermissionGrantBuilder)? updates]) =>
-      (ResourcePermissionGrantBuilder()..update(updates))._build();
+  factory _$ResourcePermissionGrant([
+    void Function(ResourcePermissionGrantBuilder)? updates,
+  ]) => (ResourcePermissionGrantBuilder()..update(updates))._build();
 
-  _$ResourcePermissionGrant._(
-      {required this.permission,
-      required this.resourceIds,
-      required this.resourceType,
-      required this.subjectId})
-      : super._();
+  _$ResourcePermissionGrant._({
+    required this.permission,
+    required this.resourceIds,
+    required this.resourceType,
+    required this.subjectId,
+  }) : super._();
   @override
   ResourcePermissionGrant rebuild(
-          void Function(ResourcePermissionGrantBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ResourcePermissionGrantBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ResourcePermissionGrantBuilder toBuilder() =>
@@ -122,15 +122,25 @@ class ResourcePermissionGrantBuilder
   _$ResourcePermissionGrant _build() {
     _$ResourcePermissionGrant _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$ResourcePermissionGrant._(
             permission: BuiltValueNullFieldError.checkNotNull(
-                permission, r'ResourcePermissionGrant', 'permission'),
+              permission,
+              r'ResourcePermissionGrant',
+              'permission',
+            ),
             resourceIds: resourceIds.build(),
             resourceType: BuiltValueNullFieldError.checkNotNull(
-                resourceType, r'ResourcePermissionGrant', 'resourceType'),
+              resourceType,
+              r'ResourcePermissionGrant',
+              'resourceType',
+            ),
             subjectId: BuiltValueNullFieldError.checkNotNull(
-                subjectId, r'ResourcePermissionGrant', 'subjectId'),
+              subjectId,
+              r'ResourcePermissionGrant',
+              'subjectId',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -139,7 +149,10 @@ class ResourcePermissionGrantBuilder
         resourceIds.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ResourcePermissionGrant', _$failedField, e.toString());
+          r'ResourcePermissionGrant',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

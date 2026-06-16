@@ -12,16 +12,16 @@ class _$WeChatExchangeRequest extends WeChatExchangeRequest {
   @override
   final LoginClientKind? clientKind;
 
-  factory _$WeChatExchangeRequest(
-          [void Function(WeChatExchangeRequestBuilder)? updates]) =>
-      (WeChatExchangeRequestBuilder()..update(updates))._build();
+  factory _$WeChatExchangeRequest([
+    void Function(WeChatExchangeRequestBuilder)? updates,
+  ]) => (WeChatExchangeRequestBuilder()..update(updates))._build();
 
   _$WeChatExchangeRequest._({required this.exchangeCode, this.clientKind})
-      : super._();
+    : super._();
   @override
   WeChatExchangeRequest rebuild(
-          void Function(WeChatExchangeRequestBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(WeChatExchangeRequestBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   WeChatExchangeRequestBuilder toBuilder() =>
@@ -94,10 +94,14 @@ class WeChatExchangeRequestBuilder
   WeChatExchangeRequest build() => _build();
 
   _$WeChatExchangeRequest _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$WeChatExchangeRequest._(
           exchangeCode: BuiltValueNullFieldError.checkNotNull(
-              exchangeCode, r'WeChatExchangeRequest', 'exchangeCode'),
+            exchangeCode,
+            r'WeChatExchangeRequest',
+            'exchangeCode',
+          ),
           clientKind: clientKind,
         );
     replace(_$result);

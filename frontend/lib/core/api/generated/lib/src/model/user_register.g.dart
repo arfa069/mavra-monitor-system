@@ -17,9 +17,11 @@ class _$UserRegister extends UserRegister {
   factory _$UserRegister([void Function(UserRegisterBuilder)? updates]) =>
       (UserRegisterBuilder()..update(updates))._build();
 
-  _$UserRegister._(
-      {required this.email, required this.password, required this.username})
-      : super._();
+  _$UserRegister._({
+    required this.email,
+    required this.password,
+    required this.username,
+  }) : super._();
   @override
   UserRegister rebuild(void Function(UserRegisterBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -101,14 +103,24 @@ class UserRegisterBuilder
   UserRegister build() => _build();
 
   _$UserRegister _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserRegister._(
           email: BuiltValueNullFieldError.checkNotNull(
-              email, r'UserRegister', 'email'),
+            email,
+            r'UserRegister',
+            'email',
+          ),
           password: BuiltValueNullFieldError.checkNotNull(
-              password, r'UserRegister', 'password'),
+            password,
+            r'UserRegister',
+            'password',
+          ),
           username: BuiltValueNullFieldError.checkNotNull(
-              username, r'UserRegister', 'username'),
+            username,
+            r'UserRegister',
+            'username',
+          ),
         );
     replace(_$result);
     return _$result;

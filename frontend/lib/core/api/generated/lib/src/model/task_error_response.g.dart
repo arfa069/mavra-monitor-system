@@ -19,13 +19,12 @@ TaskErrorResponseStatusEnum _$taskErrorResponseStatusEnumValueOf(String name) {
 }
 
 final BuiltSet<TaskErrorResponseStatusEnum>
-    _$taskErrorResponseStatusEnumValues =
-    BuiltSet<TaskErrorResponseStatusEnum>(const <TaskErrorResponseStatusEnum>[
-  _$taskErrorResponseStatusEnum_error,
-]);
+_$taskErrorResponseStatusEnumValues = BuiltSet<TaskErrorResponseStatusEnum>(
+  const <TaskErrorResponseStatusEnum>[_$taskErrorResponseStatusEnum_error],
+);
 
 Serializer<TaskErrorResponseStatusEnum>
-    _$taskErrorResponseStatusEnumSerializer =
+_$taskErrorResponseStatusEnumSerializer =
     _$TaskErrorResponseStatusEnumSerializer();
 
 class _$TaskErrorResponseStatusEnumSerializer
@@ -43,16 +42,20 @@ class _$TaskErrorResponseStatusEnumSerializer
   final String wireName = 'TaskErrorResponseStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, TaskErrorResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    TaskErrorResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   TaskErrorResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      TaskErrorResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => TaskErrorResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$TaskErrorResponse extends TaskErrorResponse {
@@ -61,12 +64,12 @@ class _$TaskErrorResponse extends TaskErrorResponse {
   @override
   final TaskErrorResponseStatusEnum status;
 
-  factory _$TaskErrorResponse(
-          [void Function(TaskErrorResponseBuilder)? updates]) =>
-      (TaskErrorResponseBuilder()..update(updates))._build();
+  factory _$TaskErrorResponse([
+    void Function(TaskErrorResponseBuilder)? updates,
+  ]) => (TaskErrorResponseBuilder()..update(updates))._build();
 
   _$TaskErrorResponse._({required this.reason, required this.status})
-      : super._();
+    : super._();
   @override
   TaskErrorResponse rebuild(void Function(TaskErrorResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -141,12 +144,19 @@ class TaskErrorResponseBuilder
   TaskErrorResponse build() => _build();
 
   _$TaskErrorResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$TaskErrorResponse._(
           reason: BuiltValueNullFieldError.checkNotNull(
-              reason, r'TaskErrorResponse', 'reason'),
+            reason,
+            r'TaskErrorResponse',
+            'reason',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'TaskErrorResponse', 'status'),
+            status,
+            r'TaskErrorResponse',
+            'status',
+          ),
         );
     replace(_$result);
     return _$result;

@@ -10,7 +10,8 @@ const ServiceInfoResponseStatusEnum _$serviceInfoResponseStatusEnum_ok =
     const ServiceInfoResponseStatusEnum._('ok');
 
 ServiceInfoResponseStatusEnum _$serviceInfoResponseStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'ok':
       return _$serviceInfoResponseStatusEnum_ok;
@@ -20,20 +21,17 @@ ServiceInfoResponseStatusEnum _$serviceInfoResponseStatusEnumValueOf(
 }
 
 final BuiltSet<ServiceInfoResponseStatusEnum>
-    _$serviceInfoResponseStatusEnumValues = BuiltSet<
-        ServiceInfoResponseStatusEnum>(const <ServiceInfoResponseStatusEnum>[
-  _$serviceInfoResponseStatusEnum_ok,
-]);
+_$serviceInfoResponseStatusEnumValues = BuiltSet<ServiceInfoResponseStatusEnum>(
+  const <ServiceInfoResponseStatusEnum>[_$serviceInfoResponseStatusEnum_ok],
+);
 
 Serializer<ServiceInfoResponseStatusEnum>
-    _$serviceInfoResponseStatusEnumSerializer =
+_$serviceInfoResponseStatusEnumSerializer =
     _$ServiceInfoResponseStatusEnumSerializer();
 
 class _$ServiceInfoResponseStatusEnumSerializer
     implements PrimitiveSerializer<ServiceInfoResponseStatusEnum> {
-  static const Map<String, Object> _toWire = const <String, Object>{
-    'ok': 'ok',
-  };
+  static const Map<String, Object> _toWire = const <String, Object>{'ok': 'ok'};
   static const Map<Object, String> _fromWire = const <Object, String>{
     'ok': 'ok',
   };
@@ -45,16 +43,19 @@ class _$ServiceInfoResponseStatusEnumSerializer
 
   @override
   Object serialize(
-          Serializers serializers, ServiceInfoResponseStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+    Serializers serializers,
+    ServiceInfoResponseStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   ServiceInfoResponseStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      ServiceInfoResponseStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => ServiceInfoResponseStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$ServiceInfoResponse extends ServiceInfoResponse {
@@ -67,20 +68,20 @@ class _$ServiceInfoResponse extends ServiceInfoResponse {
   @override
   final ServiceInfoResponseStatusEnum status;
 
-  factory _$ServiceInfoResponse(
-          [void Function(ServiceInfoResponseBuilder)? updates]) =>
-      (ServiceInfoResponseBuilder()..update(updates))._build();
+  factory _$ServiceInfoResponse([
+    void Function(ServiceInfoResponseBuilder)? updates,
+  ]) => (ServiceInfoResponseBuilder()..update(updates))._build();
 
-  _$ServiceInfoResponse._(
-      {required this.docs,
-      required this.name,
-      required this.prefixes,
-      required this.status})
-      : super._();
+  _$ServiceInfoResponse._({
+    required this.docs,
+    required this.name,
+    required this.prefixes,
+    required this.status,
+  }) : super._();
   @override
   ServiceInfoResponse rebuild(
-          void Function(ServiceInfoResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ServiceInfoResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ServiceInfoResponseBuilder toBuilder() =>
@@ -171,15 +172,25 @@ class ServiceInfoResponseBuilder
   _$ServiceInfoResponse _build() {
     _$ServiceInfoResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$ServiceInfoResponse._(
             docs: BuiltValueNullFieldError.checkNotNull(
-                docs, r'ServiceInfoResponse', 'docs'),
+              docs,
+              r'ServiceInfoResponse',
+              'docs',
+            ),
             name: BuiltValueNullFieldError.checkNotNull(
-                name, r'ServiceInfoResponse', 'name'),
+              name,
+              r'ServiceInfoResponse',
+              'name',
+            ),
             prefixes: prefixes.build(),
             status: BuiltValueNullFieldError.checkNotNull(
-                status, r'ServiceInfoResponse', 'status'),
+              status,
+              r'ServiceInfoResponse',
+              'status',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -188,7 +199,10 @@ class ServiceInfoResponseBuilder
         prefixes.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ServiceInfoResponse', _$failedField, e.toString());
+          r'ServiceInfoResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -17,9 +17,11 @@ class _$PasswordChange extends PasswordChange {
   factory _$PasswordChange([void Function(PasswordChangeBuilder)? updates]) =>
       (PasswordChangeBuilder()..update(updates))._build();
 
-  _$PasswordChange._(
-      {required this.newPassword, required this.oldPassword, this.refreshToken})
-      : super._();
+  _$PasswordChange._({
+    required this.newPassword,
+    required this.oldPassword,
+    this.refreshToken,
+  }) : super._();
   @override
   PasswordChange rebuild(void Function(PasswordChangeBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -101,12 +103,19 @@ class PasswordChangeBuilder
   PasswordChange build() => _build();
 
   _$PasswordChange _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$PasswordChange._(
           newPassword: BuiltValueNullFieldError.checkNotNull(
-              newPassword, r'PasswordChange', 'newPassword'),
+            newPassword,
+            r'PasswordChange',
+            'newPassword',
+          ),
           oldPassword: BuiltValueNullFieldError.checkNotNull(
-              oldPassword, r'PasswordChange', 'oldPassword'),
+            oldPassword,
+            r'PasswordChange',
+            'oldPassword',
+          ),
           refreshToken: refreshToken,
         );
     replace(_$result);

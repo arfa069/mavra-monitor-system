@@ -14,17 +14,19 @@ class _$RolePermissionResponse extends RolePermissionResponse {
   @override
   final String? description;
 
-  factory _$RolePermissionResponse(
-          [void Function(RolePermissionResponseBuilder)? updates]) =>
-      (RolePermissionResponseBuilder()..update(updates))._build();
+  factory _$RolePermissionResponse([
+    void Function(RolePermissionResponseBuilder)? updates,
+  ]) => (RolePermissionResponseBuilder()..update(updates))._build();
 
-  _$RolePermissionResponse._(
-      {required this.permissions, required this.role, this.description})
-      : super._();
+  _$RolePermissionResponse._({
+    required this.permissions,
+    required this.role,
+    this.description,
+  }) : super._();
   @override
   RolePermissionResponse rebuild(
-          void Function(RolePermissionResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(RolePermissionResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   RolePermissionResponseBuilder toBuilder() =>
@@ -108,11 +110,15 @@ class RolePermissionResponseBuilder
   _$RolePermissionResponse _build() {
     _$RolePermissionResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$RolePermissionResponse._(
             permissions: permissions.build(),
             role: BuiltValueNullFieldError.checkNotNull(
-                role, r'RolePermissionResponse', 'role'),
+              role,
+              r'RolePermissionResponse',
+              'role',
+            ),
             description: description,
           );
     } catch (_) {
@@ -122,7 +128,10 @@ class RolePermissionResponseBuilder
         permissions.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'RolePermissionResponse', _$failedField, e.toString());
+          r'RolePermissionResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -14,17 +14,19 @@ class _$SchedulerStatusResponse extends SchedulerStatusResponse {
   @override
   final String? timezone;
 
-  factory _$SchedulerStatusResponse(
-          [void Function(SchedulerStatusResponseBuilder)? updates]) =>
-      (SchedulerStatusResponseBuilder()..update(updates))._build();
+  factory _$SchedulerStatusResponse([
+    void Function(SchedulerStatusResponseBuilder)? updates,
+  ]) => (SchedulerStatusResponseBuilder()..update(updates))._build();
 
-  _$SchedulerStatusResponse._(
-      {required this.scheduler, this.jobs, this.timezone})
-      : super._();
+  _$SchedulerStatusResponse._({
+    required this.scheduler,
+    this.jobs,
+    this.timezone,
+  }) : super._();
   @override
   SchedulerStatusResponse rebuild(
-          void Function(SchedulerStatusResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(SchedulerStatusResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   SchedulerStatusResponseBuilder toBuilder() =>
@@ -108,10 +110,14 @@ class SchedulerStatusResponseBuilder
   _$SchedulerStatusResponse _build() {
     _$SchedulerStatusResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$SchedulerStatusResponse._(
             scheduler: BuiltValueNullFieldError.checkNotNull(
-                scheduler, r'SchedulerStatusResponse', 'scheduler'),
+              scheduler,
+              r'SchedulerStatusResponse',
+              'scheduler',
+            ),
             jobs: _jobs?.build(),
             timezone: timezone,
           );
@@ -122,7 +128,10 @@ class SchedulerStatusResponseBuilder
         _jobs?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'SchedulerStatusResponse', _$failedField, e.toString());
+          r'SchedulerStatusResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

@@ -19,9 +19,12 @@ class _$ProductCreate extends ProductCreate {
   factory _$ProductCreate([void Function(ProductCreateBuilder)? updates]) =>
       (ProductCreateBuilder()..update(updates))._build();
 
-  _$ProductCreate._(
-      {required this.platform, required this.url, this.active, this.title})
-      : super._();
+  _$ProductCreate._({
+    required this.platform,
+    required this.url,
+    this.active,
+    this.title,
+  }) : super._();
   @override
   ProductCreate rebuild(void Function(ProductCreateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -111,12 +114,19 @@ class ProductCreateBuilder
   ProductCreate build() => _build();
 
   _$ProductCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductCreate._(
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'ProductCreate', 'platform'),
+            platform,
+            r'ProductCreate',
+            'platform',
+          ),
           url: BuiltValueNullFieldError.checkNotNull(
-              url, r'ProductCreate', 'url'),
+            url,
+            r'ProductCreate',
+            'url',
+          ),
           active: active,
           title: title,
         );

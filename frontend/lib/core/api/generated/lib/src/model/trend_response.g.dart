@@ -93,11 +93,9 @@ class TrendResponseBuilder
   _$TrendResponse _build() {
     _$TrendResponse _$result;
     try {
-      _$result = _$v ??
-          _$TrendResponse._(
-            datasets: datasets.build(),
-            labels: labels.build(),
-          );
+      _$result =
+          _$v ??
+          _$TrendResponse._(datasets: datasets.build(), labels: labels.build());
     } catch (_) {
       late String _$failedField;
       try {
@@ -107,7 +105,10 @@ class TrendResponseBuilder
         labels.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'TrendResponse', _$failedField, e.toString());
+          r'TrendResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

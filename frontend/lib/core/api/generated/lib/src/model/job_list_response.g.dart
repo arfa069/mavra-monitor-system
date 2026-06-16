@@ -19,12 +19,12 @@ class _$JobListResponse extends JobListResponse {
   factory _$JobListResponse([void Function(JobListResponseBuilder)? updates]) =>
       (JobListResponseBuilder()..update(updates))._build();
 
-  _$JobListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$JobListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   JobListResponse rebuild(void Function(JobListResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -117,15 +117,25 @@ class JobListResponseBuilder
   _$JobListResponse _build() {
     _$JobListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$JobListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'JobListResponse', 'page'),
+              page,
+              r'JobListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'JobListResponse', 'pageSize'),
+              pageSize,
+              r'JobListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'JobListResponse', 'total'),
+              total,
+              r'JobListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -134,7 +144,10 @@ class JobListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'JobListResponse', _$failedField, e.toString());
+          r'JobListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

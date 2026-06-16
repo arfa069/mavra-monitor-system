@@ -37,9 +37,9 @@ class _$LogoutRequest extends LogoutRequest {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'LogoutRequest')
-          ..add('refreshToken', refreshToken))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'LogoutRequest',
+    )..add('refreshToken', refreshToken)).toString();
   }
 }
 
@@ -78,10 +78,7 @@ class LogoutRequestBuilder
   LogoutRequest build() => _build();
 
   _$LogoutRequest _build() {
-    final _$result = _$v ??
-        _$LogoutRequest._(
-          refreshToken: refreshToken,
-        );
+    final _$result = _$v ?? _$LogoutRequest._(refreshToken: refreshToken);
     replace(_$result);
     return _$result;
   }

@@ -22,23 +22,23 @@ class _$JobCrawlLogResponse extends JobCrawlLogResponse {
   @override
   final int? totalJobsCount;
 
-  factory _$JobCrawlLogResponse(
-          [void Function(JobCrawlLogResponseBuilder)? updates]) =>
-      (JobCrawlLogResponseBuilder()..update(updates))._build();
+  factory _$JobCrawlLogResponse([
+    void Function(JobCrawlLogResponseBuilder)? updates,
+  ]) => (JobCrawlLogResponseBuilder()..update(updates))._build();
 
-  _$JobCrawlLogResponse._(
-      {required this.id,
-      required this.scrapedAt,
-      required this.searchConfigId,
-      required this.status,
-      this.errorMessage,
-      this.newJobsCount,
-      this.totalJobsCount})
-      : super._();
+  _$JobCrawlLogResponse._({
+    required this.id,
+    required this.scrapedAt,
+    required this.searchConfigId,
+    required this.status,
+    this.errorMessage,
+    this.newJobsCount,
+    this.totalJobsCount,
+  }) : super._();
   @override
   JobCrawlLogResponse rebuild(
-          void Function(JobCrawlLogResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(JobCrawlLogResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   JobCrawlLogResponseBuilder toBuilder() =>
@@ -152,16 +152,29 @@ class JobCrawlLogResponseBuilder
   JobCrawlLogResponse build() => _build();
 
   _$JobCrawlLogResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$JobCrawlLogResponse._(
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'JobCrawlLogResponse', 'id'),
+            id,
+            r'JobCrawlLogResponse',
+            'id',
+          ),
           scrapedAt: BuiltValueNullFieldError.checkNotNull(
-              scrapedAt, r'JobCrawlLogResponse', 'scrapedAt'),
+            scrapedAt,
+            r'JobCrawlLogResponse',
+            'scrapedAt',
+          ),
           searchConfigId: BuiltValueNullFieldError.checkNotNull(
-              searchConfigId, r'JobCrawlLogResponse', 'searchConfigId'),
+            searchConfigId,
+            r'JobCrawlLogResponse',
+            'searchConfigId',
+          ),
           status: BuiltValueNullFieldError.checkNotNull(
-              status, r'JobCrawlLogResponse', 'status'),
+            status,
+            r'JobCrawlLogResponse',
+            'status',
+          ),
           errorMessage: errorMessage,
           newJobsCount: newJobsCount,
           totalJobsCount: totalJobsCount,

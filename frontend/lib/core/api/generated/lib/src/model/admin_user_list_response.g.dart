@@ -16,20 +16,20 @@ class _$AdminUserListResponse extends AdminUserListResponse {
   @override
   final int total;
 
-  factory _$AdminUserListResponse(
-          [void Function(AdminUserListResponseBuilder)? updates]) =>
-      (AdminUserListResponseBuilder()..update(updates))._build();
+  factory _$AdminUserListResponse([
+    void Function(AdminUserListResponseBuilder)? updates,
+  ]) => (AdminUserListResponseBuilder()..update(updates))._build();
 
-  _$AdminUserListResponse._(
-      {required this.items,
-      required this.page,
-      required this.pageSize,
-      required this.total})
-      : super._();
+  _$AdminUserListResponse._({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  }) : super._();
   @override
   AdminUserListResponse rebuild(
-          void Function(AdminUserListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(AdminUserListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   AdminUserListResponseBuilder toBuilder() =>
@@ -120,15 +120,25 @@ class AdminUserListResponseBuilder
   _$AdminUserListResponse _build() {
     _$AdminUserListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$AdminUserListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'AdminUserListResponse', 'page'),
+              page,
+              r'AdminUserListResponse',
+              'page',
+            ),
             pageSize: BuiltValueNullFieldError.checkNotNull(
-                pageSize, r'AdminUserListResponse', 'pageSize'),
+              pageSize,
+              r'AdminUserListResponse',
+              'pageSize',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'AdminUserListResponse', 'total'),
+              total,
+              r'AdminUserListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -137,7 +147,10 @@ class AdminUserListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'AdminUserListResponse', _$failedField, e.toString());
+          r'AdminUserListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

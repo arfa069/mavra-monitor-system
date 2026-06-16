@@ -20,22 +20,22 @@ class _$UserResumeResponse extends UserResumeResponse {
   @override
   final int userId;
 
-  factory _$UserResumeResponse(
-          [void Function(UserResumeResponseBuilder)? updates]) =>
-      (UserResumeResponseBuilder()..update(updates))._build();
+  factory _$UserResumeResponse([
+    void Function(UserResumeResponseBuilder)? updates,
+  ]) => (UserResumeResponseBuilder()..update(updates))._build();
 
-  _$UserResumeResponse._(
-      {required this.createdAt,
-      required this.id,
-      required this.name,
-      required this.resumeText,
-      required this.updatedAt,
-      required this.userId})
-      : super._();
+  _$UserResumeResponse._({
+    required this.createdAt,
+    required this.id,
+    required this.name,
+    required this.resumeText,
+    required this.updatedAt,
+    required this.userId,
+  }) : super._();
   @override
   UserResumeResponse rebuild(
-          void Function(UserResumeResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(UserResumeResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   UserResumeResponseBuilder toBuilder() =>
@@ -139,20 +139,39 @@ class UserResumeResponseBuilder
   UserResumeResponse build() => _build();
 
   _$UserResumeResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserResumeResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'UserResumeResponse', 'createdAt'),
+            createdAt,
+            r'UserResumeResponse',
+            'createdAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'UserResumeResponse', 'id'),
+            id,
+            r'UserResumeResponse',
+            'id',
+          ),
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'UserResumeResponse', 'name'),
+            name,
+            r'UserResumeResponse',
+            'name',
+          ),
           resumeText: BuiltValueNullFieldError.checkNotNull(
-              resumeText, r'UserResumeResponse', 'resumeText'),
+            resumeText,
+            r'UserResumeResponse',
+            'resumeText',
+          ),
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'UserResumeResponse', 'updatedAt'),
+            updatedAt,
+            r'UserResumeResponse',
+            'updatedAt',
+          ),
           userId: BuiltValueNullFieldError.checkNotNull(
-              userId, r'UserResumeResponse', 'userId'),
+            userId,
+            r'UserResumeResponse',
+            'userId',
+          ),
         );
     replace(_$result);
     return _$result;

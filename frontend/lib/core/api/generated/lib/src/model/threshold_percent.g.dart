@@ -10,9 +10,9 @@ class _$ThresholdPercent extends ThresholdPercent {
   @override
   final AnyOf anyOf;
 
-  factory _$ThresholdPercent(
-          [void Function(ThresholdPercentBuilder)? updates]) =>
-      (ThresholdPercentBuilder()..update(updates))._build();
+  factory _$ThresholdPercent([
+    void Function(ThresholdPercentBuilder)? updates,
+  ]) => (ThresholdPercentBuilder()..update(updates))._build();
 
   _$ThresholdPercent._({required this.anyOf}) : super._();
   @override
@@ -39,9 +39,9 @@ class _$ThresholdPercent extends ThresholdPercent {
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ThresholdPercent')
-          ..add('anyOf', anyOf))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ThresholdPercent',
+    )..add('anyOf', anyOf)).toString();
   }
 }
 
@@ -80,10 +80,14 @@ class ThresholdPercentBuilder
   ThresholdPercent build() => _build();
 
   _$ThresholdPercent _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ThresholdPercent._(
           anyOf: BuiltValueNullFieldError.checkNotNull(
-              anyOf, r'ThresholdPercent', 'anyOf'),
+            anyOf,
+            r'ThresholdPercent',
+            'anyOf',
+          ),
         );
     replace(_$result);
     return _$result;

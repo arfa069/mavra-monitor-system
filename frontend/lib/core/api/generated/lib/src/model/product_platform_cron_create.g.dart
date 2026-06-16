@@ -14,17 +14,19 @@ class _$ProductPlatformCronCreate extends ProductPlatformCronCreate {
   @override
   final String? cronTimezone;
 
-  factory _$ProductPlatformCronCreate(
-          [void Function(ProductPlatformCronCreateBuilder)? updates]) =>
-      (ProductPlatformCronCreateBuilder()..update(updates))._build();
+  factory _$ProductPlatformCronCreate([
+    void Function(ProductPlatformCronCreateBuilder)? updates,
+  ]) => (ProductPlatformCronCreateBuilder()..update(updates))._build();
 
-  _$ProductPlatformCronCreate._(
-      {required this.platform, this.cronExpression, this.cronTimezone})
-      : super._();
+  _$ProductPlatformCronCreate._({
+    required this.platform,
+    this.cronExpression,
+    this.cronTimezone,
+  }) : super._();
   @override
   ProductPlatformCronCreate rebuild(
-          void Function(ProductPlatformCronCreateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductPlatformCronCreateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductPlatformCronCreateBuilder toBuilder() =>
@@ -106,10 +108,14 @@ class ProductPlatformCronCreateBuilder
   ProductPlatformCronCreate build() => _build();
 
   _$ProductPlatformCronCreate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductPlatformCronCreate._(
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'ProductPlatformCronCreate', 'platform'),
+            platform,
+            r'ProductPlatformCronCreate',
+            'platform',
+          ),
           cronExpression: cronExpression,
           cronTimezone: cronTimezone,
         );

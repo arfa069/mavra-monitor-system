@@ -90,11 +90,9 @@ class ScheduleInfoBuilder
   ScheduleInfo build() => _build();
 
   _$ScheduleInfo _build() {
-    final _$result = _$v ??
-        _$ScheduleInfo._(
-          cronExpression: cronExpression,
-          nextRunAt: nextRunAt,
-        );
+    final _$result =
+        _$v ??
+        _$ScheduleInfo._(cronExpression: cronExpression, nextRunAt: nextRunAt);
     replace(_$result);
     return _$result;
   }

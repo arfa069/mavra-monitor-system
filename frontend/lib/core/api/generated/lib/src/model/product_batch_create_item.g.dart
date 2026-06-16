@@ -14,16 +14,16 @@ class _$ProductBatchCreateItem extends ProductBatchCreateItem {
   @override
   final String? title;
 
-  factory _$ProductBatchCreateItem(
-          [void Function(ProductBatchCreateItemBuilder)? updates]) =>
-      (ProductBatchCreateItemBuilder()..update(updates))._build();
+  factory _$ProductBatchCreateItem([
+    void Function(ProductBatchCreateItemBuilder)? updates,
+  ]) => (ProductBatchCreateItemBuilder()..update(updates))._build();
 
   _$ProductBatchCreateItem._({required this.url, this.platform, this.title})
-      : super._();
+    : super._();
   @override
   ProductBatchCreateItem rebuild(
-          void Function(ProductBatchCreateItemBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ProductBatchCreateItemBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ProductBatchCreateItemBuilder toBuilder() =>
@@ -103,10 +103,14 @@ class ProductBatchCreateItemBuilder
   ProductBatchCreateItem build() => _build();
 
   _$ProductBatchCreateItem _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductBatchCreateItem._(
           url: BuiltValueNullFieldError.checkNotNull(
-              url, r'ProductBatchCreateItem', 'url'),
+            url,
+            r'ProductBatchCreateItem',
+            'url',
+          ),
           platform: platform,
           title: title,
         );

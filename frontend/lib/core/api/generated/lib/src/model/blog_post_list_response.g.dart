@@ -16,20 +16,20 @@ class _$BlogPostListResponse extends BlogPostListResponse {
   @override
   final int total;
 
-  factory _$BlogPostListResponse(
-          [void Function(BlogPostListResponseBuilder)? updates]) =>
-      (BlogPostListResponseBuilder()..update(updates))._build();
+  factory _$BlogPostListResponse([
+    void Function(BlogPostListResponseBuilder)? updates,
+  ]) => (BlogPostListResponseBuilder()..update(updates))._build();
 
-  _$BlogPostListResponse._(
-      {required this.items,
-      required this.page,
-      required this.size,
-      required this.total})
-      : super._();
+  _$BlogPostListResponse._({
+    required this.items,
+    required this.page,
+    required this.size,
+    required this.total,
+  }) : super._();
   @override
   BlogPostListResponse rebuild(
-          void Function(BlogPostListResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(BlogPostListResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   BlogPostListResponseBuilder toBuilder() =>
@@ -120,15 +120,25 @@ class BlogPostListResponseBuilder
   _$BlogPostListResponse _build() {
     _$BlogPostListResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$BlogPostListResponse._(
             items: items.build(),
             page: BuiltValueNullFieldError.checkNotNull(
-                page, r'BlogPostListResponse', 'page'),
+              page,
+              r'BlogPostListResponse',
+              'page',
+            ),
             size: BuiltValueNullFieldError.checkNotNull(
-                size, r'BlogPostListResponse', 'size'),
+              size,
+              r'BlogPostListResponse',
+              'size',
+            ),
             total: BuiltValueNullFieldError.checkNotNull(
-                total, r'BlogPostListResponse', 'total'),
+              total,
+              r'BlogPostListResponse',
+              'total',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -137,7 +147,10 @@ class BlogPostListResponseBuilder
         items.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'BlogPostListResponse', _$failedField, e.toString());
+          r'BlogPostListResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

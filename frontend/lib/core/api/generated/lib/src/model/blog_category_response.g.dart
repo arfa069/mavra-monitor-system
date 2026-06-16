@@ -16,20 +16,20 @@ class _$BlogCategoryResponse extends BlogCategoryResponse {
   @override
   final String? description;
 
-  factory _$BlogCategoryResponse(
-          [void Function(BlogCategoryResponseBuilder)? updates]) =>
-      (BlogCategoryResponseBuilder()..update(updates))._build();
+  factory _$BlogCategoryResponse([
+    void Function(BlogCategoryResponseBuilder)? updates,
+  ]) => (BlogCategoryResponseBuilder()..update(updates))._build();
 
-  _$BlogCategoryResponse._(
-      {required this.id,
-      required this.name,
-      required this.slug,
-      this.description})
-      : super._();
+  _$BlogCategoryResponse._({
+    required this.id,
+    required this.name,
+    required this.slug,
+    this.description,
+  }) : super._();
   @override
   BlogCategoryResponse rebuild(
-          void Function(BlogCategoryResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(BlogCategoryResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   BlogCategoryResponseBuilder toBuilder() =>
@@ -117,14 +117,24 @@ class BlogCategoryResponseBuilder
   BlogCategoryResponse build() => _build();
 
   _$BlogCategoryResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$BlogCategoryResponse._(
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'BlogCategoryResponse', 'id'),
+            id,
+            r'BlogCategoryResponse',
+            'id',
+          ),
           name: BuiltValueNullFieldError.checkNotNull(
-              name, r'BlogCategoryResponse', 'name'),
+            name,
+            r'BlogCategoryResponse',
+            'name',
+          ),
           slug: BuiltValueNullFieldError.checkNotNull(
-              slug, r'BlogCategoryResponse', 'slug'),
+            slug,
+            r'BlogCategoryResponse',
+            'slug',
+          ),
           description: description,
         );
     replace(_$result);

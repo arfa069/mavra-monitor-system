@@ -40,32 +40,32 @@ class _$MatchResultResponse extends MatchResultResponse {
   @override
   final String? jobUrl;
 
-  factory _$MatchResultResponse(
-          [void Function(MatchResultResponseBuilder)? updates]) =>
-      (MatchResultResponseBuilder()..update(updates))._build();
+  factory _$MatchResultResponse([
+    void Function(MatchResultResponseBuilder)? updates,
+  ]) => (MatchResultResponseBuilder()..update(updates))._build();
 
-  _$MatchResultResponse._(
-      {this.applyRecommendation,
-      required this.createdAt,
-      required this.id,
-      required this.jobId,
-      this.llmModelUsed,
-      this.matchReason,
-      required this.matchScore,
-      required this.resumeId,
-      required this.updatedAt,
-      required this.userId,
-      this.jobCompany,
-      this.jobDescription,
-      this.jobLocation,
-      this.jobSalary,
-      this.jobTitle,
-      this.jobUrl})
-      : super._();
+  _$MatchResultResponse._({
+    this.applyRecommendation,
+    required this.createdAt,
+    required this.id,
+    required this.jobId,
+    this.llmModelUsed,
+    this.matchReason,
+    required this.matchScore,
+    required this.resumeId,
+    required this.updatedAt,
+    required this.userId,
+    this.jobCompany,
+    this.jobDescription,
+    this.jobLocation,
+    this.jobSalary,
+    this.jobTitle,
+    this.jobUrl,
+  }) : super._();
   @override
   MatchResultResponse rebuild(
-          void Function(MatchResultResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(MatchResultResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   MatchResultResponseBuilder toBuilder() =>
@@ -251,25 +251,47 @@ class MatchResultResponseBuilder
   MatchResultResponse build() => _build();
 
   _$MatchResultResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$MatchResultResponse._(
           applyRecommendation: applyRecommendation,
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'MatchResultResponse', 'createdAt'),
+            createdAt,
+            r'MatchResultResponse',
+            'createdAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'MatchResultResponse', 'id'),
+            id,
+            r'MatchResultResponse',
+            'id',
+          ),
           jobId: BuiltValueNullFieldError.checkNotNull(
-              jobId, r'MatchResultResponse', 'jobId'),
+            jobId,
+            r'MatchResultResponse',
+            'jobId',
+          ),
           llmModelUsed: llmModelUsed,
           matchReason: matchReason,
           matchScore: BuiltValueNullFieldError.checkNotNull(
-              matchScore, r'MatchResultResponse', 'matchScore'),
+            matchScore,
+            r'MatchResultResponse',
+            'matchScore',
+          ),
           resumeId: BuiltValueNullFieldError.checkNotNull(
-              resumeId, r'MatchResultResponse', 'resumeId'),
+            resumeId,
+            r'MatchResultResponse',
+            'resumeId',
+          ),
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'MatchResultResponse', 'updatedAt'),
+            updatedAt,
+            r'MatchResultResponse',
+            'updatedAt',
+          ),
           userId: BuiltValueNullFieldError.checkNotNull(
-              userId, r'MatchResultResponse', 'userId'),
+            userId,
+            r'MatchResultResponse',
+            'userId',
+          ),
           jobCompany: jobCompany,
           jobDescription: jobDescription,
           jobLocation: jobLocation,

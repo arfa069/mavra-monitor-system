@@ -14,17 +14,19 @@ class _$ResourcePermissionUpdate extends ResourcePermissionUpdate {
   @override
   final String? resourceType;
 
-  factory _$ResourcePermissionUpdate(
-          [void Function(ResourcePermissionUpdateBuilder)? updates]) =>
-      (ResourcePermissionUpdateBuilder()..update(updates))._build();
+  factory _$ResourcePermissionUpdate([
+    void Function(ResourcePermissionUpdateBuilder)? updates,
+  ]) => (ResourcePermissionUpdateBuilder()..update(updates))._build();
 
-  _$ResourcePermissionUpdate._(
-      {this.permission, this.resourceId, this.resourceType})
-      : super._();
+  _$ResourcePermissionUpdate._({
+    this.permission,
+    this.resourceId,
+    this.resourceType,
+  }) : super._();
   @override
   ResourcePermissionUpdate rebuild(
-          void Function(ResourcePermissionUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ResourcePermissionUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ResourcePermissionUpdateBuilder toBuilder() =>
@@ -105,7 +107,8 @@ class ResourcePermissionUpdateBuilder
   ResourcePermissionUpdate build() => _build();
 
   _$ResourcePermissionUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ResourcePermissionUpdate._(
           permission: permission,
           resourceId: resourceId,

@@ -9,13 +9,14 @@ part of 'crawl_profile_update.dart';
 const CrawlProfileUpdateStatusEnum _$crawlProfileUpdateStatusEnum_available =
     const CrawlProfileUpdateStatusEnum._('available');
 const CrawlProfileUpdateStatusEnum
-    _$crawlProfileUpdateStatusEnum_loginRequired =
+_$crawlProfileUpdateStatusEnum_loginRequired =
     const CrawlProfileUpdateStatusEnum._('loginRequired');
 const CrawlProfileUpdateStatusEnum _$crawlProfileUpdateStatusEnum_disabled =
     const CrawlProfileUpdateStatusEnum._('disabled');
 
 CrawlProfileUpdateStatusEnum _$crawlProfileUpdateStatusEnumValueOf(
-    String name) {
+  String name,
+) {
   switch (name) {
     case 'available':
       return _$crawlProfileUpdateStatusEnum_available;
@@ -29,15 +30,15 @@ CrawlProfileUpdateStatusEnum _$crawlProfileUpdateStatusEnumValueOf(
 }
 
 final BuiltSet<CrawlProfileUpdateStatusEnum>
-    _$crawlProfileUpdateStatusEnumValues =
+_$crawlProfileUpdateStatusEnumValues =
     BuiltSet<CrawlProfileUpdateStatusEnum>(const <CrawlProfileUpdateStatusEnum>[
-  _$crawlProfileUpdateStatusEnum_available,
-  _$crawlProfileUpdateStatusEnum_loginRequired,
-  _$crawlProfileUpdateStatusEnum_disabled,
-]);
+      _$crawlProfileUpdateStatusEnum_available,
+      _$crawlProfileUpdateStatusEnum_loginRequired,
+      _$crawlProfileUpdateStatusEnum_disabled,
+    ]);
 
 Serializer<CrawlProfileUpdateStatusEnum>
-    _$crawlProfileUpdateStatusEnumSerializer =
+_$crawlProfileUpdateStatusEnumSerializer =
     _$CrawlProfileUpdateStatusEnumSerializer();
 
 class _$CrawlProfileUpdateStatusEnumSerializer
@@ -59,16 +60,20 @@ class _$CrawlProfileUpdateStatusEnumSerializer
   final String wireName = 'CrawlProfileUpdateStatusEnum';
 
   @override
-  Object serialize(Serializers serializers, CrawlProfileUpdateStatusEnum object,
-          {FullType specifiedType = FullType.unspecified}) =>
-      _toWire[object.name] ?? object.name;
+  Object serialize(
+    Serializers serializers,
+    CrawlProfileUpdateStatusEnum object, {
+    FullType specifiedType = FullType.unspecified,
+  }) => _toWire[object.name] ?? object.name;
 
   @override
   CrawlProfileUpdateStatusEnum deserialize(
-          Serializers serializers, Object serialized,
-          {FullType specifiedType = FullType.unspecified}) =>
-      CrawlProfileUpdateStatusEnum.valueOf(
-          _fromWire[serialized] ?? (serialized is String ? serialized : ''));
+    Serializers serializers,
+    Object serialized, {
+    FullType specifiedType = FullType.unspecified,
+  }) => CrawlProfileUpdateStatusEnum.valueOf(
+    _fromWire[serialized] ?? (serialized is String ? serialized : ''),
+  );
 }
 
 class _$CrawlProfileUpdate extends CrawlProfileUpdate {
@@ -79,16 +84,16 @@ class _$CrawlProfileUpdate extends CrawlProfileUpdate {
   @override
   final CrawlProfileUpdateStatusEnum? status;
 
-  factory _$CrawlProfileUpdate(
-          [void Function(CrawlProfileUpdateBuilder)? updates]) =>
-      (CrawlProfileUpdateBuilder()..update(updates))._build();
+  factory _$CrawlProfileUpdate([
+    void Function(CrawlProfileUpdateBuilder)? updates,
+  ]) => (CrawlProfileUpdateBuilder()..update(updates))._build();
 
   _$CrawlProfileUpdate._({this.lastError, this.platformHint, this.status})
-      : super._();
+    : super._();
   @override
   CrawlProfileUpdate rebuild(
-          void Function(CrawlProfileUpdateBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(CrawlProfileUpdateBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   CrawlProfileUpdateBuilder toBuilder() =>
@@ -168,7 +173,8 @@ class CrawlProfileUpdateBuilder
   CrawlProfileUpdate build() => _build();
 
   _$CrawlProfileUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$CrawlProfileUpdate._(
           lastError: lastError,
           platformHint: platformHint,

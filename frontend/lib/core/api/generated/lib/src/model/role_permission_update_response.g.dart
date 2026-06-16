@@ -12,17 +12,18 @@ class _$RolePermissionUpdateResponse extends RolePermissionUpdateResponse {
   @override
   final String role;
 
-  factory _$RolePermissionUpdateResponse(
-          [void Function(RolePermissionUpdateResponseBuilder)? updates]) =>
-      (RolePermissionUpdateResponseBuilder()..update(updates))._build();
+  factory _$RolePermissionUpdateResponse([
+    void Function(RolePermissionUpdateResponseBuilder)? updates,
+  ]) => (RolePermissionUpdateResponseBuilder()..update(updates))._build();
 
-  _$RolePermissionUpdateResponse._(
-      {required this.permissions, required this.role})
-      : super._();
+  _$RolePermissionUpdateResponse._({
+    required this.permissions,
+    required this.role,
+  }) : super._();
   @override
   RolePermissionUpdateResponse rebuild(
-          void Function(RolePermissionUpdateResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(RolePermissionUpdateResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   RolePermissionUpdateResponseBuilder toBuilder() =>
@@ -56,8 +57,10 @@ class _$RolePermissionUpdateResponse extends RolePermissionUpdateResponse {
 
 class RolePermissionUpdateResponseBuilder
     implements
-        Builder<RolePermissionUpdateResponse,
-            RolePermissionUpdateResponseBuilder> {
+        Builder<
+          RolePermissionUpdateResponse,
+          RolePermissionUpdateResponseBuilder
+        > {
   _$RolePermissionUpdateResponse? _$v;
 
   ListBuilder<String>? _permissions;
@@ -100,11 +103,15 @@ class RolePermissionUpdateResponseBuilder
   _$RolePermissionUpdateResponse _build() {
     _$RolePermissionUpdateResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$RolePermissionUpdateResponse._(
             permissions: permissions.build(),
             role: BuiltValueNullFieldError.checkNotNull(
-                role, r'RolePermissionUpdateResponse', 'role'),
+              role,
+              r'RolePermissionUpdateResponse',
+              'role',
+            ),
           );
     } catch (_) {
       late String _$failedField;
@@ -113,7 +120,10 @@ class RolePermissionUpdateResponseBuilder
         permissions.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'RolePermissionUpdateResponse', _$failedField, e.toString());
+          r'RolePermissionUpdateResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

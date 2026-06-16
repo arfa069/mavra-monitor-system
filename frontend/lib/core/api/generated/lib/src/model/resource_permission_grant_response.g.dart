@@ -11,15 +11,15 @@ class _$ResourcePermissionGrantResponse
   @override
   final int granted;
 
-  factory _$ResourcePermissionGrantResponse(
-          [void Function(ResourcePermissionGrantResponseBuilder)? updates]) =>
-      (ResourcePermissionGrantResponseBuilder()..update(updates))._build();
+  factory _$ResourcePermissionGrantResponse([
+    void Function(ResourcePermissionGrantResponseBuilder)? updates,
+  ]) => (ResourcePermissionGrantResponseBuilder()..update(updates))._build();
 
   _$ResourcePermissionGrantResponse._({required this.granted}) : super._();
   @override
   ResourcePermissionGrantResponse rebuild(
-          void Function(ResourcePermissionGrantResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ResourcePermissionGrantResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ResourcePermissionGrantResponseBuilder toBuilder() =>
@@ -41,16 +41,18 @@ class _$ResourcePermissionGrantResponse
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper(r'ResourcePermissionGrantResponse')
-          ..add('granted', granted))
-        .toString();
+    return (newBuiltValueToStringHelper(
+      r'ResourcePermissionGrantResponse',
+    )..add('granted', granted)).toString();
   }
 }
 
 class ResourcePermissionGrantResponseBuilder
     implements
-        Builder<ResourcePermissionGrantResponse,
-            ResourcePermissionGrantResponseBuilder> {
+        Builder<
+          ResourcePermissionGrantResponse,
+          ResourcePermissionGrantResponseBuilder
+        > {
   _$ResourcePermissionGrantResponse? _$v;
 
   int? _granted;
@@ -84,10 +86,14 @@ class ResourcePermissionGrantResponseBuilder
   ResourcePermissionGrantResponse build() => _build();
 
   _$ResourcePermissionGrantResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ResourcePermissionGrantResponse._(
           granted: BuiltValueNullFieldError.checkNotNull(
-              granted, r'ResourcePermissionGrantResponse', 'granted'),
+            granted,
+            r'ResourcePermissionGrantResponse',
+            'granted',
+          ),
         );
     replace(_$result);
     return _$result;

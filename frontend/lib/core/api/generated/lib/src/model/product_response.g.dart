@@ -27,16 +27,16 @@ class _$ProductResponse extends ProductResponse {
   factory _$ProductResponse([void Function(ProductResponseBuilder)? updates]) =>
       (ProductResponseBuilder()..update(updates))._build();
 
-  _$ProductResponse._(
-      {required this.active,
-      required this.createdAt,
-      required this.id,
-      required this.platform,
-      this.title,
-      required this.updatedAt,
-      required this.url,
-      required this.userId})
-      : super._();
+  _$ProductResponse._({
+    required this.active,
+    required this.createdAt,
+    required this.id,
+    required this.platform,
+    this.title,
+    required this.updatedAt,
+    required this.url,
+    required this.userId,
+  }) : super._();
   @override
   ProductResponse rebuild(void Function(ProductResponseBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -158,23 +158,45 @@ class ProductResponseBuilder
   ProductResponse build() => _build();
 
   _$ProductResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ProductResponse._(
           active: BuiltValueNullFieldError.checkNotNull(
-              active, r'ProductResponse', 'active'),
+            active,
+            r'ProductResponse',
+            'active',
+          ),
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'ProductResponse', 'createdAt'),
+            createdAt,
+            r'ProductResponse',
+            'createdAt',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'ProductResponse', 'id'),
+            id,
+            r'ProductResponse',
+            'id',
+          ),
           platform: BuiltValueNullFieldError.checkNotNull(
-              platform, r'ProductResponse', 'platform'),
+            platform,
+            r'ProductResponse',
+            'platform',
+          ),
           title: title,
           updatedAt: BuiltValueNullFieldError.checkNotNull(
-              updatedAt, r'ProductResponse', 'updatedAt'),
+            updatedAt,
+            r'ProductResponse',
+            'updatedAt',
+          ),
           url: BuiltValueNullFieldError.checkNotNull(
-              url, r'ProductResponse', 'url'),
+            url,
+            r'ProductResponse',
+            'url',
+          ),
           userId: BuiltValueNullFieldError.checkNotNull(
-              userId, r'ProductResponse', 'userId'),
+            userId,
+            r'ProductResponse',
+            'userId',
+          ),
         );
     replace(_$result);
     return _$result;

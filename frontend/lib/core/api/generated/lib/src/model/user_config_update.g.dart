@@ -12,12 +12,12 @@ class _$UserConfigUpdate extends UserConfigUpdate {
   @override
   final String? feishuWebhookUrl;
 
-  factory _$UserConfigUpdate(
-          [void Function(UserConfigUpdateBuilder)? updates]) =>
-      (UserConfigUpdateBuilder()..update(updates))._build();
+  factory _$UserConfigUpdate([
+    void Function(UserConfigUpdateBuilder)? updates,
+  ]) => (UserConfigUpdateBuilder()..update(updates))._build();
 
   _$UserConfigUpdate._({this.dataRetentionDays, this.feishuWebhookUrl})
-      : super._();
+    : super._();
   @override
   UserConfigUpdate rebuild(void Function(UserConfigUpdateBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -94,7 +94,8 @@ class UserConfigUpdateBuilder
   UserConfigUpdate build() => _build();
 
   _$UserConfigUpdate _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$UserConfigUpdate._(
           dataRetentionDays: dataRetentionDays,
           feishuWebhookUrl: feishuWebhookUrl,

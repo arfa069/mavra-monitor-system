@@ -24,24 +24,24 @@ class _$ResourcePermissionResponse extends ResourcePermissionResponse {
   @override
   final String subjectType;
 
-  factory _$ResourcePermissionResponse(
-          [void Function(ResourcePermissionResponseBuilder)? updates]) =>
-      (ResourcePermissionResponseBuilder()..update(updates))._build();
+  factory _$ResourcePermissionResponse([
+    void Function(ResourcePermissionResponseBuilder)? updates,
+  ]) => (ResourcePermissionResponseBuilder()..update(updates))._build();
 
-  _$ResourcePermissionResponse._(
-      {required this.createdAt,
-      required this.grantedBy,
-      required this.id,
-      required this.permission,
-      required this.resourceId,
-      required this.resourceType,
-      required this.subjectId,
-      required this.subjectType})
-      : super._();
+  _$ResourcePermissionResponse._({
+    required this.createdAt,
+    required this.grantedBy,
+    required this.id,
+    required this.permission,
+    required this.resourceId,
+    required this.resourceType,
+    required this.subjectId,
+    required this.subjectType,
+  }) : super._();
   @override
   ResourcePermissionResponse rebuild(
-          void Function(ResourcePermissionResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(ResourcePermissionResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   ResourcePermissionResponseBuilder toBuilder() =>
@@ -162,24 +162,49 @@ class ResourcePermissionResponseBuilder
   ResourcePermissionResponse build() => _build();
 
   _$ResourcePermissionResponse _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$ResourcePermissionResponse._(
           createdAt: BuiltValueNullFieldError.checkNotNull(
-              createdAt, r'ResourcePermissionResponse', 'createdAt'),
+            createdAt,
+            r'ResourcePermissionResponse',
+            'createdAt',
+          ),
           grantedBy: BuiltValueNullFieldError.checkNotNull(
-              grantedBy, r'ResourcePermissionResponse', 'grantedBy'),
+            grantedBy,
+            r'ResourcePermissionResponse',
+            'grantedBy',
+          ),
           id: BuiltValueNullFieldError.checkNotNull(
-              id, r'ResourcePermissionResponse', 'id'),
+            id,
+            r'ResourcePermissionResponse',
+            'id',
+          ),
           permission: BuiltValueNullFieldError.checkNotNull(
-              permission, r'ResourcePermissionResponse', 'permission'),
+            permission,
+            r'ResourcePermissionResponse',
+            'permission',
+          ),
           resourceId: BuiltValueNullFieldError.checkNotNull(
-              resourceId, r'ResourcePermissionResponse', 'resourceId'),
+            resourceId,
+            r'ResourcePermissionResponse',
+            'resourceId',
+          ),
           resourceType: BuiltValueNullFieldError.checkNotNull(
-              resourceType, r'ResourcePermissionResponse', 'resourceType'),
+            resourceType,
+            r'ResourcePermissionResponse',
+            'resourceType',
+          ),
           subjectId: BuiltValueNullFieldError.checkNotNull(
-              subjectId, r'ResourcePermissionResponse', 'subjectId'),
+            subjectId,
+            r'ResourcePermissionResponse',
+            'subjectId',
+          ),
           subjectType: BuiltValueNullFieldError.checkNotNull(
-              subjectType, r'ResourcePermissionResponse', 'subjectType'),
+            subjectType,
+            r'ResourcePermissionResponse',
+            'subjectType',
+          ),
         );
     replace(_$result);
     return _$result;

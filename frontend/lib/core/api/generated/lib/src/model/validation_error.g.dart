@@ -21,13 +21,13 @@ class _$ValidationError extends ValidationError {
   factory _$ValidationError([void Function(ValidationErrorBuilder)? updates]) =>
       (ValidationErrorBuilder()..update(updates))._build();
 
-  _$ValidationError._(
-      {required this.loc,
-      required this.msg,
-      required this.type,
-      this.ctx,
-      this.input})
-      : super._();
+  _$ValidationError._({
+    required this.loc,
+    required this.msg,
+    required this.type,
+    this.ctx,
+    this.input,
+  }) : super._();
   @override
   ValidationError rebuild(void Function(ValidationErrorBuilder) updates) =>
       (toBuilder()..update(updates)).build();
@@ -128,13 +128,20 @@ class ValidationErrorBuilder
   _$ValidationError _build() {
     _$ValidationError _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$ValidationError._(
             loc: loc.build(),
             msg: BuiltValueNullFieldError.checkNotNull(
-                msg, r'ValidationError', 'msg'),
+              msg,
+              r'ValidationError',
+              'msg',
+            ),
             type: BuiltValueNullFieldError.checkNotNull(
-                type, r'ValidationError', 'type'),
+              type,
+              r'ValidationError',
+              'type',
+            ),
             ctx: ctx,
             input: input,
           );
@@ -145,7 +152,10 @@ class ValidationErrorBuilder
         loc.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'ValidationError', _$failedField, e.toString());
+          r'ValidationError',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }

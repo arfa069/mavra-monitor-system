@@ -16,17 +16,20 @@ class _$BatchOperationResult extends BatchOperationResult {
   @override
   final String? url;
 
-  factory _$BatchOperationResult(
-          [void Function(BatchOperationResultBuilder)? updates]) =>
-      (BatchOperationResultBuilder()..update(updates))._build();
+  factory _$BatchOperationResult([
+    void Function(BatchOperationResultBuilder)? updates,
+  ]) => (BatchOperationResultBuilder()..update(updates))._build();
 
-  _$BatchOperationResult._(
-      {required this.success, this.error, this.id, this.url})
-      : super._();
+  _$BatchOperationResult._({
+    required this.success,
+    this.error,
+    this.id,
+    this.url,
+  }) : super._();
   @override
   BatchOperationResult rebuild(
-          void Function(BatchOperationResultBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(BatchOperationResultBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   BatchOperationResultBuilder toBuilder() =>
@@ -114,10 +117,14 @@ class BatchOperationResultBuilder
   BatchOperationResult build() => _build();
 
   _$BatchOperationResult _build() {
-    final _$result = _$v ??
+    final _$result =
+        _$v ??
         _$BatchOperationResult._(
           success: BuiltValueNullFieldError.checkNotNull(
-              success, r'BatchOperationResult', 'success'),
+            success,
+            r'BatchOperationResult',
+            'success',
+          ),
           error: error,
           id: id,
           url: url,

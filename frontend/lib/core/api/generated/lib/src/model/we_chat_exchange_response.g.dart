@@ -14,16 +14,16 @@ class _$WeChatExchangeResponse extends WeChatExchangeResponse {
   @override
   final WeChatUnboundResponse? unbound;
 
-  factory _$WeChatExchangeResponse(
-          [void Function(WeChatExchangeResponseBuilder)? updates]) =>
-      (WeChatExchangeResponseBuilder()..update(updates))._build();
+  factory _$WeChatExchangeResponse([
+    void Function(WeChatExchangeResponseBuilder)? updates,
+  ]) => (WeChatExchangeResponseBuilder()..update(updates))._build();
 
   _$WeChatExchangeResponse._({required this.status, this.session, this.unbound})
-      : super._();
+    : super._();
   @override
   WeChatExchangeResponse rebuild(
-          void Function(WeChatExchangeResponseBuilder) updates) =>
-      (toBuilder()..update(updates)).build();
+    void Function(WeChatExchangeResponseBuilder) updates,
+  ) => (toBuilder()..update(updates)).build();
 
   @override
   WeChatExchangeResponseBuilder toBuilder() =>
@@ -108,10 +108,14 @@ class WeChatExchangeResponseBuilder
   _$WeChatExchangeResponse _build() {
     _$WeChatExchangeResponse _$result;
     try {
-      _$result = _$v ??
+      _$result =
+          _$v ??
           _$WeChatExchangeResponse._(
             status: BuiltValueNullFieldError.checkNotNull(
-                status, r'WeChatExchangeResponse', 'status'),
+              status,
+              r'WeChatExchangeResponse',
+              'status',
+            ),
             session: _session?.build(),
             unbound: _unbound?.build(),
           );
@@ -124,7 +128,10 @@ class WeChatExchangeResponseBuilder
         _unbound?.build();
       } catch (e) {
         throw BuiltValueNestedFieldError(
-            r'WeChatExchangeResponse', _$failedField, e.toString());
+          r'WeChatExchangeResponse',
+          _$failedField,
+          e.toString(),
+        );
       }
       rethrow;
     }
