@@ -40,20 +40,61 @@ function Export-OpenApi {
     Push-Location $BackendRoot
     try {
         uv run --extra dev python ../scripts/export_openapi.py
+        if ($LASTEXITCODE -ne 0) {
+            throw "OpenAPI export failed with exit code $LASTEXITCODE"
+        }
     }
     finally {
         Pop-Location
     }
 }
 
+function Remove-DartPackageVolatileFiles {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    @(".dart_tool", "build") | ForEach-Object {
+        $path = Join-Path $Destination $_
+        Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Remove-Item -LiteralPath (Join-Path $Destination "pubspec.lock") -Force -ErrorAction SilentlyContinue
+}
+
 function Invoke-DartGenerator {
     param([Parameter(Mandatory = $true)][string]$Destination)
 
-    npx $Wrapper generate `
+    npx $Wrapper `
+        --openapitools $ToolsPath `
+        generate `
         -g dart-dio `
         -i $OpenApiJson `
         -o $Destination `
-        -c $ConfigPath
+        -c $ConfigPath `
+        --global-property apiDocs=false,modelDocs=false,apiTests=false,modelTests=false
+    if ($LASTEXITCODE -ne 0) {
+        throw "Dart OpenAPI generation failed with exit code $LASTEXITCODE"
+    }
+}
+
+function Invoke-DartPackageBuild {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    Push-Location $Destination
+    try {
+        dart pub get
+        if ($LASTEXITCODE -ne 0) {
+            throw "dart pub get failed with exit code $LASTEXITCODE"
+        }
+
+        dart run build_runner build
+        if ($LASTEXITCODE -ne 0) {
+            throw "Dart build_runner failed with exit code $LASTEXITCODE"
+        }
+    }
+    finally {
+        Pop-Location
+    }
+
+    Remove-DartPackageVolatileFiles -Destination $Destination
 }
 
 Assert-DartGeneratorPins
@@ -75,6 +116,8 @@ if ($Check) {
     New-Item -ItemType Directory -Path $TempRoot | Out-Null
     try {
         Invoke-DartGenerator -Destination $TempRoot
+        Invoke-DartPackageBuild -Destination $TempRoot
+        Remove-DartPackageVolatileFiles -Destination $OutputPath
         git diff --no-index --exit-code -- $OutputPath $TempRoot
         if ($LASTEXITCODE -ne 0) {
             throw "Dart generated client is out of date."
@@ -91,3 +134,4 @@ if ($Clean -and (Test-Path $OutputPath)) {
 }
 
 Invoke-DartGenerator -Destination $OutputPath
+Invoke-DartPackageBuild -Destination $OutputPath
