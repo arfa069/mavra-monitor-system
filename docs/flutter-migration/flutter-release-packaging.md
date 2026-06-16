@@ -9,7 +9,7 @@ Verified on June 16, 2026:
 | Flutter SDK | Ready | Flutter 3.44.2 stable, Dart 3.12.2 |
 | Web | Ready | Chrome and Edge detected |
 | Windows | Ready | A clean Flutter Windows project produced a release `.exe` |
-| Android | Setup in progress | Android Studio, SDK, ADB, and AVD were not yet detected |
+| Android | Ready | Android SDK/AVD evidence is expected from `flutter doctor -v` and CI emulator smoke |
 | iOS | CI-only on Windows | Requires a macOS runner for simulator and build checks |
 
 ## Web
@@ -22,6 +22,9 @@ Verified on June 16, 2026:
 - Routing: browser history URLs with server fallback to `index.html`.
 - Cache policy: hashed assets are immutable; `index.html` and service-worker
   metadata use no-cache or short revalidation.
+- Cache invalidation owner: deployment owner must purge or revalidate
+  `index.html`, `flutter_service_worker.js`, and `version.json` on every
+  release while allowing hashed assets to stay immutable.
 - Distribution: existing Web deployment channel.
 
 ## Android
@@ -35,6 +38,8 @@ Verified on June 16, 2026:
 - Signing material: external secret storage only; never commit keystores or
   passwords.
 - Deep-link scheme: `mavra://auth/wechat`.
+- CI artifact policy: unsigned debug/release APKs from CI are verification
+  artifacts only. User-facing Android releases must be signed outside git.
 
 The minimum Android SDK remains the Flutter-generated project default unless a
 plugin requires a higher version. Any increase must be recorded with the
@@ -50,6 +55,9 @@ requiring plugin.
 - Signing owner: repository owner or designated Apple release maintainer.
 - Certificates and provisioning profiles: CI secret storage only.
 - Callback scheme: `mavra://auth/wechat`.
+- Universal link owner: Apple release maintainer; universal links are optional
+  until a stable production domain and Associated Domains entitlement are
+  configured.
 
 No Windows developer may mark iOS complete from a local no-op. The macOS CI run
 URL is required evidence.
@@ -60,12 +68,16 @@ URL is required evidence.
   Windows SDK.
 - Build command: `flutter build windows`.
 - Package format: signed MSIX.
+- Installer fallback: a signed `.exe` or `.msi` installer may be added later,
+  but MSIX is the default release artifact.
 - Package identity: `Mavra.Monitor`.
 - Minimum supported OS: Windows 10 version 2004, build 19041.
 - Minimum window size: 1024 x 720 for dense management views.
 - File behavior: native open/save dialogs for import and export.
 - Callback scheme: `mavra://auth/wechat`, with loopback callback as a fallback
   only if custom URI registration is unavailable.
+- File associations: none in the initial Windows release; imports use native
+  open dialogs rather than OS-level file association claims.
 - Initial update channel: signed GitHub Release or private release storage.
   Automatic App Installer updates require a stable signed HTTPS feed.
 - Signing owner: repository owner or designated Windows release maintainer.

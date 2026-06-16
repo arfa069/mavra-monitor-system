@@ -6,8 +6,21 @@
 | --- | --- | --- |
 | Web | Ready | None |
 | Windows | Ready | Packaging/signing is a release concern, not a development blocker |
-| Android | Toolchain ready | AVD exists, but first `assembleDebug` for integration smoke timed out locally |
+| Android | Toolchain ready | Full emulator smoke evidence is collected in CI or a local AVD run |
 | iOS | CI required | macOS runner, simulator, signing and provisioning |
+
+## CI Evidence Matrix
+
+| Job | Runner | Trigger | Required evidence |
+| --- | --- | --- | --- |
+| `Backend lint` | Ubuntu | PR, push, schedule, manual | `uv run --extra dev python -m ruff check .` |
+| `Backend tests` | Ubuntu | PR, push, schedule, manual | `uv run --extra dev python -m pytest` |
+| `API contract` | Ubuntu | PR, push, schedule, manual | pinned OpenAPI generator wrapper `2.38.0`, generator jar `7.23.0`, `scripts/generate_dart_client.ps1 -Check`, `check_api_contract.py`, `check_dart_api_usage.py` |
+| `Flutter Web fast PR` | Ubuntu | PR, push, schedule, manual | `flutter pub get`, Dart generator check, `flutter analyze`, `flutter test`, `flutter build web`, analyzer/test artifacts on failure |
+| `Android build and smoke` | Ubuntu | push, schedule, manual | Java 17, Android cache, `flutter build apk`, Android emulator auth-to-Today smoke |
+| `Windows build and smoke` | Windows | push, schedule, manual | Dart generator check, `flutter analyze`, `flutter test`, `flutter build windows`, Windows auth-to-Today smoke |
+| `macOS iOS build and smoke` | macOS | push, schedule, manual | Dart generator check, `flutter analyze`, `flutter test`, iOS simulator auth-to-Today smoke, `flutter build ios --no-codesign` |
+| `Scheduled full-platform summary` | Ubuntu | schedule, manual | Web, Android, Windows, and iOS smoke jobs completed in one run |
 
 ## Capability Matrix
 
@@ -40,7 +53,8 @@ flutter test integration_test -d chrome
 ```
 
 Also verify direct navigation, refresh recovery, browser back, bookmarks, and
-the `/api/v1` path guard.
+the `/api/v1` path guard. Web integration tests are not considered passed
+unless the Flutter toolchain supports the selected Web integration target.
 
 ### Windows
 

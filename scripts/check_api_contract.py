@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -60,10 +59,7 @@ def verify_dart_generated_client_if_present() -> None:
 
 
 def main() -> None:
-    npm = "npm.cmd" if os.name == "nt" else "npm"
-
-    run([sys.executable, "scripts/export_openapi.py"], cwd=PROJECT_ROOT)
-    run([npm, "run", "api:generate"], cwd=FRONTEND_ROOT)
+    verify_dart_generated_client_if_present()
     run(
         [
             "git",
@@ -71,11 +67,10 @@ def main() -> None:
             "--exit-code",
             "--",
             "frontend/openapi.json",
-            "frontend/src/shared/api/generated",
+            "frontend/lib/core/api/generated",
         ],
         cwd=PROJECT_ROOT,
     )
-    verify_dart_generated_client_if_present()
 
 
 if __name__ == "__main__":

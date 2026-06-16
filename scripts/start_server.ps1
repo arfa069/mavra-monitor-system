@@ -2,6 +2,7 @@ param(
     [switch]$BackendOnly,
     [switch]$NoCrawlerWorker,
     [switch]$NoBlogFrontend,
+    [switch]$FlutterDev,
     [string]$PythonExe = "",
     [int]$CrawlerConcurrency = 3
 )
@@ -12,6 +13,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $backendDir = Join-Path $projectRoot "backend"
 $frontendDir = Join-Path $projectRoot "frontend"
+$frontendBuildDir = Join-Path $frontendDir "build\web"
 $blogFrontendDir = Join-Path $projectRoot "blog-frontend"
 $backendLogDir = Join-Path $backendDir "logs"
 $workerLog = Join-Path $backendLogDir "crawler-worker.log"
@@ -38,7 +40,7 @@ function Get-PortUsage {
 }
 
 function Close-ServiceWindows {
-    $keywords = @("uvicorn", "npm", "vite", "next", "node", "python", "crawler")
+    $keywords = @("uvicorn", "flutter", "http.server", "npm", "next", "node", "python", "crawler")
     $toClose = @()
 
     $procs = Get-CimInstance Win32_Process | Where-Object {
@@ -90,6 +92,11 @@ if ($CrawlerConcurrency -lt 1) {
 
 if (-not (Test-Path -LiteralPath $backendLogDir)) {
     New-Item -ItemType Directory -Path $backendLogDir | Out-Null
+}
+
+$frontendIndex = Join-Path $frontendBuildDir "index.html"
+if (-not $BackendOnly -and -not $FlutterDev -and -not (Test-Path -LiteralPath $frontendIndex)) {
+    throw "Flutter Web build not found: $frontendIndex. Run 'cd frontend; flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1' first, or pass -FlutterDev."
 }
 
 Write-Host ""
@@ -182,7 +189,14 @@ if (-not $NoCrawlerWorker) {
 if (-not $BackendOnly) {
     Write-Host ""
     Write-Host "[Frontend] Starting..." -ForegroundColor Magenta
-    $frontendCmd = "Set-Location `"$frontendDir`"; npm run dev"
+    if ($FlutterDev) {
+        $frontendCmd = "Set-Location `"$frontendDir`"; flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1"
+        Write-Host "[Frontend] Flutter dev server requested with -FlutterDev" -ForegroundColor DarkGray
+    }
+    else {
+        $frontendCmd = "Set-Location `"$frontendDir`"; & `"$PythonExe`" -m http.server 3000 --bind 127.0.0.1 --directory `"$frontendBuildDir`""
+        Write-Host "[Frontend] Serving Flutter Web build from $frontendBuildDir" -ForegroundColor DarkGray
+    }
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
     Write-Host "[Frontend] http://localhost:3000" -ForegroundColor Magenta
 
@@ -195,7 +209,7 @@ if (-not $BackendOnly) {
     }
 
     Write-Host ""
-    Write-Host "Tip: Use -BackendOnly for backend only, -NoCrawlerWorker to skip worker, -NoBlogFrontend to skip the public blog, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
+    Write-Host "Tip: Use -BackendOnly for backend only, -FlutterDev for Flutter dev server, -NoCrawlerWorker to skip worker, -NoBlogFrontend to skip the public blog, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
 }
 
 Write-Host ""

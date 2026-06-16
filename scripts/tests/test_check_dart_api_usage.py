@@ -51,6 +51,29 @@ def test_allows_feature_repository_that_wraps_generated_client(tmp_path):
     assert errors == []
 
 
+def test_allows_feature_data_importing_generated_package(tmp_path):
+    errors = _check(
+        tmp_path,
+        "features/jobs/data/jobs_api.dart",
+        (
+            "import 'package:mavra_api/mavra_api.dart' as generated;\n"
+            "class JobsApi { generated.MavraApi? api; }\n"
+        ),
+    )
+
+    assert errors == []
+
+
+def test_allows_generated_client_to_instantiate_dio(tmp_path):
+    errors = _check(
+        tmp_path,
+        "core/api/generated/lib/src/api.dart",
+        "import 'package:dio/dio.dart';\nfinal dio = Dio();\n",
+    )
+
+    assert errors == []
+
+
 def test_allows_feature_screen_importing_repository(tmp_path):
     errors = _check(
         tmp_path,

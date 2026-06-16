@@ -21,7 +21,8 @@ FEATURE_API_DIRS = {"api", "data", "repository", "repositories"}
 
 RAW_DIO_RE = re.compile(r"\bDio\s*\(")
 GENERATED_IMPORT_RE = re.compile(
-    r"\bimport\s+['\"][^'\"]*core/api/generated/[^'\"]*['\"]"
+    r"\bimport\s+['\"](?:[^'\"]*core/api/generated/[^'\"]*|"
+    r"package:mavra_api/mavra_api\.dart)['\"]"
 )
 
 
@@ -33,6 +34,14 @@ def _is_feature_api_boundary(relative_path: Path) -> bool:
     )
 
 
+def _is_generated_client(relative_path: Path) -> bool:
+    return len(relative_path.parts) >= 3 and relative_path.parts[:3] == (
+        "core",
+        "api",
+        "generated",
+    )
+
+
 def check_file(file_path: Path, relative_path: Path) -> list[str]:
     errors: list[str] = []
     try:
@@ -40,7 +49,9 @@ def check_file(file_path: Path, relative_path: Path) -> list[str]:
     except Exception as exc:
         return [f"Could not read {relative_path}: {exc}"]
 
-    if relative_path not in TRANSPORT_OWNER_ALLOWLIST:
+    if relative_path not in TRANSPORT_OWNER_ALLOWLIST and not _is_generated_client(
+        relative_path
+    ):
         for i, line in enumerate(content.splitlines(), 1):
             if RAW_DIO_RE.search(line):
                 errors.append(
