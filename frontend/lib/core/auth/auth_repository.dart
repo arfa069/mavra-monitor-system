@@ -1,3 +1,5 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 enum TokenPersistencePolicy { nativeSecureStorage, webHttpOnlyRefreshCookie }
 
 class AuthSession {
@@ -40,6 +42,29 @@ class InMemoryTokenStorage implements TokenStorage {
   @override
   Future<void> delete(String key) async {
     _values.remove(key);
+  }
+}
+
+class SecureTokenStorage implements TokenStorage {
+  const SecureTokenStorage([
+    this._secureStorage = const FlutterSecureStorage(),
+  ]);
+
+  final FlutterSecureStorage _secureStorage;
+
+  @override
+  Future<String?> read(String key) {
+    return _secureStorage.read(key: key);
+  }
+
+  @override
+  Future<void> write(String key, String value) {
+    return _secureStorage.write(key: key, value: value);
+  }
+
+  @override
+  Future<void> delete(String key) {
+    return _secureStorage.delete(key: key);
   }
 }
 

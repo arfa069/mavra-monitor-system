@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/app/mavra_app.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
 import 'package:mavra_frontend/features/auth/domain/auth_models.dart';
+import 'package:mavra_frontend/features/settings/domain/settings_models.dart';
+import 'package:mavra_frontend/features/today/domain/today_models.dart';
 
 void main() {
   testWidgets('redirects unauthenticated users from /today to login', (
@@ -45,6 +47,84 @@ void main() {
     expect(api.lastLogin?.username, 'mavra');
     expect(api.lastLogin?.password, 'secret-password');
     expect(find.text('Today'), findsWidgets);
+  });
+
+  test('persists login sessions through the auth repository', () async {
+    final storage = InMemoryTokenStorage();
+    final repository = AuthRepository(
+      storage: storage,
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    final auth = AuthController(api: FakeAuthApi(), repository: repository);
+
+    await auth.login(
+      const LoginCredentials(username: 'mavra', password: 'secret-password'),
+    );
+
+    final reloaded = AuthRepository(
+      storage: storage,
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+
+    expect((await reloaded.loadSession())?.username, 'mavra');
+  });
+
+  test('restores saved sessions through the auth repository', () async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    await repository.saveSession(
+      _session(username: 'restored', permissions: {'schedule:read'}),
+    );
+    final auth = AuthController(api: FakeAuthApi(), repository: repository);
+
+    await auth.restoreSession();
+
+    expect(auth.session?.username, 'restored');
+    expect(auth.isAuthenticated, isTrue);
+  });
+
+  testWidgets('default app restores saved sessions before route guarding', (
+    tester,
+  ) async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    await repository.saveSession(
+      _session(username: 'restored', permissions: {'config:read'}),
+    );
+
+    await tester.pumpWidget(
+      MavraApp(
+        authRepository: repository,
+        settingsRepository: const _FakeSettingsRepository(),
+        todayRepository: const _FakeTodayRepository(),
+        initialLocation: '/settings',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Theme preference: system'), findsOneWidget);
+    expect(find.text('Login'), findsNothing);
+  });
+
+  test('logout clears saved repository sessions', () async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    final auth = AuthController(api: FakeAuthApi(), repository: repository);
+    await auth.login(
+      const LoginCredentials(username: 'mavra', password: 'secret-password'),
+    );
+
+    await auth.logout();
+
+    expect(auth.session, isNull);
+    expect(await repository.loadSession(), isNull);
   });
 
   testWidgets('shows a permission state for guarded routes', (tester) async {
@@ -147,6 +227,26 @@ class FakeAuthApi implements AuthApiClient {
 
   @override
   Future<void> logout() async {}
+}
+
+class _FakeTodayRepository implements TodayRepository {
+  const _FakeTodayRepository();
+
+  @override
+  Future<TodaySnapshot> loadToday() async => TodaySnapshot.quiet();
+}
+
+class _FakeSettingsRepository implements SettingsRepository {
+  const _FakeSettingsRepository();
+
+  @override
+  Future<SettingsSnapshot> loadSettings() async =>
+      const SettingsSnapshot.empty();
+
+  @override
+  Future<SettingsSnapshot> saveSettings(SettingsDraft draft) async {
+    return SettingsSnapshot.empty();
+  }
 }
 
 AuthSession _session({

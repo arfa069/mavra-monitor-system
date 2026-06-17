@@ -13,6 +13,7 @@ dependencies:
   built_value: ^8.12.6
   cupertino_icons: ^1.0.8
   dio: ^5.9.2
+  file_selector: 1.0.0
   flutter_riverpod: ^3.3.2
   flutter_secure_storage: ^10.3.1
   go_router: ^17.3.0
@@ -31,8 +32,15 @@ dev_dependencies:
     sdk: flutter
 
 dependency_overrides:
+  # Keep Android builds on the Groovy/AGP 8.5.x plugin line while the latest
+  # file_selector_android requires newer Kotlin/Gradle artifacts.
+  file_selector_android: 0.5.1+12
   flutter_secure_storage_windows:
     path: third_party/flutter_secure_storage_windows
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf

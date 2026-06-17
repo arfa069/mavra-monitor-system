@@ -130,10 +130,14 @@ abstract class AuthApiClient {
 }
 
 class AuthController extends ChangeNotifier {
-  AuthController({required this.api, AuthSession? initialSession})
-    : _session = initialSession;
+  AuthController({
+    required this.api,
+    AuthSession? initialSession,
+    this.repository,
+  }) : _session = initialSession;
 
   final AuthApiClient api;
+  final AuthRepository? repository;
 
   AuthSession? _session;
   bool _isLoading = false;
@@ -150,9 +154,22 @@ class AuthController extends ChangeNotifier {
     return _session?.hasPermission(permission) ?? false;
   }
 
+  Future<void> restoreSession() async {
+    final storedSession = await repository?.loadSession();
+    if (storedSession == null) {
+      return;
+    }
+    _session = storedSession;
+    notifyListeners();
+  }
+
   Future<void> login(LoginCredentials credentials) async {
     await _run(() async {
       _session = await api.login(credentials);
+      final session = _session;
+      if (session != null) {
+        await repository?.saveSession(session);
+      }
     });
   }
 
@@ -164,6 +181,7 @@ class AuthController extends ChangeNotifier {
     await _run(() async {
       await api.logout();
       _session = null;
+      await repository?.logout();
     });
   }
 
@@ -175,6 +193,7 @@ class AuthController extends ChangeNotifier {
       final exchangedSession = result.session;
       if (exchangedSession != null) {
         _session = exchangedSession;
+        await repository?.saveSession(exchangedSession);
       }
     });
     return result;

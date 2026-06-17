@@ -4,5 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'mavra_app.dart';
 
 void bootstrap() {
-  runApp(const ProviderScope(child: MavraApp()));
+  bootstrapWidget(const ProviderScope(child: MavraApp()));
+}
+
+void bootstrapWidget(Widget app) {
+  runApp(app);
 }

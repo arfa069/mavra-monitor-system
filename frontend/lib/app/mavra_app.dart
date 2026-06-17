@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/config/app_config.dart';
+import '../core/platform/platform_capabilities.dart';
 import '../core/theme/app_theme.dart';
 import '../features/alerts/data/alerts_api.dart';
 import '../features/alerts/domain/alert_models.dart';
@@ -29,12 +30,13 @@ import '../features/today/data/today_api.dart';
 import '../features/today/domain/today_models.dart';
 import 'router.dart';
 
-class MavraApp extends StatelessWidget {
+class MavraApp extends StatefulWidget {
   const MavraApp({
     super.key,
     this.config = AppConfig.current,
     this.isAuthenticated = false,
     this.authController,
+    this.authRepository,
     this.todayRepository,
     this.eventRepository,
     this.alertRepository,
@@ -52,6 +54,7 @@ class MavraApp extends StatelessWidget {
   final AppConfig config;
   final bool isAuthenticated;
   final AuthController? authController;
+  final AuthRepository? authRepository;
   final TodayRepository? todayRepository;
   final EventRepository? eventRepository;
   final AlertRepository? alertRepository;
@@ -66,23 +69,78 @@ class MavraApp extends StatelessWidget {
   final String? initialLocation;
 
   @override
+  State<MavraApp> createState() => _MavraAppState();
+}
+
+class _MavraAppState extends State<MavraApp> {
+  AuthController? _ownedAuthController;
+  AuthRepository? _ownedAuthRepository;
+  Future<void>? _defaultRestoreFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _defaultRestoreFuture = _restoreDefaultSession();
+  }
+
+  @override
+  void didUpdateWidget(covariant MavraApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.authController != widget.authController ||
+        oldWidget.authRepository != widget.authRepository ||
+        oldWidget.config != widget.config ||
+        oldWidget.isAuthenticated != widget.isAuthenticated) {
+      _disposeOwnedAuthController();
+      _defaultRestoreFuture = _restoreDefaultSession();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposeOwnedAuthController();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = authController ?? _defaultAuthController();
+    final restoreFuture = _defaultRestoreFuture;
+    if (restoreFuture != null) {
+      return FutureBuilder<void>(
+        future: restoreFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return _buildRestoringApp();
+          }
+          return _buildRouterApp();
+        },
+      );
+    }
+
+    return _buildRouterApp();
+  }
+
+  Widget _buildRouterApp() {
+    final controller = _authController();
     final router = createMavraRouter(
       authController: controller,
-      config: config,
-      todayRepository: todayRepository ?? _defaultTodayRepository(),
-      eventRepository: eventRepository ?? _defaultEventRepository(),
-      alertRepository: alertRepository ?? _defaultAlertRepository(),
-      adminRepository: adminRepository ?? _defaultAdminRepository(),
-      analyticsRepository: analyticsRepository ?? _defaultAnalyticsRepository(),
-      blogRepository: blogRepository ?? _defaultBlogRepository(),
-      jobsRepository: jobsRepository ?? _defaultJobsRepository(),
-      productRepository: productRepository ?? _defaultProductRepository(),
-      scheduleRepository: scheduleRepository ?? _defaultScheduleRepository(),
-      settingsRepository: settingsRepository ?? _defaultSettingsRepository(),
-      smartHomeRepository: smartHomeRepository ?? _defaultSmartHomeRepository(),
-      initialLocation: initialLocation,
+      config: widget.config,
+      todayRepository: widget.todayRepository ?? _defaultTodayRepository(),
+      eventRepository: widget.eventRepository ?? _defaultEventRepository(),
+      alertRepository: widget.alertRepository ?? _defaultAlertRepository(),
+      adminRepository: widget.adminRepository ?? _defaultAdminRepository(),
+      analyticsRepository:
+          widget.analyticsRepository ?? _defaultAnalyticsRepository(),
+      blogRepository: widget.blogRepository ?? _defaultBlogRepository(),
+      jobsRepository: widget.jobsRepository ?? _defaultJobsRepository(),
+      productRepository:
+          widget.productRepository ?? _defaultProductRepository(),
+      scheduleRepository:
+          widget.scheduleRepository ?? _defaultScheduleRepository(),
+      settingsRepository:
+          widget.settingsRepository ?? _defaultSettingsRepository(),
+      smartHomeRepository:
+          widget.smartHomeRepository ?? _defaultSmartHomeRepository(),
+      initialLocation: widget.initialLocation,
     );
 
     return MaterialApp.router(
@@ -94,10 +152,39 @@ class MavraApp extends StatelessWidget {
     );
   }
 
+  Widget _buildRestoringApp() {
+    return MaterialApp(
+      title: 'Mavra',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+    );
+  }
+
+  AuthController _authController() {
+    return widget.authController ??
+        (_ownedAuthController ??= _defaultAuthController());
+  }
+
+  Future<void>? _restoreDefaultSession() {
+    if (widget.authController != null) {
+      return null;
+    }
+    return _authController().restoreSession();
+  }
+
+  void _disposeOwnedAuthController() {
+    _ownedAuthController?.dispose();
+    _ownedAuthController = null;
+    _ownedAuthRepository = null;
+  }
+
   AuthController _defaultAuthController() {
     return AuthController(
-      api: GeneratedAuthApiClient(config: config),
-      initialSession: isAuthenticated
+      api: GeneratedAuthApiClient(config: widget.config),
+      repository: _defaultAuthRepository(),
+      initialSession: widget.isAuthenticated
           ? AuthSession(
               accessToken: 'local-preview-access',
               refreshToken: 'local-preview-refresh',
@@ -121,47 +208,72 @@ class MavraApp extends StatelessWidget {
     );
   }
 
+  AuthRepository _defaultAuthRepository() {
+    final injected = widget.authRepository;
+    if (injected != null) {
+      return injected;
+    }
+    final existing = _ownedAuthRepository;
+    if (existing != null) {
+      return existing;
+    }
+
+    final capabilities = PlatformCapabilities.current();
+    final repository =
+        capabilities.secureStorageMode == SecureStorageMode.webCookie
+        ? AuthRepository(
+            storage: InMemoryTokenStorage(),
+            policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
+          )
+        : AuthRepository(
+            storage: const SecureTokenStorage(),
+            policy: TokenPersistencePolicy.nativeSecureStorage,
+          );
+    _ownedAuthRepository = repository;
+    return repository;
+  }
+
   TodayRepository _defaultTodayRepository() {
-    return GeneratedTodayRepository(config: config);
+    return GeneratedTodayRepository(config: widget.config);
   }
 
   EventRepository _defaultEventRepository() {
-    return GeneratedEventRepository(config: config);
+    return GeneratedEventRepository(config: widget.config);
   }
 
   AlertRepository _defaultAlertRepository() {
-    return GeneratedAlertRepository(config: config);
+    return GeneratedAlertRepository(config: widget.config);
   }
 
   AdminRepository _defaultAdminRepository() {
-    return GeneratedAdminRepository(config: config);
+    return GeneratedAdminRepository(config: widget.config);
   }
 
   AnalyticsRepository _defaultAnalyticsRepository() {
-    return GeneratedAnalyticsRepository(config: config);
+    return GeneratedAnalyticsRepository(config: widget.config);
   }
 
   BlogRepository _defaultBlogRepository() {
-    return GeneratedBlogRepository(config: config);
+    return GeneratedBlogRepository(config: widget.config);
   }
 
   JobsRepository _defaultJobsRepository() {
-    return GeneratedJobsRepository(config: config);
+    return GeneratedJobsRepository(config: widget.config);
   }
 
   ProductRepository _defaultProductRepository() {
-    return GeneratedProductRepository(config: config);
+    return GeneratedProductRepository(config: widget.config);
   }
 
   ScheduleRepository _defaultScheduleRepository() {
-    return GeneratedScheduleRepository(config: config);
+    return GeneratedScheduleRepository(config: widget.config);
   }
 
   SettingsRepository _defaultSettingsRepository() {
-    return GeneratedSettingsRepository(config: config);
+    return GeneratedSettingsRepository(config: widget.config);
   }
 
   SmartHomeRepository _defaultSmartHomeRepository() {
-    return GeneratedSmartHomeRepository(config: config);
+    return GeneratedSmartHomeRepository(config: widget.config);
   }
 }

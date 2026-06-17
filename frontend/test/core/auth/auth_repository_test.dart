@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
 
 void main() {
@@ -74,6 +75,24 @@ void main() {
       expect(await storage.read(AuthRepository.accessTokenKey), isNull);
       expect(await storage.read(AuthRepository.refreshTokenKey), isNull);
       expect(remoteLogoutCalls, 1);
+    });
+  });
+
+  group('SecureTokenStorage', () {
+    setUp(() {
+      FlutterSecureStorage.setMockInitialValues({});
+    });
+
+    test('reads, writes, and deletes through flutter secure storage', () async {
+      const storage = SecureTokenStorage();
+
+      await storage.write('session-key', 'session-value');
+
+      expect(await storage.read('session-key'), 'session-value');
+
+      await storage.delete('session-key');
+
+      expect(await storage.read('session-key'), isNull);
     });
   });
 }

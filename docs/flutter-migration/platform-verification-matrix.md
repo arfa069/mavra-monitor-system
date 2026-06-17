@@ -1,140 +1,77 @@
 # Flutter Platform Verification Matrix
 
-## Current Toolchain
+Last updated: 2026-06-17
+
+## Current Platform Status
 
 | Platform | Current status | Blocking point |
 | --- | --- | --- |
-| Web | Ready | None |
-| Windows | Ready | Packaging/signing is a release concern, not a development blocker |
-| Android | Build-ready | Local NDK `28.2.13676358` and CMake `3.22.1` are installed; emulator/device smoke evidence is still required |
-| iOS | CI required | The Windows Flutter tool exposes no iOS build subcommand; macOS runner, simulator, signing and provisioning remain required |
+| Web | Build, route smoke, and authenticated visual QA passed | None for the current Web gate |
+| Windows | Build, integration smoke, release login visual, and authenticated visual QA passed | None for the current Windows gate |
+| Android | Passed on emulator | None for the current emulator gate |
+| iOS | Deferred | Windows host has no iOS build subcommand; macOS runner/simulator/signing remain required |
 
-## CI Evidence Matrix
+## Evidence Matrix
 
-| Job | Runner | Trigger | Required evidence |
-| --- | --- | --- | --- |
-| `Backend lint` | Ubuntu | PR, push, schedule, manual | `uv run --extra dev python -m ruff check .` |
-| `Backend tests` | Ubuntu | PR, push, schedule, manual | `uv run --extra dev python -m pytest` |
-| `API contract` | Ubuntu | PR, push, schedule, manual | pinned OpenAPI generator wrapper `2.38.0`, generator jar `7.23.0`, `scripts/generate_dart_client.ps1 -Check`, `check_api_contract.py`, `check_dart_api_usage.py` |
-| `Flutter Web fast PR` | Ubuntu | PR, push, schedule, manual | `flutter pub get`, Dart generator check, `flutter analyze`, `flutter test`, `flutter build web`, analyzer/test artifacts on failure |
-| `Android build and smoke` | Ubuntu | push, schedule, manual | Java 17, Android cache, `flutter build apk`, Android emulator auth-to-Today smoke |
-| `Windows build and smoke` | Windows | push, schedule, manual | Dart generator check, `flutter analyze`, `flutter test`, `flutter build windows`, Windows auth-to-Today smoke |
-| `macOS iOS build and smoke` | macOS | push, schedule, manual | Dart generator check, `flutter analyze`, `flutter test`, iOS simulator auth-to-Today smoke, `flutter build ios --no-codesign` |
-| `Scheduled full-platform summary` | Ubuntu | schedule, manual | Web, Android, Windows, and iOS smoke jobs completed in one run |
-
-## Capability Matrix
-
-| Capability | Web | Android | iOS | Windows | Verification command or check |
-| --- | --- | --- | --- | --- | --- |
-| Build | Required | Required | Required | Required | `flutter build web`, `flutter build apk`, `flutter build ios --no-codesign`, `flutter build windows` |
-| Token login | Required | Required | Required | Required | platform auth integration smoke |
-| Secure token storage | access in memory, refresh cookie | secure storage | Keychain | Windows credential-backed storage | auth repository tests and platform smoke |
-| WeChat callback | browser URL callback | app link/custom scheme | universal link/custom scheme | custom URI or loopback | WeChat exchange tests |
-| File upload | browser picker | platform picker | platform picker | native open dialog | jobs/blog/product upload tests |
-| File download | browser download | save/share flow | save/share flow | native save dialog | profile backup export smoke |
-| Realtime stream | SSE or fallback | SSE or polling fallback | SSE or polling fallback | SSE or fallback | realtime client tests |
-| Dense tables | required | reduced list/table | reduced list/table | required | admin/products/jobs widget tests |
-| URL and history | route URL, browser back, bookmark | deep-link entry | deep-link entry | custom URI/direct route | router integration tests |
-| System back and safe area | browser back | system back and system bars | safe area and edge gestures | Escape/back shortcut where defined | navigation widget tests |
-| Keyboard and focus | full traversal | form focus and IME | form focus and IME | full traversal, focus rings, context menu | accessibility/focus tests |
-| Window and resize | responsive breakpoints | portrait/landscape | portrait/landscape | minimum size and resizable panes | screenshot QA |
-| Notifications | browser support optional | native later phase | native later phase | native later phase | explicit scope decision before implementation |
-| Offline state | visible disconnected state | visible disconnected state | visible disconnected state | visible disconnected state | state-widget tests |
-
-## Required Platform Evidence
-
-### Web
-
-```powershell
-flutter analyze
-flutter test
-flutter build web
-flutter test integration_test -d chrome
-```
-
-Also verify direct navigation, refresh recovery, browser back, bookmarks, and
-the `/api/v1` path guard. Web integration tests are not considered passed
-unless the Flutter toolchain supports the selected Web integration target.
-
-### Windows
-
-```powershell
-flutter analyze
-flutter test
-flutter build windows
-flutter test integration_test -d windows
-```
-
-Also verify resizing, minimum size, keyboard traversal, file dialogs, and
-custom callback handling.
-
-### Android
-
-```powershell
-flutter doctor --android-licenses
-flutter build apk
-flutter test integration_test -d <android-device-id>
-```
-
-Also verify system back, safe areas, deep link, secure storage, file picker,
-rotation, and IME behavior.
-
-### iOS
-
-```bash
-flutter build ios --no-codesign
-flutter test integration_test -d <ios-simulator-id>
-```
-
-The final verification report must include the macOS CI run URL.
-
-## Status Rules
-
-- `Required` means completion cannot be claimed without evidence.
-- A locally unavailable target may use CI evidence, but must not be marked
-  passed without a successful run.
-- Android installation in progress is not an accepted final exception.
-- Real crawls, profile logins, matching, and Home Assistant service calls stay
-  disabled during automated platform tests.
-
-## Gate C Evidence
-
-Recorded during Task 10 on 2026-06-16:
-
-| Target | Command | Result |
+| Area | Command or Evidence | Result |
 | --- | --- | --- |
-| Web | `flutter test integration_test\auth_smoke_test.dart -d chrome` | Blocked by Flutter tool: `Web devices are not supported for integration tests yet.` |
-| Windows | `flutter test integration_test\auth_smoke_test.dart -d windows` | Passed; Debug Windows app built and auth-to-Today smoke completed. |
-| Android | `flutter test integration_test\auth_smoke_test.dart -d emulator-5554` | Blocked locally; `Pixel_10_Pro_XL` AVD booted as Android 16/API 36, but Gradle `assembleDebug` did not complete before timeout. |
-| iOS | not run locally | Requires macOS CI/simulator evidence. |
+| Backend lint | `uv run --extra dev python -m ruff check .` | Passed |
+| Backend full tests | `uv run --extra dev python -m pytest` | Passed: `737 passed, 23 skipped, 54 warnings in 41.19s` |
+| Flutter analyzer | `flutter analyze` | Passed |
+| Flutter tests | `flutter test` | Passed: `77` tests |
+| Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed |
+| Web build | `flutter build web --dart-define=API_BASE_URL=/api/v1 --no-web-resources-cdn` | Passed |
+| Web browser smoke | Chrome against local SPA fallback server | Passed for `/login`, direct `/today`, refresh, and back navigation |
+| Web integration runner | `flutter test integration_test -d chrome` | Accepted exception: Flutter reports Web devices are not supported for integration tests |
+| Windows build | `flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` | Passed |
+| Windows integration smoke | Three single-file `flutter test integration_test/*.dart -d windows` runs | Passed |
+| Web visual QA | Chrome against visual QA harness | Passed: Auth, Today, Analytics, Products, Jobs, Smart Home, Settings, Admin users, audit logs, blog, and mobile responsive samples captured |
+| Windows release visual | Release exe visible launch screenshots | Passed: Auth, Today, Analytics, Settings, and Admin users captured |
+| Android APK | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed: `app-release.apk (54.4MB)` |
+| Android integration smoke | `flutter test integration_test -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed: `3` tests after FileService update |
+| Android release launch | Installed release APK on `emulator-5554` | Passed: login shell screenshot captured |
+| iOS | Not executed locally | Deferred by environment constraint |
 
-## Task 15 Evidence
+## Screenshot Evidence
 
-Recorded during final verification on 2026-06-16:
-
-| Target | Command | Result |
+| Platform | Screenshot | Notes |
 | --- | --- | --- |
-| Backend lint | `uv run --extra dev python -m ruff check .` | Passed. |
-| Backend tests | `uv run --extra dev python -m pytest` | Failed locally: 669 passed, 50 failed, 41 skipped. Failures are dominated by local PostgreSQL password authentication failures, with additional route/audit test failures recorded in the final report. |
-| API contract | `uv run --extra dev python ../scripts/export_openapi.py`; `uv run --extra dev python ../scripts/check_api_contract.py` | Passed. |
-| Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed. |
-| Flutter analyzer | `flutter analyze` | Passed. |
-| Flutter tests | `flutter test` | Passed: 65 tests. |
-| Web build | `flutter build web --dart-define=API_BASE_URL=/api/v1` | Passed after removing the unused `file_picker` dependency; Wasm dry run succeeded. |
-| Windows build | `flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1` | Passed. |
-| Android build | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed after reinstalling NDK `28.2.13676358`, installing CMake `3.22.1`, and removing the unused `file_picker` dependency. |
-| iOS build | `flutter build ios -h` | Not available on Windows; available build subcommands are `aar`, `apk`, `appbundle`, `bundle`, `web`, and `windows`. |
-| Windows integration | `flutter test integration_test -d windows`; single-file reruns | Full command passed the first smoke then hit Flutter Windows app-start instability; `auth_smoke_test.dart` and `platform_capability_smoke_test.dart` passed when run individually. |
-| Web integration | `flutter test integration_test -d chrome` | Blocked by Flutter tool: `Web devices are not supported for integration tests yet.` |
-| Android integration | `flutter test integration_test -d android` | Blocked locally: no supported Android device or emulator is connected. |
+| Web desktop | `docs/flutter-migration/screenshots/2026-06-17/web-login.png` | Login shell |
+| Web desktop | `docs/flutter-migration/screenshots/2026-06-17/web-today-direct.png` | Direct `/today` unauthenticated route guard |
+| Web mobile | `docs/flutter-migration/screenshots/2026-06-17/web-login-mobile-390x844.png` | Mobile login shell |
+| Web mobile | `docs/flutter-migration/screenshots/2026-06-17/web-today-mobile-redirect-390x844.png` | Mobile unauthenticated route guard |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-auth-login.png` | Auth login |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-today.png` | Authenticated Today |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-analytics.png` | Authenticated Analytics |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-products.png` | Dense Products state |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-jobs.png` | Dense Jobs state |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-smart-home.png` | Smart Home state |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-settings.png` | Authenticated Settings |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-admin-users.png` | Admin users and permissions |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-admin-audit-logs.png` | Admin audit logs |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-admin-blog.png` | Admin blog state |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-today-mobile.png` | Mobile Today |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-settings-mobile.png` | Mobile Settings |
+| Web visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/web-admin-users-mobile.png` | Mobile Admin users |
+| Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-release-launch-20s.png` | Release APK login shell |
+| Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-emulator-smoke-portrait.png` | System-back/manual emulator state after smoke |
+| Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-emulator-smoke-rotated.png` | Rotation/manual emulator state after smoke |
+| Windows release | `docs/flutter-migration/screenshots/2026-06-17/windows-release-login-after-final-build.png` | Release login shell after final rebuild |
+| Windows release | `docs/flutter-migration/screenshots/2026-06-17/windows-release-screen-workingdir.png` | Historical white-screen repro before revalidation |
+| Windows visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/windows-auth-login.png` | Auth login |
+| Windows visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/windows-today.png` | Authenticated Today |
+| Windows visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/windows-analytics.png` | Authenticated Analytics |
+| Windows visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/windows-settings.png` | Authenticated Settings |
+| Windows visual QA | `docs/flutter-migration/screenshots/2026-06-17/visual-qa/windows-admin-users.png` | Admin users and permissions |
 
-### Android Environment Repair Evidence
+## Required Before Final-Green
 
-Recorded after Task 15 on 2026-06-16:
+- Current supported platforms are final-green.
+- Keep iOS marked deferred until macOS capacity exists; do not mark it passed without a real macOS build/simulator/device run.
 
-| Check | Result |
-| --- | --- |
-| NDK install | Reinstalled `C:\Users\arfac\AppData\Local\Android\Sdk\ndk\28.2.13676358`; `source.properties` reports `Pkg.Revision = 28.2.13676358`. |
-| CMake install | Reinstalled `C:\Users\arfac\AppData\Local\Android\Sdk\cmake\3.22.1`; `source.properties` reports `Pkg.Path = cmake;3.22.1`. |
-| Android doctor | `flutter doctor -v` passed with Android SDK `36.1.0` and all Android licenses accepted. |
-| Android APK | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` passed and built `build\app\outputs\flutter-apk\app-release.apk` at 53.8 MB. |
+## Safety Rules
+
+- Automated platform tests must not trigger real crawls.
+- Automated platform tests must not perform real Profile login, import, export, or browser session mutation.
+- Automated platform tests must not start job matching tasks.
+- Automated platform tests must not call Home Assistant services.

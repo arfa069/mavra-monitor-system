@@ -1,0 +1,743 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../app/mavra_app.dart';
+import '../core/auth/auth_repository.dart';
+import '../core/config/app_config.dart';
+import '../core/files/file_service.dart';
+import '../features/admin/domain/admin_models.dart';
+import '../features/alerts/domain/alert_models.dart';
+import '../features/analytics/domain/analytics_models.dart';
+import '../features/auth/domain/auth_models.dart';
+import '../features/blog/domain/blog_models.dart';
+import '../features/events/domain/event_models.dart';
+import '../features/jobs/domain/job_models.dart';
+import '../features/products/domain/product_models.dart';
+import '../features/schedule/domain/schedule_models.dart';
+import '../features/settings/domain/settings_models.dart';
+import '../features/smart_home/domain/smart_home_models.dart';
+import '../features/today/domain/today_models.dart';
+
+const _visualInitialLocation = String.fromEnvironment(
+  'VISUAL_QA_INITIAL_LOCATION',
+  defaultValue: '',
+);
+
+Widget buildVisualQaApp({String? initialLocation}) {
+  final configuredInitialLocation = _resolveInitialLocation(initialLocation);
+
+  return ProviderScope(
+    child: MavraApp(
+      config: const AppConfig(apiBaseUrl: 'https://visual-qa.local/api/v1'),
+      authController: AuthController(
+        api: const _VisualAuthApi(),
+        initialSession: _visualSession,
+        repository: AuthRepository(
+          storage: InMemoryTokenStorage(),
+          policy: TokenPersistencePolicy.nativeSecureStorage,
+        ),
+      ),
+      todayRepository: const _VisualTodayRepository(),
+      eventRepository: const _VisualEventRepository(),
+      alertRepository: const _VisualAlertRepository(),
+      adminRepository: const _VisualAdminRepository(),
+      analyticsRepository: const _VisualAnalyticsRepository(),
+      blogRepository: const _VisualBlogRepository(),
+      jobsRepository: const _VisualJobsRepository(),
+      productRepository: const _VisualProductRepository(),
+      scheduleRepository: const _VisualScheduleRepository(),
+      settingsRepository: const _VisualSettingsRepository(),
+      smartHomeRepository: const _VisualSmartHomeRepository(),
+      initialLocation: configuredInitialLocation,
+    ),
+  );
+}
+
+String? _resolveInitialLocation(String? requested) {
+  if (requested != null) {
+    return requested;
+  }
+  if (_visualInitialLocation.isNotEmpty) {
+    return _visualInitialLocation;
+  }
+
+  final base = Uri.base;
+  final route = base.fragment.startsWith('/') ? base.fragment : base.path;
+  return _knownVisualRoutes.contains(route) ? route : null;
+}
+
+const _knownVisualRoutes = {
+  '/today',
+  '/events',
+  '/alerts',
+  '/analytics',
+  '/jobs',
+  '/products',
+  '/schedule',
+  '/smart-home',
+  '/profile',
+  '/settings',
+  '/admin/users',
+  '/admin/audit-logs',
+  '/admin/blog',
+};
+
+const _visualPermissions = {
+  'schedule:read',
+  'smart_home:read',
+  'smart_home:control',
+  'user:read',
+  'user:manage',
+  'rbac:read',
+  'rbac:manage',
+  'blog:read_admin',
+  'blog:write',
+  'config:read',
+  'config:write',
+};
+
+final _visualSession = AuthSession(
+  accessToken: 'visual-qa-access',
+  refreshToken: 'visual-qa-refresh',
+  expiresAt: DateTime.utc(2026, 6, 17, 23, 59),
+  username: 'visual-qa-admin',
+  permissions: _visualPermissions,
+);
+
+class _VisualAuthApi implements AuthApiClient {
+  const _VisualAuthApi();
+
+  @override
+  Future<AuthSession> login(LoginCredentials credentials) async =>
+      _visualSession;
+
+  @override
+  Future<void> register(RegisterAccountInput input) async {}
+
+  @override
+  Future<AccountProfile> fetchProfile() async => const AccountProfile(
+    username: 'visual-qa-admin',
+    email: 'visual-qa@example.local',
+    role: 'super_admin',
+    permissions: _visualPermissions,
+  );
+
+  @override
+  Future<List<AccountSession>> listSessions() async => [
+    AccountSession(
+      id: 1,
+      device: 'Windows release visual harness',
+      ipAddress: '127.0.0.1',
+      createdAt: DateTime.utc(2026, 6, 17, 8),
+      lastActiveAt: DateTime.utc(2026, 6, 17, 9),
+    ),
+  ];
+
+  @override
+  Future<List<LoginHistoryEntry>> listLoginHistory() async => [
+    LoginHistoryEntry(
+      id: 1,
+      ipAddress: '127.0.0.1',
+      userAgent: 'Flutter visual QA',
+      createdAt: DateTime.utc(2026, 6, 17, 9),
+    ),
+  ];
+
+  @override
+  Future<WeChatExchangeResult> exchangeWeChatCode(String code) async =>
+      WeChatExchangeResult.bound(_visualSession);
+
+  @override
+  Future<void> logout() async {}
+}
+
+class _VisualTodayRepository implements TodayRepository {
+  const _VisualTodayRepository();
+
+  @override
+  Future<TodaySnapshot> loadToday() async => const TodaySnapshot(
+    summary: TodaySummary(
+      title: 'Good morning',
+      subtitle: '5 things need attention',
+      quietState: 'Mavra is watching quietly.',
+      metrics: [
+        TodayMetric(label: 'Price drops', value: '3'),
+        TodayMetric(label: 'New jobs', value: '8'),
+        TodayMetric(label: 'Crawls', value: '21'),
+      ],
+    ),
+    attentionQueue: [
+      AttentionItem(
+        title: 'Boss profile needs review',
+        detail: 'Session challenge detected in the last crawl window',
+        severity: AttentionSeverity.warning,
+        route: '/jobs',
+      ),
+      AttentionItem(
+        title: 'Rice cooker dropped below target',
+        detail: 'Taobao monitor is 12% under the alert threshold',
+        severity: AttentionSeverity.critical,
+        route: '/products',
+      ),
+    ],
+    modules: [
+      ModuleStatus(
+        name: 'Products',
+        status: 'Monitoring',
+        detail: '18 active products across Taobao and JD',
+        healthy: true,
+      ),
+      ModuleStatus(
+        name: 'Jobs',
+        status: 'Needs login',
+        detail: '1 crawl profile requires attention',
+        healthy: false,
+      ),
+      ModuleStatus(
+        name: 'Smart Home',
+        status: 'Connected',
+        detail: '12 entities synced from Home Assistant',
+        healthy: true,
+      ),
+    ],
+  );
+}
+
+class _VisualAnalyticsRepository implements AnalyticsRepository {
+  const _VisualAnalyticsRepository();
+
+  @override
+  Future<AnalyticsOverview> loadOverview() async => const AnalyticsOverview(
+    kpis: [
+      AnalyticsKpi(label: 'Price drops', value: '3'),
+      AnalyticsKpi(label: 'New jobs', value: '8'),
+      AnalyticsKpi(label: 'Crawler success', value: '96%'),
+      AnalyticsKpi(label: 'HA devices online', value: '12'),
+    ],
+    trends: [
+      TrendSeries(
+        label: 'Price trend',
+        points: [
+          TrendPoint(label: 'Mon', value: 12),
+          TrendPoint(label: 'Tue', value: 18),
+          TrendPoint(label: 'Wed', value: 15),
+          TrendPoint(label: 'Thu', value: 22),
+        ],
+      ),
+      TrendSeries(
+        label: 'Job matches',
+        points: [
+          TrendPoint(label: 'Mon', value: 4),
+          TrendPoint(label: 'Tue', value: 6),
+          TrendPoint(label: 'Wed', value: 8),
+          TrendPoint(label: 'Thu', value: 7),
+        ],
+      ),
+    ],
+    recentAlerts: [
+      AnalyticsRecentAlert(
+        message: 'Taobao rice cooker dropped 12%',
+        productTitle: 'Taobao rice cooker',
+        alertType: 'price_drop',
+      ),
+      AnalyticsRecentAlert(
+        message: 'Boss Flutter lead match scored 92%',
+        productTitle: 'Senior Flutter Engineer',
+        alertType: 'job_match',
+      ),
+    ],
+  );
+
+  @override
+  Stream<AnalyticsOverview> watchOverview() => const Stream.empty();
+}
+
+class _VisualAdminRepository implements AdminRepository {
+  const _VisualAdminRepository();
+
+  @override
+  Future<AdminSnapshot> loadAdmin(AdminFilter filter) async => AdminSnapshot(
+    users: [
+      AdminUser(
+        id: 1,
+        username: 'visual-qa-admin',
+        email: 'visual-qa@example.local',
+        role: 'super_admin',
+        active: true,
+        createdAt: DateTime.utc(2026, 6, 16),
+      ),
+      AdminUser(
+        id: 2,
+        username: 'ops-viewer',
+        email: 'ops@example.local',
+        role: 'viewer',
+        active: true,
+        createdAt: DateTime.utc(2026, 6, 15),
+      ),
+    ],
+    rolePermissions: const [
+      AdminRolePermission(
+        role: 'super_admin',
+        permissions: ['user:read', 'user:manage', 'rbac:manage'],
+      ),
+      AdminRolePermission(
+        role: 'viewer',
+        permissions: ['schedule:read', 'config:read'],
+      ),
+    ],
+    auditLogs: [
+      AdminAuditLog(
+        id: 101,
+        action: 'user.login',
+        actorUserId: 1,
+        targetType: 'session',
+        targetId: null,
+        createdAt: DateTime.utc(2026, 6, 17, 9),
+      ),
+      AdminAuditLog(
+        id: 102,
+        action: 'settings.update',
+        actorUserId: 1,
+        targetType: 'user_config',
+        targetId: 1,
+        createdAt: DateTime.utc(2026, 6, 17, 9, 10),
+      ),
+    ],
+    totalUsers: 2,
+    totalAuditLogs: 2,
+    permissionsAvailable: true,
+    realtime: true,
+  );
+}
+
+class _VisualProductRepository implements ProductRepository {
+  const _VisualProductRepository();
+
+  @override
+  Future<ProductsSnapshot> loadProducts() async => ProductsSnapshot(
+    products: const [
+      ProductItem(
+        id: 1,
+        title: 'Taobao rice cooker',
+        platform: 'taobao',
+        currentPrice: '¥299',
+        url: 'https://taobao.example/rice-cooker',
+        enabled: true,
+      ),
+      ProductItem(
+        id: 2,
+        title: 'JD ergonomic office chair',
+        platform: 'jd',
+        currentPrice: '¥899',
+        url: 'https://jd.example/chair',
+        enabled: true,
+      ),
+      ProductItem(
+        id: 3,
+        title: 'Amazon standing desk',
+        platform: 'amazon',
+        currentPrice: r'$219',
+        url: 'https://amazon.example/desk',
+        enabled: false,
+      ),
+    ],
+    history: const [
+      PriceHistoryPoint(label: 'Monday', price: '¥329'),
+      PriceHistoryPoint(label: 'Tuesday', price: '¥309'),
+      PriceHistoryPoint(label: 'Wednesday', price: '¥299'),
+    ],
+    bindings: const [
+      ProductProfileBinding(platform: 'taobao', profileName: 'taobao-main'),
+      ProductProfileBinding(platform: 'jd', profileName: 'jd-work'),
+    ],
+    cronConfigs: const [
+      ProductCronConfig(platform: 'taobao', cron: '0 9 * * *'),
+      ProductCronConfig(platform: 'jd', cron: '30 10 * * 1-5'),
+    ],
+    crawlLogs: [
+      ProductCrawlLog(
+        message: 'Crawl completed for Taobao rice cooker',
+        status: 'success',
+        createdAt: DateTime.utc(2026, 6, 17, 8),
+      ),
+      ProductCrawlLog(
+        message: 'JD profile reused cached session',
+        status: 'info',
+        createdAt: DateTime.utc(2026, 6, 17, 8, 30),
+      ),
+    ],
+  );
+
+  @override
+  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
+
+  @override
+  Future<void> importProducts(PickedFileReference file) async {}
+}
+
+class _VisualJobsRepository implements JobsRepository {
+  const _VisualJobsRepository();
+
+  @override
+  Future<JobsSnapshot> loadJobs() async => JobsSnapshot(
+    jobs: const [
+      JobItem(
+        id: 1,
+        title: 'Senior Flutter Engineer',
+        company: 'Mavra Labs',
+        platform: 'boss',
+        location: 'Shanghai',
+        status: 'new',
+      ),
+      JobItem(
+        id: 2,
+        title: 'Desktop App Lead',
+        company: 'Quiet Tools',
+        platform: 'liepin',
+        location: 'Shenzhen',
+        status: 'reviewing',
+      ),
+    ],
+    configs: const [
+      JobSearchConfig(
+        id: 7,
+        name: 'Boss Zhipin',
+        platform: 'boss',
+        keyword: 'flutter',
+        location: 'Shanghai',
+        cron: '0 8 * * *',
+      ),
+      JobSearchConfig(
+        id: 8,
+        name: 'Liepin desktop',
+        platform: 'liepin',
+        keyword: 'windows flutter',
+        location: 'Shenzhen',
+        cron: '30 8 * * 1-5',
+      ),
+    ],
+    resumes: [
+      ResumeItem(
+        id: 3,
+        fileName: 'visual-qa-resume.pdf',
+        updatedAt: DateTime.utc(2026, 6, 16, 9),
+      ),
+    ],
+    matches: const [
+      JobMatchResult(
+        jobTitle: 'Senior Flutter Engineer',
+        score: '92%',
+        reason: 'Strong Flutter and Windows desktop fit',
+      ),
+      JobMatchResult(
+        jobTitle: 'Desktop App Lead',
+        score: '88%',
+        reason: 'Matches migration leadership and release QA experience',
+      ),
+    ],
+    profiles: const [
+      CrawlProfileItem(
+        platform: 'boss',
+        profileKey: 'boss-main',
+        status: 'ready',
+      ),
+      CrawlProfileItem(
+        platform: 'liepin',
+        profileKey: 'liepin-safe',
+        status: 'needs review',
+      ),
+    ],
+    crawlLogs: [
+      JobCrawlLog(
+        message: 'Job crawl completed with 8 new matches',
+        status: 'success',
+        createdAt: DateTime.utc(2026, 6, 17, 8),
+      ),
+    ],
+  );
+
+  @override
+  Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {}
+
+  @override
+  Future<void> uploadResume(PickedFileReference file) async {}
+
+  @override
+  Future<void> importProfileBackup(PickedFileReference file) async {}
+
+  @override
+  Future<ProfileBackupExport> exportProfileBackup(String profileKey) async {
+    return ProfileBackupExport(fileName: '$profileKey.zip', bytes: const [1]);
+  }
+}
+
+class _VisualSmartHomeRepository implements SmartHomeRepository {
+  const _VisualSmartHomeRepository();
+
+  @override
+  Future<SmartHomeSnapshot> loadSmartHome() async => const SmartHomeSnapshot(
+    config: SmartHomeConfig(
+      baseUrl: 'https://ha.visual.local',
+      enabled: true,
+      lastStatus: 'ok',
+      tokenConfigured: true,
+    ),
+    summary: SmartHomeSummary(
+      configured: true,
+      connected: true,
+      activeCount: 12,
+      unavailableCount: 1,
+    ),
+    entities: [
+      SmartHomeEntityItem(
+        domain: 'light',
+        entityId: 'light.living_room',
+        name: 'Living room lamp',
+        state: 'on',
+        area: 'Living room',
+        available: true,
+      ),
+      SmartHomeEntityItem(
+        domain: 'switch',
+        entityId: 'switch.bedroom',
+        name: 'Bedroom switch',
+        state: 'off',
+        area: 'Bedroom',
+        available: true,
+      ),
+      SmartHomeEntityItem(
+        domain: 'sensor',
+        entityId: 'sensor.office_temperature',
+        name: 'Office temperature',
+        state: '24.2',
+        area: 'Office',
+        available: true,
+      ),
+      SmartHomeEntityItem(
+        domain: 'light',
+        entityId: 'light.hallway',
+        name: 'Hallway light',
+        state: 'unavailable',
+        area: 'Hallway',
+        available: false,
+      ),
+    ],
+    canControl: true,
+    canConfigure: true,
+    realtimeConnected: true,
+  );
+
+  @override
+  Stream<List<SmartHomeEntityItem>> watchEntities() => const Stream.empty();
+
+  @override
+  Future<void> saveConfig(SmartHomeConfigDraft draft) async {}
+
+  @override
+  Future<SmartHomeServiceResult> callService(
+    SmartHomeServiceDraft draft,
+  ) async {
+    return const SmartHomeServiceResult(
+      ok: true,
+      message: 'Visual QA service call mocked',
+    );
+  }
+}
+
+class _VisualBlogRepository implements BlogRepository {
+  const _VisualBlogRepository();
+
+  @override
+  Future<BlogSnapshot> loadBlog(BlogFilter filter) async => BlogSnapshot(
+    posts: [
+      BlogPostItem(
+        id: 1,
+        title: 'Morning note',
+        slug: 'morning-note',
+        status: 'draft',
+        excerpt: 'Brief operating note for the migration room.',
+        updatedAt: DateTime.utc(2026, 6, 17, 8),
+        categoryName: 'Ops',
+        tagNames: const ['pricing', 'flutter'],
+        coverUrl: null,
+      ),
+      BlogPostItem(
+        id: 2,
+        title: 'Release checklist',
+        slug: 'release-checklist',
+        status: 'scheduled',
+        excerpt: 'Device evidence, screenshots, and merge gates.',
+        updatedAt: DateTime.utc(2026, 6, 17, 9),
+        categoryName: 'Engineering',
+        tagNames: const ['qa'],
+        coverUrl: '/blog-media/release.png',
+      ),
+    ],
+    categories: const [
+      BlogCategory(id: 1, name: 'Ops', slug: 'ops'),
+      BlogCategory(id: 2, name: 'Engineering', slug: 'engineering'),
+    ],
+    tags: const [
+      BlogTag(id: 1, name: 'pricing', slug: 'pricing'),
+      BlogTag(id: 2, name: 'flutter', slug: 'flutter'),
+      BlogTag(id: 3, name: 'qa', slug: 'qa'),
+    ],
+    totalPosts: 2,
+  );
+
+  @override
+  Future<BlogPostDraft> loadPostDraft(int postId) async => const BlogPostDraft(
+    title: 'Morning note',
+    slug: 'morning-note',
+    status: 'draft',
+    body: 'Existing markdown body for visual QA.',
+    excerpt: 'Brief operating note for the migration room.',
+    categoryName: 'Ops',
+    tagNames: ['pricing', 'flutter'],
+    coverUrl: null,
+  );
+
+  @override
+  Future<void> savePost(BlogPostDraft draft, {int? postId}) async {}
+
+  @override
+  Future<BlogMediaAsset> uploadMedia(PickedFileReference file) async {
+    return const BlogMediaAsset(
+      id: 7,
+      fileName: 'visual-cover.png',
+      publicUrl: '/blog-media/visual-cover.png',
+    );
+  }
+}
+
+class _VisualSettingsRepository implements SettingsRepository {
+  const _VisualSettingsRepository();
+
+  @override
+  Future<SettingsSnapshot> loadSettings() async => SettingsSnapshot(
+    userConfig: UserSettingsConfig(
+      id: 1,
+      username: 'visual-qa-admin',
+      dataRetentionDays: 365,
+      feishuWebhookUrl: 'https://open.feishu.example/visual-hook',
+      updatedAt: DateTime.utc(2026, 6, 17),
+    ),
+    themeMode: 'system',
+  );
+
+  @override
+  Future<SettingsSnapshot> saveSettings(SettingsDraft draft) async {
+    return SettingsSnapshot(
+      userConfig: UserSettingsConfig(
+        id: 1,
+        username: 'visual-qa-admin',
+        dataRetentionDays: draft.dataRetentionDays,
+        feishuWebhookUrl: draft.feishuWebhookUrl,
+        updatedAt: DateTime.utc(2026, 6, 17),
+      ),
+      themeMode: draft.themeMode,
+    );
+  }
+}
+
+class _VisualScheduleRepository implements ScheduleRepository {
+  const _VisualScheduleRepository();
+
+  @override
+  Future<ScheduleSnapshot> loadSchedule() async => const ScheduleSnapshot(
+    status: SchedulerStatus(
+      label: 'Scheduler running',
+      timezone: 'Asia/Shanghai',
+    ),
+    productSchedules: [
+      ProductSchedule(
+        platform: 'taobao',
+        cronExpression: '0 9 * * *',
+        nextRunAt: '2026-06-18 09:00',
+      ),
+    ],
+    jobSchedules: [
+      JobSchedule(
+        configId: 7,
+        name: 'Boss morning',
+        cronExpression: '30 8 * * 1-5',
+        nextRunAt: '2026-06-18 08:30',
+      ),
+    ],
+    canConfigure: true,
+  );
+
+  @override
+  Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
+    return CronPreview(expression: draft.cronExpression);
+  }
+
+  @override
+  Future<void> saveRule(ScheduleRuleDraft draft) async {}
+}
+
+class _VisualAlertRepository implements AlertRepository {
+  const _VisualAlertRepository();
+
+  @override
+  Future<List<AlertItem>> listAlerts({
+    AlertFilter filter = AlertFilter.all,
+  }) async {
+    return [
+      AlertItem(
+        id: 1,
+        productId: 1,
+        productTitle: 'Taobao rice cooker',
+        alertType: 'price_drop',
+        thresholdLabel: '10%',
+        active: true,
+        lastNotifiedPrice: '¥299',
+        updatedAt: DateTime.utc(2026, 6, 17, 8),
+      ),
+    ];
+  }
+
+  @override
+  Stream<AlertItem> watchAlerts({AlertFilter filter = AlertFilter.all}) {
+    return const Stream.empty();
+  }
+}
+
+class _VisualEventRepository implements EventRepository {
+  const _VisualEventRepository();
+
+  @override
+  Future<List<EventFeedItem>> listEvents({
+    EventFilter filter = EventFilter.all,
+  }) async {
+    return [
+      EventFeedItem(
+        id: 'evt-1',
+        kind: EventKind.audit,
+        category: 'auth',
+        eventType: 'user.login',
+        message: 'visual-qa-admin logged in',
+        severity: 'info',
+        source: 'visual-qa',
+        occurredAt: DateTime.utc(2026, 6, 17, 9),
+      ),
+      EventFeedItem(
+        id: 'evt-2',
+        kind: EventKind.platform,
+        category: 'crawler',
+        eventType: 'profile.challenge',
+        message: 'Boss profile requires review',
+        severity: 'warning',
+        source: 'visual-qa',
+        occurredAt: DateTime.utc(2026, 6, 17, 9, 10),
+      ),
+    ];
+  }
+
+  @override
+  Stream<EventFeedItem> watchEvents({EventFilter filter = EventFilter.all}) {
+    return const Stream.empty();
+  }
+}
