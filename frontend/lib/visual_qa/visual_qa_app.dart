@@ -615,6 +615,14 @@ class _VisualSmartHomeRepository implements SmartHomeRepository {
   Future<void> saveConfig(SmartHomeConfigDraft draft) async {}
 
   @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    return const SmartHomeServiceResult(
+      ok: true,
+      message: 'Home Assistant reachable',
+    );
+  }
+
+  @override
   Future<SmartHomeServiceResult> callService(
     SmartHomeServiceDraft draft,
   ) async {

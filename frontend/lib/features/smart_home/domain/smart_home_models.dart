@@ -108,5 +108,7 @@ abstract class SmartHomeRepository {
 
   Future<void> saveConfig(SmartHomeConfigDraft draft);
 
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft);
+
   Future<SmartHomeServiceResult> callService(SmartHomeServiceDraft draft);
 }

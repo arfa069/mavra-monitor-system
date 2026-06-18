@@ -55,6 +55,12 @@ void main() {
       find.byKey(const Key('smart-home-token-field')),
       'new-secret-token',
     );
+    await tester.tap(find.byKey(const Key('smart-home-test-config-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.testedConfig?.baseUrl, 'https://ha-new.local');
+    expect(find.text('Home Assistant reachable'), findsOneWidget);
+
     await tester.tap(find.text('Save config'));
     await tester.pumpAndSettle();
 
@@ -88,6 +94,22 @@ void main() {
     expect(repository.serviceCalls.single.entityId, 'light.living_room');
     expect(repository.serviceCalls.single.service, 'turn_off');
     expect(find.text('Service call queued'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('smart-home-entity-off-light.living_room')),
+    );
+    await tester.tap(
+      find.byKey(const Key('smart-home-entity-off-light.living_room')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Call turn_off for light.living_room?'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('smart-home-confirm-light.living_room-turn_off')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.serviceCalls.last.entityId, 'light.living_room');
+    expect(repository.serviceCalls.last.service, 'turn_off');
 
     await tester.pumpWidget(
       MaterialApp(home: SmartHomePage(repository: _FailingServiceRepository())),
@@ -263,11 +285,15 @@ class _FakeSmartHomeRepository implements SmartHomeRepository {
 
   final SmartHomeSnapshot snapshot;
   final savedConfigs = <SmartHomeConfigDraft>[];
+  final testedConfigs = <SmartHomeConfigDraft>[];
   final serviceCalls = <SmartHomeServiceDraft>[];
   final _controller = StreamController<List<SmartHomeEntityItem>>.broadcast();
 
   SmartHomeConfigDraft? get savedConfig =>
       savedConfigs.isEmpty ? null : savedConfigs.last;
+
+  SmartHomeConfigDraft? get testedConfig =>
+      testedConfigs.isEmpty ? null : testedConfigs.last;
 
   @override
   Future<SmartHomeSnapshot> loadSmartHome() async => snapshot;
@@ -282,6 +308,15 @@ class _FakeSmartHomeRepository implements SmartHomeRepository {
   @override
   Future<void> saveConfig(SmartHomeConfigDraft draft) async {
     savedConfigs.add(draft);
+  }
+
+  @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    testedConfigs.add(draft);
+    return const SmartHomeServiceResult(
+      ok: true,
+      message: 'Home Assistant reachable',
+    );
   }
 
   @override
@@ -309,6 +344,11 @@ class _SlowSmartHomeRepository implements SmartHomeRepository {
   Future<void> saveConfig(SmartHomeConfigDraft draft) async {}
 
   @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    return const SmartHomeServiceResult(ok: true, message: 'ok');
+  }
+
+  @override
   Future<SmartHomeServiceResult> callService(
     SmartHomeServiceDraft draft,
   ) async {
@@ -327,6 +367,11 @@ class _FailingSmartHomeRepository implements SmartHomeRepository {
 
   @override
   Future<void> saveConfig(SmartHomeConfigDraft draft) async {}
+
+  @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    return const SmartHomeServiceResult(ok: true, message: 'ok');
+  }
 
   @override
   Future<SmartHomeServiceResult> callService(

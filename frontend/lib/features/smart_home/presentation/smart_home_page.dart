@@ -121,6 +121,24 @@ class _SmartHomePageState extends State<SmartHomePage> {
     }
   }
 
+  Future<void> _testConfig() async {
+    final draft = SmartHomeConfigDraft(
+      baseUrl: _baseUrlController.text.trim(),
+      enabled: _configEnabled,
+      token: _tokenController.text.trim(),
+    );
+    try {
+      final result = await widget.repository.testConfig(draft);
+      if (mounted) {
+        setState(() => _statusMessage = result.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Test config failed');
+      }
+    }
+  }
+
   Future<void> _callService() async {
     final draft = SmartHomeServiceDraft(
       entityId: _serviceEntityController.text.trim(),
@@ -128,6 +146,45 @@ class _SmartHomePageState extends State<SmartHomePage> {
     );
     try {
       final result = await widget.repository.callService(draft);
+      if (mounted) {
+        setState(() => _statusMessage = result.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Service call failed');
+      }
+    }
+  }
+
+  Future<void> _confirmEntityService(
+    SmartHomeEntityItem entity,
+    String service,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm ${entity.name}'),
+        content: Text('Call $service for ${entity.entityId}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: Key('smart-home-confirm-${entity.entityId}-$service'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    try {
+      final result = await widget.repository.callService(
+        SmartHomeServiceDraft(entityId: entity.entityId, service: service),
+      );
       if (mounted) {
         setState(() => _statusMessage = result.message);
       }
@@ -199,6 +256,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
                   serviceNameController: _serviceNameController,
                   onEditConfig: current.canConfigure ? _editConfig : null,
                   onSaveConfig: _saveConfig,
+                  onTestConfig: current.canConfigure ? _testConfig : null,
                   onConfigEnabledChanged: (value) {
                     setState(() => _configEnabled = value ?? true);
                   },
@@ -206,6 +264,9 @@ class _SmartHomePageState extends State<SmartHomePage> {
                     setState(() => _domainFilter = domain);
                   },
                   onCallService: current.canControl ? _callService : null,
+                  onEntityService: current.canControl
+                      ? _confirmEntityService
+                      : null,
                 );
               },
             ),
@@ -246,9 +307,11 @@ class _SmartHomeContent extends StatelessWidget {
     required this.serviceNameController,
     required this.onEditConfig,
     required this.onSaveConfig,
+    required this.onTestConfig,
     required this.onConfigEnabledChanged,
     required this.onDomainSelected,
     required this.onCallService,
+    required this.onEntityService,
   });
 
   final SmartHomeSnapshot snapshot;
@@ -264,9 +327,12 @@ class _SmartHomeContent extends StatelessWidget {
   final TextEditingController serviceNameController;
   final VoidCallback? onEditConfig;
   final Future<void> Function() onSaveConfig;
+  final Future<void> Function()? onTestConfig;
   final ValueChanged<bool?> onConfigEnabledChanged;
   final ValueChanged<String> onDomainSelected;
   final Future<void> Function()? onCallService;
+  final void Function(SmartHomeEntityItem entity, String service)?
+  onEntityService;
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +400,7 @@ class _SmartHomeContent extends StatelessWidget {
               tokenController: tokenController,
               onEnabledChanged: onConfigEnabledChanged,
               onSaveConfig: onSaveConfig,
+              onTestConfig: onTestConfig,
             ),
           ],
           const SizedBox(height: 16),
@@ -352,7 +419,8 @@ class _SmartHomeContent extends StatelessWidget {
           if (snapshot.entities.isEmpty)
             const Center(child: Text('还没有可控制的 Home Assistant 设备。'))
           else
-            for (final entity in entities) _EntityTile(entity: entity),
+            for (final entity in entities)
+              _EntityTile(entity: entity, onEntityService: onEntityService),
         ],
       ),
     );
@@ -408,6 +476,7 @@ class _ConfigForm extends StatelessWidget {
     required this.tokenController,
     required this.onEnabledChanged,
     required this.onSaveConfig,
+    required this.onTestConfig,
   });
 
   final bool enabled;
@@ -415,6 +484,7 @@ class _ConfigForm extends StatelessWidget {
   final TextEditingController tokenController;
   final ValueChanged<bool?> onEnabledChanged;
   final Future<void> Function() onSaveConfig;
+  final Future<void> Function()? onTestConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -451,6 +521,13 @@ class _ConfigForm extends StatelessWidget {
               onPressed: onSaveConfig,
               icon: const Icon(Icons.save),
               label: const Text('Save config'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('smart-home-test-config-button'),
+              onPressed: onTestConfig,
+              icon: const Icon(Icons.science),
+              label: const Text('Test config'),
             ),
           ],
         ),
@@ -537,9 +614,11 @@ class _DomainFilters extends StatelessWidget {
 }
 
 class _EntityTile extends StatelessWidget {
-  const _EntityTile({required this.entity});
+  const _EntityTile({required this.entity, required this.onEntityService});
 
   final SmartHomeEntityItem entity;
+  final void Function(SmartHomeEntityItem entity, String service)?
+  onEntityService;
 
   @override
   Widget build(BuildContext context) {
@@ -561,6 +640,22 @@ class _EntityTile extends StatelessWidget {
           children: [
             Chip(label: Text(entity.domain)),
             Chip(label: Text(entity.state)),
+            IconButton(
+              key: Key('smart-home-entity-on-${entity.entityId}'),
+              tooltip: 'Turn on ${entity.name}',
+              onPressed: entity.available && onEntityService != null
+                  ? () => onEntityService!(entity, 'turn_on')
+                  : null,
+              icon: const Icon(Icons.power),
+            ),
+            IconButton(
+              key: Key('smart-home-entity-off-${entity.entityId}'),
+              tooltip: 'Turn off ${entity.name}',
+              onPressed: entity.available && onEntityService != null
+                  ? () => onEntityService!(entity, 'turn_off')
+                  : null,
+              icon: const Icon(Icons.power_off),
+            ),
             if (!entity.available)
               const Chip(
                 avatar: Icon(Icons.warning_amber),

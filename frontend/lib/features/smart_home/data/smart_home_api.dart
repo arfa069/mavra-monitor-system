@@ -86,6 +86,27 @@ class GeneratedSmartHomeRepository implements SmartHomeRepository {
   }
 
   @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    final token = draft.token?.trim();
+    final response = await _smartHomeApi.smartHomeTestConfig(
+      smartHomeConfigTestRequest: generated.SmartHomeConfigTestRequest(
+        (builder) => builder
+          ..baseUrl = draft.baseUrl
+          ..token = token == null || token.isEmpty ? null : token,
+      ),
+    );
+    final data = response.data;
+    final version = data?.homeAssistantVersion;
+    final message = version == null || version.isEmpty
+        ? data?.message
+        : '${data?.message} ($version)';
+    return SmartHomeServiceResult(
+      ok: data?.ok ?? false,
+      message: message ?? 'Config test completed',
+    );
+  }
+
+  @override
   Future<SmartHomeServiceResult> callService(
     SmartHomeServiceDraft draft,
   ) async {
