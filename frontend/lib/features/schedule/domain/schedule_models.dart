@@ -31,11 +31,21 @@ class JobSchedule {
   final String? nextRunAt;
 }
 
+class ScheduleSettings {
+  const ScheduleSettings({required this.retentionDays, this.feishuWebhookUrl});
+
+  static const defaults = ScheduleSettings(retentionDays: 365);
+
+  final int retentionDays;
+  final String? feishuWebhookUrl;
+}
+
 class ScheduleSnapshot {
   const ScheduleSnapshot({
     required this.status,
     required this.productSchedules,
     required this.jobSchedules,
+    required this.settings,
     required this.canConfigure,
   });
 
@@ -46,11 +56,13 @@ class ScheduleSnapshot {
       ),
       productSchedules = const [],
       jobSchedules = const [],
+      settings = ScheduleSettings.defaults,
       canConfigure = true;
 
   final SchedulerStatus status;
   final List<ProductSchedule> productSchedules;
   final List<JobSchedule> jobSchedules;
+  final ScheduleSettings settings;
   final bool canConfigure;
 
   bool get hasRules => productSchedules.isNotEmpty || jobSchedules.isNotEmpty;
@@ -96,6 +108,8 @@ abstract class ScheduleRepository {
   Future<CronPreview> previewCron(ScheduleRuleDraft draft);
 
   Future<void> saveRule(ScheduleRuleDraft draft);
+
+  Future<void> saveSettings(ScheduleSettings settings);
 }
 
 class ScheduleValidationException implements Exception {

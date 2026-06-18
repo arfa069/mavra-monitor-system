@@ -27,6 +27,8 @@ class _SchedulePageState extends State<SchedulePage> {
   final _hourController = TextEditingController(text: '9');
   final _minuteController = TextEditingController(text: '0');
   final _weekdaysController = TextEditingController(text: '*');
+  final _retentionController = TextEditingController(text: '365');
+  final _webhookController = TextEditingController();
 
   @override
   void initState() {
@@ -49,6 +51,8 @@ class _SchedulePageState extends State<SchedulePage> {
     _hourController.dispose();
     _minuteController.dispose();
     _weekdaysController.dispose();
+    _retentionController.dispose();
+    _webhookController.dispose();
     super.dispose();
   }
 
@@ -58,7 +62,12 @@ class _SchedulePageState extends State<SchedulePage> {
       _scheduleFuture = Future.sync(widget.repository.loadSchedule)
         ..then((snapshot) {
           if (mounted) {
-            setState(() => _snapshot = snapshot);
+            setState(() {
+              _snapshot = snapshot;
+              _retentionController.text = '${snapshot.settings.retentionDays}';
+              _webhookController.text =
+                  snapshot.settings.feishuWebhookUrl ?? '';
+            });
           }
         }).catchError((Object error) {
           if (mounted) {
@@ -121,6 +130,36 @@ class _SchedulePageState extends State<SchedulePage> {
       if (mounted) {
         setState(() => _validationMessage = error.message);
       }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Save failed: $error');
+      }
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    final retention = int.tryParse(_retentionController.text.trim());
+    if (retention == null || retention < 1) {
+      setState(() => _validationMessage = 'Retention must be at least 1 day');
+      return;
+    }
+    try {
+      await widget.repository.saveSettings(
+        ScheduleSettings(
+          retentionDays: retention,
+          feishuWebhookUrl: _webhookController.text.trim().isEmpty
+              ? null
+              : _webhookController.text.trim(),
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statusMessage = 'Saved schedule settings';
+        _validationMessage = null;
+      });
+      _load();
     } catch (error) {
       if (mounted) {
         setState(() => _statusMessage = 'Save failed: $error');
@@ -219,6 +258,8 @@ class _SchedulePageState extends State<SchedulePage> {
                   hourController: _hourController,
                   minuteController: _minuteController,
                   weekdaysController: _weekdaysController,
+                  retentionController: _retentionController,
+                  webhookController: _webhookController,
                   onNewRule: current.canConfigure ? _newRule : null,
                   onTargetTypeChanged: (target) {
                     if (target == null) {
@@ -228,6 +269,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   },
                   onPreviewCron: _previewCron,
                   onSaveRule: _saveRule,
+                  onSaveSettings: current.canConfigure ? _saveSettings : null,
                 );
               },
             ),
@@ -250,10 +292,13 @@ class _ScheduleContent extends StatelessWidget {
     required this.hourController,
     required this.minuteController,
     required this.weekdaysController,
+    required this.retentionController,
+    required this.webhookController,
     required this.onNewRule,
     required this.onTargetTypeChanged,
     required this.onPreviewCron,
     required this.onSaveRule,
+    required this.onSaveSettings,
   });
 
   final ScheduleSnapshot snapshot;
@@ -266,10 +311,13 @@ class _ScheduleContent extends StatelessWidget {
   final TextEditingController hourController;
   final TextEditingController minuteController;
   final TextEditingController weekdaysController;
+  final TextEditingController retentionController;
+  final TextEditingController webhookController;
   final VoidCallback? onNewRule;
   final ValueChanged<ScheduleRuleTarget?> onTargetTypeChanged;
   final Future<void> Function() onPreviewCron;
   final Future<void> Function() onSaveRule;
+  final Future<void> Function()? onSaveSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -332,10 +380,18 @@ class _ScheduleContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
+          _ScheduleSettingsForm(
+            settings: snapshot.settings,
+            retentionController: retentionController,
+            webhookController: webhookController,
+            onSaveSettings: onSaveSettings,
+          ),
+          const SizedBox(height: 16),
           if (!snapshot.hasRules)
             const Center(child: Text('还没有自动运行规则。'))
           else ...[
             _ScheduleSection(
+              key: const Key('schedule-product-table'),
               title: 'Product schedules',
               children: [
                 for (final schedule in snapshot.productSchedules)
@@ -348,6 +404,7 @@ class _ScheduleContent extends StatelessWidget {
               ],
             ),
             _ScheduleSection(
+              key: const Key('schedule-job-table'),
               title: 'Job schedules',
               children: [
                 for (final schedule in snapshot.jobSchedules)
@@ -486,8 +543,84 @@ class _ScheduleRuleForm extends StatelessWidget {
   }
 }
 
+class _ScheduleSettingsForm extends StatelessWidget {
+  const _ScheduleSettingsForm({
+    required this.settings,
+    required this.retentionController,
+    required this.webhookController,
+    required this.onSaveSettings,
+  });
+
+  final ScheduleSettings settings;
+  final TextEditingController retentionController;
+  final TextEditingController webhookController;
+  final Future<void> Function()? onSaveSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Notification and retention',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.history),
+                  label: Text('${settings.retentionDays} days'),
+                ),
+                if (settings.feishuWebhookUrl != null &&
+                    settings.feishuWebhookUrl!.isNotEmpty)
+                  const Chip(
+                    avatar: Icon(Icons.notifications_active),
+                    label: Text('Webhook configured'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('schedule-retention-days-field'),
+              controller: retentionController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Retention days'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('schedule-webhook-url-field'),
+              controller: webhookController,
+              decoration: const InputDecoration(
+                labelText: 'Feishu webhook URL',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('schedule-save-settings-button'),
+              onPressed: onSaveSettings,
+              icon: const Icon(Icons.save),
+              label: const Text('Save settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ScheduleSection extends StatelessWidget {
-  const _ScheduleSection({required this.title, required this.children});
+  const _ScheduleSection({
+    super.key,
+    required this.title,
+    required this.children,
+  });
 
   final String title;
   final List<Widget> children;

@@ -21,18 +21,22 @@ class GeneratedScheduleRepository implements ScheduleRepository {
 
   generated.SchedulerApi get _schedulerApi => _client.getSchedulerApi();
 
+  generated.ConfigApi get _configApi => _client.getConfigApi();
+
   @override
   Future<ScheduleSnapshot> loadSchedule() async {
     final responses = await Future.wait([
       _productsApi.productsGetProductCronSchedules(),
       _jobsApi.jobsGetJobConfigSchedules(),
       _schedulerApi.schedulerGetSchedulerStatus(),
+      _configApi.configGetConfig(),
     ]);
 
     final productData =
         responses[0].data as generated.ProductCronSchedulesResponse?;
     final jobData = responses[1].data as generated.JobConfigSchedulesResponse?;
     final statusData = responses[2].data as generated.SchedulerStatusResponse?;
+    final configData = responses[3].data as generated.UserConfigResponse?;
     final productEntries =
         productData?.platforms?.entries.toList() ??
         const <MapEntry<String, generated.ScheduleInfo>>[];
@@ -59,6 +63,10 @@ class GeneratedScheduleRepository implements ScheduleRepository {
             nextRunAt: config.nextRunAt,
           ),
       ],
+      settings: ScheduleSettings(
+        retentionDays: configData?.dataRetentionDays ?? 365,
+        feishuWebhookUrl: configData?.feishuWebhookUrl,
+      ),
       canConfigure: true,
     );
   }
@@ -92,6 +100,17 @@ class GeneratedScheduleRepository implements ScheduleRepository {
           ),
         );
     }
+  }
+
+  @override
+  Future<void> saveSettings(ScheduleSettings settings) async {
+    await _configApi.configUpdateConfigPartial(
+      userConfigUpdate: generated.UserConfigUpdate(
+        (builder) => builder
+          ..dataRetentionDays = settings.retentionDays
+          ..feishuWebhookUrl = settings.feishuWebhookUrl,
+      ),
+    );
   }
 
   static String _schedulerLabel(String? value) {

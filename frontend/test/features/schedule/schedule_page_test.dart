@@ -20,14 +20,45 @@ void main() {
       expect(find.text('Scheduler running'), findsOneWidget);
       expect(find.text('Asia/Shanghai'), findsOneWidget);
       expect(find.text('Product schedules'), findsOneWidget);
+      expect(find.byKey(const Key('schedule-product-table')), findsOneWidget);
       expect(find.text('taobao'), findsOneWidget);
       expect(find.text('0 9 * * *'), findsOneWidget);
       expect(find.text('Next run 2026-06-17 09:00'), findsOneWidget);
       expect(find.text('Job schedules'), findsOneWidget);
+      expect(find.byKey(const Key('schedule-job-table')), findsOneWidget);
       expect(find.text('Boss morning'), findsOneWidget);
       expect(find.text('30 8 * * 1-5'), findsOneWidget);
     },
   );
+
+  testWidgets('saves retention and webhook configuration', (tester) async {
+    final repository = _FakeScheduleRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SchedulePage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Notification and retention'), findsOneWidget);
+    expect(find.text('365 days'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('schedule-retention-days-field')),
+      '180',
+    );
+    await tester.enterText(
+      find.byKey(const Key('schedule-webhook-url-field')),
+      'https://open.feishu.cn/webhook/test',
+    );
+    await tester.tap(find.byKey(const Key('schedule-save-settings-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.savedSettings?.retentionDays, 180);
+    expect(
+      repository.savedSettings?.feishuWebhookUrl,
+      'https://open.feishu.cn/webhook/test',
+    );
+    expect(find.text('Saved schedule settings'), findsOneWidget);
+  });
 
   testWidgets('previews cron and saves a rule draft', (tester) async {
     final repository = _FakeScheduleRepository.full();
@@ -151,6 +182,10 @@ class _FakeScheduleRepository implements ScheduleRepository {
           nextRunAt: '2026-06-17 08:30',
         ),
       ],
+      settings: const ScheduleSettings(
+        retentionDays: 365,
+        feishuWebhookUrl: 'https://open.feishu.cn/webhook/current',
+      ),
       canConfigure: true,
     ),
   );
@@ -160,6 +195,7 @@ class _FakeScheduleRepository implements ScheduleRepository {
       status: SchedulerStatus(label: 'Scheduler stopped', timezone: null),
       productSchedules: [],
       jobSchedules: [],
+      settings: ScheduleSettings.defaults,
       canConfigure: true,
     ),
   );
@@ -178,12 +214,14 @@ class _FakeScheduleRepository implements ScheduleRepository {
         ),
       ],
       jobSchedules: const [],
+      settings: const ScheduleSettings(retentionDays: 365),
       canConfigure: false,
     ),
   );
 
   final ScheduleSnapshot snapshot;
   final savedDrafts = <ScheduleRuleDraft>[];
+  ScheduleSettings? savedSettings;
   ScheduleRuleDraft? previewedDraft;
 
   @override
@@ -198,6 +236,11 @@ class _FakeScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {
     savedDrafts.add(draft);
+  }
+
+  @override
+  Future<void> saveSettings(ScheduleSettings settings) async {
+    savedSettings = settings;
   }
 }
 
@@ -214,6 +257,9 @@ class _SlowScheduleRepository implements ScheduleRepository {
 
   @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveSettings(ScheduleSettings settings) async {}
 }
 
 class _FailingScheduleRepository implements ScheduleRepository {
@@ -229,4 +275,7 @@ class _FailingScheduleRepository implements ScheduleRepository {
 
   @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveSettings(ScheduleSettings settings) async {}
 }

@@ -733,6 +733,10 @@ class _VisualScheduleRepository implements ScheduleRepository {
         nextRunAt: '2026-06-18 08:30',
       ),
     ],
+    settings: ScheduleSettings(
+      retentionDays: 365,
+      feishuWebhookUrl: 'https://open.feishu.cn/webhook/visual',
+    ),
     canConfigure: true,
   );
 
@@ -743,6 +747,9 @@ class _VisualScheduleRepository implements ScheduleRepository {
 
   @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveSettings(ScheduleSettings settings) async {}
 }
 
 class _VisualAlertRepository implements AlertRepository {
