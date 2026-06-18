@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_side_sheet.dart';
 import '../domain/event_models.dart';
 
 class EventsPage extends StatefulWidget {
@@ -109,6 +111,21 @@ class _EventsPageState extends State<EventsPage> {
     _load();
   }
 
+  void _resetFilters() {
+    _eventTypeController.clear();
+    _categoryController.clear();
+    _severityController.clear();
+    _sourceController.clear();
+    _keywordController.clear();
+    _startController.clear();
+    _endController.clear();
+    setState(() {
+      _query = const EventQuery();
+      _events = const [];
+    });
+    _load();
+  }
+
   void _goToPage(int page) {
     setState(() {
       _query = _query.copyWith(page: page);
@@ -184,6 +201,7 @@ class _EventsPageState extends State<EventsPage> {
                   startController: _startController,
                   endController: _endController,
                   onApplyFilters: _applyFilters,
+                  onResetFilters: _resetFilters,
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -203,14 +221,41 @@ class _EventsPageState extends State<EventsPage> {
                       return Column(
                         children: [
                           Expanded(
-                            child: ListView.separated(
-                              itemCount: _events.length,
-                              separatorBuilder: (context, index) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (context, index) => _EventTile(
-                                item: _events[index],
+                            child: MavraResponsiveDataView<EventFeedItem>(
+                              rows: _events,
+                              columns: const [
+                                DataColumn(label: Text('Kind')),
+                                DataColumn(label: Text('Event type')),
+                                DataColumn(label: Text('Category')),
+                                DataColumn(label: Text('Severity')),
+                                DataColumn(label: Text('Source')),
+                                DataColumn(label: Text('Message')),
+                                DataColumn(label: Text('Actions')),
+                              ],
+                              tableCells: (item) => [
+                                DataCell(Text(item.kind.label)),
+                                DataCell(Text(item.eventType)),
+                                DataCell(Text(item.category)),
+                                DataCell(Text(item.severity)),
+                                DataCell(Text(item.source)),
+                                DataCell(Text(item.message)),
+                                DataCell(
+                                  IconButton(
+                                    key: Key(
+                                      'event-detail-${item.id}-button',
+                                    ),
+                                    tooltip: 'Open event ${item.id}',
+                                    onPressed: () =>
+                                        _showEventDetails(context, item),
+                                    icon: const Icon(Icons.open_in_new),
+                                  ),
+                                ),
+                              ],
+                              wideBreakpoint: 1000,
+                              mobileBuilder: (context, item) => _EventTile(
+                                item: item,
                                 onShowDetails: () =>
-                                    _showEventDetails(context, _events[index]),
+                                    _showEventDetails(context, item),
                               ),
                             ),
                           ),
@@ -243,6 +288,7 @@ class _EventFilterForm extends StatelessWidget {
     required this.startController,
     required this.endController,
     required this.onApplyFilters,
+    required this.onResetFilters,
   });
 
   final TextEditingController eventTypeController;
@@ -253,6 +299,7 @@ class _EventFilterForm extends StatelessWidget {
   final TextEditingController startController;
   final TextEditingController endController;
   final VoidCallback onApplyFilters;
+  final VoidCallback onResetFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -274,17 +321,17 @@ class _EventFilterForm extends StatelessWidget {
         _SmallFilterField(
           key: const Key('events-category-field'),
           controller: categoryController,
-          label: 'Category',
+          label: 'Category filter',
         ),
         _SmallFilterField(
           key: const Key('events-severity-field'),
           controller: severityController,
-          label: 'Severity',
+          label: 'Severity filter',
         ),
         _SmallFilterField(
           key: const Key('events-source-field'),
           controller: sourceController,
-          label: 'Source',
+          label: 'Source filter',
         ),
         _SmallFilterField(
           key: const Key('events-start-field'),
@@ -301,6 +348,12 @@ class _EventFilterForm extends StatelessWidget {
           onPressed: onApplyFilters,
           icon: const Icon(Icons.filter_alt),
           label: const Text('Apply'),
+        ),
+        OutlinedButton.icon(
+          key: const Key('events-reset-filters-button'),
+          onPressed: onResetFilters,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reset'),
         ),
       ],
     );
@@ -407,11 +460,12 @@ class _EventPager extends StatelessWidget {
 }
 
 void _showEventDetails(BuildContext context, EventFeedItem item) {
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Event details'),
-      content: Column(
+  MavraSideSheet.show<void>(
+    context,
+    title: 'Event details',
+    child: Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -423,12 +477,6 @@ void _showEventDetails(BuildContext context, EventFeedItem item) {
           Text(item.occurredAt.toIso8601String()),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
     ),
   );
 }

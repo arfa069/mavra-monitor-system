@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_chart.dart';
 import '../domain/analytics_models.dart';
 
 class AnalyticsPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   AnalyticsOverview? _overview;
   Object? _error;
   StreamSubscription<AnalyticsOverview>? _subscription;
+  int _days = 7;
 
   @override
   void initState() {
@@ -95,6 +97,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 }
                 return _AnalyticsContent(
                   overview: _overview ?? AnalyticsOverview.empty(),
+                  selectedDays: _days,
+                  onDaysChanged: (days) {
+                    setState(() {
+                      _days = days;
+                    });
+                  },
                 );
               },
             ),
@@ -106,9 +114,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 }
 
 class _AnalyticsContent extends StatelessWidget {
-  const _AnalyticsContent({required this.overview});
+  const _AnalyticsContent({
+    required this.overview,
+    required this.selectedDays,
+    required this.onDaysChanged,
+  });
 
   final AnalyticsOverview overview;
+  final int selectedDays;
+  final ValueChanged<int> onDaysChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -122,13 +136,6 @@ class _AnalyticsContent extends StatelessWidget {
           children: [for (final kpi in overview.kpis) _KpiCard(kpi: kpi)],
         ),
         const SizedBox(height: 20),
-        Text('Trends', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        if (overview.trends.isEmpty)
-          const Text('No chart data yet')
-        else
-          for (final trend in overview.trends) _TrendPanel(series: trend),
-        const SizedBox(height: 20),
         Text('Recent alerts', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (overview.recentAlerts.isEmpty)
@@ -141,8 +148,75 @@ class _AnalyticsContent extends StatelessWidget {
               title: Text(alert.message),
               subtitle: Text('${alert.productTitle} - ${alert.alertType}'),
             ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Trends',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 7, label: Text('7d')),
+                ButtonSegment(value: 30, label: Text('30d')),
+                ButtonSegment(value: 90, label: Text('90d')),
+              ],
+              selected: {selectedDays},
+              onSelectionChanged: (selection) =>
+                  onDaysChanged(selection.single),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (overview.trends.isEmpty)
+          const Text('No chart data yet')
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 900;
+              final charts = [
+                for (final trend in overview.trends) _chartForTrend(trend),
+              ];
+              if (!wide) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final chart in charts) ...[
+                      chart,
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                );
+              }
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  for (final chart in charts)
+                    SizedBox(width: constraints.maxWidth / 2 - 12, child: chart),
+                ],
+              );
+            },
+          ),
       ],
     );
+  }
+
+  Widget _chartForTrend(TrendSeries series) {
+    final points = [
+      for (final point in series.points)
+        MavraChartPoint(label: point.label, value: point.value.toDouble()),
+    ];
+    final label = series.label.toLowerCase();
+    if (label.contains('platform success')) {
+      return MavraPieChart(title: series.label, points: points);
+    }
+    if (label.contains('crawl failures')) {
+      return MavraBarChart(title: series.label, points: points);
+    }
+    return MavraTrendChart(title: series.label, points: points);
   }
 }
 
@@ -167,47 +241,6 @@ class _KpiCard extends StatelessWidget {
               Text(kpi.value, style: Theme.of(context).textTheme.headlineSmall),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TrendPanel extends StatelessWidget {
-  const _TrendPanel({required this.series});
-
-  final TrendSeries series;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(series.label, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            for (final point in series.points)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    SizedBox(width: 96, child: Text(point.label)),
-                    Expanded(
-                      child: LinearProgressIndicator(
-                        value: point.value <= 0
-                            ? 0
-                            : (point.value / 100).clamp(0, 1).toDouble(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('${point.value}'),
-                  ],
-                ),
-              ),
-          ],
         ),
       ),
     );

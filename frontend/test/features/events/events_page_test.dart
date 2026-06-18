@@ -104,6 +104,47 @@ void main() {
     expect(find.text('test'), findsOneWidget);
   });
 
+  testWidgets('renders wide event table, reset action, and detail control', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _FakeEventRepository(
+      eventsByFilter: {
+        EventFilter.all: [
+          _event(id: '1', kind: EventKind.audit, message: 'User logged in'),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EventsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.text('Kind'), findsOneWidget);
+    expect(find.text('Event type'), findsOneWidget);
+    expect(find.text('Category'), findsOneWidget);
+    expect(find.text('Severity'), findsOneWidget);
+    expect(find.text('Source'), findsOneWidget);
+    expect(find.text('Keyword'), findsOneWidget);
+    expect(
+      find.byKey(const Key('events-reset-filters-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('event-detail-1-button')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('events-keyword-field')), 'x');
+    await tester.tap(find.byKey(const Key('events-reset-filters-button')));
+    await tester.pumpAndSettle();
+    expect(repository.lastQuery.keyword, isNull);
+    expect(repository.lastQuery.page, 1);
+  });
+
   testWidgets('renders an empty event state', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -149,6 +190,32 @@ void main() {
 
     expect(find.text('JD profile updated'), findsOneWidget);
     expect(find.text('Worker started'), findsOneWidget);
+  });
+
+  testWidgets('merges realtime updates by event id', (tester) async {
+    final repository = _FakeEventRepository(
+      eventsByFilter: {
+        EventFilter.all: [
+          _event(id: '1', kind: EventKind.system, message: 'Worker started'),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EventsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    repository.emit(
+      _event(id: '1', kind: EventKind.platform, message: 'Worker restarted'),
+    );
+    repository.emit(
+      _event(id: '1', kind: EventKind.platform, message: 'Worker restarted'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Worker restarted'), findsOneWidget);
+    expect(find.text('Worker started'), findsNothing);
   });
 }
 
