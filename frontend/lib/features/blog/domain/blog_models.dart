@@ -11,6 +11,9 @@ class BlogPostItem {
     required this.categoryName,
     required this.tagNames,
     required this.coverUrl,
+    this.publishedAt,
+    this.seoTitle,
+    this.seoDescription,
   });
 
   final int id;
@@ -22,6 +25,9 @@ class BlogPostItem {
   final String? categoryName;
   final List<String> tagNames;
   final String? coverUrl;
+  final DateTime? publishedAt;
+  final String? seoTitle;
+  final String? seoDescription;
 }
 
 class BlogCategory {
@@ -66,6 +72,9 @@ class BlogPostDraft {
     required this.categoryName,
     required this.tagNames,
     required this.coverUrl,
+    this.publishedAt,
+    this.seoTitle,
+    this.seoDescription,
   });
 
   const BlogPostDraft.empty()
@@ -76,7 +85,10 @@ class BlogPostDraft {
       excerpt = null,
       categoryName = null,
       tagNames = const [],
-      coverUrl = null;
+      coverUrl = null,
+      publishedAt = null,
+      seoTitle = null,
+      seoDescription = null;
 
   final String title;
   final String slug;
@@ -86,6 +98,9 @@ class BlogPostDraft {
   final String? categoryName;
   final List<String> tagNames;
   final String? coverUrl;
+  final DateTime? publishedAt;
+  final String? seoTitle;
+  final String? seoDescription;
 }
 
 class BlogSnapshot {

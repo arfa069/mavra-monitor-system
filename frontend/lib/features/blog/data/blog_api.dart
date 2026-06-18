@@ -52,6 +52,9 @@ class GeneratedBlogRepository implements BlogRepository {
               for (final tag in post.tags?.toList() ?? const []) tag.name,
             ],
             coverUrl: post.coverUrl,
+            publishedAt: post.publishedAt,
+            seoTitle: post.seoTitle,
+            seoDescription: post.seoDescription,
           ),
       ],
       categories: [
@@ -86,6 +89,9 @@ class GeneratedBlogRepository implements BlogRepository {
       categoryName: post.category?.name,
       tagNames: [for (final tag in post.tags?.toList() ?? const []) tag.name],
       coverUrl: post.coverUrl,
+      publishedAt: post.publishedAt,
+      seoTitle: post.seoTitle,
+      seoDescription: post.seoDescription,
     );
   }
 
@@ -102,6 +108,9 @@ class GeneratedBlogRepository implements BlogRepository {
             ..excerpt = _blankToNull(draft.excerpt)
             ..categoryName = _blankToNull(draft.categoryName)
             ..coverUrl = _blankToNull(draft.coverUrl)
+            ..publishedAt = draft.publishedAt
+            ..seoTitle = _blankToNull(draft.seoTitle)
+            ..seoDescription = _blankToNull(draft.seoDescription)
             ..tagNames.replace(draft.tagNames),
         ),
       );
@@ -119,6 +128,9 @@ class GeneratedBlogRepository implements BlogRepository {
           ..excerpt = _blankToNull(draft.excerpt)
           ..categoryName = _blankToNull(draft.categoryName)
           ..coverUrl = _blankToNull(draft.coverUrl)
+          ..publishedAt = draft.publishedAt
+          ..seoTitle = _blankToNull(draft.seoTitle)
+          ..seoDescription = _blankToNull(draft.seoDescription)
           ..tagNames.replace(draft.tagNames),
       ),
     );

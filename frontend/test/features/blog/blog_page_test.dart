@@ -24,6 +24,29 @@ void main() {
     expect(find.text('Edit Morning note'), findsOneWidget);
   });
 
+  testWidgets('applies search and status filters', (tester) async {
+    final repository = _FakeBlogRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: BlogPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('blog-filter-keyword-field')),
+      'morning',
+    );
+    await tester.enterText(
+      find.byKey(const Key('blog-filter-status-field')),
+      'draft',
+    );
+    await tester.tap(find.byKey(const Key('blog-apply-filters-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastFilter.keyword, 'morning');
+    expect(repository.lastFilter.status, 'draft');
+  });
+
   testWidgets('creates posts and validates required editor fields', (
     tester,
   ) async {
@@ -55,6 +78,23 @@ void main() {
       find.byKey(const Key('blog-body-field')),
       'A compact markdown recap.',
     );
+    await tester.enterText(find.byKey(const Key('blog-category-field')), 'Ops');
+    await tester.enterText(
+      find.byKey(const Key('blog-tags-field')),
+      'pricing, launch',
+    );
+    await tester.enterText(
+      find.byKey(const Key('blog-published-at-field')),
+      '2026-06-18T09:30:00Z',
+    );
+    await tester.enterText(
+      find.byKey(const Key('blog-seo-title-field')),
+      'Launch recap SEO',
+    );
+    await tester.enterText(
+      find.byKey(const Key('blog-seo-description-field')),
+      'A launch recap for search previews.',
+    );
     await tester.ensureVisible(find.text('Save post'));
     await tester.tap(find.text('Save post'));
     await tester.pumpAndSettle();
@@ -62,6 +102,17 @@ void main() {
     expect(repository.savedDrafts.last.title, 'Launch recap');
     expect(repository.savedDrafts.last.slug, 'launch-recap');
     expect(repository.savedDrafts.last.body, 'A compact markdown recap.');
+    expect(repository.savedDrafts.last.categoryName, 'Ops');
+    expect(repository.savedDrafts.last.tagNames, ['pricing', 'launch']);
+    expect(
+      repository.savedDrafts.last.publishedAt,
+      DateTime.parse('2026-06-18T09:30:00Z'),
+    );
+    expect(repository.savedDrafts.last.seoTitle, 'Launch recap SEO');
+    expect(
+      repository.savedDrafts.last.seoDescription,
+      'A launch recap for search previews.',
+    );
     expect(repository.updatedPostId, isNull);
   });
 
@@ -213,7 +264,7 @@ class _FakeBlogRepository implements BlogRepository {
   @override
   Future<BlogPostDraft> loadPostDraft(int postId) async {
     loadedPostId = postId;
-    return const BlogPostDraft(
+    return BlogPostDraft(
       title: 'Morning note',
       slug: 'morning-note',
       status: 'draft',
@@ -222,6 +273,9 @@ class _FakeBlogRepository implements BlogRepository {
       categoryName: 'Ops',
       tagNames: ['pricing'],
       coverUrl: null,
+      publishedAt: DateTime.utc(2026, 6, 18, 9),
+      seoTitle: 'Morning note SEO',
+      seoDescription: 'Morning note description.',
     );
   }
 

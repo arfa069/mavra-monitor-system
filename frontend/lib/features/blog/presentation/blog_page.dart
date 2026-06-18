@@ -40,6 +40,11 @@ class _BlogPageState extends State<BlogPage> {
   final _categoryController = TextEditingController();
   final _tagsController = TextEditingController();
   final _coverUrlController = TextEditingController();
+  final _publishedAtController = TextEditingController();
+  final _seoTitleController = TextEditingController();
+  final _seoDescriptionController = TextEditingController();
+  final _filterKeywordController = TextEditingController();
+  final _filterStatusController = TextEditingController();
 
   FileService get _fileService =>
       widget.fileService ??
@@ -78,23 +83,31 @@ class _BlogPageState extends State<BlogPage> {
     _categoryController.dispose();
     _tagsController.dispose();
     _coverUrlController.dispose();
+    _publishedAtController.dispose();
+    _seoTitleController.dispose();
+    _seoDescriptionController.dispose();
+    _filterKeywordController.dispose();
+    _filterStatusController.dispose();
     super.dispose();
   }
 
   void _load() {
+    final filter = BlogFilter(
+      keyword: _blankToNull(_filterKeywordController.text),
+      status: _blankToNull(_filterStatusController.text),
+    );
     setState(() {
       _error = null;
-      _blogFuture =
-          Future.sync(() => widget.repository.loadBlog(const BlogFilter()))
-            ..then((snapshot) {
-              if (mounted) {
-                setState(() => _snapshot = snapshot);
-              }
-            }).catchError((Object error) {
-              if (mounted) {
-                setState(() => _error = error);
-              }
-            });
+      _blogFuture = Future.sync(() => widget.repository.loadBlog(filter))
+        ..then((snapshot) {
+          if (mounted) {
+            setState(() => _snapshot = snapshot);
+          }
+        }).catchError((Object error) {
+          if (mounted) {
+            setState(() => _error = error);
+          }
+        });
     });
   }
 
@@ -113,6 +126,9 @@ class _BlogPageState extends State<BlogPage> {
       _categoryController.clear();
       _tagsController.clear();
       _coverUrlController.clear();
+      _publishedAtController.clear();
+      _seoTitleController.clear();
+      _seoDescriptionController.clear();
     });
   }
 
@@ -139,6 +155,10 @@ class _BlogPageState extends State<BlogPage> {
         _categoryController.text = draft.categoryName ?? '';
         _tagsController.text = draft.tagNames.join(', ');
         _coverUrlController.text = draft.coverUrl ?? '';
+        _publishedAtController.text =
+            draft.publishedAt?.toIso8601String() ?? '';
+        _seoTitleController.text = draft.seoTitle ?? '';
+        _seoDescriptionController.text = draft.seoDescription ?? '';
       });
     } catch (error) {
       if (mounted) {
@@ -168,6 +188,9 @@ class _BlogPageState extends State<BlogPage> {
       categoryName: _blankToNull(_categoryController.text),
       tagNames: _splitTags(_tagsController.text),
       coverUrl: _blankToNull(_coverUrlController.text),
+      publishedAt: DateTime.tryParse(_publishedAtController.text.trim()),
+      seoTitle: _blankToNull(_seoTitleController.text),
+      seoDescription: _blankToNull(_seoDescriptionController.text),
     );
 
     try {
@@ -272,12 +295,18 @@ class _BlogPageState extends State<BlogPage> {
                   categoryController: _categoryController,
                   tagsController: _tagsController,
                   coverUrlController: _coverUrlController,
+                  publishedAtController: _publishedAtController,
+                  seoTitleController: _seoTitleController,
+                  seoDescriptionController: _seoDescriptionController,
+                  filterKeywordController: _filterKeywordController,
+                  filterStatusController: _filterStatusController,
                   titleError: _titleError,
                   bodyError: _bodyError,
                   onNewPost: _newPost,
                   onEditPost: _editPost,
                   onSavePost: _savePost,
                   onUploadMedia: _uploadMedia,
+                  onApplyFilters: _load,
                   onStatusChanged: (value) {
                     if (value != null) {
                       setState(() => _status = value);
@@ -356,12 +385,18 @@ class _BlogContent extends StatelessWidget {
     required this.categoryController,
     required this.tagsController,
     required this.coverUrlController,
+    required this.publishedAtController,
+    required this.seoTitleController,
+    required this.seoDescriptionController,
+    required this.filterKeywordController,
+    required this.filterStatusController,
     required this.titleError,
     required this.bodyError,
     required this.onNewPost,
     required this.onEditPost,
     required this.onSavePost,
     required this.onUploadMedia,
+    required this.onApplyFilters,
     required this.onStatusChanged,
   });
 
@@ -377,12 +412,18 @@ class _BlogContent extends StatelessWidget {
   final TextEditingController categoryController;
   final TextEditingController tagsController;
   final TextEditingController coverUrlController;
+  final TextEditingController publishedAtController;
+  final TextEditingController seoTitleController;
+  final TextEditingController seoDescriptionController;
+  final TextEditingController filterKeywordController;
+  final TextEditingController filterStatusController;
   final String? titleError;
   final String? bodyError;
   final VoidCallback onNewPost;
   final ValueChanged<BlogPostItem> onEditPost;
   final Future<void> Function() onSavePost;
   final Future<void> Function() onUploadMedia;
+  final VoidCallback onApplyFilters;
   final ValueChanged<String?> onStatusChanged;
 
   @override
@@ -413,6 +454,12 @@ class _BlogContent extends StatelessWidget {
             Text(statusMessage!),
           ],
           const SizedBox(height: 12),
+          _BlogFilters(
+            keywordController: filterKeywordController,
+            statusController: filterStatusController,
+            onApplyFilters: onApplyFilters,
+          ),
+          const SizedBox(height: 12),
           _TaxonomyStrip(categories: snapshot.categories, tags: snapshot.tags),
           if (showEditor) ...[
             const SizedBox(height: 16),
@@ -426,6 +473,9 @@ class _BlogContent extends StatelessWidget {
               categoryController: categoryController,
               tagsController: tagsController,
               coverUrlController: coverUrlController,
+              publishedAtController: publishedAtController,
+              seoTitleController: seoTitleController,
+              seoDescriptionController: seoDescriptionController,
               titleError: titleError,
               bodyError: bodyError,
               onSavePost: onSavePost,
@@ -477,6 +527,51 @@ class _TaxonomyStrip extends StatelessWidget {
   }
 }
 
+class _BlogFilters extends StatelessWidget {
+  const _BlogFilters({
+    required this.keywordController,
+    required this.statusController,
+    required this.onApplyFilters,
+  });
+
+  final TextEditingController keywordController;
+  final TextEditingController statusController;
+  final VoidCallback onApplyFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.end,
+      children: [
+        SizedBox(
+          width: 220,
+          child: TextField(
+            key: const Key('blog-filter-keyword-field'),
+            controller: keywordController,
+            decoration: const InputDecoration(labelText: 'Search posts'),
+          ),
+        ),
+        SizedBox(
+          width: 160,
+          child: TextField(
+            key: const Key('blog-filter-status-field'),
+            controller: statusController,
+            decoration: const InputDecoration(labelText: 'Status'),
+          ),
+        ),
+        FilledButton.icon(
+          key: const Key('blog-apply-filters-button'),
+          onPressed: onApplyFilters,
+          icon: const Icon(Icons.filter_alt),
+          label: const Text('Apply filters'),
+        ),
+      ],
+    );
+  }
+}
+
 class _BlogEditor extends StatelessWidget {
   const _BlogEditor({
     required this.canWrite,
@@ -488,6 +583,9 @@ class _BlogEditor extends StatelessWidget {
     required this.categoryController,
     required this.tagsController,
     required this.coverUrlController,
+    required this.publishedAtController,
+    required this.seoTitleController,
+    required this.seoDescriptionController,
     required this.titleError,
     required this.bodyError,
     required this.onSavePost,
@@ -504,6 +602,9 @@ class _BlogEditor extends StatelessWidget {
   final TextEditingController categoryController;
   final TextEditingController tagsController;
   final TextEditingController coverUrlController;
+  final TextEditingController publishedAtController;
+  final TextEditingController seoTitleController;
+  final TextEditingController seoDescriptionController;
   final String? titleError;
   final String? bodyError;
   final Future<void> Function() onSavePost;
@@ -579,6 +680,7 @@ class _BlogEditor extends StatelessWidget {
                 SizedBox(
                   width: 220,
                   child: TextField(
+                    key: const Key('blog-category-field'),
                     controller: categoryController,
                     enabled: canWrite,
                     decoration: const InputDecoration(labelText: 'Category'),
@@ -587,6 +689,7 @@ class _BlogEditor extends StatelessWidget {
                 SizedBox(
                   width: 260,
                   child: TextField(
+                    key: const Key('blog-tags-field'),
                     controller: tagsController,
                     enabled: canWrite,
                     decoration: const InputDecoration(
@@ -606,6 +709,17 @@ class _BlogEditor extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextField(
+              key: const Key('blog-published-at-field'),
+              controller: publishedAtController,
+              enabled: canWrite,
+              decoration: const InputDecoration(
+                labelText: 'Published at',
+                helperText: 'ISO-8601 timestamp',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('blog-cover-url-field'),
               controller: coverUrlController,
               enabled: canWrite,
               decoration: const InputDecoration(labelText: 'Cover URL'),
@@ -614,6 +728,21 @@ class _BlogEditor extends StatelessWidget {
               const SizedBox(height: 6),
               Text(coverUrlController.text),
             ],
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('blog-seo-title-field'),
+              controller: seoTitleController,
+              enabled: canWrite,
+              decoration: const InputDecoration(labelText: 'SEO title'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('blog-seo-description-field'),
+              controller: seoDescriptionController,
+              enabled: canWrite,
+              decoration: const InputDecoration(labelText: 'SEO description'),
+              maxLines: 2,
+            ),
             const SizedBox(height: 12),
             Semantics(
               label: 'Blog post body',
