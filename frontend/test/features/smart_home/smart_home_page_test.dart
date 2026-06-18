@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/smart_home/domain/smart_home_models.dart';
 import 'package:mavra_frontend/features/smart_home/presentation/smart_home_page.dart';
 
@@ -130,6 +131,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Service call failed'), findsOneWidget);
+  });
+
+  testWidgets('matches React smart home entity table parity', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SmartHomePage(repository: _FakeSmartHomeRepository.full()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(MavraResponsiveDataView<SmartHomeEntityItem>),
+      findsOneWidget,
+    );
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(
+      find.byKey(const Key('smart-home-entity-row-light.living_room')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('keeps entity state visible when control permission is denied', (

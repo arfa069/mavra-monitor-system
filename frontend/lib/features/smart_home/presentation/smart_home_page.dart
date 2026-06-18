@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/smart_home_models.dart';
 
 class SmartHomePage extends StatefulWidget {
@@ -395,8 +396,7 @@ class _SmartHomeContent extends StatelessWidget {
           if (snapshot.entities.isEmpty)
             const Center(child: Text('还没有可控制的 Home Assistant 设备。'))
           else
-            for (final entity in entities)
-              _EntityTile(entity: entity, onEntityService: onEntityService),
+            _EntityTable(entities: entities, onEntityService: onEntityService),
         ],
       ),
     );
@@ -589,6 +589,49 @@ class _DomainFilters extends StatelessWidget {
   }
 }
 
+class _EntityTable extends StatelessWidget {
+  const _EntityTable({required this.entities, required this.onEntityService});
+
+  final List<SmartHomeEntityItem> entities;
+  final void Function(SmartHomeEntityItem entity, String service)?
+  onEntityService;
+
+  @override
+  Widget build(BuildContext context) {
+    return MavraResponsiveDataView<SmartHomeEntityItem>(
+      rows: entities,
+      wideBreakpoint: 900,
+      columns: const [
+        DataColumn(label: Text('Entity')),
+        DataColumn(label: Text('Domain')),
+        DataColumn(label: Text('State')),
+        DataColumn(label: Text('Area')),
+        DataColumn(label: Text('Actions')),
+      ],
+      tableCells: (entity) => [
+        DataCell(
+          KeyedSubtree(
+            key: Key('smart-home-entity-row-${entity.entityId}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [Text(entity.name), Text(entity.entityId)],
+            ),
+          ),
+        ),
+        DataCell(Text(entity.domain)),
+        DataCell(Text(entity.state)),
+        DataCell(Text(entity.area ?? '-')),
+        DataCell(
+          _EntityActions(entity: entity, onEntityService: onEntityService),
+        ),
+      ],
+      mobileBuilder: (context, entity) =>
+          _EntityTile(entity: entity, onEntityService: onEntityService),
+    );
+  }
+}
+
 class _EntityTile extends StatelessWidget {
   const _EntityTile({required this.entity, required this.onEntityService});
 
@@ -601,7 +644,7 @@ class _EntityTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(_iconForDomain(entity.domain)),
+        leading: Icon(_EntityActions._iconForDomain(entity.domain)),
         title: Text(entity.name),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,34 +657,20 @@ class _EntityTile extends StatelessWidget {
           spacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Chip(label: Text(entity.domain)),
-            Chip(label: Text(entity.state)),
-            IconButton(
-              key: Key('smart-home-entity-on-${entity.entityId}'),
-              tooltip: 'Turn on ${entity.name}',
-              onPressed: entity.available && onEntityService != null
-                  ? () => onEntityService!(entity, 'turn_on')
-                  : null,
-              icon: const Icon(Icons.power),
-            ),
-            IconButton(
-              key: Key('smart-home-entity-off-${entity.entityId}'),
-              tooltip: 'Turn off ${entity.name}',
-              onPressed: entity.available && onEntityService != null
-                  ? () => onEntityService!(entity, 'turn_off')
-                  : null,
-              icon: const Icon(Icons.power_off),
-            ),
-            if (!entity.available)
-              const Chip(
-                avatar: Icon(Icons.warning_amber),
-                label: Text('unavailable'),
-              ),
+            _EntityActions(entity: entity, onEntityService: onEntityService),
           ],
         ),
       ),
     );
   }
+}
+
+class _EntityActions extends StatelessWidget {
+  const _EntityActions({required this.entity, required this.onEntityService});
+
+  final SmartHomeEntityItem entity;
+  final void Function(SmartHomeEntityItem entity, String service)?
+  onEntityService;
 
   static IconData _iconForDomain(String domain) {
     switch (domain) {
@@ -656,5 +685,38 @@ class _EntityTile extends StatelessWidget {
       default:
         return Icons.home;
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Chip(label: Text(entity.domain)),
+        Chip(label: Text(entity.state)),
+        IconButton(
+          key: Key('smart-home-entity-on-${entity.entityId}'),
+          tooltip: 'Turn on ${entity.name}',
+          onPressed: entity.available && onEntityService != null
+              ? () => onEntityService!(entity, 'turn_on')
+              : null,
+          icon: const Icon(Icons.power),
+        ),
+        IconButton(
+          key: Key('smart-home-entity-off-${entity.entityId}'),
+          tooltip: 'Turn off ${entity.name}',
+          onPressed: entity.available && onEntityService != null
+              ? () => onEntityService!(entity, 'turn_off')
+              : null,
+          icon: const Icon(Icons.power_off),
+        ),
+        if (!entity.available)
+          const Chip(
+            avatar: Icon(Icons.warning_amber),
+            label: Text('unavailable'),
+          ),
+      ],
+    );
   }
 }
