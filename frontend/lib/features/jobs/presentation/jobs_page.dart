@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_side_sheet.dart';
 import '../domain/job_models.dart';
 
 class JobsPage extends StatefulWidget {
@@ -19,18 +21,25 @@ class JobsPage extends StatefulWidget {
 class _JobsPageState extends State<JobsPage> {
   Future<JobsSnapshot>? _jobsFuture;
   JobsSnapshot? _snapshot;
+  JobPageState? _jobPage;
   Object? _error;
   String? _statusMessage;
   int? _editingConfigId;
   bool _showConfigForm = false;
+  int? _selectedResumeId;
 
   final _nameController = TextEditingController();
   final _keywordController = TextEditingController();
   final _locationController = TextEditingController();
   final _platformController = TextEditingController();
   final _cronController = TextEditingController();
+  final _jobKeywordFilterController = TextEditingController();
+  final _jobPageSizeController = TextEditingController(text: '20');
+  final _resumeNameController = TextEditingController();
+  final _resumeTextController = TextEditingController();
   final _profileKeyController = TextEditingController();
   final _profilePlatformController = TextEditingController(text: 'boss');
+  String _jobStatusFilter = 'all';
 
   FileService get _fileService =>
       widget.fileService ??
@@ -58,6 +67,10 @@ class _JobsPageState extends State<JobsPage> {
     _locationController.dispose();
     _platformController.dispose();
     _cronController.dispose();
+    _jobKeywordFilterController.dispose();
+    _jobPageSizeController.dispose();
+    _resumeNameController.dispose();
+    _resumeTextController.dispose();
     _profileKeyController.dispose();
     _profilePlatformController.dispose();
     super.dispose();
@@ -71,6 +84,14 @@ class _JobsPageState extends State<JobsPage> {
           if (mounted) {
             setState(() {
               _snapshot = snapshot;
+              _jobPage = snapshot.page.items.isEmpty
+                  ? JobPageState(
+                      items: snapshot.jobs,
+                      page: 1,
+                      pageSize: snapshot.jobs.length,
+                      total: snapshot.jobs.length,
+                    )
+                  : snapshot.page;
             });
           }
         }).catchError((Object error) {
@@ -132,6 +153,54 @@ class _JobsPageState extends State<JobsPage> {
     }
   }
 
+  Future<void> _applyJobFilters() async {
+    final pageSize = int.tryParse(_jobPageSizeController.text.trim()) ?? 20;
+    final query = JobListQuery(
+      keyword: _emptyToNull(_jobKeywordFilterController.text),
+      status: _jobStatusFilter == 'all' ? null : _jobStatusFilter,
+      pageSize: pageSize,
+    );
+
+    try {
+      final page = await widget.repository.listJobs(query);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _jobPage = page;
+        _statusMessage = 'Loaded ${page.total} jobs';
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Filter failed: $error');
+      }
+    }
+  }
+
+  Future<void> _showJobDetails(JobItem job) async {
+    try {
+      final detail = await widget.repository.loadJobDetail(job.id);
+      if (!mounted) {
+        return;
+      }
+      await MavraSideSheet.show<void>(
+        context,
+        title: 'Job details: ${detail.title}',
+        child: _JobDetailPanel(
+          detail: detail,
+          onRequestMatchAnalysis: () {
+            _requestMatchAnalysis(job);
+            Navigator.of(context).maybePop();
+          },
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Detail failed: $error');
+      }
+    }
+  }
+
   Future<void> _runAction(
     Future<void> Function() action,
     String successMessage, {
@@ -182,7 +251,10 @@ class _JobsPageState extends State<JobsPage> {
       setState(() => _statusMessage = 'Add a resume before match analysis');
       return;
     }
-    final resume = resumes.first;
+    final resume = resumes.firstWhere(
+      (resume) => resume.id == _selectedResumeId,
+      orElse: () => resumes.first,
+    );
     await _runAction(
       () => widget.repository.requestMatchAnalysis(job.id, resumeId: resume.id),
       'Match analysis requested',
@@ -214,6 +286,85 @@ class _JobsPageState extends State<JobsPage> {
       () => widget.repository.deleteResume(resume.id),
       'Deleted ${resume.fileName}',
     );
+  }
+
+  Future<void> _createResume() async {
+    _resumeNameController.clear();
+    _resumeTextController.clear();
+    await _showResumeDialog();
+  }
+
+  Future<void> _editResume(ResumeItem resume) async {
+    _resumeNameController.text = resume.fileName;
+    _resumeTextController.text = 'Existing resume text';
+    await _showResumeDialog(resume: resume);
+  }
+
+  Future<void> _showResumeDialog({ResumeItem? resume}) async {
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(resume == null ? 'Create resume' : 'Edit resume'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              key: const Key('job-resume-name-field'),
+              controller: _resumeNameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('job-resume-text-field'),
+              controller: _resumeTextController,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: 'Resume text'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('job-resume-save-button'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (saved != true) {
+      return;
+    }
+
+    final draft = ResumeDraft(
+      name: _resumeNameController.text.trim(),
+      resumeText: _resumeTextController.text.trim(),
+    );
+    if (resume == null) {
+      await _runAction(
+        () => widget.repository.createResume(draft),
+        'Created ${draft.name}',
+      );
+      return;
+    }
+    await _runAction(
+      () => widget.repository.updateResume(resume.id, draft),
+      'Updated ${draft.name}',
+    );
+  }
+
+  Future<void> _selectResume(ResumeItem resume) async {
+    await _runAction(
+      () => widget.repository.selectResumeForMatch(resume.id),
+      'Selected ${resume.fileName}',
+      reload: false,
+    );
+    if (mounted) {
+      setState(() => _selectedResumeId = resume.id);
+    }
   }
 
   Future<void> _importBackup() async {
@@ -444,13 +595,21 @@ class _JobsPageState extends State<JobsPage> {
                 }
                 return _JobsContent(
                   snapshot: _snapshot ?? const JobsSnapshot.empty(),
+                  jobPage: _jobPage,
                   statusMessage: _statusMessage,
                   showConfigForm: _showConfigForm,
+                  selectedResumeId: _selectedResumeId,
                   nameController: _nameController,
                   keywordController: _keywordController,
                   locationController: _locationController,
                   platformController: _platformController,
                   cronController: _cronController,
+                  jobKeywordFilterController: _jobKeywordFilterController,
+                  jobPageSizeController: _jobPageSizeController,
+                  jobStatusFilter: _jobStatusFilter,
+                  onJobStatusFilterChanged: (value) =>
+                      setState(() => _jobStatusFilter = value),
+                  onApplyJobFilters: _applyJobFilters,
                   onNewConfig: _newConfig,
                   onSaveConfig: _saveConfig,
                   onEditConfig: _editConfig,
@@ -458,8 +617,12 @@ class _JobsPageState extends State<JobsPage> {
                   onRequestCrawlAll: _requestCrawlAll,
                   onRequestCrawlConfig: _requestCrawlConfig,
                   onRequestMatchAnalysis: _requestMatchAnalysis,
+                  onShowJobDetails: _showJobDetails,
                   onUploadResume: _uploadResume,
+                  onCreateResume: _createResume,
+                  onEditResume: _editResume,
                   onDeleteResume: _deleteResume,
+                  onSelectResume: _selectResume,
                   onImportBackup: _importBackup,
                   onCreateProfile: _createProfile,
                   onRenameProfile: _renameProfile,
@@ -484,13 +647,20 @@ class _JobsPageState extends State<JobsPage> {
 class _JobsContent extends StatelessWidget {
   const _JobsContent({
     required this.snapshot,
+    required this.jobPage,
     required this.statusMessage,
     required this.showConfigForm,
+    required this.selectedResumeId,
     required this.nameController,
     required this.keywordController,
     required this.locationController,
     required this.platformController,
     required this.cronController,
+    required this.jobKeywordFilterController,
+    required this.jobPageSizeController,
+    required this.jobStatusFilter,
+    required this.onJobStatusFilterChanged,
+    required this.onApplyJobFilters,
     required this.onNewConfig,
     required this.onSaveConfig,
     required this.onEditConfig,
@@ -498,8 +668,12 @@ class _JobsContent extends StatelessWidget {
     required this.onRequestCrawlAll,
     required this.onRequestCrawlConfig,
     required this.onRequestMatchAnalysis,
+    required this.onShowJobDetails,
     required this.onUploadResume,
+    required this.onCreateResume,
+    required this.onEditResume,
     required this.onDeleteResume,
+    required this.onSelectResume,
     required this.onImportBackup,
     required this.onCreateProfile,
     required this.onRenameProfile,
@@ -514,13 +688,20 @@ class _JobsContent extends StatelessWidget {
   });
 
   final JobsSnapshot snapshot;
+  final JobPageState? jobPage;
   final String? statusMessage;
   final bool showConfigForm;
+  final int? selectedResumeId;
   final TextEditingController nameController;
   final TextEditingController keywordController;
   final TextEditingController locationController;
   final TextEditingController platformController;
   final TextEditingController cronController;
+  final TextEditingController jobKeywordFilterController;
+  final TextEditingController jobPageSizeController;
+  final String jobStatusFilter;
+  final ValueChanged<String> onJobStatusFilterChanged;
+  final Future<void> Function() onApplyJobFilters;
   final VoidCallback onNewConfig;
   final Future<void> Function() onSaveConfig;
   final ValueChanged<JobSearchConfig> onEditConfig;
@@ -528,8 +709,12 @@ class _JobsContent extends StatelessWidget {
   final Future<void> Function() onRequestCrawlAll;
   final ValueChanged<JobSearchConfig> onRequestCrawlConfig;
   final ValueChanged<JobItem> onRequestMatchAnalysis;
+  final ValueChanged<JobItem> onShowJobDetails;
   final VoidCallback onUploadResume;
+  final VoidCallback onCreateResume;
+  final ValueChanged<ResumeItem> onEditResume;
   final ValueChanged<ResumeItem> onDeleteResume;
+  final ValueChanged<ResumeItem> onSelectResume;
   final VoidCallback onImportBackup;
   final VoidCallback onCreateProfile;
   final ValueChanged<CrawlProfileItem> onRenameProfile;
@@ -596,15 +781,21 @@ class _JobsContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
+          _JobFilters(
+            keywordController: jobKeywordFilterController,
+            pageSizeController: jobPageSizeController,
+            statusFilter: jobStatusFilter,
+            onStatusFilterChanged: onJobStatusFilterChanged,
+            onApplyFilters: onApplyJobFilters,
+          ),
+          const SizedBox(height: 12),
           if (snapshot.jobs.isEmpty)
             const Center(child: Text('No jobs yet'))
           else
-            for (final job in snapshot.jobs)
-              _JobTile(
-                job: job,
-                onShowDetails: () =>
-                    _showJobDetails(context, job, onRequestMatchAnalysis),
-              ),
+            _JobsTable(
+              jobs: jobPage?.items ?? snapshot.jobs,
+              onShowDetails: onShowJobDetails,
+            ),
           const SizedBox(height: 20),
           _Section(
             title: 'Search configs',
@@ -659,18 +850,48 @@ class _JobsContent extends StatelessWidget {
             title: 'Resume manager',
             emptyText: 'No resumes yet',
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: const Key('job-resume-create-button'),
+                  onPressed: onCreateResume,
+                  icon: const Icon(Icons.note_add),
+                  label: const Text('Create resume'),
+                ),
+              ),
               for (final resume in snapshot.resumes)
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.description),
                   title: Text(resume.fileName),
-                  subtitle: Text(resume.updatedAt.toIso8601String()),
-                  trailing: IconButton(
-                    key: Key('job-resume-delete-${resume.id}-button'),
-                    tooltip: 'Delete ${resume.fileName}',
-                    onPressed: () => onDeleteResume(resume),
-                    icon: const Icon(Icons.delete_outline),
+                  subtitle: Text(
+                    selectedResumeId == resume.id
+                        ? 'Selected for matching'
+                        : resume.updatedAt.toIso8601String(),
+                  ),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        key: Key('job-resume-select-${resume.id}-button'),
+                        tooltip: 'Select ${resume.fileName}',
+                        onPressed: () => onSelectResume(resume),
+                        icon: const Icon(Icons.check_circle_outline),
+                      ),
+                      IconButton(
+                        key: Key('job-resume-edit-${resume.id}-button'),
+                        tooltip: 'Edit ${resume.fileName}',
+                        onPressed: () => onEditResume(resume),
+                        icon: const Icon(Icons.edit),
+                      ),
+                      IconButton(
+                        key: Key('job-resume-delete-${resume.id}-button'),
+                        tooltip: 'Delete ${resume.fileName}',
+                        onPressed: () => onDeleteResume(resume),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -837,78 +1058,172 @@ class _JobTabStrip extends StatelessWidget {
   }
 }
 
-class _JobTile extends StatelessWidget {
-  const _JobTile({required this.job, required this.onShowDetails});
+class _JobFilters extends StatelessWidget {
+  const _JobFilters({
+    required this.keywordController,
+    required this.pageSizeController,
+    required this.statusFilter,
+    required this.onStatusFilterChanged,
+    required this.onApplyFilters,
+  });
 
-  final JobItem job;
-  final VoidCallback onShowDetails;
+  final TextEditingController keywordController;
+  final TextEditingController pageSizeController;
+  final String statusFilter;
+  final ValueChanged<String> onStatusFilterChanged;
+  final Future<void> Function() onApplyFilters;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: const Icon(Icons.work),
-        title: Text(job.title),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(job.company),
-            Text('${job.location} - ${job.platform}'),
-          ],
-        ),
-        trailing: Wrap(
-          spacing: 8,
-          children: [
-            Text(job.status),
-            IconButton(
-              key: Key('job-detail-${job.id}-button'),
-              tooltip: 'View ${job.title}',
-              onPressed: onShowDetails,
-              icon: const Icon(Icons.open_in_new),
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 280,
+          child: TextField(
+            key: const Key('job-keyword-filter'),
+            controller: keywordController,
+            decoration: const InputDecoration(
+              labelText: 'Keyword',
+              prefixIcon: Icon(Icons.search),
             ),
+          ),
+        ),
+        SizedBox(
+          width: 120,
+          child: TextField(
+            key: const Key('job-page-size-field'),
+            controller: pageSizeController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Page size'),
+          ),
+        ),
+        SegmentedButton<String>(
+          key: const Key('job-status-filter'),
+          segments: const [
+            ButtonSegment(value: 'all', label: Text('All')),
+            ButtonSegment(value: 'active', label: Text('Active')),
+            ButtonSegment(value: 'inactive', label: Text('Inactive')),
           ],
+          selected: {statusFilter},
+          onSelectionChanged: (selection) =>
+              onStatusFilterChanged(selection.first),
+        ),
+        FilledButton.icon(
+          key: const Key('job-apply-filters-button'),
+          onPressed: onApplyFilters,
+          icon: const Icon(Icons.filter_alt),
+          label: const Text('Apply'),
+        ),
+      ],
+    );
+  }
+}
+
+class _JobsTable extends StatelessWidget {
+  const _JobsTable({required this.jobs, required this.onShowDetails});
+
+  final List<JobItem> jobs;
+  final ValueChanged<JobItem> onShowDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    return MavraResponsiveDataView<JobItem>(
+      rows: jobs,
+      wideBreakpoint: 960,
+      columns: const [
+        DataColumn(label: Text('Title')),
+        DataColumn(label: Text('Company')),
+        DataColumn(label: Text('Platform')),
+        DataColumn(label: Text('Location')),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Actions')),
+      ],
+      tableCells: (job) => [
+        DataCell(
+          SizedBox(
+            width: 260,
+            child: Text(job.title, overflow: TextOverflow.ellipsis),
+          ),
+        ),
+        DataCell(Text(job.company)),
+        DataCell(Text(job.platform)),
+        DataCell(Text(job.location)),
+        DataCell(Text(job.status)),
+        DataCell(
+          IconButton(
+            key: Key('job-detail-${job.id}-button'),
+            tooltip: 'View ${job.title}',
+            onPressed: () => onShowDetails(job),
+            icon: const Icon(Icons.open_in_new),
+          ),
+        ),
+      ],
+      mobileBuilder: (context, job) => Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: const Icon(Icons.work),
+          title: Text(job.title),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(job.company),
+              Text('${job.location} - ${job.platform}'),
+            ],
+          ),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Text(job.status),
+              IconButton(
+                key: Key('job-detail-${job.id}-button'),
+                tooltip: 'View ${job.title}',
+                onPressed: () => onShowDetails(job),
+                icon: const Icon(Icons.open_in_new),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-void _showJobDetails(
-  BuildContext context,
-  JobItem job,
-  ValueChanged<JobItem> onRequestMatchAnalysis,
-) {
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Job details: ${job.title}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(job.company),
-          Text('${job.location} - ${job.platform}'),
-          Text(job.status),
+class _JobDetailPanel extends StatelessWidget {
+  const _JobDetailPanel({
+    required this.detail,
+    required this.onRequestMatchAnalysis,
+  });
+
+  final JobDetail detail;
+  final VoidCallback onRequestMatchAnalysis;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(detail.company, style: Theme.of(context).textTheme.titleMedium),
+        if (detail.url != null) ...[
+          const SizedBox(height: 8),
+          Text(detail.url!),
         ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
+        if (detail.description != null) ...[
+          const SizedBox(height: 12),
+          Text(detail.description!),
+        ],
+        const SizedBox(height: 16),
         FilledButton.icon(
-          key: Key('job-match-${job.id}-button'),
-          onPressed: () {
-            onRequestMatchAnalysis(job);
-            Navigator.of(context).pop();
-          },
+          key: Key('job-match-${detail.id}-button'),
+          onPressed: onRequestMatchAnalysis,
           icon: const Icon(Icons.psychology),
           label: const Text('Run match'),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
 class _ProfileTile extends StatelessWidget {
@@ -1058,4 +1373,9 @@ class _Section extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _emptyToNull(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

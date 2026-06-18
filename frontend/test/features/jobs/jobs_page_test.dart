@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/jobs/domain/job_models.dart';
 import 'package:mavra_frontend/features/jobs/presentation/jobs_page.dart';
 
@@ -103,6 +104,80 @@ void main() {
       expect(repository.testedProfileKey, 'boss-main');
     },
   );
+
+  testWidgets('matches React jobs workbench parity interactions', (
+    tester,
+  ) async {
+    final repository = _FakeJobsRepository.full();
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: JobsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('job-keyword-filter')), findsOneWidget);
+    expect(find.byKey(const Key('job-status-filter')), findsOneWidget);
+    expect(find.byKey(const Key('job-page-size-field')), findsOneWidget);
+    expect(find.byType(MavraResponsiveDataView<JobItem>), findsOneWidget);
+    expect(find.byType(DataTable), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('job-keyword-filter')), 'ai');
+    await tester.enterText(find.byKey(const Key('job-page-size-field')), '10');
+    await tester.tap(find.text('Inactive'));
+    await tester.tap(find.byKey(const Key('job-apply-filters-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastListQuery.keyword, 'ai');
+    expect(repository.lastListQuery.status, 'inactive');
+    expect(repository.lastListQuery.pageSize, 10);
+
+    await tester.tap(find.byKey(const Key('job-detail-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.loadedJobDetailId, 1);
+    expect(find.byKey(const Key('mavra-side-sheet-panel')), findsOneWidget);
+    expect(find.text('Fake job detail'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('job-tab-resumes')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('job-resume-create-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('job-resume-name-field')),
+      'frontend resume',
+    );
+    await tester.enterText(
+      find.byKey(const Key('job-resume-text-field')),
+      'Flutter, Windows, API integration',
+    );
+    await tester.tap(find.byKey(const Key('job-resume-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.createdResumeDraft?.name, 'frontend resume');
+
+    await tester.tap(find.byKey(const Key('job-resume-edit-3-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('job-resume-name-field')),
+      'resume revised',
+    );
+    await tester.tap(find.byKey(const Key('job-resume-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedResumeId, 3);
+    expect(repository.updatedResumeDraft?.name, 'resume revised');
+
+    await tester.tap(find.byKey(const Key('job-resume-select-3-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.selectedResumeId, 3);
+  });
 
   testWidgets('creates and edits a job search config from the form', (
     tester,
@@ -285,6 +360,7 @@ class _FakeJobsRepository implements JobsRepository {
   bool crawlAllRequested = false;
   int? crawledConfigId;
   int? deletedConfigId;
+  int? loadedJobDetailId;
   int? matchedJobId;
   int? matchedResumeId;
   int? deletedResumeId;
@@ -319,6 +395,7 @@ class _FakeJobsRepository implements JobsRepository {
 
   @override
   Future<JobDetail> loadJobDetail(int jobId) async {
+    loadedJobDetailId = jobId;
     final job = snapshot.jobs.firstWhere((item) => item.id == jobId);
     return JobDetail(
       id: job.id,
