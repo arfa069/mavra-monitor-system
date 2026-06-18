@@ -29,7 +29,11 @@ void main() {
     final auth = AuthController(api: api);
 
     await tester.pumpWidget(
-      MavraApp(authController: auth, initialLocation: '/login'),
+      MavraApp(
+        authController: auth,
+        todayRepository: const _FakeTodayRepository(),
+        initialLocation: '/login',
+      ),
     );
     await tester.pumpAndSettle();
 

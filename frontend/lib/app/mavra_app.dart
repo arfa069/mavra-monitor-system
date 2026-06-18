@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mavra_api/mavra_api.dart' as generated;
 
+import '../core/api/authenticated_mavra_api.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/config/app_config.dart';
 import '../core/platform/platform_capabilities.dart';
@@ -75,6 +77,7 @@ class MavraApp extends StatefulWidget {
 class _MavraAppState extends State<MavraApp> {
   AuthController? _ownedAuthController;
   AuthRepository? _ownedAuthRepository;
+  generated.MavraApi? _ownedApiClient;
   Future<void>? _defaultRestoreFuture;
 
   @override
@@ -178,12 +181,17 @@ class _MavraAppState extends State<MavraApp> {
     _ownedAuthController?.dispose();
     _ownedAuthController = null;
     _ownedAuthRepository = null;
+    _ownedApiClient = null;
   }
 
   AuthController _defaultAuthController() {
+    final repository = _defaultAuthRepository();
     return AuthController(
-      api: GeneratedAuthApiClient(config: widget.config),
-      repository: _defaultAuthRepository(),
+      api: GeneratedAuthApiClient(
+        config: widget.config,
+        client: _defaultGeneratedApiClient(),
+      ),
+      repository: repository,
       initialSession: widget.isAuthenticated
           ? AuthSession(
               accessToken: 'local-preview-access',
@@ -233,47 +241,93 @@ class _MavraAppState extends State<MavraApp> {
     return repository;
   }
 
+  generated.MavraApi _defaultGeneratedApiClient() {
+    final existing = _ownedApiClient;
+    if (existing != null) {
+      return existing;
+    }
+    final client = createAuthenticatedMavraApi(
+      config: widget.config,
+      authRepository: _defaultAuthRepository(),
+    );
+    _ownedApiClient = client;
+    return client;
+  }
+
   TodayRepository _defaultTodayRepository() {
-    return GeneratedTodayRepository(config: widget.config);
+    return GeneratedTodayRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   EventRepository _defaultEventRepository() {
-    return GeneratedEventRepository(config: widget.config);
+    return GeneratedEventRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   AlertRepository _defaultAlertRepository() {
-    return GeneratedAlertRepository(config: widget.config);
+    return GeneratedAlertRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   AdminRepository _defaultAdminRepository() {
-    return GeneratedAdminRepository(config: widget.config);
+    return GeneratedAdminRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   AnalyticsRepository _defaultAnalyticsRepository() {
-    return GeneratedAnalyticsRepository(config: widget.config);
+    return GeneratedAnalyticsRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   BlogRepository _defaultBlogRepository() {
-    return GeneratedBlogRepository(config: widget.config);
+    return GeneratedBlogRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   JobsRepository _defaultJobsRepository() {
-    return GeneratedJobsRepository(config: widget.config);
+    return GeneratedJobsRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   ProductRepository _defaultProductRepository() {
-    return GeneratedProductRepository(config: widget.config);
+    return GeneratedProductRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   ScheduleRepository _defaultScheduleRepository() {
-    return GeneratedScheduleRepository(config: widget.config);
+    return GeneratedScheduleRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   SettingsRepository _defaultSettingsRepository() {
-    return GeneratedSettingsRepository(config: widget.config);
+    return GeneratedSettingsRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 
   SmartHomeRepository _defaultSmartHomeRepository() {
-    return GeneratedSmartHomeRepository(config: widget.config);
+    return GeneratedSmartHomeRepository(
+      config: widget.config,
+      client: _defaultGeneratedApiClient(),
+    );
   }
 }
