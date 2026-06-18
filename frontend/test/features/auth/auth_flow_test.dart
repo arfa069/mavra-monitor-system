@@ -164,16 +164,75 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('mavra'), findsWidgets);
-    expect(find.text('mavra@example.com'), findsOneWidget);
+    expect(find.text('mavra@example.com'), findsWidgets);
+
+    await tester.drag(
+      find.byKey(const Key('profile-page-list')),
+      const Offset(0, -760),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Sessions'), findsOneWidget);
     expect(find.text('Windows desktop'), findsOneWidget);
     expect(find.text('Login history'), findsOneWidget);
     expect(find.text('127.0.0.1'), findsOneWidget);
   });
+
+  testWidgets('updates profile details and changes password', (tester) async {
+    final api = FakeAuthApi();
+    final auth = AuthController(
+      api: api,
+      initialSession: _session(username: 'mavra', permissions: {'user:read'}),
+    );
+
+    await tester.pumpWidget(
+      MavraApp(authController: auth, initialLocation: '/profile'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit personal info'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('profile-username-field')),
+      'updated-mavra',
+    );
+    await tester.enterText(
+      find.byKey(const Key('profile-email-field')),
+      'updated@example.com',
+    );
+    await tester.tap(find.byKey(const Key('profile-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(api.lastProfileDraft?.username, 'updated-mavra');
+    expect(api.lastProfileDraft?.email, 'updated@example.com');
+    expect(find.text('Profile updated successfully'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('profile-page-list')),
+      const Offset(0, -480),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('profile-current-password-field')),
+      'old-password',
+    );
+    await tester.enterText(
+      find.byKey(const Key('profile-new-password-field')),
+      'NewPassword123!',
+    );
+    await tester.tap(find.byKey(const Key('profile-change-password-button')));
+    await tester.pumpAndSettle();
+
+    expect(api.lastPasswordDraft?.currentPassword, 'old-password');
+    expect(api.lastPasswordDraft?.newPassword, 'NewPassword123!');
+    expect(find.text('Password changed successfully'), findsOneWidget);
+  });
 }
 
 class FakeAuthApi implements AuthApiClient {
   LoginCredentials? lastLogin;
+  AccountProfileDraft? lastProfileDraft;
+  PasswordChangeDraft? lastPasswordDraft;
 
   @override
   Future<AuthSession> login(LoginCredentials credentials) async {
@@ -224,6 +283,7 @@ class FakeAuthApi implements AuthApiClient {
 
   @override
   Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
+    lastProfileDraft = draft;
     return AccountProfile(
       username: draft.username,
       email: draft.email,
@@ -234,6 +294,7 @@ class FakeAuthApi implements AuthApiClient {
 
   @override
   Future<AuthSession> changePassword(PasswordChangeDraft draft) async {
+    lastPasswordDraft = draft;
     return _session(username: 'mavra', permissions: {'user:read'});
   }
 

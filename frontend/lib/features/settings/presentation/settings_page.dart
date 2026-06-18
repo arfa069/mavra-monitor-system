@@ -31,6 +31,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _statusMessage;
   String? _retentionError;
   String _themeMode = 'system';
+  String _motionSpeed = 'normal';
 
   final _retentionController = TextEditingController();
   final _feishuController = TextEditingController();
@@ -80,6 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
           setState(() {
             _snapshot = snapshot;
             _themeMode = _knownTheme(snapshot.themeMode);
+            _motionSpeed = _knownMotionSpeed(snapshot.motionSpeed);
             _applySnapshot(snapshot);
           });
         }).catchError((Object error) {
@@ -106,6 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
       dataRetentionDays: parsedRetention,
       feishuWebhookUrl: _blankToNull(_feishuController.text),
       themeMode: _themeMode,
+      motionSpeed: _motionSpeed,
     );
 
     try {
@@ -118,6 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _retentionError = null;
         _statusMessage = 'Saved settings';
         _themeMode = _knownTheme(snapshot.themeMode);
+        _motionSpeed = _knownMotionSpeed(snapshot.motionSpeed);
         _applySnapshot(snapshot);
       });
     } catch (error) {
@@ -185,10 +189,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   retentionError: _retentionError,
                   statusMessage: _statusMessage,
                   themeMode: _themeMode,
+                  motionSpeed: _motionSpeed,
                   onSaveSettings: _saveSettings,
                   onThemeChanged: (selection) {
                     setState(() {
                       _themeMode = selection.first;
+                    });
+                  },
+                  onMotionSpeedChanged: (selection) {
+                    setState(() {
+                      _motionSpeed = selection.first;
                     });
                   },
                 );
@@ -215,6 +225,10 @@ class _SettingsPageState extends State<SettingsPage> {
     return _themeModes.contains(value) ? value : 'system';
   }
 
+  static String _knownMotionSpeed(String value) {
+    return _motionSpeeds.contains(value) ? value : 'normal';
+  }
+
   static String? _blankToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
@@ -222,6 +236,7 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 const _themeModes = ['system', 'light', 'dark'];
+const _motionSpeeds = ['fast', 'normal', 'slow'];
 
 class _SettingsPermissionDenied extends StatelessWidget {
   const _SettingsPermissionDenied();
@@ -264,8 +279,10 @@ class _SettingsContent extends StatelessWidget {
     required this.retentionError,
     required this.statusMessage,
     required this.themeMode,
+    required this.motionSpeed,
     required this.onSaveSettings,
     required this.onThemeChanged,
+    required this.onMotionSpeedChanged,
   });
 
   final SettingsSnapshot snapshot;
@@ -277,8 +294,10 @@ class _SettingsContent extends StatelessWidget {
   final String? retentionError;
   final String? statusMessage;
   final String themeMode;
+  final String motionSpeed;
   final Future<void> Function() onSaveSettings;
   final ValueChanged<Set<String>> onThemeChanged;
+  final ValueChanged<Set<String>> onMotionSpeedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +370,24 @@ class _SettingsContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text('Theme preference: $themeMode'),
+          const SizedBox(height: 20),
+          Text(
+            'Page transition speed',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<String>(
+            key: const Key('settings-motion-speed-field'),
+            segments: const [
+              ButtonSegment(value: 'fast', label: Text('Fast')),
+              ButtonSegment(value: 'normal', label: Text('Normal')),
+              ButtonSegment(value: 'slow', label: Text('Slow')),
+            ],
+            selected: {motionSpeed},
+            onSelectionChanged: onMotionSpeedChanged,
+          ),
+          const SizedBox(height: 8),
+          Text('Motion speed preference: $motionSpeed'),
           const SizedBox(height: 20),
           Text(
             'API Environment',

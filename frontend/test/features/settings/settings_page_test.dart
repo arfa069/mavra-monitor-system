@@ -90,6 +90,25 @@ void main() {
     expect(repository.savedDrafts, isEmpty);
   });
 
+  testWidgets('saves page transition speed with config updates', (tester) async {
+    final repository = _FakeSettingsRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SettingsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings-motion-speed-field')), findsOneWidget);
+    await tester.tap(find.text('Slow'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save settings'));
+    await tester.pumpAndSettle();
+
+    expect(repository.savedDrafts.last.motionSpeed, 'slow');
+    expect(find.text('Motion speed preference: slow'), findsOneWidget);
+  });
+
   testWidgets('renders loading, empty, error, and permission states', (
     tester,
   ) async {
@@ -139,6 +158,7 @@ class _FakeSettingsRepository implements SettingsRepository {
         updatedAt: DateTime.utc(2026, 6, 16),
       ),
       themeMode: 'system',
+      motionSpeed: 'normal',
     ),
   );
 
