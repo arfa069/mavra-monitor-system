@@ -39,14 +39,14 @@ class _SettingsPageState extends State<SettingsPage> {
   PlatformCapabilities get _capabilities =>
       widget.capabilities ?? PlatformCapabilities.current();
 
-  bool get _canRead => widget.permissions.contains('config:read');
+  bool get _canReadConfig => widget.permissions.contains('config:read');
 
   bool get _canWrite => widget.permissions.contains('config:write');
 
   @override
   void initState() {
     super.initState();
-    if (_canRead) {
+    if (_canReadConfig) {
       _load();
     }
   }
@@ -57,7 +57,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (oldWidget.repository != widget.repository ||
         oldWidget.permissions != widget.permissions) {
       _snapshot = null;
-      if (_canRead) {
+      if (_canReadConfig) {
         _load();
       }
     }
@@ -133,10 +133,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_canRead) {
-      return const _SettingsPermissionDenied();
-    }
-
     return Scaffold(
       body: AdaptiveScaffold(
         destinations: const [
@@ -165,7 +161,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (_error != null) {
                   return const Center(child: Text('设置加载失败。'));
                 }
-                if (snapshot.connectionState != ConnectionState.done &&
+                if (_canReadConfig &&
+                    snapshot.connectionState != ConnectionState.done &&
                     _snapshot == null) {
                   return const Center(
                     child: Column(
@@ -183,6 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   snapshot: _snapshot ?? const SettingsSnapshot.empty(),
                   config: widget.config,
                   capabilities: _capabilities,
+                  canReadConfig: _canReadConfig,
                   canWrite: _canWrite,
                   retentionController: _retentionController,
                   feishuController: _feishuController,
@@ -238,41 +236,12 @@ class _SettingsPageState extends State<SettingsPage> {
 const _themeModes = ['system', 'light', 'dark'];
 const _motionSpeeds = ['fast', 'normal', 'slow'];
 
-class _SettingsPermissionDenied extends StatelessWidget {
-  const _SettingsPermissionDenied();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.lock_outline, size: 44),
-              const SizedBox(height: 16),
-              const Text('没有权限修改这些设置。'),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () => context.go('/today'),
-                icon: const Icon(Icons.today),
-                label: const Text('回到 Today'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SettingsContent extends StatelessWidget {
   const _SettingsContent({
     required this.snapshot,
     required this.config,
     required this.capabilities,
+    required this.canReadConfig,
     required this.canWrite,
     required this.retentionController,
     required this.feishuController,
@@ -288,6 +257,7 @@ class _SettingsContent extends StatelessWidget {
   final SettingsSnapshot snapshot;
   final AppConfig config;
   final PlatformCapabilities capabilities;
+  final bool canReadConfig;
   final bool canWrite;
   final TextEditingController retentionController;
   final TextEditingController feishuController;
@@ -312,49 +282,58 @@ class _SettingsContent extends StatelessWidget {
             Text(statusMessage!),
           ],
           const SizedBox(height: 16),
-          if (snapshot.isEmpty)
-            const Text('还没有可配置的偏好。')
-          else ...[
+          if (canReadConfig) ...[
+            if (snapshot.isEmpty)
+              const Text('还没有可配置的偏好。')
+            else ...[
+              Text(
+                'User config',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(userConfig!.username),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 220,
+                    child: TextField(
+                      key: const Key('settings-retention-field'),
+                      controller: retentionController,
+                      enabled: canWrite,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Data retention days',
+                        errorText: retentionError,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 360,
+                    child: TextField(
+                      key: const Key('settings-feishu-field'),
+                      controller: feishuController,
+                      enabled: canWrite,
+                      decoration: const InputDecoration(
+                        labelText: 'Feishu webhook URL',
+                      ),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: canWrite ? onSaveSettings : null,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save settings'),
+                  ),
+                ],
+              ),
+            ],
+          ] else ...[
             Text('User config', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(userConfig!.username),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.end,
-              children: [
-                SizedBox(
-                  width: 220,
-                  child: TextField(
-                    key: const Key('settings-retention-field'),
-                    controller: retentionController,
-                    enabled: canWrite,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Data retention days',
-                      errorText: retentionError,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 360,
-                  child: TextField(
-                    key: const Key('settings-feishu-field'),
-                    controller: feishuController,
-                    enabled: canWrite,
-                    decoration: const InputDecoration(
-                      labelText: 'Feishu webhook URL',
-                    ),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: canWrite ? onSaveSettings : null,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save settings'),
-                ),
-              ],
-            ),
+            const Text('Configuration details require config:read.'),
           ],
           const SizedBox(height: 20),
           Text('Theme', style: Theme.of(context).textTheme.titleMedium),

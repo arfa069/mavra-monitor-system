@@ -150,6 +150,30 @@ void main() {
     expect(find.text('Go to Today'), findsOneWidget);
   });
 
+  testWidgets('allows personal settings without config read permission', (
+    tester,
+  ) async {
+    final auth = AuthController(
+      api: FakeAuthApi(),
+      initialSession: _session(username: 'viewer', permissions: {'user:read'}),
+    );
+
+    await tester.pumpWidget(
+      MavraApp(
+        authController: auth,
+        settingsRepository: const _FakeSettingsRepository(),
+        initialLocation: '/settings',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Page transition speed'), findsOneWidget);
+    expect(find.text('Permission required'), findsNothing);
+    expect(find.text('API Environment'), findsOneWidget);
+  });
+
   testWidgets('renders profile user info, sessions, and login history', (
     tester,
   ) async {
@@ -226,6 +250,24 @@ void main() {
     expect(api.lastPasswordDraft?.currentPassword, 'old-password');
     expect(api.lastPasswordDraft?.newPassword, 'NewPassword123!');
     expect(find.text('Password changed successfully'), findsOneWidget);
+  });
+
+  testWidgets('does not render the WeChat temporary token in the callback UI', (
+    tester,
+  ) async {
+    final auth = AuthController(api: _UnboundWeChatAuthApi());
+
+    await tester.pumpWidget(
+      MavraApp(
+        authController: auth,
+        initialLocation: '/auth/wechat/callback?code=wechat-demo',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('WeChat account is unbound'), findsOneWidget);
+    expect(find.textContaining('temp-secret-token'), findsNothing);
+    expect(find.textContaining('link your account'), findsOneWidget);
   });
 }
 
@@ -334,6 +376,16 @@ class _FakeSettingsRepository implements SettingsRepository {
       userConfig: null,
       themeMode: 'system',
       motionSpeed: motionSpeed,
+    );
+  }
+}
+
+class _UnboundWeChatAuthApi extends FakeAuthApi {
+  @override
+  Future<WeChatExchangeResult> exchangeWeChatCode(String code) async {
+    return WeChatExchangeResult.unbound(
+      tempToken: 'temp-secret-token',
+      nextPath: '/register',
     );
   }
 }

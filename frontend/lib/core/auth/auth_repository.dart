@@ -154,7 +154,13 @@ class AuthRepository {
   }
 
   Future<bool> refreshSession() async {
-    final refreshed = await refreshRemote?.call();
+    AuthSession? refreshed;
+    try {
+      refreshed = await refreshRemote?.call();
+    } catch (_) {
+      await logout();
+      return false;
+    }
     if (refreshed == null) {
       await logout();
       return false;

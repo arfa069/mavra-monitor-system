@@ -9,10 +9,16 @@ import '../../../core/widgets/mavra_side_sheet.dart';
 import '../domain/job_models.dart';
 
 class JobsPage extends StatefulWidget {
-  const JobsPage({super.key, required this.repository, this.fileService});
+  const JobsPage({
+    super.key,
+    required this.repository,
+    this.fileService,
+    this.permissions,
+  });
 
   final JobsRepository repository;
   final FileService? fileService;
+  final Set<String>? permissions;
 
   @override
   State<JobsPage> createState() => _JobsPageState();
@@ -44,6 +50,14 @@ class _JobsPageState extends State<JobsPage> {
   FileService get _fileService =>
       widget.fileService ??
       FileService.forCapabilities(PlatformCapabilities.current());
+
+  bool get _canRunCrawl =>
+      widget.permissions == null ||
+      widget.permissions!.contains('crawl:execute');
+
+  bool get _canImportExportBackups =>
+      widget.permissions == null ||
+      widget.permissions!.contains('config:write');
 
   @override
   void initState() {
@@ -188,10 +202,12 @@ class _JobsPageState extends State<JobsPage> {
         title: 'Job details: ${detail.title}',
         child: _JobDetailPanel(
           detail: detail,
-          onRequestMatchAnalysis: () {
-            _requestMatchAnalysis(job);
-            Navigator.of(context).maybePop();
-          },
+          onRequestMatchAnalysis: _canRunCrawl
+              ? () {
+                  _requestMatchAnalysis(job);
+                  Navigator.of(context).maybePop();
+                }
+              : null,
         ),
       );
     } catch (error) {
@@ -597,6 +613,8 @@ class _JobsPageState extends State<JobsPage> {
                   snapshot: _snapshot ?? const JobsSnapshot.empty(),
                   jobPage: _jobPage,
                   statusMessage: _statusMessage,
+                  canRunCrawl: _canRunCrawl,
+                  canImportExportBackups: _canImportExportBackups,
                   showConfigForm: _showConfigForm,
                   selectedResumeId: _selectedResumeId,
                   nameController: _nameController,
@@ -649,6 +667,8 @@ class _JobsContent extends StatelessWidget {
     required this.snapshot,
     required this.jobPage,
     required this.statusMessage,
+    required this.canRunCrawl,
+    required this.canImportExportBackups,
     required this.showConfigForm,
     required this.selectedResumeId,
     required this.nameController,
@@ -690,6 +710,8 @@ class _JobsContent extends StatelessWidget {
   final JobsSnapshot snapshot;
   final JobPageState? jobPage;
   final String? statusMessage;
+  final bool canRunCrawl;
+  final bool canImportExportBackups;
   final bool showConfigForm;
   final int? selectedResumeId;
   final TextEditingController nameController;
@@ -741,7 +763,7 @@ class _JobsContent extends StatelessWidget {
             runSpacing: 8,
             children: [
               TextButton.icon(
-                onPressed: onImportBackup,
+                onPressed: canImportExportBackups ? onImportBackup : null,
                 icon: const Icon(Icons.archive),
                 label: const Text('Import backup'),
               ),
@@ -752,7 +774,7 @@ class _JobsContent extends StatelessWidget {
               ),
               TextButton.icon(
                 key: const Key('job-crawl-all-button'),
-                onPressed: onRequestCrawlAll,
+                onPressed: canRunCrawl ? onRequestCrawlAll : null,
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Run crawl'),
               ),
@@ -814,7 +836,9 @@ class _JobsContent extends StatelessWidget {
                       IconButton(
                         key: Key('job-crawl-config-${config.id}-button'),
                         tooltip: 'Run crawl ${config.name}',
-                        onPressed: () => onRequestCrawlConfig(config),
+                        onPressed: canRunCrawl
+                            ? () => onRequestCrawlConfig(config)
+                            : null,
                         icon: const Icon(Icons.play_circle),
                       ),
                       TextButton(
@@ -926,15 +950,23 @@ class _JobsContent extends StatelessWidget {
               for (final profile in snapshot.profiles)
                 _ProfileTile(
                   profile: profile,
-                  onExportBackup: onExportBackup,
+                  onExportBackup: canImportExportBackups
+                      ? onExportBackup
+                      : null,
                   onRenameProfile: onRenameProfile,
                   onUpdateProfileStatus: onUpdateProfileStatus,
                   onCopyProfile: onCopyProfile,
                   onDeleteProfile: onDeleteProfile,
-                  onReleaseStaleProfile: onReleaseStaleProfile,
-                  onOpenProfileLoginSession: onOpenProfileLoginSession,
-                  onCloseProfileLoginSession: onCloseProfileLoginSession,
-                  onTestProfile: onTestProfile,
+                  onReleaseStaleProfile: canRunCrawl
+                      ? onReleaseStaleProfile
+                      : null,
+                  onOpenProfileLoginSession: canRunCrawl
+                      ? onOpenProfileLoginSession
+                      : null,
+                  onCloseProfileLoginSession: canRunCrawl
+                      ? onCloseProfileLoginSession
+                      : null,
+                  onTestProfile: canRunCrawl ? onTestProfile : null,
                 ),
             ],
           ),
@@ -1198,7 +1230,7 @@ class _JobDetailPanel extends StatelessWidget {
   });
 
   final JobDetail detail;
-  final VoidCallback onRequestMatchAnalysis;
+  final VoidCallback? onRequestMatchAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -1241,16 +1273,16 @@ class _ProfileTile extends StatelessWidget {
   });
 
   final CrawlProfileItem profile;
-  final ValueChanged<String> onExportBackup;
+  final ValueChanged<String>? onExportBackup;
   final ValueChanged<CrawlProfileItem> onRenameProfile;
   final void Function(CrawlProfileItem profile, String status)
   onUpdateProfileStatus;
   final ValueChanged<CrawlProfileItem> onCopyProfile;
   final ValueChanged<CrawlProfileItem> onDeleteProfile;
-  final ValueChanged<CrawlProfileItem> onReleaseStaleProfile;
-  final ValueChanged<CrawlProfileItem> onOpenProfileLoginSession;
-  final ValueChanged<CrawlProfileItem> onCloseProfileLoginSession;
-  final ValueChanged<CrawlProfileItem> onTestProfile;
+  final ValueChanged<CrawlProfileItem>? onReleaseStaleProfile;
+  final ValueChanged<CrawlProfileItem>? onOpenProfileLoginSession;
+  final ValueChanged<CrawlProfileItem>? onCloseProfileLoginSession;
+  final ValueChanged<CrawlProfileItem>? onTestProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -1280,7 +1312,9 @@ class _ProfileTile extends StatelessWidget {
               runSpacing: 4,
               children: [
                 TextButton(
-                  onPressed: () => onExportBackup(profile.profileKey),
+                  onPressed: onExportBackup == null
+                      ? null
+                      : () => onExportBackup!(profile.profileKey),
                   child: Text('Export backup ${profile.profileKey}'),
                 ),
                 IconButton(
@@ -1310,13 +1344,17 @@ class _ProfileTile extends StatelessWidget {
                 IconButton(
                   key: Key('job-profile-release-${profile.profileKey}-button'),
                   tooltip: 'Release stale ${profile.profileKey}',
-                  onPressed: () => onReleaseStaleProfile(profile),
+                  onPressed: onReleaseStaleProfile == null
+                      ? null
+                      : () => onReleaseStaleProfile!(profile),
                   icon: const Icon(Icons.lock_open),
                 ),
                 IconButton(
                   key: Key('job-profile-login-${profile.profileKey}-button'),
                   tooltip: 'Open login session ${profile.profileKey}',
-                  onPressed: () => onOpenProfileLoginSession(profile),
+                  onPressed: onOpenProfileLoginSession == null
+                      ? null
+                      : () => onOpenProfileLoginSession!(profile),
                   icon: const Icon(Icons.login),
                 ),
                 IconButton(
@@ -1324,13 +1362,17 @@ class _ProfileTile extends StatelessWidget {
                     'job-profile-close-login-${profile.profileKey}-button',
                   ),
                   tooltip: 'Close login session ${profile.profileKey}',
-                  onPressed: () => onCloseProfileLoginSession(profile),
+                  onPressed: onCloseProfileLoginSession == null
+                      ? null
+                      : () => onCloseProfileLoginSession!(profile),
                   icon: const Icon(Icons.logout),
                 ),
                 IconButton(
                   key: Key('job-profile-test-${profile.profileKey}-button'),
                   tooltip: 'Test ${profile.profileKey}',
-                  onPressed: () => onTestProfile(profile),
+                  onPressed: onTestProfile == null
+                      ? null
+                      : () => onTestProfile!(profile),
                   icon: const Icon(Icons.science),
                 ),
                 IconButton(

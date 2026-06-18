@@ -18,7 +18,7 @@ Last updated: 2026-06-18
 | Backend lint | `uv run --extra dev python -m ruff check .` | Passed |
 | Backend full tests | `uv run --extra dev python -m pytest` | Passed: `737 passed, 23 skipped, 54 warnings in 41.19s` |
 | Flutter analyzer | `flutter analyze` | Passed |
-| Flutter tests | `flutter test` | Passed: `112` tests |
+| Flutter tests | `flutter test` | Passed: `121` tests |
 | Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed |
 | Web build | `flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` | Passed: `Built build\web`; Wasm dry run succeeded |
 | Web browser smoke | Microsoft Edge against `python -m http.server 4173 --bind 127.0.0.1 -d build/web` | Passed: Flutter runtime mounted, release login screenshot rendered, no console/page errors captured |
@@ -83,6 +83,7 @@ Last updated: 2026-06-18
 ## Required Before Final-Green
 
 - Current supported platforms are final-green.
+- Gate 06 review follow-up is resolved: generated auth refresh, settings access, dangerous-action gating, and WeChat callback token exposure are all covered by current tests/builds.
 - Keep iOS marked deferred until macOS capacity exists; do not mark it passed without a real macOS build/simulator/device run.
 
 ## Safety Rules

@@ -222,6 +222,30 @@ void main() {
 
     expect(find.text('off'), findsOneWidget);
   });
+
+  testWidgets('explicit permissions override repository control flags', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SmartHomePage(
+          repository: _FakeSmartHomeRepository.full(),
+          permissions: const {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final editConfig = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Edit config'),
+    );
+    expect(editConfig.onPressed, isNull);
+
+    final callService = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Call service'),
+    );
+    expect(callService.onPressed, isNull);
+  });
 }
 
 class _FakeSmartHomeRepository implements SmartHomeRepository {

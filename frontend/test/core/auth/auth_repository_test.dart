@@ -76,6 +76,26 @@ void main() {
       expect(await storage.read(AuthRepository.refreshTokenKey), isNull);
       expect(remoteLogoutCalls, 1);
     });
+
+    test('refresh failure clears the local session', () async {
+      var remoteLogoutCalls = 0;
+      final storage = InMemoryTokenStorage();
+      final repository = AuthRepository(
+        storage: storage,
+        policy: TokenPersistencePolicy.nativeSecureStorage,
+        refreshRemote: () async => throw StateError('refresh failed'),
+        onRemoteLogout: () async => remoteLogoutCalls += 1,
+      );
+      await repository.saveSession(_session());
+
+      final refreshed = await repository.refreshSession();
+
+      expect(refreshed, isFalse);
+      expect(repository.currentSession, isNull);
+      expect(await storage.read(AuthRepository.accessTokenKey), isNull);
+      expect(await storage.read(AuthRepository.refreshTokenKey), isNull);
+      expect(remoteLogoutCalls, 1);
+    });
   });
 
   group('SecureTokenStorage', () {

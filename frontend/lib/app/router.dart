@@ -113,22 +113,31 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/jobs',
-            builder: (context, state) => JobsPage(repository: jobsRepository),
+            builder: (context, state) => JobsPage(
+              repository: jobsRepository,
+              permissions: _jobsPermissions(authController),
+            ),
           ),
           GoRoute(
             path: '/products',
-            builder: (context, state) =>
-                ProductsPage(repository: productRepository),
+            builder: (context, state) => ProductsPage(
+              repository: productRepository,
+              permissions: _productsPermissions(authController),
+            ),
           ),
           GoRoute(
             path: '/schedule',
-            builder: (context, state) =>
-                SchedulePage(repository: scheduleRepository),
+            builder: (context, state) => SchedulePage(
+              repository: scheduleRepository,
+              permissions: _schedulePermissions(authController),
+            ),
           ),
           GoRoute(
             path: '/smart-home',
-            builder: (context, state) =>
-                SmartHomePage(repository: smartHomeRepository),
+            builder: (context, state) => SmartHomePage(
+              repository: smartHomeRepository,
+              permissions: _smartHomePermissions(authController),
+            ),
           ),
           GoRoute(
             path: '/profile',
@@ -137,14 +146,10 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => _permissionPage(
-              authController,
-              'config:read',
-              SettingsPage(
-                repository: settingsRepository,
-                config: config,
-                permissions: _settingsPermissions(authController),
-              ),
+            builder: (context, state) => SettingsPage(
+              repository: settingsRepository,
+              config: config,
+              permissions: _settingsPermissions(authController),
             ),
           ),
           GoRoute(
@@ -201,6 +206,34 @@ Set<String> _blogPermissions(AuthController authController) {
 
 Set<String> _settingsPermissions(AuthController authController) {
   return _permissions(authController, const {'config:read', 'config:write'});
+}
+
+Set<String> _jobsPermissions(AuthController authController) {
+  return _permissions(authController, const {
+    'crawl:execute',
+    'config:write',
+    'schedule:configure',
+  });
+}
+
+Set<String> _productsPermissions(AuthController authController) {
+  return _permissions(authController, const {
+    'crawl:execute',
+    'product:write',
+    'product:delete',
+    'schedule:configure',
+  });
+}
+
+Set<String> _schedulePermissions(AuthController authController) {
+  return _permissions(authController, const {'schedule:configure'});
+}
+
+Set<String> _smartHomePermissions(AuthController authController) {
+  return _permissions(authController, const {
+    'smart_home:configure',
+    'smart_home:control',
+  });
 }
 
 Set<String> _permissions(AuthController authController, Set<String> names) {

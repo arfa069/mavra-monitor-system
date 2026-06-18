@@ -282,6 +282,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Jobs unavailable'), findsOneWidget);
   });
+
+  testWidgets('disables dangerous crawl and profile actions without permission', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: JobsPage(
+          repository: _FakeJobsRepository.full(),
+          permissions: const {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final crawlAll = tester.widget<TextButton>(
+      find.byKey(const Key('job-crawl-all-button')),
+    );
+    expect(crawlAll.onPressed, isNull);
+
+    final profileLogin = tester.widget<IconButton>(
+      find.byKey(const Key('job-profile-login-boss-main-button')),
+    );
+    expect(profileLogin.onPressed, isNull);
+
+    await tester.tap(find.byKey(const Key('job-detail-1-button')));
+    await tester.pumpAndSettle();
+
+    final match = tester.widget<FilledButton>(
+      find.byKey(const Key('job-match-1-button')),
+    );
+    expect(match.onPressed, isNull);
+  });
 }
 
 class _FakeJobsRepository implements JobsRepository {

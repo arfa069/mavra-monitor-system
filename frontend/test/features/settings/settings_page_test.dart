@@ -109,7 +109,7 @@ void main() {
     expect(find.text('Motion speed preference: slow'), findsOneWidget);
   });
 
-  testWidgets('renders loading, empty, error, and permission states', (
+  testWidgets('renders loading, empty, and error states', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -131,17 +131,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('设置加载失败。'), findsOneWidget);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: SettingsPage(
-          repository: _FakeSettingsRepository.full(),
-          permissions: const {},
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('没有权限修改这些设置。'), findsOneWidget);
   });
 }
 

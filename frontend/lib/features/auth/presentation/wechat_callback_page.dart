@@ -42,7 +42,14 @@ class _WeChatCallbackPageState extends State<WeChatCallbackPage> {
         widget.queryParameters['exchange_code'] ??
         widget.queryParameters['code'];
     if (code != null && code.isNotEmpty) {
-      _exchange = widget.authController.exchangeWeChatCode(code);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _exchange = widget.authController.exchangeWeChatCode(code);
+        });
+      });
     }
   }
 
@@ -95,10 +102,11 @@ class _WeChatCallbackPageState extends State<WeChatCallbackPage> {
                 );
               }
               if (result.isUnbound) {
-                return _CallbackMessage(
+                return const _CallbackMessage(
                   icon: Icons.link,
                   title: 'WeChat account is unbound',
-                  message: 'Temporary token: ${result.tempToken}',
+                  message:
+                      'This WeChat account is not linked yet. Continue to link your account.',
                 );
               }
               return _CallbackMessage(

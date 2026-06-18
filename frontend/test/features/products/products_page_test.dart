@@ -261,6 +261,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Products unavailable'), findsOneWidget);
   });
+
+  testWidgets('disables crawl now without crawl permission', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProductsPage(
+          repository: _FakeProductRepository.full(),
+          permissions: const {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final crawlNow = tester.widget<OutlinedButton>(
+      find.byKey(const Key('product-crawl-now-button')),
+    );
+    expect(crawlNow.onPressed, isNull);
+  });
 }
 
 class _FakeProductRepository implements ProductRepository {

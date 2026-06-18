@@ -67,7 +67,7 @@ class GeneratedScheduleRepository implements ScheduleRepository {
         retentionDays: configData?.dataRetentionDays ?? 365,
         feishuWebhookUrl: configData?.feishuWebhookUrl,
       ),
-      canConfigure: true,
+      canConfigure: false,
     );
   }
 

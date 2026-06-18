@@ -50,6 +50,50 @@ Reviewer: Codex, separate pass after command verification
 - Resolution: Roboto is bundled as an application font so `FontManifest.json` includes the `Roboto` family and CanvasKit no longer blocks first frame on the remote default Roboto download.
 - Verification: Visual Web build passed with `--no-web-resources-cdn`; Chrome visual QA screenshots captured Auth, Today, Analytics, Products, Jobs, Smart Home, Settings, Admin users, audit logs, blog, and mobile responsive samples with first frame rendered.
 
+### Finding 5: Generated API Client Did Not Refresh Expired Sessions
+
+- Severity: High
+- Status: Resolved on 2026-06-18
+- Files: `frontend/lib/core/api/authenticated_mavra_api.dart`, `frontend/lib/core/auth/auth_repository.dart`, `frontend/lib/features/auth/data/auth_api.dart`, `frontend/lib/app/mavra_app.dart`
+- Location: generated API auth interceptor and default app auth repository wiring
+- Original issue: The generated OpenAPI client path attached bearer tokens but did not recover from `401` responses in production, and the default `MavraApp` repository did not wire a generated-client refresh callback.
+- Original impact: Web, Windows, and Android sessions could fail permanently after access-token expiry even though a refresh token existed, forcing unnecessary re-login and breaking long-lived authenticated flows.
+- Resolution: The generated API client now retries exactly once after a successful refresh, `AuthRepository.refreshSession()` clears local state when refresh throws or returns null, `auth_api.dart` exposes `refreshGeneratedAuthSession()`, and the default `MavraApp` repository now uses that refresh path.
+- Verification: `flutter test test/core/auth/auth_repository_test.dart test/core/api/authenticated_mavra_api_test.dart test/features/auth/auth_api_test.dart test/features/auth/auth_flow_test.dart`, `flutter test`, `flutter analyze`, `flutter build web`, and `flutter build windows` all passed after the change.
+
+### Finding 6: Settings Was Over-Gated By `config:read`
+
+- Severity: Medium
+- Status: Resolved on 2026-06-18
+- Files: `frontend/lib/app/router.dart`, `frontend/lib/features/settings/presentation/settings_page.dart`
+- Location: `/settings` route guard and settings page permission handling
+- Original issue: `/settings` was wrapped in a route-level `config:read` permission guard, which blocked ordinary authenticated users from reaching personal preferences that do not require server-side config access.
+- Original impact: Users without `config:read` could not reach theme, motion, API environment, or platform capability settings even though those are part of the personal account surface.
+- Resolution: The route-level guard was removed for `/settings`. The page now always renders the personal settings surface, while the server-backed config section is shown only when `config:read` is present and save actions remain gated by `config:write`.
+- Verification: `flutter test test/features/auth/auth_flow_test.dart test/features/settings/settings_page_test.dart`, `flutter test`, and `flutter analyze` all passed after the change.
+
+### Finding 7: Dangerous Actions Were Not Consistently Permission-Gated
+
+- Severity: High
+- Status: Resolved on 2026-06-18
+- Files: `frontend/lib/app/router.dart`, `frontend/lib/features/products/presentation/products_page.dart`, `frontend/lib/features/jobs/presentation/jobs_page.dart`, `frontend/lib/features/schedule/presentation/schedule_page.dart`, `frontend/lib/features/smart_home/presentation/smart_home_page.dart`, `frontend/lib/features/schedule/data/schedule_api.dart`, `frontend/lib/features/smart_home/data/smart_home_api.dart`
+- Location: products crawl-now, jobs crawl/match/profile actions, schedule configuration, and smart-home configure/control actions
+- Original issue: Several dangerous actions were always enabled in the Flutter UI, and generated schedule/smart-home repositories advertised `canConfigure` / `canControl` as `true` regardless of the current user.
+- Original impact: Users could be presented with crawl, profile session, match-analysis, schedule-edit, and smart-home control affordances that they were not authorized to execute.
+- Resolution: App-router permission subsets are now passed into the affected pages, dangerous buttons are disabled when the required permissions are absent, and generated schedule/smart-home repositories now default those capability flags to safe `false` values instead of optimistic `true`.
+- Verification: `flutter test test/features/products/products_page_test.dart test/features/jobs/jobs_page_test.dart test/features/schedule/schedule_page_test.dart test/features/smart_home/smart_home_page_test.dart`, `flutter test`, `flutter analyze`, `flutter build web`, and `flutter build windows` all passed after the change.
+
+### Finding 8: WeChat Callback Exposed The Temporary Token In UI
+
+- Severity: High
+- Status: Resolved on 2026-06-18
+- Files: `frontend/lib/features/auth/presentation/wechat_callback_page.dart`, `frontend/test/features/auth/auth_flow_test.dart`
+- Location: WeChat unbound callback message
+- Original issue: The unbound WeChat callback state rendered `tempToken` directly in the page body.
+- Original impact: A short-lived but still sensitive linkage token was exposed in the browser UI and screenshots. The callback also kicked off its exchange inside `initState`, which could trigger router rebuild warnings during the first frame.
+- Resolution: The callback page now starts the exchange after the first frame and replaces the raw token with a generic account-linking message.
+- Verification: `flutter test test/features/auth/auth_flow_test.dart`, `flutter test`, `flutter analyze`, `flutter build web`, and `flutter build windows` all passed after the change.
+
 ## Residual Risks
 
 - iOS remains deferred until macOS/Xcode/simulator or device capacity exists.
@@ -69,6 +113,10 @@ Reviewer: Codex, separate pass after command verification
 - FileService has a real platform-backed implementation for pick/save paths.
 - Native auth repository storage now uses `flutter_secure_storage` through `SecureTokenStorage` and keeps Web on the cookie policy.
 - Default `MavraApp` startup restores saved native sessions before route guarding.
+- Generated API requests now refresh expired sessions and retry once through the production client path.
+- `/settings` now remains reachable for authenticated users without `config:read`, while server-backed config fields stay permission-gated.
+- Products, Jobs, Schedule, and Smart Home dangerous actions now respect explicit frontend permissions.
+- WeChat unbound callback no longer displays the temporary token in the UI.
 - Web build and unauthenticated route smoke pass through the local SPA fallback server.
 
 ## Decision

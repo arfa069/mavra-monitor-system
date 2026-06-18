@@ -10,10 +10,16 @@ import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/product_models.dart';
 
 class ProductsPage extends StatefulWidget {
-  const ProductsPage({super.key, required this.repository, this.fileService});
+  const ProductsPage({
+    super.key,
+    required this.repository,
+    this.fileService,
+    this.permissions,
+  });
 
   final ProductRepository repository;
   final FileService? fileService;
+  final Set<String>? permissions;
 
   @override
   State<ProductsPage> createState() => _ProductsPageState();
@@ -41,6 +47,10 @@ class _ProductsPageState extends State<ProductsPage> {
   FileService get _fileService =>
       widget.fileService ??
       FileService.forCapabilities(PlatformCapabilities.current());
+
+  bool get _canRequestCrawlNow =>
+      widget.permissions == null ||
+      widget.permissions!.contains('crawl:execute');
 
   @override
   void initState() {
@@ -410,6 +420,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   snapshot: _snapshot ?? const ProductsSnapshot.empty(),
                   page: _page,
                   statusMessage: _statusMessage,
+                  canRequestCrawlNow: _canRequestCrawlNow,
                   showForm: _showForm,
                   alertEnabled: _alertEnabled,
                   titleController: _titleController,
@@ -458,6 +469,7 @@ class _ProductsContent extends StatelessWidget {
     required this.snapshot,
     required this.page,
     required this.statusMessage,
+    required this.canRequestCrawlNow,
     required this.showForm,
     required this.alertEnabled,
     required this.titleController,
@@ -489,6 +501,7 @@ class _ProductsContent extends StatelessWidget {
   final ProductsSnapshot snapshot;
   final ProductPageState? page;
   final String? statusMessage;
+  final bool canRequestCrawlNow;
   final bool showForm;
   final bool alertEnabled;
   final TextEditingController titleController;
@@ -524,6 +537,7 @@ class _ProductsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ProductsHeader(
+            canRequestCrawlNow: canRequestCrawlNow,
             onImportProducts: onImportProducts,
             onRequestCrawlNow: onRequestCrawlNow,
             onNewProduct: onNewProduct,
@@ -674,11 +688,13 @@ class _ProductsContent extends StatelessWidget {
 
 class _ProductsHeader extends StatelessWidget {
   const _ProductsHeader({
+    required this.canRequestCrawlNow,
     required this.onImportProducts,
     required this.onRequestCrawlNow,
     required this.onNewProduct,
   });
 
+  final bool canRequestCrawlNow;
   final VoidCallback onImportProducts;
   final Future<void> Function() onRequestCrawlNow;
   final VoidCallback onNewProduct;
@@ -705,7 +721,7 @@ class _ProductsHeader extends StatelessWidget {
         ),
         OutlinedButton.icon(
           key: const Key('product-crawl-now-button'),
-          onPressed: onRequestCrawlNow,
+          onPressed: canRequestCrawlNow ? onRequestCrawlNow : null,
           icon: const Icon(Icons.travel_explore),
           label: const Text('Crawl now'),
         ),

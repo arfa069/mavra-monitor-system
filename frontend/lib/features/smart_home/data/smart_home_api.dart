@@ -61,8 +61,8 @@ class GeneratedSmartHomeRepository implements SmartHomeRepository {
             available: entity.available ?? true,
           ),
       ],
-      canControl: true,
-      canConfigure: true,
+      canControl: false,
+      canConfigure: false,
       realtimeConnected: entities?.connected ?? summary?.connected ?? false,
     );
   }

@@ -6,9 +6,9 @@ Branch: `codex/flutter-full-replacement`
 
 ## Verdict
 
-**Current supported-platform gates are final-green after Task 17 supported-device revalidation.**
+**Current supported-platform gates are final-green after Task 17 supported-device revalidation and the 2026-06-18 Gate 06 review follow-up.**
 
-Gates 01-06 were executed and are green or explicitly deferred as planned. The Windows release white-screen blocker found during Gate 05 no longer reproduces after the current release rebuild; the release executable renders the login shell from its release directory and the authenticated visual harness renders protected pages. The high-severity FileService runtime finding from Gate 06 is fixed with a real `file_selector`-backed platform implementation. Default `AuthController` startup restore now loads the injected or platform-selected repository before route guarding.
+Gates 01-06 were executed and are green or explicitly deferred as planned. The Windows release white-screen blocker found during Gate 05 no longer reproduces after the current release rebuild; the release executable renders the login shell from its release directory and the authenticated visual harness renders protected pages. The high-severity FileService runtime finding from Gate 06 is fixed with a real `file_selector`-backed platform implementation. Default `AuthController` startup restore now loads the injected or platform-selected repository before route guarding. The final Gate 06 review follow-up on 2026-06-18 also resolved generated-client auth refresh, `/settings` over-gating, dangerous-action permission gating, and WeChat temporary-token exposure.
 
 iOS remains deferred by the Windows-only environment constraint and is not counted as a current blocker.
 
@@ -376,6 +376,20 @@ Results:
 - Full Flutter analyzer passed: `No issues found`.
 - Full Flutter tests passed: `87` tests.
 - Web, Windows, and Android builds passed after the auth restore change.
+- Gate 06 follow-up fixes on 2026-06-18 passed:
+  - `flutter test test/core/auth/auth_repository_test.dart test/core/api/authenticated_mavra_api_test.dart test/features/auth/auth_api_test.dart test/features/auth/auth_flow_test.dart`
+  - `flutter test test/features/products/products_page_test.dart test/features/jobs/jobs_page_test.dart test/features/schedule/schedule_page_test.dart test/features/smart_home/smart_home_page_test.dart`
+  - `flutter test test/app_shell_navigation_test.dart`
+  - `flutter test`
+  - `flutter analyze`
+  - `flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1`
+  - `flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1`
+- Gate 06 follow-up outcomes:
+  - Generated OpenAPI client requests now refresh expired sessions and retry once.
+  - `/settings` now remains reachable for authenticated users without `config:read`, while server-backed config editing remains gated.
+  - Products crawl-now, Jobs crawl/match/profile session actions, Schedule editing, and Smart Home control/config actions now honor explicit frontend permissions.
+  - WeChat callback no longer renders the temporary token in the UI, and the exchange is deferred until after the first frame to avoid router rebuild warnings.
+  - Full Flutter test suite passed with `121` tests.
 
 Decision:
 

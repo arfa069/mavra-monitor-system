@@ -218,6 +218,30 @@ void main() {
     );
     expect(newRule.onPressed, isNull);
   });
+
+  testWidgets('explicit permissions override repository canConfigure state', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchedulePage(
+          repository: _FakeScheduleRepository.full(),
+          permissions: const {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final newRule = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'New rule'),
+    );
+    expect(newRule.onPressed, isNull);
+
+    final saveSettings = tester.widget<FilledButton>(
+      find.byKey(const Key('schedule-save-settings-button')),
+    );
+    expect(saveSettings.onPressed, isNull);
+  });
 }
 
 class _FakeScheduleRepository implements ScheduleRepository {

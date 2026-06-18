@@ -6,9 +6,14 @@ import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/schedule_models.dart';
 
 class SchedulePage extends StatefulWidget {
-  const SchedulePage({super.key, required this.repository});
+  const SchedulePage({
+    super.key,
+    required this.repository,
+    this.permissions,
+  });
 
   final ScheduleRepository repository;
+  final Set<String>? permissions;
 
   @override
   State<SchedulePage> createState() => _SchedulePageState();
@@ -30,6 +35,10 @@ class _SchedulePageState extends State<SchedulePage> {
   final _weekdaysController = TextEditingController(text: '*');
   final _retentionController = TextEditingController(text: '365');
   final _webhookController = TextEditingController();
+
+  bool get _canConfigure =>
+      widget.permissions?.contains('schedule:configure') ??
+      (_snapshot?.canConfigure ?? true);
 
   @override
   void initState() {
@@ -296,6 +305,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 final current = _snapshot ?? const ScheduleSnapshot.empty();
                 return _ScheduleContent(
                   snapshot: current,
+                  canConfigure: _canConfigure,
                   statusMessage: _statusMessage,
                   validationMessage: _validationMessage,
                   previewExpression: _previewExpression,
@@ -307,7 +317,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   weekdaysController: _weekdaysController,
                   retentionController: _retentionController,
                   webhookController: _webhookController,
-                  onNewRule: current.canConfigure ? _newRule : null,
+                  onNewRule: _canConfigure ? _newRule : null,
                   onTargetTypeChanged: (target) {
                     if (target == null) {
                       return;
@@ -316,14 +326,16 @@ class _SchedulePageState extends State<SchedulePage> {
                   },
                   onPreviewCron: _previewCron,
                   onSaveRule: _saveRule,
-                  onSaveSettings: current.canConfigure ? _saveSettings : null,
-                  onEditProductSchedule: _editProductSchedule,
-                  onDeleteProductSchedule: current.canConfigure
+                  onSaveSettings: _canConfigure ? _saveSettings : null,
+                  onEditProductSchedule: _canConfigure
+                      ? _editProductSchedule
+                      : null,
+                  onDeleteProductSchedule: _canConfigure
                       ? (schedule) {
                           _deleteProductSchedule(schedule);
                         }
                       : null,
-                  onEditJobSchedule: _editJobSchedule,
+                  onEditJobSchedule: _canConfigure ? _editJobSchedule : null,
                 );
               },
             ),
@@ -337,6 +349,7 @@ class _SchedulePageState extends State<SchedulePage> {
 class _ScheduleContent extends StatelessWidget {
   const _ScheduleContent({
     required this.snapshot,
+    required this.canConfigure,
     required this.statusMessage,
     required this.validationMessage,
     required this.previewExpression,
@@ -359,6 +372,7 @@ class _ScheduleContent extends StatelessWidget {
   });
 
   final ScheduleSnapshot snapshot;
+  final bool canConfigure;
   final String? statusMessage;
   final String? validationMessage;
   final String? previewExpression;
@@ -375,9 +389,9 @@ class _ScheduleContent extends StatelessWidget {
   final Future<void> Function() onPreviewCron;
   final Future<void> Function() onSaveRule;
   final Future<void> Function()? onSaveSettings;
-  final ValueChanged<ProductSchedule> onEditProductSchedule;
+  final ValueChanged<ProductSchedule>? onEditProductSchedule;
   final ValueChanged<ProductSchedule>? onDeleteProductSchedule;
-  final ValueChanged<JobSchedule> onEditJobSchedule;
+  final ValueChanged<JobSchedule>? onEditJobSchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +430,7 @@ class _ScheduleContent extends StatelessWidget {
                 ),
             ],
           ),
-          if (!snapshot.canConfigure) ...[
+          if (!canConfigure) ...[
             const SizedBox(height: 8),
             const Text('没有权限修改自动规则。'),
           ],
@@ -696,7 +710,7 @@ class _ProductScheduleTable extends StatelessWidget {
   });
 
   final List<ProductSchedule> schedules;
-  final ValueChanged<ProductSchedule> onEdit;
+  final ValueChanged<ProductSchedule>? onEdit;
   final ValueChanged<ProductSchedule>? onDelete;
 
   @override
@@ -721,7 +735,7 @@ class _ProductScheduleTable extends StatelessWidget {
               IconButton(
                 key: Key('schedule-product-edit-${schedule.platform}-button'),
                 tooltip: 'Edit ${schedule.platform}',
-                onPressed: () => onEdit(schedule),
+                onPressed: onEdit == null ? null : () => onEdit!(schedule),
                 icon: const Icon(Icons.edit_calendar),
               ),
               IconButton(
@@ -745,7 +759,7 @@ class _ProductScheduleTable extends StatelessWidget {
             IconButton(
               key: Key('schedule-product-edit-${schedule.platform}-button'),
               tooltip: 'Edit ${schedule.platform}',
-              onPressed: () => onEdit(schedule),
+              onPressed: onEdit == null ? null : () => onEdit!(schedule),
               icon: const Icon(Icons.edit_calendar),
             ),
             IconButton(
@@ -765,7 +779,7 @@ class _JobScheduleTable extends StatelessWidget {
   const _JobScheduleTable({required this.schedules, required this.onEdit});
 
   final List<JobSchedule> schedules;
-  final ValueChanged<JobSchedule> onEdit;
+  final ValueChanged<JobSchedule>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -786,7 +800,7 @@ class _JobScheduleTable extends StatelessWidget {
           IconButton(
             key: Key('schedule-job-edit-${schedule.configId}-button'),
             tooltip: 'Edit ${schedule.name}',
-            onPressed: () => onEdit(schedule),
+            onPressed: onEdit == null ? null : () => onEdit!(schedule),
             icon: const Icon(Icons.edit_calendar),
           ),
         ),
@@ -799,7 +813,7 @@ class _JobScheduleTable extends StatelessWidget {
         trailing: IconButton(
           key: Key('schedule-job-edit-${schedule.configId}-button'),
           tooltip: 'Edit ${schedule.name}',
-          onPressed: () => onEdit(schedule),
+          onPressed: onEdit == null ? null : () => onEdit!(schedule),
           icon: const Icon(Icons.edit_calendar),
         ),
       ),

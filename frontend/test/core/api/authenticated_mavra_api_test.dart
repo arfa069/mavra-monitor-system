@@ -72,6 +72,40 @@ void main() {
       });
     },
   );
+
+  test('refreshes generated API requests after a 401 and retries once', () async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+      refreshRemote: () async => _session(accessToken: 'fresh-token'),
+    );
+    await repository.saveSession(_session(accessToken: 'expired-token'));
+
+    final seenTokens = <String?>[];
+    var requests = 0;
+    final client =
+        createAuthenticatedMavraApi(
+            config: const AppConfig(apiBaseUrl: 'https://api.example/api/v1'),
+            authRepository: repository,
+          )
+          ..dio.httpClientAdapter = _Adapter((options) {
+            requests += 1;
+            seenTokens.add(options.headers['Authorization'] as String?);
+            if (requests == 1) {
+              return _jsonResponse(401, {
+                'code': 'TOKEN_EXPIRED',
+                'message': 'Expired',
+              });
+            }
+            return _jsonResponse(200, {'ok': true});
+          });
+
+    final response = await client.dio.get('/api/v1/products');
+
+    expect(response.statusCode, 200);
+    expect(requests, 2);
+    expect(seenTokens, ['Bearer expired-token', 'Bearer fresh-token']);
+  });
 }
 
 AuthSession _session({required String accessToken}) {

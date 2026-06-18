@@ -132,7 +132,7 @@ class GeneratedAuthApiClient implements AuthApiClient {
     }
     final session = result.session;
     if (session != null) {
-      return WeChatExchangeResult.bound(_mapSession(session));
+      return WeChatExchangeResult.bound(mapGeneratedAuthSession(session));
     }
     final unbound = result.unbound;
     if (unbound != null) {
@@ -153,19 +153,7 @@ class GeneratedAuthApiClient implements AuthApiClient {
     if (response == null) {
       throw StateError('Auth session response was empty.');
     }
-    return _mapSession(response);
-  }
-
-  AuthSession _mapSession(generated.AuthSessionResponse response) {
-    return AuthSession(
-      accessToken: response.accessToken,
-      refreshToken: response.refreshToken ?? '',
-      expiresAt: DateTime.now().toUtc().add(
-        Duration(seconds: response.expiresIn),
-      ),
-      username: response.user.username,
-      permissions: response.user.permissions?.toSet() ?? <String>{},
-    );
+    return mapGeneratedAuthSession(response);
   }
 
   AccountProfile _mapProfile(generated.UserResponse response) {
@@ -184,4 +172,36 @@ class GeneratedAuthApiClient implements AuthApiClient {
     }
     return apiBaseUrl;
   }
+}
+
+AuthSession mapGeneratedAuthSession(generated.AuthSessionResponse response) {
+  return AuthSession(
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken ?? '',
+    expiresAt: DateTime.now().toUtc().add(
+      Duration(seconds: response.expiresIn),
+    ),
+    username: response.user.username,
+    permissions: response.user.permissions?.toSet() ?? <String>{},
+  );
+}
+
+Future<AuthSession?> refreshGeneratedAuthSession({
+  required generated.MavraApi client,
+  required AuthRepository repository,
+}) async {
+  final refreshToken = repository.currentSession?.refreshToken;
+  final response = await client.getAuthApi().authRefresh(
+    refreshTokenRequest:
+        refreshToken == null || refreshToken.isEmpty
+        ? null
+        : generated.RefreshTokenRequest(
+            (builder) => builder.refreshToken = refreshToken,
+          ),
+  );
+  final session = response.data;
+  if (session == null) {
+    return null;
+  }
+  return mapGeneratedAuthSession(session);
 }

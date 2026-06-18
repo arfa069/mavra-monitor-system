@@ -6,9 +6,14 @@ import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/smart_home_models.dart';
 
 class SmartHomePage extends StatefulWidget {
-  const SmartHomePage({super.key, required this.repository});
+  const SmartHomePage({
+    super.key,
+    required this.repository,
+    this.permissions,
+  });
 
   final SmartHomeRepository repository;
+  final Set<String>? permissions;
 
   @override
   State<SmartHomePage> createState() => _SmartHomePageState();
@@ -29,6 +34,14 @@ class _SmartHomePageState extends State<SmartHomePage> {
   final _tokenController = TextEditingController();
   final _serviceEntityController = TextEditingController();
   final _serviceNameController = TextEditingController(text: 'turn_on');
+
+  bool get _canConfigure =>
+      widget.permissions?.contains('smart_home:configure') ??
+      (_snapshot?.canConfigure ?? true);
+
+  bool get _canControl =>
+      widget.permissions?.contains('smart_home:control') ??
+      (_snapshot?.canControl ?? true);
 
   @override
   void initState() {
@@ -222,6 +235,8 @@ class _SmartHomePageState extends State<SmartHomePage> {
               final current = _snapshot ?? const SmartHomeSnapshot.empty();
               return _SmartHomeContent(
                 snapshot: current,
+                canConfigure: _canConfigure,
+                canControl: _canControl,
                 entities: _filteredEntities(_entities),
                 allDomains: _domains(_entities),
                 selectedDomain: _domainFilter,
@@ -232,17 +247,17 @@ class _SmartHomePageState extends State<SmartHomePage> {
                 tokenController: _tokenController,
                 serviceEntityController: _serviceEntityController,
                 serviceNameController: _serviceNameController,
-                onEditConfig: current.canConfigure ? _editConfig : null,
-                onSaveConfig: _saveConfig,
-                onTestConfig: current.canConfigure ? _testConfig : null,
+                onEditConfig: _canConfigure ? _editConfig : null,
+                onSaveConfig: _canConfigure ? _saveConfig : null,
+                onTestConfig: _canConfigure ? _testConfig : null,
                 onConfigEnabledChanged: (value) {
                   setState(() => _configEnabled = value ?? true);
                 },
                 onDomainSelected: (domain) {
                   setState(() => _domainFilter = domain);
                 },
-                onCallService: current.canControl ? _callService : null,
-                onEntityService: current.canControl
+                onCallService: _canControl ? _callService : null,
+                onEntityService: _canControl
                     ? _confirmEntityService
                     : null,
               );
@@ -272,6 +287,8 @@ class _SmartHomePageState extends State<SmartHomePage> {
 class _SmartHomeContent extends StatelessWidget {
   const _SmartHomeContent({
     required this.snapshot,
+    required this.canConfigure,
+    required this.canControl,
     required this.entities,
     required this.allDomains,
     required this.selectedDomain,
@@ -292,6 +309,8 @@ class _SmartHomeContent extends StatelessWidget {
   });
 
   final SmartHomeSnapshot snapshot;
+  final bool canConfigure;
+  final bool canControl;
   final List<SmartHomeEntityItem> entities;
   final List<String> allDomains;
   final String selectedDomain;
@@ -303,7 +322,7 @@ class _SmartHomeContent extends StatelessWidget {
   final TextEditingController serviceEntityController;
   final TextEditingController serviceNameController;
   final VoidCallback? onEditConfig;
-  final Future<void> Function() onSaveConfig;
+  final Future<void> Function()? onSaveConfig;
   final Future<void> Function()? onTestConfig;
   final ValueChanged<bool?> onConfigEnabledChanged;
   final ValueChanged<String> onDomainSelected;
@@ -359,7 +378,7 @@ class _SmartHomeContent extends StatelessWidget {
                 const Chip(label: Text('Realtime disconnected')),
             ],
           ),
-          if (!snapshot.canControl) ...[
+          if (!canControl) ...[
             const SizedBox(height: 8),
             const Text('没有权限控制这个设备。'),
           ],
@@ -459,7 +478,7 @@ class _ConfigForm extends StatelessWidget {
   final TextEditingController baseUrlController;
   final TextEditingController tokenController;
   final ValueChanged<bool?> onEnabledChanged;
-  final Future<void> Function() onSaveConfig;
+  final Future<void> Function()? onSaveConfig;
   final Future<void> Function()? onTestConfig;
 
   @override

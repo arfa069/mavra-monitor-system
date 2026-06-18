@@ -231,15 +231,18 @@ class _MavraAppState extends State<MavraApp> {
     }
 
     final capabilities = PlatformCapabilities.current();
-    final repository =
+    late final AuthRepository repository;
+    repository =
         capabilities.secureStorageMode == SecureStorageMode.webCookie
         ? AuthRepository(
             storage: InMemoryTokenStorage(),
             policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
+            refreshRemote: () => _refreshDefaultSession(repository),
           )
         : AuthRepository(
             storage: const SecureTokenStorage(),
             policy: TokenPersistencePolicy.nativeSecureStorage,
+            refreshRemote: () => _refreshDefaultSession(repository),
           );
     _ownedAuthRepository = repository;
     return repository;
@@ -256,6 +259,13 @@ class _MavraAppState extends State<MavraApp> {
     );
     _ownedApiClient = client;
     return client;
+  }
+
+  Future<AuthSession?> _refreshDefaultSession(AuthRepository repository) {
+    return refreshGeneratedAuthSession(
+      client: _defaultGeneratedApiClient(),
+      repository: repository,
+    );
   }
 
   TodayRepository _defaultTodayRepository() {
