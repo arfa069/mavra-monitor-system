@@ -262,6 +262,15 @@ class _FakeBlogRepository implements BlogRepository {
   }
 
   @override
+  Future<BlogSnapshot> listPosts(BlogFilter filter) => loadBlog(filter);
+
+  @override
+  Future<List<BlogCategory>> listCategories() async => snapshot.categories;
+
+  @override
+  Future<List<BlogTag>> listTags() async => snapshot.tags;
+
+  @override
   Future<BlogPostDraft> loadPostDraft(int postId) async {
     loadedPostId = postId;
     return BlogPostDraft(
@@ -303,6 +312,15 @@ class _SlowBlogRepository implements BlogRepository {
   Future<BlogSnapshot> loadBlog(BlogFilter filter) => _completer.future;
 
   @override
+  Future<BlogSnapshot> listPosts(BlogFilter filter) => loadBlog(filter);
+
+  @override
+  Future<List<BlogCategory>> listCategories() async => const [];
+
+  @override
+  Future<List<BlogTag>> listTags() async => const [];
+
+  @override
   Future<BlogPostDraft> loadPostDraft(int postId) async =>
       throw UnimplementedError();
 
@@ -319,6 +337,15 @@ class _FailingLoadBlogRepository implements BlogRepository {
   Future<BlogSnapshot> loadBlog(BlogFilter filter) {
     throw StateError('blog down');
   }
+
+  @override
+  Future<BlogSnapshot> listPosts(BlogFilter filter) => loadBlog(filter);
+
+  @override
+  Future<List<BlogCategory>> listCategories() async => const [];
+
+  @override
+  Future<List<BlogTag>> listTags() async => const [];
 
   @override
   Future<BlogPostDraft> loadPostDraft(int postId) async =>

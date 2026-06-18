@@ -20,6 +20,52 @@ class JobItem {
   final String status;
 }
 
+class JobListQuery {
+  const JobListQuery({
+    this.searchConfigId,
+    this.keyword,
+    this.status,
+    this.page = 1,
+    this.pageSize = 20,
+  });
+
+  final int? searchConfigId;
+  final String? keyword;
+  final String? status;
+  final int page;
+  final int pageSize;
+}
+
+class JobPageState {
+  const JobPageState({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<JobItem> items;
+  final int page;
+  final int pageSize;
+  final int total;
+}
+
+class JobDetail {
+  const JobDetail({
+    required this.id,
+    required this.title,
+    required this.company,
+    this.description,
+    this.url,
+  });
+
+  final int id;
+  final String title;
+  final String company;
+  final String? description;
+  final String? url;
+}
+
 class JobSearchConfig {
   const JobSearchConfig({
     required this.id,
@@ -48,6 +94,13 @@ class ResumeItem {
   final int id;
   final String fileName;
   final DateTime updatedAt;
+}
+
+class ResumeDraft {
+  const ResumeDraft({required this.name, required this.resumeText});
+
+  final String name;
+  final String resumeText;
 }
 
 class JobMatchResult {
@@ -117,7 +170,15 @@ class JobsSnapshot {
     required this.matches,
     required this.profiles,
     required this.crawlLogs,
-  });
+    JobPageState? page,
+  }) : page =
+           page ??
+           const JobPageState(
+             items: [],
+             page: 1,
+             pageSize: 20,
+             total: 0,
+           );
 
   const JobsSnapshot.empty()
     : jobs = const [],
@@ -125,7 +186,13 @@ class JobsSnapshot {
       resumes = const [],
       matches = const [],
       profiles = const [],
-      crawlLogs = const [];
+      crawlLogs = const [],
+      page = const JobPageState(
+        items: [],
+        page: 1,
+        pageSize: 20,
+        total: 0,
+      );
 
   final List<JobItem> jobs;
   final List<JobSearchConfig> configs;
@@ -133,10 +200,22 @@ class JobsSnapshot {
   final List<JobMatchResult> matches;
   final List<CrawlProfileItem> profiles;
   final List<JobCrawlLog> crawlLogs;
+  final JobPageState page;
 }
 
 abstract class JobsRepository {
   Future<JobsSnapshot> loadJobs();
+
+  Future<JobPageState> listJobs(JobListQuery query);
+
+  Future<JobDetail> loadJobDetail(int jobId);
+
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  });
 
   Future<void> saveConfig(JobConfigDraft draft, {int? configId});
 
@@ -150,7 +229,13 @@ abstract class JobsRepository {
 
   Future<void> uploadResume(PickedFileReference file);
 
+  Future<void> createResume(ResumeDraft draft);
+
+  Future<void> updateResume(int resumeId, ResumeDraft draft);
+
   Future<void> deleteResume(int resumeId);
+
+  Future<void> selectResumeForMatch(int resumeId);
 
   Future<void> importProfileBackup(PickedFileReference file);
 

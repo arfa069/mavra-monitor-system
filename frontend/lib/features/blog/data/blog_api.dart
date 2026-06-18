@@ -22,11 +22,17 @@ class GeneratedBlogRepository implements BlogRepository {
 
   @override
   Future<BlogSnapshot> loadBlog(BlogFilter filter) async {
+    return listPosts(filter);
+  }
+
+  @override
+  Future<BlogSnapshot> listPosts(BlogFilter filter) async {
     final responses = await Future.wait([
       _blogApi.blogListAdminPosts(
         keyword: filter.keyword,
         status: filter.status,
-        size: 50,
+        page: filter.page,
+        size: filter.pageSize,
       ),
       _blogApi.blogListCategories(),
       _blogApi.blogListTags(),
@@ -71,6 +77,24 @@ class GeneratedBlogRepository implements BlogRepository {
       ],
       totalPosts: posts?.total ?? 0,
     );
+  }
+
+  @override
+  Future<List<BlogCategory>> listCategories() async {
+    final response = await _blogApi.blogListCategories();
+    return [
+      for (final category in response.data?.toList() ?? const [])
+        BlogCategory(id: category.id, name: category.name, slug: category.slug),
+    ];
+  }
+
+  @override
+  Future<List<BlogTag>> listTags() async {
+    final response = await _blogApi.blogListTags();
+    return [
+      for (final tag in response.data?.toList() ?? const [])
+        BlogTag(id: tag.id, name: tag.name, slug: tag.slug),
+    ];
   }
 
   @override

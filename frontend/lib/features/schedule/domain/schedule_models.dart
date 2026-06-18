@@ -105,9 +105,29 @@ class CronPreview {
 abstract class ScheduleRepository {
   Future<ScheduleSnapshot> loadSchedule();
 
+  Future<List<ProductSchedule>> listProductSchedules();
+
+  Future<List<JobSchedule>> listJobSchedules();
+
   Future<CronPreview> previewCron(ScheduleRuleDraft draft);
 
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft);
+
   Future<void> saveRule(ScheduleRuleDraft draft);
+
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  });
+
+  Future<void> deleteProductCron(String platform);
+
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  });
 
   Future<void> saveSettings(ScheduleSettings settings);
 }

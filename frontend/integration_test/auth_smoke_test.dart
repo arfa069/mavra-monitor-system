@@ -73,6 +73,27 @@ class SmokeAuthApi implements AuthApiClient {
   Future<List<LoginHistoryEntry>> listLoginHistory() async => const [];
 
   @override
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
+    return AccountProfile(
+      username: draft.username,
+      email: draft.email,
+      role: 'user',
+      permissions: const {'schedule:read', 'user:read'},
+    );
+  }
+
+  @override
+  Future<AuthSession> changePassword(PasswordChangeDraft draft) async {
+    return AuthSession(
+      accessToken: 'smoke-access-new',
+      refreshToken: 'smoke-refresh-new',
+      expiresAt: DateTime.utc(2026, 6, 16, 10),
+      username: 'smoke',
+      permissions: const {'schedule:read', 'user:read'},
+    );
+  }
+
+  @override
   Future<WeChatExchangeResult> exchangeWeChatCode(String code) async {
     return WeChatExchangeResult.bound(
       AuthSession(

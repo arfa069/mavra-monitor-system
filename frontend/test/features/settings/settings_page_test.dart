@@ -147,6 +147,7 @@ class _FakeSettingsRepository implements SettingsRepository {
 
   final SettingsSnapshot snapshot;
   final savedDrafts = <SettingsDraft>[];
+  String? savedMotionSpeed;
 
   @override
   Future<SettingsSnapshot> loadSettings() async => snapshot;
@@ -163,6 +164,17 @@ class _FakeSettingsRepository implements SettingsRepository {
         updatedAt: DateTime.utc(2026, 6, 16),
       ),
       themeMode: draft.themeMode,
+      motionSpeed: draft.motionSpeed,
+    );
+  }
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    savedMotionSpeed = motionSpeed;
+    return SettingsSnapshot(
+      userConfig: snapshot.userConfig,
+      themeMode: snapshot.themeMode,
+      motionSpeed: motionSpeed,
     );
   }
 }
@@ -176,6 +188,15 @@ class _SlowSettingsRepository implements SettingsRepository {
   @override
   Future<SettingsSnapshot> saveSettings(SettingsDraft draft) async =>
       const SettingsSnapshot.empty();
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    return SettingsSnapshot(
+      userConfig: null,
+      themeMode: 'system',
+      motionSpeed: motionSpeed,
+    );
+  }
 }
 
 class _FailingSettingsRepository implements SettingsRepository {
@@ -187,6 +208,15 @@ class _FailingSettingsRepository implements SettingsRepository {
   @override
   Future<SettingsSnapshot> saveSettings(SettingsDraft draft) async =>
       const SettingsSnapshot.empty();
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    return SettingsSnapshot(
+      userConfig: null,
+      themeMode: 'system',
+      motionSpeed: motionSpeed,
+    );
+  }
 }
 
 PlatformCapabilities _windowsCapabilities() {

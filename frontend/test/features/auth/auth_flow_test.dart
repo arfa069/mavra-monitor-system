@@ -223,6 +223,21 @@ class FakeAuthApi implements AuthApiClient {
   }
 
   @override
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
+    return AccountProfile(
+      username: draft.username,
+      email: draft.email,
+      role: 'admin',
+      permissions: const {'user:read'},
+    );
+  }
+
+  @override
+  Future<AuthSession> changePassword(PasswordChangeDraft draft) async {
+    return _session(username: 'mavra', permissions: {'user:read'});
+  }
+
+  @override
   Future<WeChatExchangeResult> exchangeWeChatCode(String code) async {
     return WeChatExchangeResult.bound(
       _session(username: 'wechat-user', permissions: {'schedule:read'}),
@@ -250,6 +265,15 @@ class _FakeSettingsRepository implements SettingsRepository {
   @override
   Future<SettingsSnapshot> saveSettings(SettingsDraft draft) async {
     return SettingsSnapshot.empty();
+  }
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    return SettingsSnapshot(
+      userConfig: null,
+      themeMode: 'system',
+      motionSpeed: motionSpeed,
+    );
   }
 }
 

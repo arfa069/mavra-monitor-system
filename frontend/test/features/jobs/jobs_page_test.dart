@@ -297,9 +297,47 @@ class _FakeJobsRepository implements JobsRepository {
   String? openedLoginProfileKey;
   String? closedLoginProfileKey;
   String? testedProfileKey;
+  JobListQuery lastListQuery = const JobListQuery();
+  ResumeDraft? createdResumeDraft;
+  int? updatedResumeId;
+  ResumeDraft? updatedResumeDraft;
+  int? selectedResumeId;
 
   @override
   Future<JobsSnapshot> loadJobs() async => snapshot;
+
+  @override
+  Future<JobPageState> listJobs(JobListQuery query) async {
+    lastListQuery = query;
+    return JobPageState(
+      items: snapshot.jobs,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: snapshot.jobs.length,
+    );
+  }
+
+  @override
+  Future<JobDetail> loadJobDetail(int jobId) async {
+    final job = snapshot.jobs.firstWhere((item) => item.id == jobId);
+    return JobDetail(
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      description: 'Fake job detail',
+      url: 'https://jobs.example/$jobId',
+    );
+  }
+
+  @override
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    return snapshot.matches;
+  }
 
   @override
   Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {
@@ -310,6 +348,17 @@ class _FakeJobsRepository implements JobsRepository {
   @override
   Future<void> uploadResume(PickedFileReference file) async {
     uploadedResumeName = file.name;
+  }
+
+  @override
+  Future<void> createResume(ResumeDraft draft) async {
+    createdResumeDraft = draft;
+  }
+
+  @override
+  Future<void> updateResume(int resumeId, ResumeDraft draft) async {
+    updatedResumeId = resumeId;
+    updatedResumeDraft = draft;
   }
 
   @override
@@ -347,6 +396,11 @@ class _FakeJobsRepository implements JobsRepository {
   @override
   Future<void> deleteResume(int resumeId) async {
     deletedResumeId = resumeId;
+  }
+
+  @override
+  Future<void> selectResumeForMatch(int resumeId) async {
+    selectedResumeId = resumeId;
   }
 
   @override
@@ -417,10 +471,39 @@ class _SlowJobsRepository implements JobsRepository {
   Future<JobsSnapshot> loadJobs() => _completer.future;
 
   @override
+  Future<JobPageState> listJobs(JobListQuery query) async {
+    return JobPageState(
+      items: const [],
+      page: query.page,
+      pageSize: query.pageSize,
+      total: 0,
+    );
+  }
+
+  @override
+  Future<JobDetail> loadJobDetail(int jobId) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  }) async => const [];
+
+  @override
   Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {}
 
   @override
   Future<void> uploadResume(PickedFileReference file) async {}
+
+  @override
+  Future<void> createResume(ResumeDraft draft) async {}
+
+  @override
+  Future<void> updateResume(int resumeId, ResumeDraft draft) async {}
 
   @override
   Future<void> importProfileBackup(PickedFileReference file) async {}
@@ -444,6 +527,9 @@ class _SlowJobsRepository implements JobsRepository {
 
   @override
   Future<void> deleteResume(int resumeId) async {}
+
+  @override
+  Future<void> selectResumeForMatch(int resumeId) async {}
 
   @override
   Future<void> createProfile({
@@ -495,10 +581,34 @@ class _FailingJobsRepository implements JobsRepository {
   }
 
   @override
+  Future<JobPageState> listJobs(JobListQuery query) async {
+    throw StateError('jobs down');
+  }
+
+  @override
+  Future<JobDetail> loadJobDetail(int jobId) async {
+    throw StateError('jobs down');
+  }
+
+  @override
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  }) async => const [];
+
+  @override
   Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {}
 
   @override
   Future<void> uploadResume(PickedFileReference file) async {}
+
+  @override
+  Future<void> createResume(ResumeDraft draft) async {}
+
+  @override
+  Future<void> updateResume(int resumeId, ResumeDraft draft) async {}
 
   @override
   Future<void> importProfileBackup(PickedFileReference file) async {}
@@ -522,6 +632,9 @@ class _FailingJobsRepository implements JobsRepository {
 
   @override
   Future<void> deleteResume(int resumeId) async {}
+
+  @override
+  Future<void> selectResumeForMatch(int resumeId) async {}
 
   @override
   Future<void> createProfile({

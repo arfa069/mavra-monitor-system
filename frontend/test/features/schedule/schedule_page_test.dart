@@ -223,9 +223,21 @@ class _FakeScheduleRepository implements ScheduleRepository {
   final savedDrafts = <ScheduleRuleDraft>[];
   ScheduleSettings? savedSettings;
   ScheduleRuleDraft? previewedDraft;
+  String? deletedProductCronPlatform;
+  int? savedJobCronConfigId;
 
   @override
   Future<ScheduleSnapshot> loadSchedule() async => snapshot;
+
+  @override
+  Future<List<ProductSchedule>> listProductSchedules() async {
+    return snapshot.productSchedules;
+  }
+
+  @override
+  Future<List<JobSchedule>> listJobSchedules() async {
+    return snapshot.jobSchedules;
+  }
 
   @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
@@ -234,8 +246,45 @@ class _FakeScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft) {
+    return previewCron(draft);
+  }
+
+  @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {
     savedDrafts.add(draft);
+  }
+
+  @override
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    savedDrafts.add(
+      ScheduleRuleDraft(
+        targetType: ScheduleRuleTarget.productPlatform,
+        targetName: platform,
+        hour: 0,
+        minute: 0,
+        weekdays: '*',
+        timezone: timezone,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteProductCron(String platform) async {
+    deletedProductCronPlatform = platform;
+  }
+
+  @override
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    savedJobCronConfigId = configId;
   }
 
   @override
@@ -251,12 +300,40 @@ class _SlowScheduleRepository implements ScheduleRepository {
   Future<ScheduleSnapshot> loadSchedule() => _completer.future;
 
   @override
+  Future<List<ProductSchedule>> listProductSchedules() async => const [];
+
+  @override
+  Future<List<JobSchedule>> listJobSchedules() async => const [];
+
+  @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
     return CronPreview(expression: draft.cronExpression);
   }
 
   @override
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft) {
+    return previewCron(draft);
+  }
+
+  @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductCron(String platform) async {}
+
+  @override
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
 
   @override
   Future<void> saveSettings(ScheduleSettings settings) async {}
@@ -269,12 +346,40 @@ class _FailingScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<ProductSchedule>> listProductSchedules() async => const [];
+
+  @override
+  Future<List<JobSchedule>> listJobSchedules() async => const [];
+
+  @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
     return CronPreview(expression: draft.cronExpression);
   }
 
   @override
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft) {
+    return previewCron(draft);
+  }
+
+  @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductCron(String platform) async {}
+
+  @override
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
 
   @override
   Future<void> saveSettings(ScheduleSettings settings) async {}

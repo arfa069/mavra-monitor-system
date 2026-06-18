@@ -103,6 +103,13 @@ class BlogPostDraft {
   final String? seoDescription;
 }
 
+class BlogEditorValue {
+  const BlogEditorValue({required this.html, required this.json});
+
+  final String html;
+  final Map<String, Object?> json;
+}
+
 class BlogSnapshot {
   const BlogSnapshot({
     required this.posts,
@@ -126,18 +133,31 @@ class BlogSnapshot {
 }
 
 class BlogFilter {
-  const BlogFilter({this.keyword, this.status});
+  const BlogFilter({
+    this.keyword,
+    this.status,
+    this.page = 1,
+    this.pageSize = 20,
+  });
 
   final String? keyword;
   final String? status;
+  final int page;
+  final int pageSize;
 }
 
 abstract class BlogRepository {
   Future<BlogSnapshot> loadBlog(BlogFilter filter);
+
+  Future<BlogSnapshot> listPosts(BlogFilter filter);
 
   Future<BlogPostDraft> loadPostDraft(int postId);
 
   Future<void> savePost(BlogPostDraft draft, {int? postId});
 
   Future<BlogMediaAsset> uploadMedia(PickedFileReference file);
+
+  Future<List<BlogCategory>> listCategories();
+
+  Future<List<BlogTag>> listTags();
 }

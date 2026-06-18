@@ -90,6 +90,34 @@ class GeneratedAuthApiClient implements AuthApiClient {
   }
 
   @override
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
+    final response = await _authApi.authUpdateMe(
+      profileUpdate: generated.ProfileUpdate(
+        (builder) => builder
+          ..username = draft.username
+          ..email = draft.email,
+      ),
+    );
+    final profile = response.data;
+    if (profile == null) {
+      throw StateError('Updated auth profile response was empty.');
+    }
+    return _mapProfile(profile);
+  }
+
+  @override
+  Future<AuthSession> changePassword(PasswordChangeDraft draft) async {
+    final response = await _authApi.authChangePassword(
+      passwordChange: generated.PasswordChange(
+        (builder) => builder
+          ..oldPassword = draft.currentPassword
+          ..newPassword = draft.newPassword,
+      ),
+    );
+    return _requireSession(response.data);
+  }
+
+  @override
   Future<WeChatExchangeResult> exchangeWeChatCode(String code) async {
     final response = await _wechatApi.wechatExchangeWechatCode(
       weChatExchangeRequest: generated.WeChatExchangeRequest(

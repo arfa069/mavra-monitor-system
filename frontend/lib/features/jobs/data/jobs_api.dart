@@ -32,7 +32,7 @@ class GeneratedJobsRepository implements JobsRepository {
 
   @override
   Future<JobsSnapshot> loadJobs() async {
-    final jobsResponse = await _jobsApi.jobsListJobs(pageSize: 50);
+    final jobPage = await listJobs(const JobListQuery(page: 1, pageSize: 50));
     final configsResponse = await _jobsApi.jobsListConfigs();
     final resumesResponse = await _jobsApi.jobsListResumes();
     final matchesResponse = await _jobsApi.jobsListMatchResults(pageSize: 20);
@@ -40,7 +40,6 @@ class GeneratedJobsRepository implements JobsRepository {
         .crawlProfilesListProfiles();
     final logsResponse = await _jobsApi.jobsGetJobCrawlLogs(limit: 20);
 
-    final jobs = jobsResponse.data?.items.toList() ?? const [];
     final configs = configsResponse.data?.toList() ?? const [];
     final resumes = resumesResponse.data?.toList() ?? const [];
     final matches = matchesResponse.data?.items.toList() ?? const [];
@@ -48,17 +47,7 @@ class GeneratedJobsRepository implements JobsRepository {
     final logs = logsResponse.data?.toList() ?? const [];
 
     return JobsSnapshot(
-      jobs: [
-        for (final job in jobs)
-          JobItem(
-            id: job.id,
-            title: job.title ?? 'Job #${job.id}',
-            company: job.company ?? 'Unknown company',
-            platform: _platformName(job.platform),
-            location: job.location ?? job.address ?? '-',
-            status: job.isActive ? 'active' : 'inactive',
-          ),
-      ],
+      jobs: jobPage.items,
       configs: [
         for (final config in configs)
           JobSearchConfig(
@@ -79,12 +68,7 @@ class GeneratedJobsRepository implements JobsRepository {
           ),
       ],
       matches: [
-        for (final match in matches)
-          JobMatchResult(
-            jobTitle: match.jobTitle ?? 'Job #${match.jobId}',
-            score: '${match.matchScore}%',
-            reason: match.matchReason ?? match.applyRecommendation ?? '-',
-          ),
+        for (final match in matches) _mapMatch(match),
       ],
       profiles: [
         for (final profile in profiles)
@@ -102,7 +86,63 @@ class GeneratedJobsRepository implements JobsRepository {
             createdAt: log.scrapedAt,
           ),
       ],
+      page: jobPage,
     );
+  }
+
+  @override
+  Future<JobPageState> listJobs(JobListQuery query) async {
+    final response = await _jobsApi.jobsListJobs(
+      searchConfigId: query.searchConfigId,
+      keyword: query.keyword,
+      isActive: _statusToActive(query.status),
+      page: query.page,
+      pageSize: query.pageSize,
+    );
+    final data = response.data;
+    return JobPageState(
+      items: [
+        for (final job in data?.items.toList() ?? const []) _mapJob(job),
+      ],
+      page: data?.page ?? query.page,
+      pageSize: data?.pageSize ?? query.pageSize,
+      total: data?.total ?? 0,
+    );
+  }
+
+  @override
+  Future<JobDetail> loadJobDetail(int jobId) async {
+    final response = await _jobsApi.jobsGetJob(jobIdStr: '$jobId');
+    final job = response.data;
+    if (job == null) {
+      throw StateError('Job #$jobId was not returned by the API.');
+    }
+    return JobDetail(
+      id: job.id,
+      title: job.title ?? 'Job #${job.id}',
+      company: job.company ?? 'Unknown company',
+      description: job.description,
+      url: job.url,
+    );
+  }
+
+  @override
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _jobsApi.jobsListMatchResults(
+      resumeId: resumeId,
+      jobId: jobId,
+      page: page,
+      pageSize: pageSize,
+    );
+    return [
+      for (final match in response.data?.items.toList() ?? const [])
+        _mapMatch(match),
+    ];
   }
 
   @override
@@ -169,11 +209,28 @@ class GeneratedJobsRepository implements JobsRepository {
   @override
   Future<void> uploadResume(PickedFileReference file) async {
     final resumeText = await _resumeTextExtractor(file);
+    await createResume(ResumeDraft(name: file.name, resumeText: resumeText));
+  }
+
+  @override
+  Future<void> createResume(ResumeDraft draft) async {
     await _jobsApi.jobsCreateResume(
       userResumeCreate: generated.UserResumeCreate(
         (builder) => builder
-          ..name = file.name
-          ..resumeText = resumeText,
+          ..name = draft.name
+          ..resumeText = draft.resumeText,
+      ),
+    );
+  }
+
+  @override
+  Future<void> updateResume(int resumeId, ResumeDraft draft) async {
+    await _jobsApi.jobsUpdateResume(
+      resumeId: resumeId,
+      userResumeUpdate: generated.UserResumeUpdate(
+        (builder) => builder
+          ..name = draft.name
+          ..resumeText = draft.resumeText,
       ),
     );
   }
@@ -181,6 +238,11 @@ class GeneratedJobsRepository implements JobsRepository {
   @override
   Future<void> deleteResume(int resumeId) async {
     await _jobsApi.jobsDeleteResume(resumeId: resumeId);
+  }
+
+  @override
+  Future<void> selectResumeForMatch(int resumeId) async {
+    // Selection is UI state; the API receives the resume id when match starts.
   }
 
   @override
@@ -354,6 +416,36 @@ class GeneratedJobsRepository implements JobsRepository {
   static String _platformName(Object? value) {
     final raw = value?.toString().split('.').last ?? '-';
     return raw == 'n51job' ? '51job' : raw;
+  }
+
+  static bool? _statusToActive(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return true;
+      case 'inactive':
+        return false;
+      default:
+        return null;
+    }
+  }
+
+  static JobItem _mapJob(generated.JobResponse job) {
+    return JobItem(
+      id: job.id,
+      title: job.title ?? 'Job #${job.id}',
+      company: job.company ?? 'Unknown company',
+      platform: _platformName(job.platform),
+      location: job.location ?? job.address ?? '-',
+      status: job.isActive ? 'active' : 'inactive',
+    );
+  }
+
+  static JobMatchResult _mapMatch(generated.MatchResultResponse match) {
+    return JobMatchResult(
+      jobTitle: match.jobTitle ?? 'Job #${match.jobId}',
+      score: '${match.matchScore}%',
+      reason: match.matchReason ?? match.applyRecommendation ?? '-',
+    );
   }
 
   static String _searchUrl(JobConfigDraft draft) {

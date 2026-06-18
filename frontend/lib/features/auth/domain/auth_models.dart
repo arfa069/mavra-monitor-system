@@ -35,6 +35,23 @@ class AccountProfile {
   final Set<String> permissions;
 }
 
+class AccountProfileDraft {
+  const AccountProfileDraft({required this.username, required this.email});
+
+  final String username;
+  final String email;
+}
+
+class PasswordChangeDraft {
+  const PasswordChangeDraft({
+    required this.currentPassword,
+    required this.newPassword,
+  });
+
+  final String currentPassword;
+  final String newPassword;
+}
+
 class AccountSession {
   const AccountSession({
     required this.id,
@@ -124,6 +141,10 @@ abstract class AuthApiClient {
 
   Future<List<LoginHistoryEntry>> listLoginHistory();
 
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft);
+
+  Future<AuthSession> changePassword(PasswordChangeDraft draft);
+
   Future<WeChatExchangeResult> exchangeWeChatCode(String code);
 
   Future<void> logout();
@@ -208,6 +229,20 @@ class AuthController extends ChangeNotifier {
       sessions: sessions,
       loginHistory: loginHistory,
     );
+  }
+
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
+    return api.updateProfile(draft);
+  }
+
+  Future<void> changePassword(PasswordChangeDraft draft) async {
+    await _run(() async {
+      _session = await api.changePassword(draft);
+      final session = _session;
+      if (session != null) {
+        await repository?.saveSession(session);
+      }
+    });
   }
 
   Future<void> _run(Future<void> Function() action) async {

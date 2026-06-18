@@ -260,11 +260,85 @@ class _FakeAdminRepository implements AdminRepository {
   int? toggledUserId;
   bool? toggledActive;
   int? deletedUserId;
+  String? updatedRole;
+  List<String>? updatedRolePermissions;
+  ResourcePermissionGrantDraft? grantedResourceDraft;
+  int? updatedResourcePermissionId;
+  ResourcePermissionUpdateDraft? updatedResourceDraft;
+  int? revokedResourcePermissionId;
 
   @override
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) async {
     lastFilter = filter;
     return snapshot;
+  }
+
+  @override
+  Future<List<AdminUser>> listUsers(AdminFilter filter) async {
+    lastFilter = filter;
+    return snapshot.users;
+  }
+
+  @override
+  Future<AuditLogPageState> listAuditLogs(AdminFilter filter) async {
+    lastFilter = filter;
+    return AuditLogPageState(
+      items: snapshot.auditLogs,
+      page: filter.auditPage,
+      pageSize: filter.pageSize,
+      total: snapshot.totalAuditLogs,
+    );
+  }
+
+  @override
+  Future<List<AdminRolePermission>> loadRolePermissionMatrix() async {
+    return snapshot.rolePermissions;
+  }
+
+  @override
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  }) async {
+    updatedRole = role;
+    updatedRolePermissions = permissions;
+  }
+
+  @override
+  Future<List<ResourcePermissionItem>> listResourcePermissions({
+    int? userId,
+    String? resourceType,
+  }) async {
+    return snapshot.resourcePermissions;
+  }
+
+  @override
+  Future<List<ResourcePermissionItem>> grantResourcePermissions(
+    ResourcePermissionGrantDraft draft,
+  ) async {
+    grantedResourceDraft = draft;
+    return snapshot.resourcePermissions;
+  }
+
+  @override
+  Future<ResourcePermissionItem> updateResourcePermission(
+    int permissionId,
+    ResourcePermissionUpdateDraft draft,
+  ) async {
+    updatedResourcePermissionId = permissionId;
+    updatedResourceDraft = draft;
+    return ResourcePermissionItem(
+      id: permissionId,
+      resourceType: draft.resourceType ?? 'product',
+      resourceId: draft.resourceId ?? '*',
+      permission: draft.permission ?? 'read',
+      createdAt: DateTime.utc(2026, 6, 16),
+    );
+  }
+
+  @override
+  Future<void> revokeResourcePermission(int permissionId) async {
+    revokedResourcePermissionId = permissionId;
   }
 
   @override
@@ -297,6 +371,51 @@ class _SlowAdminRepository implements AdminRepository {
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) => _completer.future;
 
   @override
+  Future<List<AdminUser>> listUsers(AdminFilter filter) async => const [];
+
+  @override
+  Future<AuditLogPageState> listAuditLogs(AdminFilter filter) async {
+    return AuditLogPageState(
+      items: const [],
+      page: filter.auditPage,
+      pageSize: filter.pageSize,
+      total: 0,
+    );
+  }
+
+  @override
+  Future<List<AdminRolePermission>> loadRolePermissionMatrix() async =>
+      const [];
+
+  @override
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  }) async {}
+
+  @override
+  Future<List<ResourcePermissionItem>> listResourcePermissions({
+    int? userId,
+    String? resourceType,
+  }) async => const [];
+
+  @override
+  Future<List<ResourcePermissionItem>> grantResourcePermissions(
+    ResourcePermissionGrantDraft draft,
+  ) async => const [];
+
+  @override
+  Future<ResourcePermissionItem> updateResourcePermission(
+    int permissionId,
+    ResourcePermissionUpdateDraft draft,
+  ) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> revokeResourcePermission(int permissionId) async {}
+
+  @override
   Future<void> createUser(AdminUserDraft draft) async {}
 
   @override
@@ -314,6 +433,48 @@ class _FailingAdminRepository implements AdminRepository {
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) {
     throw StateError('admin down');
   }
+
+  @override
+  Future<List<AdminUser>> listUsers(AdminFilter filter) async {
+    throw StateError('admin down');
+  }
+
+  @override
+  Future<AuditLogPageState> listAuditLogs(AdminFilter filter) async {
+    throw StateError('admin down');
+  }
+
+  @override
+  Future<List<AdminRolePermission>> loadRolePermissionMatrix() async =>
+      const [];
+
+  @override
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  }) async {}
+
+  @override
+  Future<List<ResourcePermissionItem>> listResourcePermissions({
+    int? userId,
+    String? resourceType,
+  }) async => const [];
+
+  @override
+  Future<List<ResourcePermissionItem>> grantResourcePermissions(
+    ResourcePermissionGrantDraft draft,
+  ) async => const [];
+
+  @override
+  Future<ResourcePermissionItem> updateResourcePermission(
+    int permissionId,
+    ResourcePermissionUpdateDraft draft,
+  ) async {
+    throw StateError('admin down');
+  }
+
+  @override
+  Future<void> revokeResourcePermission(int permissionId) async {}
 
   @override
   Future<void> createUser(AdminUserDraft draft) async {}

@@ -24,10 +24,14 @@ class GeneratedProductRepository implements ProductRepository {
   generated.ProductsCrawlApi get _productsCrawlApi =>
       _client.getProductsCrawlApi();
 
+  generated.AlertsApi get _alertsApi => _client.getAlertsApi();
+
   @override
   Future<ProductsSnapshot> loadProducts() async {
-    final productsResponse = await _productsApi.productsListProducts(size: 50);
-    final products = productsResponse.data?.items.toList() ?? const [];
+    final productPage = await listProducts(
+      const ProductListQuery(page: 1, pageSize: 50),
+    );
+    final products = productPage.items;
 
     final firstProductId = products.isEmpty ? null : products.first.id;
     final results = await Future.wait([
@@ -62,14 +66,7 @@ class GeneratedProductRepository implements ProductRepository {
     return ProductsSnapshot(
       products: [
         for (final product in products)
-          ProductItem(
-            id: product.id,
-            title: product.title ?? 'Product #${product.id}',
-            platform: product.platform,
-            currentPrice: _latestPrice(product.id, history),
-            url: product.url,
-            enabled: product.active,
-          ),
+          product.copyWith(currentPrice: _latestPrice(product.id, history)),
       ],
       history: [
         for (final point in history)
@@ -100,7 +97,137 @@ class GeneratedProductRepository implements ProductRepository {
             createdAt: log.timestamp,
           ),
       ],
+      page: productPage,
     );
+  }
+
+  @override
+  Future<ProductPageState> listProducts(ProductListQuery query) async {
+    final response = await _productsApi.productsListProducts(
+      keyword: query.keyword,
+      platform: query.platform,
+      active: query.active,
+      page: query.page,
+      size: query.pageSize,
+    );
+    final data = response.data;
+    return ProductPageState(
+      items: [
+        for (final product in data?.items.toList() ?? const [])
+          _mapProduct(product),
+      ],
+      page: data?.page ?? query.page,
+      pageSize: data?.pageSize ?? query.pageSize,
+      total: data?.total ?? 0,
+    );
+  }
+
+  @override
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  }) async {
+    final response = await _productsApi.productsGetProductHistory(
+      productId: productId,
+      days: days,
+    );
+    return [
+      for (final point in response.data?.toList() ?? const [])
+        PriceHistoryPoint(
+          label: _shortDate(point.scrapedAt),
+          price: _formatPrice(point.price, point.currency),
+        ),
+    ];
+  }
+
+  @override
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  }) async {
+    if (alertId == null) {
+      await _alertsApi.alertsCreateAlert(
+        alertCreate: generated.AlertCreate(
+          (builder) => builder
+            ..productId = productId
+            ..active = draft.enabled,
+        ),
+      );
+      return;
+    }
+
+    await _alertsApi.alertsUpdateAlert(
+      alertId: alertId,
+      alertUpdate: generated.AlertUpdate(
+        (builder) => builder.active = draft.enabled,
+      ),
+    );
+  }
+
+  @override
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings() async {
+    final response = await _productsApi.productsListProductProfileBindings();
+    return [
+      for (final binding in response.data?.toList() ?? const [])
+        ProductPlatformProfileBinding(
+          platform: binding.platform,
+          profileKey: binding.profileKey,
+          profileStatus: binding.profileStatus,
+          profileLastError: binding.profileLastError,
+        ),
+    ];
+  }
+
+  @override
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  }) async {
+    await _productsApi.productsUpsertProductProfileBinding(
+      platform: platform,
+      productPlatformProfileBindingUpdate:
+          generated.ProductPlatformProfileBindingUpdate(
+            (builder) => builder.profileKey = profileKey,
+          ),
+    );
+  }
+
+  @override
+  Future<void> deleteProfileBinding(String platform) async {
+    await _productsApi.productsDeleteProductProfileBinding(platform: platform);
+  }
+
+  @override
+  Future<List<ProductCrawlLog>> listCrawlLogs({
+    int? productId,
+    String? status,
+  }) async {
+    final response = await _productsCrawlApi.productsCrawlGetCrawlLogs(
+      productId: productId,
+      status: status,
+      limit: 50,
+    );
+    return [
+      for (final log in response.data?.toList() ?? const [])
+        ProductCrawlLog(
+          message: log.errorMessage ?? _crawlLogMessage(log),
+          status: log.status ?? 'unknown',
+          createdAt: log.timestamp,
+        ),
+    ];
+  }
+
+  @override
+  Future<List<ProductCronConfig>> listProductSchedules() async {
+    final response = await _productsApi.productsListProductCronConfigs();
+    return [
+      for (final cron in response.data?.toList() ?? const [])
+        ProductCronConfig(
+          platform: cron.platform,
+          cron: cron.cronExpression ?? 'Disabled',
+        ),
+    ];
   }
 
   @override
@@ -191,6 +318,17 @@ class GeneratedProductRepository implements ProductRepository {
         ..url = url
         ..platform = (parts.length > 1 && parts[1].isNotEmpty) ? parts[1] : null
         ..title = (parts.length > 2 && parts[2].isNotEmpty) ? parts[2] : null,
+    );
+  }
+
+  static ProductItem _mapProduct(generated.ProductResponse product) {
+    return ProductItem(
+      id: product.id,
+      title: product.title ?? 'Product #${product.id}',
+      platform: product.platform,
+      currentPrice: '-',
+      url: product.url,
+      enabled: product.active,
     );
   }
 

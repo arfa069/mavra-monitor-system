@@ -23,6 +23,50 @@ class AdminRolePermission {
   final List<String> permissions;
 }
 
+class ResourcePermissionItem {
+  const ResourcePermissionItem({
+    required this.id,
+    required this.resourceType,
+    required this.resourceId,
+    required this.permission,
+    required this.createdAt,
+    this.subjectId,
+  });
+
+  final int id;
+  final String resourceType;
+  final String resourceId;
+  final String permission;
+  final DateTime createdAt;
+  final int? subjectId;
+}
+
+class ResourcePermissionGrantDraft {
+  const ResourcePermissionGrantDraft({
+    required this.subjectId,
+    required this.resourceType,
+    required this.resourceIds,
+    required this.permission,
+  });
+
+  final int subjectId;
+  final String resourceType;
+  final List<String> resourceIds;
+  final String permission;
+}
+
+class ResourcePermissionUpdateDraft {
+  const ResourcePermissionUpdateDraft({
+    this.resourceType,
+    this.resourceId,
+    this.permission,
+  });
+
+  final String? resourceType;
+  final String? resourceId;
+  final String? permission;
+}
+
 class AdminUserDraft {
   const AdminUserDraft({
     required this.username,
@@ -57,6 +101,20 @@ class AdminAuditLog {
   final DateTime createdAt;
 }
 
+class AuditLogPageState {
+  const AuditLogPageState({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<AdminAuditLog> items;
+  final int page;
+  final int pageSize;
+  final int total;
+}
+
 class AdminSnapshot {
   const AdminSnapshot({
     required this.users,
@@ -66,6 +124,7 @@ class AdminSnapshot {
     required this.totalAuditLogs,
     required this.permissionsAvailable,
     required this.realtime,
+    this.resourcePermissions = const [],
   });
 
   const AdminSnapshot.empty()
@@ -75,7 +134,8 @@ class AdminSnapshot {
       totalUsers = 0,
       totalAuditLogs = 0,
       permissionsAvailable = true,
-      realtime = false;
+      realtime = false,
+      resourcePermissions = const [];
 
   final List<AdminUser> users;
   final List<AdminRolePermission> rolePermissions;
@@ -84,6 +144,7 @@ class AdminSnapshot {
   final int totalAuditLogs;
   final bool permissionsAvailable;
   final bool realtime;
+  final List<ResourcePermissionItem> resourcePermissions;
 
   bool get isEmpty =>
       users.isEmpty && rolePermissions.isEmpty && auditLogs.isEmpty;
@@ -136,6 +197,33 @@ class AdminFilter {
 
 abstract class AdminRepository {
   Future<AdminSnapshot> loadAdmin(AdminFilter filter);
+
+  Future<List<AdminUser>> listUsers(AdminFilter filter);
+
+  Future<AuditLogPageState> listAuditLogs(AdminFilter filter);
+
+  Future<List<AdminRolePermission>> loadRolePermissionMatrix();
+
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  });
+
+  Future<List<ResourcePermissionItem>> listResourcePermissions({
+    int? userId,
+    String? resourceType,
+  });
+
+  Future<List<ResourcePermissionItem>> grantResourcePermissions(
+    ResourcePermissionGrantDraft draft,
+  );
+
+  Future<ResourcePermissionItem> updateResourcePermission(
+    int permissionId,
+    ResourcePermissionUpdateDraft draft,
+  );
+
+  Future<void> revokeResourcePermission(int permissionId);
 
   Future<void> createUser(AdminUserDraft draft);
 

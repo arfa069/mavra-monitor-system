@@ -147,6 +147,19 @@ class _VisualAuthApi implements AuthApiClient {
   ];
 
   @override
+  Future<AccountProfile> updateProfile(AccountProfileDraft draft) async =>
+      AccountProfile(
+        username: draft.username,
+        email: draft.email,
+        role: 'super_admin',
+        permissions: _visualPermissions,
+      );
+
+  @override
+  Future<AuthSession> changePassword(PasswordChangeDraft draft) async =>
+      _visualSession;
+
+  @override
   Future<WeChatExchangeResult> exchangeWeChatCode(String code) async =>
       WeChatExchangeResult.bound(_visualSession);
 
@@ -313,6 +326,75 @@ class _VisualAdminRepository implements AdminRepository {
   );
 
   @override
+  Future<List<AdminUser>> listUsers(AdminFilter filter) async {
+    return (await loadAdmin(filter)).users;
+  }
+
+  @override
+  Future<AuditLogPageState> listAuditLogs(AdminFilter filter) async {
+    final snapshot = await loadAdmin(filter);
+    return AuditLogPageState(
+      items: snapshot.auditLogs,
+      page: filter.auditPage,
+      pageSize: filter.pageSize,
+      total: snapshot.totalAuditLogs,
+    );
+  }
+
+  @override
+  Future<List<AdminRolePermission>> loadRolePermissionMatrix() async {
+    return (await loadAdmin(const AdminFilter())).rolePermissions;
+  }
+
+  @override
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  }) async {}
+
+  @override
+  Future<List<ResourcePermissionItem>> listResourcePermissions({
+    int? userId,
+    String? resourceType,
+  }) async {
+    return [
+      ResourcePermissionItem(
+        id: 1,
+        resourceType: 'product',
+        resourceId: '*',
+        permission: 'read',
+        createdAt: DateTime.utc(2026, 6, 17, 9),
+        subjectId: 2,
+      ),
+    ];
+  }
+
+  @override
+  Future<List<ResourcePermissionItem>> grantResourcePermissions(
+    ResourcePermissionGrantDraft draft,
+  ) async {
+    return listResourcePermissions(userId: draft.subjectId);
+  }
+
+  @override
+  Future<ResourcePermissionItem> updateResourcePermission(
+    int permissionId,
+    ResourcePermissionUpdateDraft draft,
+  ) async {
+    return ResourcePermissionItem(
+      id: permissionId,
+      resourceType: draft.resourceType ?? 'product',
+      resourceId: draft.resourceId ?? '*',
+      permission: draft.permission ?? 'read',
+      createdAt: DateTime.utc(2026, 6, 17, 9),
+      subjectId: 2,
+    );
+  }
+
+  @override
+  Future<void> revokeResourcePermission(int permissionId) async {}
+
+  @override
   Future<void> createUser(AdminUserDraft draft) async {}
 
   @override
@@ -382,6 +464,65 @@ class _VisualProductRepository implements ProductRepository {
       ),
     ],
   );
+
+  @override
+  Future<ProductPageState> listProducts(ProductListQuery query) async {
+    final snapshot = await loadProducts();
+    return ProductPageState(
+      items: snapshot.products,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: snapshot.products.length,
+    );
+  }
+
+  @override
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  }) async {
+    return (await loadProducts()).history;
+  }
+
+  @override
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  }) async {}
+
+  @override
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings() async {
+    return const [
+      ProductPlatformProfileBinding(
+        platform: 'taobao',
+        profileKey: 'taobao-main',
+        profileStatus: 'available',
+      ),
+    ];
+  }
+
+  @override
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  }) async {}
+
+  @override
+  Future<void> deleteProfileBinding(String platform) async {}
+
+  @override
+  Future<List<ProductCrawlLog>> listCrawlLogs({
+    int? productId,
+    String? status,
+  }) async {
+    return (await loadProducts()).crawlLogs;
+  }
+
+  @override
+  Future<List<ProductCronConfig>> listProductSchedules() async {
+    return (await loadProducts()).cronConfigs;
+  }
 
   @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
@@ -481,6 +622,39 @@ class _VisualJobsRepository implements JobsRepository {
   );
 
   @override
+  Future<JobPageState> listJobs(JobListQuery query) async {
+    final snapshot = await loadJobs();
+    return JobPageState(
+      items: snapshot.jobs,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: snapshot.jobs.length,
+    );
+  }
+
+  @override
+  Future<JobDetail> loadJobDetail(int jobId) async {
+    final job = (await loadJobs()).jobs.firstWhere((item) => item.id == jobId);
+    return JobDetail(
+      id: job.id,
+      title: job.title,
+      company: job.company,
+      description: 'Visual QA job detail',
+      url: 'https://jobs.example/$jobId',
+    );
+  }
+
+  @override
+  Future<List<JobMatchResult>> listMatchResults({
+    int? resumeId,
+    int? jobId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    return (await loadJobs()).matches;
+  }
+
+  @override
   Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {}
 
   @override
@@ -499,7 +673,16 @@ class _VisualJobsRepository implements JobsRepository {
   Future<void> uploadResume(PickedFileReference file) async {}
 
   @override
+  Future<void> createResume(ResumeDraft draft) async {}
+
+  @override
+  Future<void> updateResume(int resumeId, ResumeDraft draft) async {}
+
+  @override
   Future<void> deleteResume(int resumeId) async {}
+
+  @override
+  Future<void> selectResumeForMatch(int resumeId) async {}
 
   @override
   Future<void> importProfileBackup(PickedFileReference file) async {}
@@ -675,6 +858,19 @@ class _VisualBlogRepository implements BlogRepository {
   );
 
   @override
+  Future<BlogSnapshot> listPosts(BlogFilter filter) => loadBlog(filter);
+
+  @override
+  Future<List<BlogCategory>> listCategories() async {
+    return (await loadBlog(const BlogFilter())).categories;
+  }
+
+  @override
+  Future<List<BlogTag>> listTags() async {
+    return (await loadBlog(const BlogFilter())).tags;
+  }
+
+  @override
   Future<BlogPostDraft> loadPostDraft(int postId) async => const BlogPostDraft(
     title: 'Morning note',
     slug: 'morning-note',
@@ -725,6 +921,17 @@ class _VisualSettingsRepository implements SettingsRepository {
         updatedAt: DateTime.utc(2026, 6, 17),
       ),
       themeMode: draft.themeMode,
+      motionSpeed: draft.motionSpeed,
+    );
+  }
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    final snapshot = await loadSettings();
+    return SettingsSnapshot(
+      userConfig: snapshot.userConfig,
+      themeMode: snapshot.themeMode,
+      motionSpeed: motionSpeed,
     );
   }
 }
@@ -761,12 +968,44 @@ class _VisualScheduleRepository implements ScheduleRepository {
   );
 
   @override
+  Future<List<ProductSchedule>> listProductSchedules() async {
+    return (await loadSchedule()).productSchedules;
+  }
+
+  @override
+  Future<List<JobSchedule>> listJobSchedules() async {
+    return (await loadSchedule()).jobSchedules;
+  }
+
+  @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
     return CronPreview(expression: draft.cronExpression);
   }
 
   @override
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft) {
+    return previewCron(draft);
+  }
+
+  @override
   Future<void> saveRule(ScheduleRuleDraft draft) async {}
+
+  @override
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductCron(String platform) async {}
+
+  @override
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
 
   @override
   Future<void> saveSettings(ScheduleSettings settings) async {}

@@ -220,9 +220,82 @@ class _FakeProductRepository implements ProductRepository {
   List<int>? batchDeletedIds;
   String? importedFileName;
   bool crawlRequested = false;
+  ProductListQuery lastListQuery = const ProductListQuery();
+  int? savedProductAlertId;
+  ProductAlertDraft? savedProductAlertDraft;
+  String? savedProfileBindingPlatform;
+  String? savedProfileBindingProfileKey;
+  String? deletedProfileBindingPlatform;
 
   @override
   Future<ProductsSnapshot> loadProducts() async => snapshot;
+
+  @override
+  Future<ProductPageState> listProducts(ProductListQuery query) async {
+    lastListQuery = query;
+    return ProductPageState(
+      items: snapshot.products,
+      page: query.page,
+      pageSize: query.pageSize,
+      total: snapshot.products.length,
+    );
+  }
+
+  @override
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  }) async {
+    return snapshot.history;
+  }
+
+  @override
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  }) async {
+    savedProductAlertId = productId;
+    savedProductAlertDraft = draft;
+  }
+
+  @override
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings() async {
+    return const [
+      ProductPlatformProfileBinding(
+        platform: 'taobao',
+        profileKey: 'taobao-main',
+        profileStatus: 'available',
+      ),
+    ];
+  }
+
+  @override
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  }) async {
+    savedProfileBindingPlatform = platform;
+    savedProfileBindingProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> deleteProfileBinding(String platform) async {
+    deletedProfileBindingPlatform = platform;
+  }
+
+  @override
+  Future<List<ProductCrawlLog>> listCrawlLogs({
+    int? productId,
+    String? status,
+  }) async {
+    return snapshot.crawlLogs;
+  }
+
+  @override
+  Future<List<ProductCronConfig>> listProductSchedules() async {
+    return snapshot.cronConfigs;
+  }
 
   @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {
@@ -258,6 +331,51 @@ class _SlowProductRepository implements ProductRepository {
   Future<ProductsSnapshot> loadProducts() => _completer.future;
 
   @override
+  Future<ProductPageState> listProducts(ProductListQuery query) async {
+    return ProductPageState(
+      items: const [],
+      page: query.page,
+      pageSize: query.pageSize,
+      total: 0,
+    );
+  }
+
+  @override
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  }) async => const [];
+
+  @override
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  }) async {}
+
+  @override
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings() async =>
+      const [];
+
+  @override
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  }) async {}
+
+  @override
+  Future<void> deleteProfileBinding(String platform) async {}
+
+  @override
+  Future<List<ProductCrawlLog>> listCrawlLogs({
+    int? productId,
+    String? status,
+  }) async => const [];
+
+  @override
+  Future<List<ProductCronConfig>> listProductSchedules() async => const [];
+
+  @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
 
   @override
@@ -278,6 +396,48 @@ class _FailingProductRepository implements ProductRepository {
   Future<ProductsSnapshot> loadProducts() {
     throw StateError('products down');
   }
+
+  @override
+  Future<ProductPageState> listProducts(ProductListQuery query) async {
+    throw StateError('products down');
+  }
+
+  @override
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  }) async {
+    throw StateError('products down');
+  }
+
+  @override
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  }) async {}
+
+  @override
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings() async =>
+      const [];
+
+  @override
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  }) async {}
+
+  @override
+  Future<void> deleteProfileBinding(String platform) async {}
+
+  @override
+  Future<List<ProductCrawlLog>> listCrawlLogs({
+    int? productId,
+    String? status,
+  }) async => const [];
+
+  @override
+  Future<List<ProductCronConfig>> listProductSchedules() async => const [];
 
   @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}

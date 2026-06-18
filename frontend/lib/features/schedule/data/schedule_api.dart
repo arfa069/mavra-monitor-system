@@ -72,9 +72,24 @@ class GeneratedScheduleRepository implements ScheduleRepository {
   }
 
   @override
+  Future<List<ProductSchedule>> listProductSchedules() async {
+    return (await loadSchedule()).productSchedules;
+  }
+
+  @override
+  Future<List<JobSchedule>> listJobSchedules() async {
+    return (await loadSchedule()).jobSchedules;
+  }
+
+  @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
     CronGenerator.validateDraft(draft);
     return CronPreview(expression: draft.cronExpression);
+  }
+
+  @override
+  Future<CronPreview> generateCron(ScheduleRuleDraft draft) {
+    return previewCron(draft);
   }
 
   @override
@@ -100,6 +115,43 @@ class GeneratedScheduleRepository implements ScheduleRepository {
           ),
         );
     }
+  }
+
+  @override
+  Future<void> saveProductCron({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    await _productsApi.productsCreateProductCronConfig(
+      productPlatformCronCreate: generated.ProductPlatformCronCreate(
+        (builder) => builder
+          ..platform = platform
+          ..cronExpression = cronExpression
+          ..cronTimezone = timezone,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteProductCron(String platform) async {
+    await _productsApi.productsDeleteProductCronConfig(platform: platform);
+  }
+
+  @override
+  Future<void> saveJobCron({
+    required int configId,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    await _jobsApi.jobsUpdateConfigCron(
+      configId: configId,
+      jobConfigCronUpdate: generated.JobConfigCronUpdate(
+        (builder) => builder
+          ..cronExpression = cronExpression
+          ..cronTimezone = timezone,
+      ),
+    );
   }
 
   @override

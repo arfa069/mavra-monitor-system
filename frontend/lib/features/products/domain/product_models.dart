@@ -16,6 +16,23 @@ class ProductItem {
   final String currentPrice;
   final String url;
   final bool enabled;
+
+  ProductItem copyWith({
+    String? title,
+    String? platform,
+    String? currentPrice,
+    String? url,
+    bool? enabled,
+  }) {
+    return ProductItem(
+      id: id,
+      title: title ?? this.title,
+      platform: platform ?? this.platform,
+      currentPrice: currentPrice ?? this.currentPrice,
+      url: url ?? this.url,
+      enabled: enabled ?? this.enabled,
+    );
+  }
 }
 
 class PriceHistoryPoint {
@@ -33,6 +50,20 @@ class ProductProfileBinding {
 
   final String platform;
   final String profileName;
+}
+
+class ProductPlatformProfileBinding {
+  const ProductPlatformProfileBinding({
+    required this.platform,
+    this.profileKey,
+    this.profileStatus,
+    this.profileLastError,
+  });
+
+  final String platform;
+  final String? profileKey;
+  final String? profileStatus;
+  final String? profileLastError;
 }
 
 class ProductCronConfig {
@@ -66,6 +97,48 @@ class ProductDraft {
   final String platform;
 }
 
+class ProductListQuery {
+  const ProductListQuery({
+    this.keyword,
+    this.platform,
+    this.active,
+    this.page = 1,
+    this.pageSize = 20,
+  });
+
+  final String? keyword;
+  final String? platform;
+  final bool? active;
+  final int page;
+  final int pageSize;
+}
+
+class ProductPageState {
+  const ProductPageState({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<ProductItem> items;
+  final int page;
+  final int pageSize;
+  final int total;
+}
+
+class ProductAlertDraft {
+  const ProductAlertDraft({
+    required this.enabled,
+    required this.alertType,
+    required this.thresholdPercent,
+  });
+
+  final bool enabled;
+  final String alertType;
+  final double thresholdPercent;
+}
+
 class ProductsSnapshot {
   const ProductsSnapshot({
     required this.products,
@@ -73,24 +146,65 @@ class ProductsSnapshot {
     required this.bindings,
     required this.cronConfigs,
     required this.crawlLogs,
-  });
+    ProductPageState? page,
+  }) : page =
+           page ??
+           const ProductPageState(
+             items: [],
+             page: 1,
+             pageSize: 20,
+             total: 0,
+           );
 
   const ProductsSnapshot.empty()
     : products = const [],
       history = const [],
       bindings = const [],
       cronConfigs = const [],
-      crawlLogs = const [];
+      crawlLogs = const [],
+      page = const ProductPageState(
+        items: [],
+        page: 1,
+        pageSize: 20,
+        total: 0,
+      );
 
   final List<ProductItem> products;
   final List<PriceHistoryPoint> history;
   final List<ProductProfileBinding> bindings;
   final List<ProductCronConfig> cronConfigs;
   final List<ProductCrawlLog> crawlLogs;
+  final ProductPageState page;
 }
 
 abstract class ProductRepository {
   Future<ProductsSnapshot> loadProducts();
+
+  Future<ProductPageState> listProducts(ProductListQuery query);
+
+  Future<List<PriceHistoryPoint>> getProductHistory(
+    int productId, {
+    int days = 30,
+  });
+
+  Future<void> saveAlert(
+    int productId,
+    ProductAlertDraft draft, {
+    int? alertId,
+  });
+
+  Future<List<ProductPlatformProfileBinding>> listProfileBindings();
+
+  Future<void> saveProfileBinding({
+    required String platform,
+    required String profileKey,
+  });
+
+  Future<void> deleteProfileBinding(String platform);
+
+  Future<List<ProductCrawlLog>> listCrawlLogs({int? productId, String? status});
+
+  Future<List<ProductCronConfig>> listProductSchedules();
 
   Future<void> saveProduct(ProductDraft draft, {int? productId});
 

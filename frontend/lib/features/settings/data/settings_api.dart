@@ -27,6 +27,7 @@ class GeneratedSettingsRepository implements SettingsRepository {
     return SettingsSnapshot(
       userConfig: _mapConfig(config),
       themeMode: 'system',
+      motionSpeed: 'normal',
     );
   }
 
@@ -46,6 +47,17 @@ class GeneratedSettingsRepository implements SettingsRepository {
     return SettingsSnapshot(
       userConfig: _mapConfig(config),
       themeMode: draft.themeMode,
+      motionSpeed: draft.motionSpeed,
+    );
+  }
+
+  @override
+  Future<SettingsSnapshot> saveMotionSpeed(String motionSpeed) async {
+    final current = await loadSettings();
+    return SettingsSnapshot(
+      userConfig: current.userConfig,
+      themeMode: current.themeMode,
+      motionSpeed: motionSpeed,
     );
   }
 
