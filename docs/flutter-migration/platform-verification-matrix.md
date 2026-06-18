@@ -6,9 +6,9 @@ Last updated: 2026-06-18
 
 | Platform | Current status | Blocking point |
 | --- | --- | --- |
-| Web | Build, route smoke, and authenticated visual QA passed after Task 16 | None for the current Web gate |
-| Windows | Build, integration smoke, release login visual, and authenticated visual QA passed | None for the current Windows gate |
-| Android | Passed on emulator | None for the current emulator gate |
+| Web | Release build, Edge static-build smoke, and existing authenticated visual QA passed after Task 17 | None for the current Web gate |
+| Windows | Release build, integration smoke, release app visual, and existing authenticated visual QA passed | None for the current Windows gate |
+| Android | Release APK, emulator integration smoke, and release launch visual passed on emulator | None for the current emulator gate |
 | iOS | Deferred | Windows host has no iOS build subcommand; macOS runner/simulator/signing remain required |
 
 ## Evidence Matrix
@@ -18,18 +18,18 @@ Last updated: 2026-06-18
 | Backend lint | `uv run --extra dev python -m ruff check .` | Passed |
 | Backend full tests | `uv run --extra dev python -m pytest` | Passed: `737 passed, 23 skipped, 54 warnings in 41.19s` |
 | Flutter analyzer | `flutter analyze` | Passed |
-| Flutter tests | `flutter test` | Passed: `87` tests |
+| Flutter tests | `flutter test` | Passed: `112` tests |
 | Dart API usage | `uv run --extra dev python ../scripts/check_dart_api_usage.py` | Passed |
-| Web build | `flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1 --no-web-resources-cdn` | Passed |
-| Web browser smoke | Chrome against local SPA fallback server | Passed for `/login` and unauthenticated `/today` redirect to `#/login`; Web cookie-policy local restore skip fixed the previous loading-shell stall |
+| Web build | `flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` | Passed: `Built build\web`; Wasm dry run succeeded |
+| Web browser smoke | Microsoft Edge against `python -m http.server 4173 --bind 127.0.0.1 -d build/web` | Passed: Flutter runtime mounted, release login screenshot rendered, no console/page errors captured |
 | Web integration runner | `flutter test integration_test -d chrome` | Accepted exception: Flutter reports Web devices are not supported for integration tests |
 | Windows build | `flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` | Passed |
 | Windows integration smoke | Three single-file `flutter test integration_test/*.dart -d windows` runs | Passed |
 | Web visual QA | Chrome against visual QA harness | Passed: Today, Dashboard, Events, Jobs, Products, Schedule, Smart Home, Settings, Admin users, audit logs, and blog captured after Task 16 |
-| Windows release visual | Release exe visible launch screenshots | Passed: Auth, Today, Analytics, Settings, and Admin users captured |
-| Android APK | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed: `app-release.apk (55.2MB)` |
-| Android integration smoke | `flutter test integration_test -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed: `3` tests after Task 16 |
-| Android release launch | Installed release APK on `emulator-5554` | Passed: login shell screenshot captured |
+| Windows release visual | Release exe window capture | Passed: global shell navigation rendered, no white screen |
+| Android APK | `flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1` | Passed: `app-release.apk (56.9MB)` |
+| Android integration smoke | Three single-file `flutter test integration_test/*.dart -d emulator-5554` runs | Passed after one transient VM service retry on `app_smoke_test.dart` |
+| Android release launch | Installed release APK on `emulator-5554` and launched with `adb shell monkey` | Passed: login shell screenshot captured |
 | iOS | Not executed locally | Deferred by environment constraint |
 
 ## Screenshot Evidence
@@ -66,6 +66,9 @@ Last updated: 2026-06-18
 | Web Task 16 | `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-admin-audit-logs.png` | Audit logs |
 | Web Task 16 | `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-admin-blog.png` | Blog admin |
 | Web Task 16 | `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-settings.png` | Settings |
+| Web Task 17 | `docs/flutter-migration/evidence/web-release-login.png` | Release build login shell through local static server |
+| Windows Task 17 | `docs/flutter-migration/evidence/windows-release-app.png` | Release exe app window with global shell navigation, no white screen |
+| Android Task 17 | `docs/flutter-migration/evidence/android-emulator-release.png` | Release APK login shell on `emulator-5554` |
 | Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-release-launch-20s.png` | Release APK login shell |
 | Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-emulator-smoke-portrait.png` | System-back/manual emulator state after smoke |
 | Android emulator | `docs/flutter-migration/screenshots/2026-06-17/android-emulator-smoke-rotated.png` | Rotation/manual emulator state after smoke |

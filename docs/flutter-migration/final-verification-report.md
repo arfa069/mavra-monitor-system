@@ -6,7 +6,7 @@ Branch: `codex/flutter-full-replacement`
 
 ## Verdict
 
-**Current supported-platform gates are final-green after Task 16 feature parity revalidation.**
+**Current supported-platform gates are final-green after Task 17 supported-device revalidation.**
 
 Gates 01-06 were executed and are green or explicitly deferred as planned. The Windows release white-screen blocker found during Gate 05 no longer reproduces after the current release rebuild; the release executable renders the login shell from its release directory and the authenticated visual harness renders protected pages. The high-severity FileService runtime finding from Gate 06 is fixed with a real `file_selector`-backed platform implementation. Default `AuthController` startup restore now loads the injected or platform-selected repository before route guarding.
 
@@ -20,6 +20,12 @@ and Smart Home workflows. The current Web main build no longer stalls on the
 startup restore shell for the Web cookie-token policy; Web local restore is
 skipped because no JS-readable refresh token is available under that policy.
 Native and Windows secure-storage restore remains enabled.
+
+Task 17 revalidated the current Flutter parity work on Web, Windows, and Android
+emulator. The Web release build, Windows release build, Android release APK,
+Flutter full test suite, analyzer, Windows integration smoke, and Android
+emulator integration smoke all passed on 2026-06-18. iOS remains deferred by
+environment constraint.
 
 ## Task 17: Full React Parity Baseline
 
@@ -51,15 +57,60 @@ Results:
 - Flutter analyzer passed: `No issues found!`.
 - No automated baseline command triggered real crawling, Profile login/import/export, job matching, or Home Assistant service calls.
 
+## Task 17: Supported Platform Revalidation
+
+Commands run on 2026-06-18:
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/.worktrees/flutter-full-replacement/frontend
+flutter test
+flutter analyze
+flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+python -m http.server 4173 --bind 127.0.0.1 -d build/web
+flutter test integration_test/app_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter test integration_test/auth_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter test integration_test/platform_capability_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter emulators --launch Pixel_10_Pro_XL
+flutter devices
+flutter test integration_test/app_smoke_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+flutter test integration_test/auth_smoke_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+flutter test integration_test/platform_capability_smoke_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+adb -s emulator-5554 install -r build/app/outputs/flutter-apk/app-release.apk
+adb -s emulator-5554 shell monkey -p com.example.mavra_frontend -c android.intent.category.LAUNCHER 1
+```
+
+Results:
+
+- Flutter tests passed: `112` tests, `All tests passed!`.
+- Flutter analyzer passed: `No issues found!`.
+- Web release build passed: `Built build\web`; Wasm dry run succeeded.
+- Web release smoke passed in Microsoft Edge against `http://127.0.0.1:4173`: Flutter runtime mounted, screenshot rendered the login shell, and no console/page errors were captured. Text extraction is not used as evidence because Flutter Web renders this build through its Flutter surface rather than normal DOM text nodes.
+- Windows release build passed: `Built build\windows\x64\runner\Release\mavra_frontend.exe`.
+- Windows integration smoke passed for `app_smoke_test.dart`, `auth_smoke_test.dart`, and `platform_capability_smoke_test.dart`.
+- Windows release executable rendered a nonblank app window with the global React-parity shell navigation visible. The captured state restored a native session and showed `Today could not load` because the release app was not connected to a seeded backend snapshot; this is not a white-screen regression.
+- Android release APK build passed: `Built build\app\outputs\flutter-apk\app-release.apk (56.9MB)`.
+- Android device was available as `emulator-5554`, Android 16 / API 36.
+- Android `app_smoke_test.dart` had one initial VM service WebSocket startup failure immediately after emulator launch, then passed on rerun without code changes. `auth_smoke_test.dart` and `platform_capability_smoke_test.dart` passed.
+- Android release APK installed and launched to the login shell on the emulator.
+- No automated command triggered real crawling, real Profile login/import/export, real job matching, or Home Assistant service calls.
+
+New evidence:
+
+- `docs/flutter-migration/evidence/web-release-login.png`
+- `docs/flutter-migration/evidence/windows-release-app.png`
+- `docs/flutter-migration/evidence/android-emulator-release.png`
+
 ## Gate Summary
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | 01 Backend pytest | Passed | `737 passed, 23 skipped, 54 warnings in 41.19s` |
-| 02 Android emulator smoke | Passed | APK build passed; Android emulator folder-level integration smoke passed; release APK launch screenshot captured |
+| 02 Android emulator smoke | Passed | APK build passed; Android emulator single-file integration smoke passed; release APK launch screenshot captured |
 | 03 iOS deferred | Deferred | Windows host has no macOS/Xcode/iPhone capacity; iOS is not counted as a current blocker |
-| 04 Web integration workaround | Passed with accepted exception | Web build passed; Chrome route/refresh smoke passed; `flutter test integration_test -d chrome` is unsupported by Flutter |
-| 05 Web/Windows visual QA | Passed | Web and Windows screenshots captured for Auth, Today, Analytics, Admin, Settings, plus dense Web Products/Jobs/Smart Home/Blog states |
+| 04 Web integration workaround | Passed with accepted exception | Web build passed; Edge release smoke and screenshot passed; `flutter test integration_test -d chrome` remains an accepted Flutter tooling exception |
+| 05 Web/Windows visual QA | Passed | Web release login screenshot, Windows release app screenshot, and existing authenticated visual QA evidence captured |
 | 06 Independent code review | Completed, findings resolved at review surface | FileService, Windows release, native repository storage, default auth restore, Web font fallback, and authenticated visual QA findings are resolved |
 
 ## Task 16: React Feature Parity Revalidation
