@@ -155,6 +155,28 @@ class GeneratedProductRepository implements ProductRepository {
     );
   }
 
+  @override
+  Future<void> deleteProduct(int productId) async {
+    await _productsApi.productsDeleteProduct(productId: productId);
+  }
+
+  @override
+  Future<void> batchDeleteProducts(List<int> productIds) async {
+    if (productIds.isEmpty) {
+      return;
+    }
+    await _productsApi.productsBatchDeleteProducts(
+      productBatchDelete: generated.ProductBatchDelete(
+        (builder) => builder.ids.replace(productIds),
+      ),
+    );
+  }
+
+  @override
+  Future<void> requestCrawlNow() async {
+    await _productsCrawlApi.productsCrawlCrawlNow();
+  }
+
   static generated.ProductBatchCreateItem? _parseBatchItem(String row) {
     final parts = row.split(',').map((part) => part.trim()).toList();
     if (parts.first.toLowerCase() == 'url') {

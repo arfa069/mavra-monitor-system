@@ -95,4 +95,10 @@ abstract class ProductRepository {
   Future<void> saveProduct(ProductDraft draft, {int? productId});
 
   Future<void> importProducts(PickedFileReference file);
+
+  Future<void> deleteProduct(int productId);
+
+  Future<void> batchDeleteProducts(List<int> productIds);
+
+  Future<void> requestCrawlNow();
 }

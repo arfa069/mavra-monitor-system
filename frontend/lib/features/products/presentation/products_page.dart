@@ -23,10 +23,12 @@ class _ProductsPageState extends State<ProductsPage> {
   String? _statusMessage;
   int? _editingProductId;
   bool _showForm = false;
+  final Set<int> _selectedProductIds = {};
 
   final _titleController = TextEditingController();
   final _urlController = TextEditingController();
   final _platformController = TextEditingController();
+  final _searchController = TextEditingController();
 
   FileService get _fileService =>
       widget.fileService ??
@@ -35,6 +37,7 @@ class _ProductsPageState extends State<ProductsPage> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() {}));
     _load();
   }
 
@@ -52,6 +55,7 @@ class _ProductsPageState extends State<ProductsPage> {
     _titleController.dispose();
     _urlController.dispose();
     _platformController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -139,6 +143,95 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
+  Future<void> _deleteProduct(int productId) async {
+    try {
+      await widget.repository.deleteProduct(productId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statusMessage = 'Deleted product #$productId';
+        _selectedProductIds.remove(productId);
+      });
+      _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
+  Future<void> _batchDeleteProducts() async {
+    final ids = _selectedProductIds.toList()..sort();
+    if (ids.isEmpty) {
+      setState(() => _statusMessage = 'Select products to delete');
+      return;
+    }
+    try {
+      await widget.repository.batchDeleteProducts(ids);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statusMessage = 'Deleted ${ids.length} products';
+        _selectedProductIds.clear();
+      });
+      _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
+  Future<void> _requestCrawlNow() async {
+    try {
+      await widget.repository.requestCrawlNow();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _statusMessage = 'Crawl task requested');
+      _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Crawl request failed');
+      }
+    }
+  }
+
+  void _toggleProductSelection(int productId, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedProductIds.add(productId);
+      } else {
+        _selectedProductIds.remove(productId);
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+  }
+
+  void _showPriceTrend(ProductItem product) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Price trend: ${product.title}'),
+        content: SizedBox(
+          width: 360,
+          child: _PriceHistoryList(history: _snapshot?.history ?? const []),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,10 +273,18 @@ class _ProductsPageState extends State<ProductsPage> {
                   titleController: _titleController,
                   urlController: _urlController,
                   platformController: _platformController,
+                  searchController: _searchController,
+                  selectedProductIds: _selectedProductIds,
                   onNewProduct: _newProduct,
                   onImportProducts: _importProducts,
                   onSaveProduct: _saveProduct,
                   onEditProduct: _editProduct,
+                  onDeleteProduct: _deleteProduct,
+                  onBatchDeleteProducts: _batchDeleteProducts,
+                  onRequestCrawlNow: _requestCrawlNow,
+                  onProductSelected: _toggleProductSelection,
+                  onClearSearch: _clearSearch,
+                  onShowTrend: _showPriceTrend,
                 );
               },
             ),
@@ -202,10 +303,18 @@ class _ProductsContent extends StatelessWidget {
     required this.titleController,
     required this.urlController,
     required this.platformController,
+    required this.searchController,
+    required this.selectedProductIds,
     required this.onNewProduct,
     required this.onImportProducts,
     required this.onSaveProduct,
     required this.onEditProduct,
+    required this.onDeleteProduct,
+    required this.onBatchDeleteProducts,
+    required this.onRequestCrawlNow,
+    required this.onProductSelected,
+    required this.onClearSearch,
+    required this.onShowTrend,
   });
 
   final ProductsSnapshot snapshot;
@@ -214,13 +323,25 @@ class _ProductsContent extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController urlController;
   final TextEditingController platformController;
+  final TextEditingController searchController;
+  final Set<int> selectedProductIds;
   final VoidCallback onNewProduct;
   final VoidCallback onImportProducts;
   final Future<void> Function() onSaveProduct;
   final ValueChanged<ProductItem> onEditProduct;
+  final ValueChanged<int> onDeleteProduct;
+  final Future<void> Function() onBatchDeleteProducts;
+  final Future<void> Function() onRequestCrawlNow;
+  final void Function(int productId, bool selected) onProductSelected;
+  final VoidCallback onClearSearch;
+  final ValueChanged<ProductItem> onShowTrend;
 
   @override
   Widget build(BuildContext context) {
+    final filteredProducts = _filterProducts(
+      snapshot.products,
+      searchController.text,
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,6 +358,13 @@ class _ProductsContent extends StatelessWidget {
                 onPressed: onImportProducts,
                 icon: const Icon(Icons.upload_file),
                 label: const Text('Batch import'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                key: const Key('product-crawl-now-button'),
+                onPressed: onRequestCrawlNow,
+                icon: const Icon(Icons.travel_explore),
+                label: const Text('Crawl now'),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
@@ -260,11 +388,50 @@ class _ProductsContent extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            children: [
+              SizedBox(
+                width: 320,
+                child: TextField(
+                  key: const Key('product-search-field'),
+                  controller: searchController,
+                  decoration: const InputDecoration(
+                    labelText: 'Search products',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const Key('product-clear-search-button'),
+                tooltip: 'Clear search',
+                onPressed: onClearSearch,
+                icon: const Icon(Icons.clear),
+              ),
+              FilledButton.icon(
+                key: const Key('product-batch-delete-button'),
+                onPressed: onBatchDeleteProducts,
+                icon: const Icon(Icons.delete_sweep),
+                label: Text('Delete selected (${selectedProductIds.length})'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           if (snapshot.products.isEmpty)
             const Center(child: Text('No products yet'))
+          else if (filteredProducts.isEmpty)
+            const Center(child: Text('No products match the current filters'))
           else
-            for (final product in snapshot.products)
-              _ProductTile(product: product, onEdit: onEditProduct),
+            _ProductTable(
+              products: filteredProducts,
+              selectedProductIds: selectedProductIds,
+              onSelected: onProductSelected,
+              onEdit: onEditProduct,
+              onDelete: onDeleteProduct,
+              onShowTrend: onShowTrend,
+            ),
           const SizedBox(height: 20),
           _Section(
             title: 'Price history',
@@ -325,6 +492,23 @@ class _ProductsContent extends StatelessWidget {
       ),
     );
   }
+
+  static List<ProductItem> _filterProducts(
+    List<ProductItem> products,
+    String query,
+  ) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return products;
+    }
+    return [
+      for (final product in products)
+        if (product.title.toLowerCase().contains(normalized) ||
+            product.platform.toLowerCase().contains(normalized) ||
+            product.url.toLowerCase().contains(normalized))
+          product,
+    ];
+  }
 }
 
 class _ProductForm extends StatelessWidget {
@@ -384,34 +568,121 @@ class _ProductForm extends StatelessWidget {
   }
 }
 
-class _ProductTile extends StatelessWidget {
-  const _ProductTile({required this.product, required this.onEdit});
+class _ProductTable extends StatelessWidget {
+  const _ProductTable({
+    required this.products,
+    required this.selectedProductIds,
+    required this.onSelected,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onShowTrend,
+  });
 
-  final ProductItem product;
+  final List<ProductItem> products;
+  final Set<int> selectedProductIds;
+  final void Function(int productId, bool selected) onSelected;
   final ValueChanged<ProductItem> onEdit;
+  final ValueChanged<int> onDelete;
+  final ValueChanged<ProductItem> onShowTrend;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          product.enabled ? Icons.check_circle : Icons.pause_circle,
-        ),
-        title: Text(product.title),
-        subtitle: Text('${product.platform} - ${product.url}'),
-        trailing: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          children: [
-            Text(product.currentPrice),
-            TextButton(
-              onPressed: () => onEdit(product),
-              child: Text('Edit ${product.title}'),
+    return Column(
+      children: [
+        for (final product in products)
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Checkbox(
+                        key: Key('product-select-${product.id}'),
+                        value: selectedProductIds.contains(product.id),
+                        onChanged: (value) =>
+                            onSelected(product.id, value ?? false),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.title,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text('${product.platform} - ${product.url}'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(product.currentPrice),
+                          Text(product.enabled ? 'Active' : 'Paused'),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      TextButton.icon(
+                        key: Key('product-trend-${product.id}-button'),
+                        onPressed: () => onShowTrend(product),
+                        icon: const Icon(Icons.timeline),
+                        label: const Text('Trend'),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => onEdit(product),
+                        icon: const Icon(Icons.edit),
+                        label: Text('Edit ${product.title}'),
+                      ),
+                      TextButton.icon(
+                        key: Key('product-delete-${product.id}-button'),
+                        onPressed: () => onDelete(product.id),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PriceHistoryList extends StatelessWidget {
+  const _PriceHistoryList({required this.history});
+
+  final List<PriceHistoryPoint> history;
+
+  @override
+  Widget build(BuildContext context) {
+    if (history.isEmpty) {
+      return const Text('No price history yet');
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final point in history)
+          ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.timeline),
+            title: Text(point.label),
+            trailing: Text(point.price),
+          ),
+      ],
     );
   }
 }

@@ -376,6 +376,15 @@ class _VisualProductRepository implements ProductRepository {
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}
+
+  @override
+  Future<void> deleteProduct(int productId) async {}
+
+  @override
+  Future<void> batchDeleteProducts(List<int> productIds) async {}
+
+  @override
+  Future<void> requestCrawlNow() async {}
 }
 
 class _VisualJobsRepository implements JobsRepository {

@@ -91,6 +91,53 @@ void main() {
     expect(find.text('Imported products.csv'), findsOneWidget);
   });
 
+  testWidgets('exposes table filters, trends, crawl, and deletion intents', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProductsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('product-search-field')),
+      'chair',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Taobao rice cooker'), findsNothing);
+    expect(find.text('JD office chair'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('product-clear-search-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-trend-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Price trend: Taobao rice cooker'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('product-select-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-batch-delete-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.batchDeletedIds, [1]);
+
+    await tester.tap(find.byKey(const Key('product-delete-2-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedProductId, 2);
+
+    await tester.tap(find.byKey(const Key('product-crawl-now-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.crawlRequested, isTrue);
+    expect(find.text('Crawl task requested'), findsOneWidget);
+  });
+
   testWidgets('renders loading, empty, and error states', (tester) async {
     await tester.pumpWidget(
       MaterialApp(home: ProductsPage(repository: _SlowProductRepository())),
@@ -127,6 +174,14 @@ class _FakeProductRepository implements ProductRepository {
           url: 'https://taobao.example/rice',
           enabled: true,
         ),
+        ProductItem(
+          id: 2,
+          title: 'JD office chair',
+          platform: 'jd',
+          currentPrice: '¥899',
+          url: 'https://jd.example/chair',
+          enabled: true,
+        ),
       ],
       history: const [
         PriceHistoryPoint(label: 'Monday', price: '¥329'),
@@ -161,7 +216,10 @@ class _FakeProductRepository implements ProductRepository {
   final ProductsSnapshot snapshot;
   final savedDrafts = <ProductDraft>[];
   int? updatedProductId;
+  int? deletedProductId;
+  List<int>? batchDeletedIds;
   String? importedFileName;
+  bool crawlRequested = false;
 
   @override
   Future<ProductsSnapshot> loadProducts() async => snapshot;
@@ -176,6 +234,21 @@ class _FakeProductRepository implements ProductRepository {
   Future<void> importProducts(PickedFileReference file) async {
     importedFileName = file.name;
   }
+
+  @override
+  Future<void> deleteProduct(int productId) async {
+    deletedProductId = productId;
+  }
+
+  @override
+  Future<void> batchDeleteProducts(List<int> productIds) async {
+    batchDeletedIds = productIds;
+  }
+
+  @override
+  Future<void> requestCrawlNow() async {
+    crawlRequested = true;
+  }
 }
 
 class _SlowProductRepository implements ProductRepository {
@@ -189,6 +262,15 @@ class _SlowProductRepository implements ProductRepository {
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}
+
+  @override
+  Future<void> deleteProduct(int productId) async {}
+
+  @override
+  Future<void> batchDeleteProducts(List<int> productIds) async {}
+
+  @override
+  Future<void> requestCrawlNow() async {}
 }
 
 class _FailingProductRepository implements ProductRepository {
@@ -202,6 +284,15 @@ class _FailingProductRepository implements ProductRepository {
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}
+
+  @override
+  Future<void> deleteProduct(int productId) async {}
+
+  @override
+  Future<void> batchDeleteProducts(List<int> productIds) async {}
+
+  @override
+  Future<void> requestCrawlNow() async {}
 }
 
 class _FakeFileService extends FileService {

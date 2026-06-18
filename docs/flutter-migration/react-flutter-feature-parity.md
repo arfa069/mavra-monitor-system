@@ -32,7 +32,7 @@ user-facing workflows are available or explicitly accepted as a replacement.
 
 | Module | React reference | Current Flutter state | Required Task 16 outcome |
 | --- | --- | --- | --- |
-| Products | `frontend/src/features/products/ProductsPage.tsx` | Partial: simple list, create/edit, import, read-only sections | Filters, pagination, table actions, create/edit/delete, batch import/delete, trend dialog, alert linkage, crawl trigger intent, crawl logs, cron/profile sections |
+| Products | `frontend/src/features/products/ProductsPage.tsx` | Task 16 in progress: filters, row actions, single delete, batch delete, trend dialog, crawl trigger intent, import, create/edit, crawl logs, cron/profile sections are available | Remaining follow-up: alert linkage and true server-side pagination |
 | Jobs | `frontend/src/features/jobs/JobsPage.tsx` | Partial: stacked sections, config save, upload/import/export backup | Restore tabs for configs/jobs/matches/resumes/profiles/logs; config CRUD; job detail drawer; match intent; resume manager; profile create/update/rename/copy/delete/release/login/test/import/export intents |
 | Schedule | `frontend/src/features/schedule/ScheduleConfigPage.tsx` | Partial: rule form and schedule lists | Product schedule table, job schedule table, cron generator, retention/webhook saves |
 | Events | `frontend/src/features/events/EventCenterPage.tsx` | Partial: kind filter and list | Full filters, keyword/date range, paged table, detail drawer, SSE merge |
