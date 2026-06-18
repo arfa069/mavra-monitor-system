@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/admin_models.dart';
 
 class AdminPage extends StatefulWidget {
@@ -391,6 +392,25 @@ class _AdminContent extends StatelessWidget {
         children: [
           Text('Users', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const [
+              ActionChip(
+                key: Key('admin-users-tab'),
+                avatar: Icon(Icons.people, size: 16),
+                label: Text('User list'),
+                onPressed: null,
+              ),
+              ActionChip(
+                key: Key('admin-audit-logs-tab'),
+                avatar: Icon(Icons.receipt_long, size: 16),
+                label: Text('Audit trail'),
+                onPressed: null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           if (canManageUsers)
             Align(
               alignment: Alignment.centerLeft,
@@ -519,62 +539,100 @@ class _UserTable extends StatelessWidget {
     if (users.isEmpty) {
       return const SizedBox.shrink();
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        dataRowMinHeight: 72,
-        dataRowMaxHeight: 88,
-        columns: const [
-          DataColumn(label: Text('Action')),
-          DataColumn(label: Text('User')),
-          DataColumn(label: Text('Email')),
-          DataColumn(label: Text('Role')),
-          DataColumn(label: Text('Status')),
-        ],
-        rows: [
-          for (final user in users)
-            DataRow(
-              cells: [
-                DataCell(
-                  canManageUsers
-                      ? Wrap(
-                          spacing: 4,
-                          children: [
-                            TextButton(
-                              key: Key('admin-edit-user-${user.id}-button'),
-                              onPressed: () => onEditUser(user),
-                              child: Text('Manage ${user.username}'),
-                            ),
-                            IconButton(
-                              key: Key('admin-toggle-user-${user.id}-button'),
-                              tooltip: user.active
-                                  ? 'Disable ${user.username}'
-                                  : 'Enable ${user.username}',
-                              onPressed: () => onToggleUser(user),
-                              icon: Icon(
-                                user.active
-                                    ? Icons.block
-                                    : Icons.check_circle_outline,
-                              ),
-                            ),
-                            IconButton(
-                              key: Key('admin-delete-user-${user.id}-button'),
-                              tooltip: 'Delete ${user.username}',
-                              onPressed: () => onDeleteUser(user),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                DataCell(Text(user.username)),
-                DataCell(Text(user.email)),
-                DataCell(Text(user.role)),
-                DataCell(Text(user.active ? 'active' : 'inactive')),
-              ],
-            ),
-        ],
+    return MavraResponsiveDataView<AdminUser>(
+      rows: users,
+      wideBreakpoint: 900,
+      columns: const [
+        DataColumn(label: Text('Action')),
+        DataColumn(label: Text('User')),
+        DataColumn(label: Text('Email')),
+        DataColumn(label: Text('Role')),
+        DataColumn(label: Text('Status')),
+      ],
+      tableCells: (user) => [
+        DataCell(
+          _UserActions(
+            user: user,
+            canManageUsers: canManageUsers,
+            onEditUser: onEditUser,
+            onToggleUser: onToggleUser,
+            onDeleteUser: onDeleteUser,
+          ),
+        ),
+        DataCell(Text(user.username)),
+        DataCell(Text(user.email)),
+        DataCell(Text(user.role)),
+        DataCell(Text(user.active ? 'active' : 'inactive')),
+      ],
+      mobileBuilder: (context, user) => Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          leading: const Icon(Icons.person),
+          title: Text(user.username),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(user.email),
+              Text(user.role),
+              Text(user.active ? 'active' : 'inactive'),
+            ],
+          ),
+          trailing: _UserActions(
+            user: user,
+            canManageUsers: canManageUsers,
+            onEditUser: onEditUser,
+            onToggleUser: onToggleUser,
+            onDeleteUser: onDeleteUser,
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _UserActions extends StatelessWidget {
+  const _UserActions({
+    required this.user,
+    required this.canManageUsers,
+    required this.onEditUser,
+    required this.onToggleUser,
+    required this.onDeleteUser,
+  });
+
+  final AdminUser user;
+  final bool canManageUsers;
+  final ValueChanged<AdminUser> onEditUser;
+  final ValueChanged<AdminUser> onToggleUser;
+  final ValueChanged<AdminUser> onDeleteUser;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!canManageUsers) {
+      return const SizedBox.shrink();
+    }
+    return Wrap(
+      spacing: 4,
+      children: [
+        TextButton(
+          key: Key('admin-edit-user-${user.id}-button'),
+          onPressed: () => onEditUser(user),
+          child: Text('Manage ${user.username}'),
+        ),
+        IconButton(
+          key: Key('admin-toggle-user-${user.id}-button'),
+          tooltip: user.active
+              ? 'Disable ${user.username}'
+              : 'Enable ${user.username}',
+          onPressed: () => onToggleUser(user),
+          icon: Icon(user.active ? Icons.block : Icons.check_circle_outline),
+        ),
+        IconButton(
+          key: Key('admin-delete-user-${user.id}-button'),
+          tooltip: 'Delete ${user.username}',
+          onPressed: () => onDeleteUser(user),
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ],
     );
   }
 }
@@ -684,8 +742,30 @@ class _AuditLogList extends StatelessWidget {
       children: [
         Text('Audit Logs', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        for (final log in logs)
-          ListTile(
+        MavraResponsiveDataView<AdminAuditLog>(
+          rows: logs,
+          wideBreakpoint: 900,
+          columns: const [
+            DataColumn(label: Text('Action')),
+            DataColumn(label: Text('Actor')),
+            DataColumn(label: Text('Target')),
+            DataColumn(label: Text('Date')),
+          ],
+          tableCells: (log) => [
+            DataCell(
+              KeyedSubtree(
+                key: Key('admin-audit-row-${log.id}'),
+                child: Text(log.action),
+              ),
+            ),
+            DataCell(
+              Text(log.actorUserId == null ? '-' : 'actor #${log.actorUserId}'),
+            ),
+            DataCell(Text(log.targetType ?? '-')),
+            DataCell(Text(_shortDate(log.createdAt))),
+          ],
+          mobileBuilder: (context, log) => ListTile(
+            key: Key('admin-audit-row-${log.id}'),
             dense: true,
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.receipt_long),
@@ -700,6 +780,7 @@ class _AuditLogList extends StatelessWidget {
               ],
             ),
           ),
+        ),
       ],
     );
   }

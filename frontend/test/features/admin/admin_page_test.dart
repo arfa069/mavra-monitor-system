@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/admin/domain/admin_models.dart';
 import 'package:mavra_frontend/features/admin/presentation/admin_page.dart';
 
@@ -58,6 +59,27 @@ void main() {
     expect(repository.lastFilter.auditAction, 'user.login');
     expect(repository.lastFilter.role, 'super_admin');
     expect(repository.lastFilter.auditActorUserId, 1);
+  });
+
+  testWidgets('matches React admin users and audit table parity', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: AdminPage(repository: _FakeAdminRepository.full())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('admin-users-tab')), findsOneWidget);
+    expect(find.byKey(const Key('admin-audit-logs-tab')), findsOneWidget);
+    expect(find.byType(MavraResponsiveDataView<AdminUser>), findsOneWidget);
+    expect(find.byType(MavraResponsiveDataView<AdminAuditLog>), findsOneWidget);
+    expect(find.byType(DataTable), findsNWidgets(2));
+    expect(find.byKey(const Key('admin-audit-row-11')), findsOneWidget);
   });
 
   testWidgets('creates, edits, disables, deletes, and pages users and audits', (
