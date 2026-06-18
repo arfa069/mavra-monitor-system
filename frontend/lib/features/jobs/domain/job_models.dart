@@ -140,9 +140,52 @@ abstract class JobsRepository {
 
   Future<void> saveConfig(JobConfigDraft draft, {int? configId});
 
+  Future<void> deleteConfig(int configId);
+
+  Future<void> requestCrawlAll();
+
+  Future<void> requestCrawlConfig(int configId);
+
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId});
+
   Future<void> uploadResume(PickedFileReference file);
+
+  Future<void> deleteResume(int resumeId);
 
   Future<void> importProfileBackup(PickedFileReference file);
 
   Future<ProfileBackupExport> exportProfileBackup(String profileKey);
+
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  });
+
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  });
+
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  });
+
+  Future<void> copyProfile(String profileKey);
+
+  Future<void> deleteProfile(String profileKey);
+
+  Future<void> releaseStaleProfile(String profileKey);
+
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  });
+
+  Future<void> closeProfileLoginSession(String profileKey);
+
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  });
 }

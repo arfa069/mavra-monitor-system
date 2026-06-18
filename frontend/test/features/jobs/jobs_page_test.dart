@@ -28,8 +28,79 @@ void main() {
       expect(find.text('boss-main'), findsOneWidget);
       expect(find.text('Crawl logs'), findsOneWidget);
       expect(find.text('Job crawl completed'), findsOneWidget);
-      expect(find.text('Run crawl'), findsNothing);
-      expect(find.text('Run match'), findsNothing);
+      expect(find.byKey(const Key('job-tab-configs')), findsOneWidget);
+      expect(find.byKey(const Key('job-tab-jobs')), findsOneWidget);
+      expect(find.byKey(const Key('job-tab-matches')), findsOneWidget);
+      expect(find.byKey(const Key('job-tab-resumes')), findsOneWidget);
+      expect(find.byKey(const Key('job-tab-profiles')), findsOneWidget);
+      expect(find.byKey(const Key('job-tab-logs')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'exposes safe crawl, match, resume, and profile management intents',
+    (tester) async {
+      final repository = _FakeJobsRepository.full();
+
+      await tester.pumpWidget(
+        MaterialApp(home: JobsPage(repository: repository)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('job-crawl-all-button')));
+      await tester.pumpAndSettle();
+      expect(repository.crawlAllRequested, isTrue);
+      expect(find.text('Job crawl requested'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('job-crawl-config-7-button')),
+      );
+      await tester.tap(find.byKey(const Key('job-crawl-config-7-button')));
+      await tester.pumpAndSettle();
+      expect(repository.crawledConfigId, 7);
+
+      await tester.ensureVisible(find.byKey(const Key('job-detail-1-button')));
+      await tester.tap(find.byKey(const Key('job-detail-1-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Job details: Senior Flutter Engineer'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('job-match-1-button')));
+      await tester.pumpAndSettle();
+      expect(repository.matchedJobId, 1);
+      expect(repository.matchedResumeId, 3);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('job-resume-delete-3-button')),
+      );
+      await tester.tap(find.byKey(const Key('job-resume-delete-3-button')));
+      await tester.pumpAndSettle();
+      expect(repository.deletedResumeId, 3);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('job-profile-copy-boss-main-button')),
+      );
+      await tester.tap(
+        find.byKey(const Key('job-profile-copy-boss-main-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.copiedProfileKey, 'boss-main');
+
+      await tester.tap(
+        find.byKey(const Key('job-profile-release-boss-main-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.releasedProfileKey, 'boss-main');
+
+      await tester.tap(
+        find.byKey(const Key('job-profile-login-boss-main-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.openedLoginProfileKey, 'boss-main');
+
+      await tester.tap(
+        find.byKey(const Key('job-profile-test-boss-main-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.testedProfileKey, 'boss-main');
     },
   );
 
@@ -211,6 +282,21 @@ class _FakeJobsRepository implements JobsRepository {
   String? uploadedResumeName;
   String? importedBackupName;
   String? exportedProfileKey;
+  bool crawlAllRequested = false;
+  int? crawledConfigId;
+  int? deletedConfigId;
+  int? matchedJobId;
+  int? matchedResumeId;
+  int? deletedResumeId;
+  String? createdProfileKey;
+  String? updatedProfileKey;
+  String? renamedProfileKey;
+  String? copiedProfileKey;
+  String? deletedProfileKey;
+  String? releasedProfileKey;
+  String? openedLoginProfileKey;
+  String? closedLoginProfileKey;
+  String? testedProfileKey;
 
   @override
   Future<JobsSnapshot> loadJobs() async => snapshot;
@@ -236,6 +322,92 @@ class _FakeJobsRepository implements JobsRepository {
     exportedProfileKey = profileKey;
     return ProfileBackupExport(fileName: '$profileKey.zip', bytes: const [9]);
   }
+
+  @override
+  Future<void> deleteConfig(int configId) async {
+    deletedConfigId = configId;
+  }
+
+  @override
+  Future<void> requestCrawlAll() async {
+    crawlAllRequested = true;
+  }
+
+  @override
+  Future<void> requestCrawlConfig(int configId) async {
+    crawledConfigId = configId;
+  }
+
+  @override
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId}) async {
+    matchedJobId = jobId;
+    matchedResumeId = resumeId;
+  }
+
+  @override
+  Future<void> deleteResume(int resumeId) async {
+    deletedResumeId = resumeId;
+  }
+
+  @override
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  }) async {
+    createdProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  }) async {
+    updatedProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  }) async {
+    renamedProfileKey = newProfileKey;
+  }
+
+  @override
+  Future<void> copyProfile(String profileKey) async {
+    copiedProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> deleteProfile(String profileKey) async {
+    deletedProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> releaseStaleProfile(String profileKey) async {
+    releasedProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  }) async {
+    openedLoginProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> closeProfileLoginSession(String profileKey) async {
+    closedLoginProfileKey = profileKey;
+  }
+
+  @override
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  }) async {
+    testedProfileKey = profileKey;
+  }
 }
 
 class _SlowJobsRepository implements JobsRepository {
@@ -257,6 +429,63 @@ class _SlowJobsRepository implements JobsRepository {
   Future<ProfileBackupExport> exportProfileBackup(String profileKey) async {
     return const ProfileBackupExport(fileName: 'backup.zip', bytes: []);
   }
+
+  @override
+  Future<void> deleteConfig(int configId) async {}
+
+  @override
+  Future<void> requestCrawlAll() async {}
+
+  @override
+  Future<void> requestCrawlConfig(int configId) async {}
+
+  @override
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId}) async {}
+
+  @override
+  Future<void> deleteResume(int resumeId) async {}
+
+  @override
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  }) async {}
+
+  @override
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  }) async {}
+
+  @override
+  Future<void> copyProfile(String profileKey) async {}
+
+  @override
+  Future<void> deleteProfile(String profileKey) async {}
+
+  @override
+  Future<void> releaseStaleProfile(String profileKey) async {}
+
+  @override
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> closeProfileLoginSession(String profileKey) async {}
+
+  @override
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
 }
 
 class _FailingJobsRepository implements JobsRepository {
@@ -278,6 +507,63 @@ class _FailingJobsRepository implements JobsRepository {
   Future<ProfileBackupExport> exportProfileBackup(String profileKey) async {
     return const ProfileBackupExport(fileName: 'backup.zip', bytes: []);
   }
+
+  @override
+  Future<void> deleteConfig(int configId) async {}
+
+  @override
+  Future<void> requestCrawlAll() async {}
+
+  @override
+  Future<void> requestCrawlConfig(int configId) async {}
+
+  @override
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId}) async {}
+
+  @override
+  Future<void> deleteResume(int resumeId) async {}
+
+  @override
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  }) async {}
+
+  @override
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  }) async {}
+
+  @override
+  Future<void> copyProfile(String profileKey) async {}
+
+  @override
+  Future<void> deleteProfile(String profileKey) async {}
+
+  @override
+  Future<void> releaseStaleProfile(String profileKey) async {}
+
+  @override
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> closeProfileLoginSession(String profileKey) async {}
+
+  @override
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
 }
 
 class _FakeFileService extends FileService {

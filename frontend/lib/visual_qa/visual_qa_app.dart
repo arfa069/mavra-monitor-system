@@ -472,7 +472,22 @@ class _VisualJobsRepository implements JobsRepository {
   Future<void> saveConfig(JobConfigDraft draft, {int? configId}) async {}
 
   @override
+  Future<void> deleteConfig(int configId) async {}
+
+  @override
+  Future<void> requestCrawlAll() async {}
+
+  @override
+  Future<void> requestCrawlConfig(int configId) async {}
+
+  @override
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId}) async {}
+
+  @override
   Future<void> uploadResume(PickedFileReference file) async {}
+
+  @override
+  Future<void> deleteResume(int resumeId) async {}
 
   @override
   Future<void> importProfileBackup(PickedFileReference file) async {}
@@ -481,6 +496,48 @@ class _VisualJobsRepository implements JobsRepository {
   Future<ProfileBackupExport> exportProfileBackup(String profileKey) async {
     return ProfileBackupExport(fileName: '$profileKey.zip', bytes: const [1]);
   }
+
+  @override
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  }) async {}
+
+  @override
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  }) async {}
+
+  @override
+  Future<void> copyProfile(String profileKey) async {}
+
+  @override
+  Future<void> deleteProfile(String profileKey) async {}
+
+  @override
+  Future<void> releaseStaleProfile(String profileKey) async {}
+
+  @override
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  }) async {}
+
+  @override
+  Future<void> closeProfileLoginSession(String profileKey) async {}
+
+  @override
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  }) async {}
 }
 
 class _VisualSmartHomeRepository implements SmartHomeRepository {

@@ -141,6 +141,32 @@ class GeneratedJobsRepository implements JobsRepository {
   }
 
   @override
+  Future<void> deleteConfig(int configId) async {
+    await _jobsApi.jobsDeleteConfig(configId: configId);
+  }
+
+  @override
+  Future<void> requestCrawlAll() async {
+    await _jobsApi.jobsCrawlNow();
+  }
+
+  @override
+  Future<void> requestCrawlConfig(int configId) async {
+    await _jobsApi.jobsCrawlSingle(configId: configId);
+  }
+
+  @override
+  Future<void> requestMatchAnalysis(int jobId, {required int resumeId}) async {
+    await _jobsApi.jobsTriggerMatchAnalysis(
+      matchAnalyzeRequest: generated.MatchAnalyzeRequest(
+        (builder) => builder
+          ..resumeId = resumeId
+          ..jobIds.replace([jobId]),
+      ),
+    );
+  }
+
+  @override
   Future<void> uploadResume(PickedFileReference file) async {
     final resumeText = await _resumeTextExtractor(file);
     await _jobsApi.jobsCreateResume(
@@ -150,6 +176,11 @@ class GeneratedJobsRepository implements JobsRepository {
           ..resumeText = resumeText,
       ),
     );
+  }
+
+  @override
+  Future<void> deleteResume(int resumeId) async {
+    await _jobsApi.jobsDeleteResume(resumeId: resumeId);
   }
 
   @override
@@ -180,6 +211,97 @@ class GeneratedJobsRepository implements JobsRepository {
     return ProfileBackupExport(
       fileName: '$profileKey.zip',
       bytes: response.data?.toList() ?? const [],
+    );
+  }
+
+  @override
+  Future<void> createProfile({
+    required String profileKey,
+    required String platform,
+  }) async {
+    await _crawlProfilesApi.crawlProfilesCreateProfile(
+      crawlProfileCreate: generated.CrawlProfileCreate(
+        (builder) => builder
+          ..profileKey = profileKey
+          ..platformHint = platform,
+      ),
+    );
+  }
+
+  @override
+  Future<void> updateProfileStatus({
+    required String profileKey,
+    required String status,
+  }) async {
+    await _crawlProfilesApi.crawlProfilesUpdateProfile(
+      profileKey: profileKey,
+      crawlProfileUpdate: generated.CrawlProfileUpdate(
+        (builder) => builder.status = _profileStatus(status),
+      ),
+    );
+  }
+
+  @override
+  Future<void> renameProfile({
+    required String profileKey,
+    required String newProfileKey,
+  }) async {
+    await _crawlProfilesApi.crawlProfilesRenameProfile(
+      profileKey: profileKey,
+      crawlProfileRenameRequest: generated.CrawlProfileRenameRequest(
+        (builder) => builder.profileKey = newProfileKey,
+      ),
+    );
+  }
+
+  @override
+  Future<void> copyProfile(String profileKey) async {
+    await _crawlProfilesApi.crawlProfilesCopyProfile(profileKey: profileKey);
+  }
+
+  @override
+  Future<void> deleteProfile(String profileKey) async {
+    await _crawlProfilesApi.crawlProfilesDeleteProfile(profileKey: profileKey);
+  }
+
+  @override
+  Future<void> releaseStaleProfile(String profileKey) async {
+    await _crawlProfilesApi.crawlProfilesReleaseStaleProfile(
+      profileKey: profileKey,
+    );
+  }
+
+  @override
+  Future<void> openProfileLoginSession({
+    required String profileKey,
+    required String platform,
+  }) async {
+    await _crawlProfilesApi.crawlProfilesOpenLoginSession(
+      profileKey: profileKey,
+      crawlProfileLoginSessionRequest:
+          generated.CrawlProfileLoginSessionRequest(
+            (builder) => builder.platform = platform,
+          ),
+    );
+  }
+
+  @override
+  Future<void> closeProfileLoginSession(String profileKey) async {
+    await _crawlProfilesApi.crawlProfilesCloseLoginSession(
+      profileKey: profileKey,
+    );
+  }
+
+  @override
+  Future<void> testProfile({
+    required String profileKey,
+    required String platform,
+  }) async {
+    await _crawlProfilesApi.crawlProfilesTestProfile(
+      profileKey: profileKey,
+      crawlProfileTestRequest: generated.CrawlProfileTestRequest(
+        (builder) => builder.platform = platform,
+      ),
     );
   }
 
@@ -214,6 +336,18 @@ class GeneratedJobsRepository implements JobsRepository {
         return generated.JobSearchConfigUpdatePlatformEnum.liepin;
       default:
         return generated.JobSearchConfigUpdatePlatformEnum.boss;
+    }
+  }
+
+  static generated.CrawlProfileUpdateStatusEnum _profileStatus(String value) {
+    switch (value.toLowerCase()) {
+      case 'disabled':
+        return generated.CrawlProfileUpdateStatusEnum.disabled;
+      case 'login_required':
+      case 'login required':
+        return generated.CrawlProfileUpdateStatusEnum.loginRequired;
+      default:
+        return generated.CrawlProfileUpdateStatusEnum.available;
     }
   }
 
