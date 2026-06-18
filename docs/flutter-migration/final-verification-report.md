@@ -21,6 +21,36 @@ startup restore shell for the Web cookie-token policy; Web local restore is
 skipped because no JS-readable refresh token is available under that policy.
 Native and Windows secure-storage restore remains enabled.
 
+## Task 17: Full React Parity Baseline
+
+Baseline captured on 2026-06-18 before Task 17 production-code changes.
+
+Worktree state:
+
+- Branch: `codex/flutter-full-replacement`.
+- Existing unrelated dirty files left untouched: `AGENTS.md`, `CLAUDE.md`.
+
+Commands run:
+
+```powershell
+cd C:\Users\arfac\Documents\mavra-monitor-system\.worktrees\flutter-full-replacement
+git branch --show-current
+git status --short
+npx gitnexus analyze
+
+cd C:\Users\arfac\Documents\mavra-monitor-system\.worktrees\flutter-full-replacement\frontend
+flutter test
+flutter analyze
+```
+
+Results:
+
+- GitNexus indexed the repository successfully: `10,467 nodes`, `19,220 edges`, `418 clusters`, `300 flows`.
+- GitNexus reported that optional grammar `tree-sitter-dart` is unavailable, so Dart files are not parsed for symbol-level impact. Task 17 Dart changes must compensate with source review, widget tests, `flutter analyze`, focused builds, and `mcp__gitnexus.detect_changes` on staged diffs before commits.
+- Flutter tests passed: `87` tests, `All tests passed!`.
+- Flutter analyzer passed: `No issues found!`.
+- No automated baseline command triggered real crawling, Profile login/import/export, job matching, or Home Assistant service calls.
+
 ## Gate Summary
 
 | Gate | Status | Evidence |
