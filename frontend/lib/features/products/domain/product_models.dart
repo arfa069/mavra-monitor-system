@@ -149,12 +149,7 @@ class ProductsSnapshot {
     ProductPageState? page,
   }) : page =
            page ??
-           const ProductPageState(
-             items: [],
-             page: 1,
-             pageSize: 20,
-             total: 0,
-           );
+           const ProductPageState(items: [], page: 1, pageSize: 20, total: 0);
 
   const ProductsSnapshot.empty()
     : products = const [],
@@ -162,12 +157,7 @@ class ProductsSnapshot {
       bindings = const [],
       cronConfigs = const [],
       crawlLogs = const [],
-      page = const ProductPageState(
-        items: [],
-        page: 1,
-        pageSize: 20,
-        total: 0,
-      );
+      page = const ProductPageState(items: [], page: 1, pageSize: 20, total: 0);
 
   final List<ProductItem> products;
   final List<PriceHistoryPoint> history;
@@ -205,6 +195,14 @@ abstract class ProductRepository {
   Future<List<ProductCrawlLog>> listCrawlLogs({int? productId, String? status});
 
   Future<List<ProductCronConfig>> listProductSchedules();
+
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  });
+
+  Future<void> deleteProductSchedule(String platform);
 
   Future<void> saveProduct(ProductDraft draft, {int? productId});
 

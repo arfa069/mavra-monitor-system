@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/widgets/mavra_chart.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/products/domain/product_models.dart';
 import 'package:mavra_frontend/features/products/presentation/products_page.dart';
 
@@ -123,19 +125,120 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('product-batch-delete-button')));
     await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('product-batch-delete-dialog-confirm-button')),
+    );
+    await tester.pumpAndSettle();
 
     expect(repository.batchDeletedIds, [1]);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('product-delete-2-button')),
+    );
     await tester.tap(find.byKey(const Key('product-delete-2-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-delete-2-confirm-button')));
     await tester.pumpAndSettle();
 
     expect(repository.deletedProductId, 2);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('product-crawl-now-button')),
+    );
     await tester.tap(find.byKey(const Key('product-crawl-now-button')));
     await tester.pumpAndSettle();
 
     expect(repository.crawlRequested, isTrue);
     expect(find.text('Crawl task requested'), findsOneWidget);
+  });
+
+  testWidgets('matches React products workbench parity interactions', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository.full();
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProductsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('product-platform-filter')), findsOneWidget);
+    expect(find.byKey(const Key('product-active-filter')), findsOneWidget);
+    expect(find.byKey(const Key('product-page-size-field')), findsOneWidget);
+    expect(find.byKey(const Key('product-import-open-button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('product-batch-delete-confirm-button')),
+      findsOneWidget,
+    );
+    expect(find.byType(MavraResponsiveDataView<ProductItem>), findsOneWidget);
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byType(MavraTrendChart), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('product-platform-filter')),
+      'jd',
+    );
+    await tester.enterText(
+      find.byKey(const Key('product-page-size-field')),
+      '10',
+    );
+    await tester.tap(find.text('Inactive'));
+    await tester.tap(find.byKey(const Key('product-apply-filters-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastListQuery.platform, 'jd');
+    expect(repository.lastListQuery.active, false);
+    expect(repository.lastListQuery.pageSize, 10);
+
+    await tester.ensureVisible(find.byKey(const Key('product-edit-1-button')));
+    await tester.tap(find.byKey(const Key('product-edit-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('product-alert-enabled-field')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('product-alert-enabled-field')));
+    await tester.tap(find.text('Save product'));
+    await tester.pumpAndSettle();
+
+    expect(repository.savedProductAlertId, 1);
+    expect(repository.savedProductAlertDraft?.enabled, isTrue);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('product-profile-binding-taobao-button')),
+    );
+    await tester.tap(
+      find.byKey(const Key('product-profile-binding-taobao-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.savedProfileBindingPlatform, 'taobao');
+    expect(repository.savedProfileBindingProfileKey, 'taobao-main');
+
+    await tester.ensureVisible(
+      find.byKey(const Key('product-cron-taobao-edit-button')),
+    );
+    expect(
+      find.byKey(const Key('product-cron-taobao-edit-button')),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const Key('product-cron-jd-delete-button')),
+    );
+    await tester.tap(find.byKey(const Key('product-cron-jd-delete-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('product-cron-jd-delete-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedCronPlatform, 'jd');
   });
 
   testWidgets('renders loading, empty, and error states', (tester) async {
@@ -192,6 +295,7 @@ class _FakeProductRepository implements ProductRepository {
       ],
       cronConfigs: const [
         ProductCronConfig(platform: 'taobao', cron: '0 9 * * *'),
+        ProductCronConfig(platform: 'jd', cron: '30 10 * * 1-5'),
       ],
       crawlLogs: [
         ProductCrawlLog(
@@ -226,6 +330,7 @@ class _FakeProductRepository implements ProductRepository {
   String? savedProfileBindingPlatform;
   String? savedProfileBindingProfileKey;
   String? deletedProfileBindingPlatform;
+  String? deletedCronPlatform;
 
   @override
   Future<ProductsSnapshot> loadProducts() async => snapshot;
@@ -295,6 +400,18 @@ class _FakeProductRepository implements ProductRepository {
   @override
   Future<List<ProductCronConfig>> listProductSchedules() async {
     return snapshot.cronConfigs;
+  }
+
+  @override
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductSchedule(String platform) async {
+    deletedCronPlatform = platform;
   }
 
   @override
@@ -376,6 +493,16 @@ class _SlowProductRepository implements ProductRepository {
   Future<List<ProductCronConfig>> listProductSchedules() async => const [];
 
   @override
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductSchedule(String platform) async {}
+
+  @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
 
   @override
@@ -438,6 +565,16 @@ class _FailingProductRepository implements ProductRepository {
 
   @override
   Future<List<ProductCronConfig>> listProductSchedules() async => const [];
+
+  @override
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductSchedule(String platform) async {}
 
   @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}

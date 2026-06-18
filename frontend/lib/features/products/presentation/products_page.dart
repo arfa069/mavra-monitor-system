@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_chart.dart';
+import '../../../core/widgets/mavra_confirm.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/product_models.dart';
 
 class ProductsPage extends StatefulWidget {
@@ -19,16 +22,21 @@ class ProductsPage extends StatefulWidget {
 class _ProductsPageState extends State<ProductsPage> {
   Future<ProductsSnapshot>? _productsFuture;
   ProductsSnapshot? _snapshot;
+  ProductPageState? _page;
   Object? _error;
   String? _statusMessage;
   int? _editingProductId;
   bool _showForm = false;
+  bool _alertEnabled = false;
   final Set<int> _selectedProductIds = {};
 
   final _titleController = TextEditingController();
   final _urlController = TextEditingController();
   final _platformController = TextEditingController();
   final _searchController = TextEditingController();
+  final _filterPlatformController = TextEditingController();
+  final _pageSizeController = TextEditingController(text: '20');
+  String _activeFilter = 'all';
 
   FileService get _fileService =>
       widget.fileService ??
@@ -46,6 +54,7 @@ class _ProductsPageState extends State<ProductsPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.repository != widget.repository) {
       _snapshot = null;
+      _page = null;
       _load();
     }
   }
@@ -56,6 +65,8 @@ class _ProductsPageState extends State<ProductsPage> {
     _urlController.dispose();
     _platformController.dispose();
     _searchController.dispose();
+    _filterPlatformController.dispose();
+    _pageSizeController.dispose();
     super.dispose();
   }
 
@@ -64,16 +75,23 @@ class _ProductsPageState extends State<ProductsPage> {
       _error = null;
       _productsFuture = Future.sync(widget.repository.loadProducts)
         ..then((snapshot) {
-          if (mounted) {
-            setState(() {
-              _snapshot = snapshot;
-            });
+          if (!mounted) {
+            return;
           }
+          setState(() {
+            _snapshot = snapshot;
+            _page = snapshot.page.items.isEmpty
+                ? ProductPageState(
+                    items: snapshot.products,
+                    page: 1,
+                    pageSize: snapshot.products.length,
+                    total: snapshot.products.length,
+                  )
+                : snapshot.page;
+          });
         }).catchError((Object error) {
           if (mounted) {
-            setState(() {
-              _error = error;
-            });
+            setState(() => _error = error);
           }
         });
     });
@@ -83,6 +101,7 @@ class _ProductsPageState extends State<ProductsPage> {
     setState(() {
       _editingProductId = null;
       _showForm = true;
+      _alertEnabled = false;
       _titleController.clear();
       _urlController.clear();
       _platformController.clear();
@@ -93,6 +112,7 @@ class _ProductsPageState extends State<ProductsPage> {
     setState(() {
       _editingProductId = product.id;
       _showForm = true;
+      _alertEnabled = false;
       _titleController.text = product.title;
       _urlController.text = product.url;
       _platformController.text = product.platform;
@@ -105,8 +125,20 @@ class _ProductsPageState extends State<ProductsPage> {
       url: _urlController.text.trim(),
       platform: _platformController.text.trim(),
     );
+
     try {
       await widget.repository.saveProduct(draft, productId: _editingProductId);
+      final productId = _editingProductId;
+      if (productId != null) {
+        await widget.repository.saveAlert(
+          productId,
+          ProductAlertDraft(
+            enabled: _alertEnabled,
+            alertType: 'price_change',
+            thresholdPercent: 5,
+          ),
+        );
+      }
       if (!mounted) {
         return;
       }
@@ -115,6 +147,37 @@ class _ProductsPageState extends State<ProductsPage> {
         _showForm = false;
       });
       _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
+  Future<void> _applyFilters() async {
+    final pageSize = int.tryParse(_pageSizeController.text.trim()) ?? 20;
+    final active = switch (_activeFilter) {
+      'active' => true,
+      'inactive' => false,
+      _ => null,
+    };
+
+    final query = ProductListQuery(
+      keyword: _emptyToNull(_searchController.text),
+      platform: _emptyToNull(_filterPlatformController.text),
+      active: active,
+      pageSize: pageSize,
+    );
+
+    try {
+      final page = await widget.repository.listProducts(query);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _page = page;
+        _statusMessage = 'Loaded ${page.total} products';
+      });
     } catch (error) {
       if (mounted) {
         setState(() => _error = error);
@@ -132,9 +195,7 @@ class _ProductsPageState extends State<ProductsPage> {
       if (!mounted) {
         return;
       }
-      setState(() {
-        _statusMessage = 'Imported ${file.name}';
-      });
+      setState(() => _statusMessage = 'Imported ${file.name}');
       _load();
     } catch (error) {
       if (mounted) {
@@ -144,6 +205,17 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Future<void> _deleteProduct(int productId) async {
+    final confirmed = await mavraConfirm(
+      context,
+      title: 'Delete product',
+      message: 'Delete product #$productId?',
+      confirmKey: Key('product-delete-$productId-confirm-button'),
+      confirmLabel: 'Delete',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await widget.repository.deleteProduct(productId);
       if (!mounted) {
@@ -167,6 +239,18 @@ class _ProductsPageState extends State<ProductsPage> {
       setState(() => _statusMessage = 'Select products to delete');
       return;
     }
+
+    final confirmed = await mavraConfirm(
+      context,
+      title: 'Delete selected products',
+      message: 'Delete ${ids.length} selected products?',
+      confirmKey: const Key('product-batch-delete-dialog-confirm-button'),
+      confirmLabel: 'Delete',
+    );
+    if (!confirmed) {
+      return;
+    }
+
     try {
       await widget.repository.batchDeleteProducts(ids);
       if (!mounted) {
@@ -199,6 +283,62 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
+  Future<void> _saveProfileBinding(ProductProfileBinding binding) async {
+    try {
+      await widget.repository.saveProfileBinding(
+        platform: binding.platform,
+        profileKey: binding.profileName,
+      );
+      if (mounted) {
+        setState(() => _statusMessage = 'Saved ${binding.platform} binding');
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
+  Future<void> _saveProductCron(ProductCronConfig cron) async {
+    try {
+      await widget.repository.saveProductSchedule(
+        platform: cron.platform,
+        cronExpression: cron.cron,
+      );
+      if (mounted) {
+        setState(() => _statusMessage = 'Saved ${cron.platform} cron');
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
+  Future<void> _deleteProductCron(ProductCronConfig cron) async {
+    final confirmed = await mavraConfirm(
+      context,
+      title: 'Delete platform cron',
+      message: 'Delete ${cron.platform} cron schedule?',
+      confirmKey: Key('product-cron-${cron.platform}-delete-confirm-button'),
+      confirmLabel: 'Delete',
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await widget.repository.deleteProductSchedule(cron.platform);
+      if (mounted) {
+        setState(() => _statusMessage = 'Deleted ${cron.platform} cron');
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+    }
+  }
+
   void _toggleProductSelection(int productId, bool selected) {
     setState(() {
       if (selected) {
@@ -219,8 +359,8 @@ class _ProductsPageState extends State<ProductsPage> {
       builder: (context) => AlertDialog(
         title: Text('Price trend: ${product.title}'),
         content: SizedBox(
-          width: 360,
-          child: _PriceHistoryList(history: _snapshot?.history ?? const []),
+          width: 420,
+          child: _PriceHistoryChart(history: _snapshot?.history ?? const []),
         ),
         actions: [
           TextButton(
@@ -268,13 +408,23 @@ class _ProductsPageState extends State<ProductsPage> {
                 }
                 return _ProductsContent(
                   snapshot: _snapshot ?? const ProductsSnapshot.empty(),
+                  page: _page,
                   statusMessage: _statusMessage,
                   showForm: _showForm,
+                  alertEnabled: _alertEnabled,
                   titleController: _titleController,
                   urlController: _urlController,
                   platformController: _platformController,
                   searchController: _searchController,
+                  filterPlatformController: _filterPlatformController,
+                  pageSizeController: _pageSizeController,
+                  activeFilter: _activeFilter,
                   selectedProductIds: _selectedProductIds,
+                  onActiveFilterChanged: (value) =>
+                      setState(() => _activeFilter = value),
+                  onAlertEnabledChanged: (value) =>
+                      setState(() => _alertEnabled = value),
+                  onApplyFilters: _applyFilters,
                   onNewProduct: _newProduct,
                   onImportProducts: _importProducts,
                   onSaveProduct: _saveProduct,
@@ -285,6 +435,9 @@ class _ProductsPageState extends State<ProductsPage> {
                   onProductSelected: _toggleProductSelection,
                   onClearSearch: _clearSearch,
                   onShowTrend: _showPriceTrend,
+                  onSaveProfileBinding: _saveProfileBinding,
+                  onSaveProductCron: _saveProductCron,
+                  onDeleteProductCron: _deleteProductCron,
                 );
               },
             ),
@@ -293,18 +446,31 @@ class _ProductsPageState extends State<ProductsPage> {
       ),
     );
   }
+
+  static String? _emptyToNull(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 }
 
 class _ProductsContent extends StatelessWidget {
   const _ProductsContent({
     required this.snapshot,
+    required this.page,
     required this.statusMessage,
     required this.showForm,
+    required this.alertEnabled,
     required this.titleController,
     required this.urlController,
     required this.platformController,
     required this.searchController,
+    required this.filterPlatformController,
+    required this.pageSizeController,
+    required this.activeFilter,
     required this.selectedProductIds,
+    required this.onActiveFilterChanged,
+    required this.onAlertEnabledChanged,
+    required this.onApplyFilters,
     required this.onNewProduct,
     required this.onImportProducts,
     required this.onSaveProduct,
@@ -315,16 +481,27 @@ class _ProductsContent extends StatelessWidget {
     required this.onProductSelected,
     required this.onClearSearch,
     required this.onShowTrend,
+    required this.onSaveProfileBinding,
+    required this.onSaveProductCron,
+    required this.onDeleteProductCron,
   });
 
   final ProductsSnapshot snapshot;
+  final ProductPageState? page;
   final String? statusMessage;
   final bool showForm;
+  final bool alertEnabled;
   final TextEditingController titleController;
   final TextEditingController urlController;
   final TextEditingController platformController;
   final TextEditingController searchController;
+  final TextEditingController filterPlatformController;
+  final TextEditingController pageSizeController;
+  final String activeFilter;
   final Set<int> selectedProductIds;
+  final ValueChanged<String> onActiveFilterChanged;
+  final ValueChanged<bool> onAlertEnabledChanged;
+  final Future<void> Function() onApplyFilters;
   final VoidCallback onNewProduct;
   final VoidCallback onImportProducts;
   final Future<void> Function() onSaveProduct;
@@ -335,44 +512,21 @@ class _ProductsContent extends StatelessWidget {
   final void Function(int productId, bool selected) onProductSelected;
   final VoidCallback onClearSearch;
   final ValueChanged<ProductItem> onShowTrend;
+  final ValueChanged<ProductProfileBinding> onSaveProfileBinding;
+  final ValueChanged<ProductCronConfig> onSaveProductCron;
+  final ValueChanged<ProductCronConfig> onDeleteProductCron;
 
   @override
   Widget build(BuildContext context) {
-    final filteredProducts = _filterProducts(
-      snapshot.products,
-      searchController.text,
-    );
+    final products = _filterProducts(page?.items ?? snapshot.products);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Products',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: onImportProducts,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Batch import'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                key: const Key('product-crawl-now-button'),
-                onPressed: onRequestCrawlNow,
-                icon: const Icon(Icons.travel_explore),
-                label: const Text('Crawl now'),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: onNewProduct,
-                icon: const Icon(Icons.add),
-                label: const Text('New product'),
-              ),
-            ],
+          _ProductsHeader(
+            onImportProducts: onImportProducts,
+            onRequestCrawlNow: onRequestCrawlNow,
+            onNewProduct: onNewProduct,
           ),
           if (statusMessage != null) ...[
             const SizedBox(height: 8),
@@ -384,48 +538,31 @@ class _ProductsContent extends StatelessWidget {
               titleController: titleController,
               urlController: urlController,
               platformController: platformController,
+              alertEnabled: alertEnabled,
+              onAlertEnabledChanged: onAlertEnabledChanged,
               onSave: onSaveProduct,
             ),
           ],
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            children: [
-              SizedBox(
-                width: 320,
-                child: TextField(
-                  key: const Key('product-search-field'),
-                  controller: searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search products',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                ),
-              ),
-              IconButton(
-                key: const Key('product-clear-search-button'),
-                tooltip: 'Clear search',
-                onPressed: onClearSearch,
-                icon: const Icon(Icons.clear),
-              ),
-              FilledButton.icon(
-                key: const Key('product-batch-delete-button'),
-                onPressed: onBatchDeleteProducts,
-                icon: const Icon(Icons.delete_sweep),
-                label: Text('Delete selected (${selectedProductIds.length})'),
-              ),
-            ],
+          _ProductFilters(
+            searchController: searchController,
+            platformController: filterPlatformController,
+            pageSizeController: pageSizeController,
+            activeFilter: activeFilter,
+            selectedCount: selectedProductIds.length,
+            onActiveFilterChanged: onActiveFilterChanged,
+            onApplyFilters: onApplyFilters,
+            onClearSearch: onClearSearch,
+            onBatchDeleteProducts: onBatchDeleteProducts,
           ),
           const SizedBox(height: 12),
           if (snapshot.products.isEmpty)
             const Center(child: Text('No products yet'))
-          else if (filteredProducts.isEmpty)
+          else if (products.isEmpty)
             const Center(child: Text('No products match the current filters'))
           else
-            _ProductTable(
-              products: filteredProducts,
+            _ProductWorkbenchTable(
+              products: products,
               selectedProductIds: selectedProductIds,
               onSelected: onProductSelected,
               onEdit: onEditProduct,
@@ -437,6 +574,8 @@ class _ProductsContent extends StatelessWidget {
             title: 'Price history',
             emptyText: 'No price history yet',
             children: [
+              if (snapshot.history.isNotEmpty)
+                _PriceHistoryChart(history: snapshot.history),
               for (final point in snapshot.history)
                 ListTile(
                   dense: true,
@@ -457,6 +596,14 @@ class _ProductsContent extends StatelessWidget {
                   leading: const Icon(Icons.account_tree),
                   title: Text(binding.profileName),
                   subtitle: Text(binding.platform),
+                  trailing: FilledButton.tonalIcon(
+                    key: Key(
+                      'product-profile-binding-${binding.platform}-button',
+                    ),
+                    onPressed: () => onSaveProfileBinding(binding),
+                    icon: const Icon(Icons.link),
+                    label: const Text('Bind'),
+                  ),
                 ),
             ],
           ),
@@ -471,6 +618,23 @@ class _ProductsContent extends StatelessWidget {
                   leading: const Icon(Icons.schedule),
                   title: Text(cron.cron),
                   subtitle: Text(cron.platform),
+                  trailing: Wrap(
+                    spacing: 8,
+                    children: [
+                      IconButton(
+                        key: Key('product-cron-${cron.platform}-edit-button'),
+                        tooltip: 'Edit ${cron.platform} cron',
+                        onPressed: () => onSaveProductCron(cron),
+                        icon: const Icon(Icons.edit_calendar),
+                      ),
+                      IconButton(
+                        key: Key('product-cron-${cron.platform}-delete-button'),
+                        tooltip: 'Delete ${cron.platform} cron',
+                        onPressed: () => onDeleteProductCron(cron),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -484,7 +648,9 @@ class _ProductsContent extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.receipt_long),
                   title: Text(log.message),
-                  subtitle: Text(log.status),
+                  subtitle: Text(
+                    '${log.status} - ${_shortDateTime(log.createdAt)}',
+                  ),
                 ),
             ],
           ),
@@ -493,21 +659,158 @@ class _ProductsContent extends StatelessWidget {
     );
   }
 
-  static List<ProductItem> _filterProducts(
-    List<ProductItem> products,
-    String query,
-  ) {
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      return products;
-    }
+  List<ProductItem> _filterProducts(List<ProductItem> products) {
+    final normalized = searchController.text.trim().toLowerCase();
     return [
       for (final product in products)
-        if (product.title.toLowerCase().contains(normalized) ||
+        if (normalized.isEmpty ||
+            product.title.toLowerCase().contains(normalized) ||
             product.platform.toLowerCase().contains(normalized) ||
             product.url.toLowerCase().contains(normalized))
           product,
     ];
+  }
+}
+
+class _ProductsHeader extends StatelessWidget {
+  const _ProductsHeader({
+    required this.onImportProducts,
+    required this.onRequestCrawlNow,
+    required this.onNewProduct,
+  });
+
+  final VoidCallback onImportProducts;
+  final Future<void> Function() onRequestCrawlNow;
+  final VoidCallback onNewProduct;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 320,
+          child: Text(
+            'Products',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+        ),
+        TextButton.icon(
+          key: const Key('product-import-open-button'),
+          onPressed: onImportProducts,
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Batch import'),
+        ),
+        OutlinedButton.icon(
+          key: const Key('product-crawl-now-button'),
+          onPressed: onRequestCrawlNow,
+          icon: const Icon(Icons.travel_explore),
+          label: const Text('Crawl now'),
+        ),
+        FilledButton.icon(
+          onPressed: onNewProduct,
+          icon: const Icon(Icons.add),
+          label: const Text('New product'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductFilters extends StatelessWidget {
+  const _ProductFilters({
+    required this.searchController,
+    required this.platformController,
+    required this.pageSizeController,
+    required this.activeFilter,
+    required this.selectedCount,
+    required this.onActiveFilterChanged,
+    required this.onApplyFilters,
+    required this.onClearSearch,
+    required this.onBatchDeleteProducts,
+  });
+
+  final TextEditingController searchController;
+  final TextEditingController platformController;
+  final TextEditingController pageSizeController;
+  final String activeFilter;
+  final int selectedCount;
+  final ValueChanged<String> onActiveFilterChanged;
+  final Future<void> Function() onApplyFilters;
+  final VoidCallback onClearSearch;
+  final Future<void> Function() onBatchDeleteProducts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 280,
+          child: TextField(
+            key: const Key('product-search-field'),
+            controller: searchController,
+            decoration: const InputDecoration(
+              labelText: 'Search products',
+              prefixIcon: Icon(Icons.search),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 180,
+          child: TextField(
+            key: const Key('product-platform-filter'),
+            controller: platformController,
+            decoration: const InputDecoration(labelText: 'Platform'),
+          ),
+        ),
+        SizedBox(
+          width: 120,
+          child: TextField(
+            key: const Key('product-page-size-field'),
+            controller: pageSizeController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Page size'),
+          ),
+        ),
+        SegmentedButton<String>(
+          key: const Key('product-active-filter'),
+          segments: const [
+            ButtonSegment(value: 'all', label: Text('All')),
+            ButtonSegment(value: 'active', label: Text('Active')),
+            ButtonSegment(value: 'inactive', label: Text('Inactive')),
+          ],
+          selected: {activeFilter},
+          onSelectionChanged: (selection) =>
+              onActiveFilterChanged(selection.first),
+        ),
+        IconButton(
+          key: const Key('product-clear-search-button'),
+          tooltip: 'Clear search',
+          onPressed: onClearSearch,
+          icon: const Icon(Icons.clear),
+        ),
+        FilledButton.icon(
+          key: const Key('product-apply-filters-button'),
+          onPressed: onApplyFilters,
+          icon: const Icon(Icons.filter_alt),
+          label: const Text('Apply'),
+        ),
+        KeyedSubtree(
+          key: const Key('product-batch-delete-confirm-button'),
+          child: FilledButton.icon(
+            key: const Key('product-batch-delete-button'),
+            onPressed: onBatchDeleteProducts,
+            icon: const Icon(Icons.delete_sweep),
+            label: Text('Delete selected ($selectedCount)'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -516,12 +819,16 @@ class _ProductForm extends StatelessWidget {
     required this.titleController,
     required this.urlController,
     required this.platformController,
+    required this.alertEnabled,
+    required this.onAlertEnabledChanged,
     required this.onSave,
   });
 
   final TextEditingController titleController;
   final TextEditingController urlController;
   final TextEditingController platformController;
+  final bool alertEnabled;
+  final ValueChanged<bool> onAlertEnabledChanged;
   final Future<void> Function() onSave;
 
   @override
@@ -555,6 +862,14 @@ class _ProductForm extends StatelessWidget {
               controller: platformController,
               decoration: const InputDecoration(labelText: 'Platform'),
             ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              key: const Key('product-alert-enabled-field'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Price alert enabled'),
+              value: alertEnabled,
+              onChanged: onAlertEnabledChanged,
+            ),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: onSave,
@@ -568,8 +883,8 @@ class _ProductForm extends StatelessWidget {
   }
 }
 
-class _ProductTable extends StatelessWidget {
-  const _ProductTable({
+class _ProductWorkbenchTable extends StatelessWidget {
+  const _ProductWorkbenchTable({
     required this.products,
     required this.selectedProductIds,
     required this.onSelected,
@@ -587,81 +902,200 @@ class _ProductTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final product in products)
-          Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return MavraResponsiveDataView<ProductItem>(
+      rows: products,
+      wideBreakpoint: 960,
+      columns: const [
+        DataColumn(label: Text('Select')),
+        DataColumn(label: Text('Product')),
+        DataColumn(label: Text('Platform')),
+        DataColumn(label: Text('Price')),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Actions')),
+      ],
+      tableCells: (product) => [
+        DataCell(
+          _SelectProductBox(
+            product: product,
+            selected: selectedProductIds.contains(product.id),
+            onSelected: onSelected,
+          ),
+        ),
+        DataCell(
+          SizedBox(
+            width: 260,
+            child: Text(product.title, overflow: TextOverflow.ellipsis),
+          ),
+        ),
+        DataCell(Text(product.platform)),
+        DataCell(Text(product.currentPrice)),
+        DataCell(Text(product.enabled ? 'Active' : 'Paused')),
+        DataCell(
+          _ProductActionButtons(
+            product: product,
+            dense: true,
+            onEdit: onEdit,
+            onDelete: onDelete,
+            onShowTrend: onShowTrend,
+          ),
+        ),
+      ],
+      mobileBuilder: (context, product) => Card(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Checkbox(
-                        key: Key('product-select-${product.id}'),
-                        value: selectedProductIds.contains(product.id),
-                        onChanged: (value) =>
-                            onSelected(product.id, value ?? false),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.title,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            Text('${product.platform} - ${product.url}'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(product.currentPrice),
-                          Text(product.enabled ? 'Active' : 'Paused'),
-                        ],
-                      ),
-                    ],
+                  _SelectProductBox(
+                    product: product,
+                    selected: selectedProductIds.contains(product.id),
+                    onSelected: onSelected,
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.title,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text('${product.platform} - ${product.url}'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      TextButton.icon(
-                        key: Key('product-trend-${product.id}-button'),
-                        onPressed: () => onShowTrend(product),
-                        icon: const Icon(Icons.timeline),
-                        label: const Text('Trend'),
-                      ),
-                      TextButton.icon(
-                        onPressed: () => onEdit(product),
-                        icon: const Icon(Icons.edit),
-                        label: Text('Edit ${product.title}'),
-                      ),
-                      TextButton.icon(
-                        key: Key('product-delete-${product.id}-button'),
-                        onPressed: () => onDelete(product.id),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete'),
-                      ),
+                      Text(product.currentPrice),
+                      Text(product.enabled ? 'Active' : 'Paused'),
                     ],
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 8),
+              _ProductActionButtons(
+                product: product,
+                onEdit: onEdit,
+                onDelete: onDelete,
+                onShowTrend: onShowTrend,
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectProductBox extends StatelessWidget {
+  const _SelectProductBox({
+    required this.product,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final ProductItem product;
+  final bool selected;
+  final void Function(int productId, bool selected) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Checkbox(
+      key: Key('product-select-${product.id}'),
+      value: selected,
+      onChanged: (value) => onSelected(product.id, value ?? false),
+    );
+  }
+}
+
+class _ProductActionButtons extends StatelessWidget {
+  const _ProductActionButtons({
+    required this.product,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onShowTrend,
+    this.dense = false,
+  });
+
+  final ProductItem product;
+  final ValueChanged<ProductItem> onEdit;
+  final ValueChanged<int> onDelete;
+  final ValueChanged<ProductItem> onShowTrend;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    if (dense) {
+      return Wrap(
+        spacing: 4,
+        children: [
+          IconButton(
+            key: Key('product-open-${product.id}-button'),
+            tooltip: 'Open ${product.title}',
+            onPressed: () {},
+            icon: const Icon(Icons.open_in_new),
+          ),
+          IconButton(
+            key: Key('product-trend-${product.id}-button'),
+            tooltip: 'Trend',
+            onPressed: () => onShowTrend(product),
+            icon: const Icon(Icons.timeline),
+          ),
+          IconButton(
+            key: Key('product-edit-${product.id}-button'),
+            tooltip: 'Edit ${product.title}',
+            onPressed: () => onEdit(product),
+            icon: const Icon(Icons.edit),
+          ),
+          IconButton(
+            key: Key('product-delete-${product.id}-button'),
+            tooltip: 'Delete',
+            onPressed: () => onDelete(product.id),
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        TextButton.icon(
+          key: Key('product-open-${product.id}-button'),
+          onPressed: () {},
+          icon: const Icon(Icons.open_in_new),
+          label: const Text('Open'),
+        ),
+        TextButton.icon(
+          key: Key('product-trend-${product.id}-button'),
+          onPressed: () => onShowTrend(product),
+          icon: const Icon(Icons.timeline),
+          label: const Text('Trend'),
+        ),
+        TextButton.icon(
+          key: Key('product-edit-${product.id}-button'),
+          onPressed: () => onEdit(product),
+          icon: const Icon(Icons.edit),
+          label: Text('Edit ${product.title}'),
+        ),
+        TextButton.icon(
+          key: Key('product-delete-${product.id}-button'),
+          onPressed: () => onDelete(product.id),
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Delete'),
+        ),
       ],
     );
   }
 }
 
-class _PriceHistoryList extends StatelessWidget {
-  const _PriceHistoryList({required this.history});
+class _PriceHistoryChart extends StatelessWidget {
+  const _PriceHistoryChart({required this.history});
 
   final List<PriceHistoryPoint> history;
 
@@ -670,18 +1104,12 @@ class _PriceHistoryList extends StatelessWidget {
     if (history.isEmpty) {
       return const Text('No price history yet');
     }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+
+    return MavraTrendChart(
+      title: 'Price trend',
+      points: [
         for (final point in history)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.timeline),
-            title: Text(point.label),
-            trailing: Text(point.price),
-          ),
+          MavraChartPoint(label: point.label, value: _parsePrice(point.price)),
       ],
     );
   }
@@ -712,4 +1140,13 @@ class _Section extends StatelessWidget {
       ),
     );
   }
+}
+
+double _parsePrice(String value) {
+  final normalized = value.replaceAll(RegExp(r'[^0-9.]'), '');
+  return double.tryParse(normalized) ?? 0;
+}
+
+String _shortDateTime(DateTime value) {
+  return '${value.month}/${value.day} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }

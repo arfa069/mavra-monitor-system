@@ -231,6 +231,27 @@ class GeneratedProductRepository implements ProductRepository {
   }
 
   @override
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    await _productsApi.productsCreateProductCronConfig(
+      productPlatformCronCreate: generated.ProductPlatformCronCreate(
+        (builder) => builder
+          ..platform = platform
+          ..cronExpression = cronExpression
+          ..cronTimezone = timezone,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteProductSchedule(String platform) async {
+    await _productsApi.productsDeleteProductCronConfig(platform: platform);
+  }
+
+  @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {
     if (productId == null) {
       await _productsApi.productsCreateProduct(

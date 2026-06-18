@@ -525,6 +525,16 @@ class _VisualProductRepository implements ProductRepository {
   }
 
   @override
+  Future<void> saveProductSchedule({
+    required String platform,
+    required String cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> deleteProductSchedule(String platform) async {}
+
+  @override
   Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
 
   @override
