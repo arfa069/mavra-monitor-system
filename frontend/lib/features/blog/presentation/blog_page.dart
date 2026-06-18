@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/blog_models.dart';
 
 class BlogPage extends StatefulWidget {
@@ -614,6 +615,7 @@ class _BlogEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      key: const Key('blog-editor-panel'),
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -627,6 +629,7 @@ class _BlogEditor extends StatelessWidget {
               runSpacing: 8,
               children: [
                 TextButton.icon(
+                  key: const Key('blog-cover-upload-button'),
                   onPressed: canWrite ? onUploadMedia : null,
                   icon: const Icon(Icons.upload_file),
                   label: const Text('Upload media'),
@@ -702,6 +705,7 @@ class _BlogEditor extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextField(
+              key: const Key('blog-excerpt-field'),
               controller: excerptController,
               enabled: canWrite,
               decoration: const InputDecoration(labelText: 'Excerpt'),
@@ -779,48 +783,83 @@ class _PostsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Action')),
-          DataColumn(label: Text('Title')),
-          DataColumn(label: Text('Status')),
-          DataColumn(label: Text('Category')),
-          DataColumn(label: Text('Tags')),
-          DataColumn(label: Text('Updated')),
-        ],
-        rows: [
-          for (final post in posts)
-            DataRow(
-              cells: [
-                DataCell(
-                  canWrite
-                      ? TextButton(
-                          onPressed: () => onEditPost(post),
-                          child: Text('Edit ${post.title}'),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                DataCell(
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [Text(post.title), Text(post.slug)],
-                  ),
-                ),
-                DataCell(Text(post.status)),
-                DataCell(Text(post.categoryName ?? '-')),
-                DataCell(Text(post.tagNames.join(', '))),
-                DataCell(Text(_shortDate(post.updatedAt))),
-              ],
+    return MavraResponsiveDataView<BlogPostItem>(
+      rows: posts,
+      wideBreakpoint: 900,
+      columns: const [
+        DataColumn(label: Text('Action')),
+        DataColumn(label: Text('Title')),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Category')),
+        DataColumn(label: Text('Tags')),
+        DataColumn(label: Text('Updated')),
+      ],
+      tableCells: (post) => [
+        DataCell(
+          _PostActions(post: post, canWrite: canWrite, onEditPost: onEditPost),
+        ),
+        DataCell(
+          KeyedSubtree(
+            key: Key('blog-post-row-${post.id}'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [Text(post.title), Text(post.slug)],
             ),
-        ],
+          ),
+        ),
+        DataCell(Text(post.status)),
+        DataCell(Text(post.categoryName ?? '-')),
+        DataCell(Text(post.tagNames.join(', '))),
+        DataCell(Text(_shortDate(post.updatedAt))),
+      ],
+      mobileBuilder: (context, post) => Card(
+        key: Key('blog-post-row-${post.id}'),
+        margin: const EdgeInsets.only(bottom: 8),
+        child: ListTile(
+          title: Text(post.title),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(post.status),
+              Text(post.categoryName ?? '-'),
+              Text(post.tagNames.join(', ')),
+            ],
+          ),
+          trailing: _PostActions(
+            post: post,
+            canWrite: canWrite,
+            onEditPost: onEditPost,
+          ),
+        ),
       ),
     );
   }
 
   static String _shortDate(DateTime value) {
     return '${value.year}-${value.month}-${value.day}';
+  }
+}
+
+class _PostActions extends StatelessWidget {
+  const _PostActions({
+    required this.post,
+    required this.canWrite,
+    required this.onEditPost,
+  });
+
+  final BlogPostItem post;
+  final bool canWrite;
+  final ValueChanged<BlogPostItem> onEditPost;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!canWrite) {
+      return const SizedBox.shrink();
+    }
+    return TextButton(
+      onPressed: () => onEditPost(post),
+      child: Text('Edit ${post.title}'),
+    );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/blog/domain/blog_models.dart';
 import 'package:mavra_frontend/features/blog/presentation/blog_page.dart';
 
@@ -45,6 +46,31 @@ void main() {
 
     expect(repository.lastFilter.keyword, 'morning');
     expect(repository.lastFilter.status, 'draft');
+  });
+
+  testWidgets('matches React blog table and editor parity affordances', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: BlogPage(repository: _FakeBlogRepository.full())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MavraResponsiveDataView<BlogPostItem>), findsOneWidget);
+    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byKey(const Key('blog-post-row-1')), findsOneWidget);
+
+    await tester.tap(find.text('New post'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('blog-editor-panel')), findsOneWidget);
+    expect(find.byKey(const Key('blog-cover-upload-button')), findsOneWidget);
+    expect(find.byKey(const Key('blog-excerpt-field')), findsOneWidget);
   });
 
   testWidgets('creates posts and validates required editor fields', (
