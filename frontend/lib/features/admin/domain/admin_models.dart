@@ -23,6 +23,22 @@ class AdminRolePermission {
   final List<String> permissions;
 }
 
+class AdminUserDraft {
+  const AdminUserDraft({
+    required this.username,
+    required this.email,
+    required this.role,
+    this.password,
+    this.active,
+  });
+
+  final String username;
+  final String email;
+  final String role;
+  final String? password;
+  final bool? active;
+}
+
 class AdminAuditLog {
   const AdminAuditLog({
     required this.id,
@@ -78,15 +94,54 @@ class AdminFilter {
     this.search,
     this.role,
     this.auditAction,
+    this.auditActorUserId,
+    this.userPage = 1,
+    this.auditPage = 1,
+    this.pageSize = 20,
     this.includeRolePermissions = true,
   });
 
   final String? search;
   final String? role;
   final String? auditAction;
+  final int? auditActorUserId;
+  final int userPage;
+  final int auditPage;
+  final int pageSize;
   final bool includeRolePermissions;
+
+  AdminFilter copyWith({
+    String? search,
+    String? role,
+    String? auditAction,
+    int? auditActorUserId,
+    int? userPage,
+    int? auditPage,
+    int? pageSize,
+    bool? includeRolePermissions,
+  }) {
+    return AdminFilter(
+      search: search ?? this.search,
+      role: role ?? this.role,
+      auditAction: auditAction ?? this.auditAction,
+      auditActorUserId: auditActorUserId ?? this.auditActorUserId,
+      userPage: userPage ?? this.userPage,
+      auditPage: auditPage ?? this.auditPage,
+      pageSize: pageSize ?? this.pageSize,
+      includeRolePermissions:
+          includeRolePermissions ?? this.includeRolePermissions,
+    );
+  }
 }
 
 abstract class AdminRepository {
   Future<AdminSnapshot> loadAdmin(AdminFilter filter);
+
+  Future<void> createUser(AdminUserDraft draft);
+
+  Future<void> updateUser(int userId, AdminUserDraft draft);
+
+  Future<void> setUserActive(int userId, bool active);
+
+  Future<void> deleteUser(int userId);
 }

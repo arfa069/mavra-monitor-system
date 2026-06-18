@@ -43,11 +43,97 @@ void main() {
       find.byKey(const Key('admin-audit-action-field')),
       'user.login',
     );
+    await tester.enterText(
+      find.byKey(const Key('admin-role-field')),
+      'super_admin',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-audit-actor-field')),
+      '1',
+    );
     await tester.tap(find.text('Apply filters'));
     await tester.pumpAndSettle();
 
     expect(repository.lastFilter.search, 'admin');
     expect(repository.lastFilter.auditAction, 'user.login');
+    expect(repository.lastFilter.role, 'super_admin');
+    expect(repository.lastFilter.auditActorUserId, 1);
+  });
+
+  testWidgets('creates, edits, disables, deletes, and pages users and audits', (
+    tester,
+  ) async {
+    final repository = _FakeAdminRepository.full(totalUsers: 40);
+
+    await tester.pumpWidget(
+      MaterialApp(home: AdminPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('admin-create-user-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('admin-user-username-field')),
+      'new-user',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-user-email-field')),
+      'new@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-user-role-field')),
+      'admin',
+    );
+    await tester.enterText(
+      find.byKey(const Key('admin-user-password-field')),
+      'password123',
+    );
+    await tester.tap(find.byKey(const Key('admin-save-user-button')));
+    await tester.pumpAndSettle();
+    expect(repository.createdDraft?.username, 'new-user');
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-edit-user-1-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-edit-user-1-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('admin-user-role-field')),
+      'operator',
+    );
+    await tester.tap(find.byKey(const Key('admin-save-user-button')));
+    await tester.pumpAndSettle();
+    expect(repository.updatedUserId, 1);
+    expect(repository.updatedDraft?.role, 'operator');
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-toggle-user-1-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-toggle-user-1-button')));
+    await tester.pumpAndSettle();
+    expect(repository.toggledUserId, 1);
+    expect(repository.toggledActive, isFalse);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-delete-user-1-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-delete-user-1-button')));
+    await tester.pumpAndSettle();
+    expect(repository.deletedUserId, 1);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-users-next-page-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-users-next-page-button')));
+    await tester.pumpAndSettle();
+    expect(repository.lastFilter.userPage, 2);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-audits-next-page-button')),
+    );
+    await tester.tap(find.byKey(const Key('admin-audits-next-page-button')));
+    await tester.pumpAndSettle();
+    expect(repository.lastFilter.auditPage, 2);
   });
 
   testWidgets('uses permission strings for access and row actions', (
@@ -118,40 +204,41 @@ void main() {
 class _FakeAdminRepository implements AdminRepository {
   _FakeAdminRepository(this.snapshot);
 
-  factory _FakeAdminRepository.full() => _FakeAdminRepository(
-    AdminSnapshot(
-      users: [
-        AdminUser(
-          id: 1,
-          username: 'arfac',
-          email: 'admin@example.com',
-          role: 'super_admin',
-          active: true,
-          createdAt: DateTime.utc(2026, 6, 16),
+  factory _FakeAdminRepository.full({int totalUsers = 1}) =>
+      _FakeAdminRepository(
+        AdminSnapshot(
+          users: [
+            AdminUser(
+              id: 1,
+              username: 'arfac',
+              email: 'admin@example.com',
+              role: 'super_admin',
+              active: true,
+              createdAt: DateTime.utc(2026, 6, 16),
+            ),
+          ],
+          rolePermissions: const [
+            AdminRolePermission(
+              role: 'admin',
+              permissions: ['user:read', 'user:manage'],
+            ),
+          ],
+          auditLogs: [
+            AdminAuditLog(
+              id: 11,
+              action: 'user.login',
+              actorUserId: 1,
+              targetType: 'session',
+              targetId: null,
+              createdAt: DateTime.utc(2026, 6, 16, 9),
+            ),
+          ],
+          totalUsers: totalUsers,
+          totalAuditLogs: 40,
+          permissionsAvailable: true,
+          realtime: false,
         ),
-      ],
-      rolePermissions: const [
-        AdminRolePermission(
-          role: 'admin',
-          permissions: ['user:read', 'user:manage'],
-        ),
-      ],
-      auditLogs: [
-        AdminAuditLog(
-          id: 11,
-          action: 'user.login',
-          actorUserId: 1,
-          targetType: 'session',
-          targetId: null,
-          createdAt: DateTime.utc(2026, 6, 16, 9),
-        ),
-      ],
-      totalUsers: 1,
-      totalAuditLogs: 1,
-      permissionsAvailable: true,
-      realtime: false,
-    ),
-  );
+      );
 
   factory _FakeAdminRepository.empty() => _FakeAdminRepository(
     const AdminSnapshot(
@@ -167,11 +254,39 @@ class _FakeAdminRepository implements AdminRepository {
 
   final AdminSnapshot snapshot;
   AdminFilter lastFilter = const AdminFilter();
+  AdminUserDraft? createdDraft;
+  AdminUserDraft? updatedDraft;
+  int? updatedUserId;
+  int? toggledUserId;
+  bool? toggledActive;
+  int? deletedUserId;
 
   @override
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) async {
     lastFilter = filter;
     return snapshot;
+  }
+
+  @override
+  Future<void> createUser(AdminUserDraft draft) async {
+    createdDraft = draft;
+  }
+
+  @override
+  Future<void> updateUser(int userId, AdminUserDraft draft) async {
+    updatedUserId = userId;
+    updatedDraft = draft;
+  }
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {
+    toggledUserId = userId;
+    toggledActive = active;
+  }
+
+  @override
+  Future<void> deleteUser(int userId) async {
+    deletedUserId = userId;
   }
 }
 
@@ -180,6 +295,18 @@ class _SlowAdminRepository implements AdminRepository {
 
   @override
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) => _completer.future;
+
+  @override
+  Future<void> createUser(AdminUserDraft draft) async {}
+
+  @override
+  Future<void> updateUser(int userId, AdminUserDraft draft) async {}
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {}
+
+  @override
+  Future<void> deleteUser(int userId) async {}
 }
 
 class _FailingAdminRepository implements AdminRepository {
@@ -187,4 +314,16 @@ class _FailingAdminRepository implements AdminRepository {
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) {
     throw StateError('admin down');
   }
+
+  @override
+  Future<void> createUser(AdminUserDraft draft) async {}
+
+  @override
+  Future<void> updateUser(int userId, AdminUserDraft draft) async {}
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {}
+
+  @override
+  Future<void> deleteUser(int userId) async {}
 }

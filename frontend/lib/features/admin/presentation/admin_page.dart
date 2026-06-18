@@ -27,8 +27,13 @@ class _AdminPageState extends State<AdminPage> {
   Future<AdminSnapshot>? _adminFuture;
   AdminSnapshot? _snapshot;
   Object? _error;
+  String? _statusMessage;
+  int _userPage = 1;
+  int _auditPage = 1;
   final _searchController = TextEditingController();
+  final _roleController = TextEditingController();
   final _auditActionController = TextEditingController();
+  final _auditActorController = TextEditingController();
 
   bool get _canRead => widget.permissions.contains('user:read');
 
@@ -59,14 +64,20 @@ class _AdminPageState extends State<AdminPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _roleController.dispose();
     _auditActionController.dispose();
+    _auditActorController.dispose();
     super.dispose();
   }
 
   void _load() {
     final filter = AdminFilter(
       search: _emptyToNull(_searchController.text),
+      role: _emptyToNull(_roleController.text),
       auditAction: _emptyToNull(_auditActionController.text),
+      auditActorUserId: int.tryParse(_auditActorController.text.trim()),
+      userPage: _userPage,
+      auditPage: _auditPage,
       includeRolePermissions: _canReadRbac,
     );
     setState(() {
@@ -82,6 +93,121 @@ class _AdminPageState extends State<AdminPage> {
           }
         });
     });
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _userPage = 1;
+      _auditPage = 1;
+    });
+    _load();
+  }
+
+  void _goToUserPage(int page) {
+    setState(() => _userPage = page);
+    _load();
+  }
+
+  void _goToAuditPage(int page) {
+    setState(() => _auditPage = page);
+    _load();
+  }
+
+  Future<void> _runAction(
+    Future<void> Function() action,
+    String successMessage,
+  ) async {
+    try {
+      await action();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _statusMessage = successMessage);
+      _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Action failed: $error');
+      }
+    }
+  }
+
+  Future<void> _showUserDialog([AdminUser? user]) async {
+    final usernameController = TextEditingController(
+      text: user?.username ?? '',
+    );
+    final emailController = TextEditingController(text: user?.email ?? '');
+    final roleController = TextEditingController(text: user?.role ?? 'user');
+    final passwordController = TextEditingController();
+    final draft = await showDialog<AdminUserDraft>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(user == null ? 'Create user' : 'Edit ${user.username}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                key: const Key('admin-user-username-field'),
+                controller: usernameController,
+                decoration: const InputDecoration(labelText: 'Username'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('admin-user-email-field'),
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('admin-user-role-field'),
+                controller: roleController,
+                decoration: const InputDecoration(labelText: 'Role'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('admin-user-password-field'),
+                controller: passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
+                obscureText: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('admin-save-user-button'),
+            onPressed: () => Navigator.of(context).pop(
+              AdminUserDraft(
+                username: usernameController.text.trim(),
+                email: emailController.text.trim(),
+                role: roleController.text.trim(),
+                password: _emptyToNull(passwordController.text),
+                active: user?.active,
+              ),
+            ),
+            child: const Text('Save user'),
+          ),
+        ],
+      ),
+    );
+    if (draft == null) {
+      return;
+    }
+    if (user == null) {
+      await _runAction(
+        () => widget.repository.createUser(draft),
+        'Created user',
+      );
+      return;
+    }
+    await _runAction(
+      () => widget.repository.updateUser(user.id, draft),
+      'Updated ${user.username}',
+    );
   }
 
   @override
@@ -135,9 +261,40 @@ class _AdminPageState extends State<AdminPage> {
                   snapshot: _snapshot ?? const AdminSnapshot.empty(),
                   canManageUsers: _canManageUsers,
                   canReadRbac: _canReadRbac,
+                  statusMessage: _statusMessage,
                   searchController: _searchController,
+                  roleController: _roleController,
                   auditActionController: _auditActionController,
-                  onApplyFilters: _load,
+                  auditActorController: _auditActorController,
+                  userPage: _userPage,
+                  auditPage: _auditPage,
+                  onApplyFilters: _applyFilters,
+                  onCreateUser: _showUserDialog,
+                  onEditUser: _showUserDialog,
+                  onToggleUser: (user) => _runAction(
+                    () =>
+                        widget.repository.setUserActive(user.id, !user.active),
+                    user.active
+                        ? 'Disabled ${user.username}'
+                        : 'Enabled ${user.username}',
+                  ),
+                  onDeleteUser: (user) => _runAction(
+                    () => widget.repository.deleteUser(user.id),
+                    'Deleted ${user.username}',
+                  ),
+                  onPreviousUsers: _userPage > 1
+                      ? () => _goToUserPage(_userPage - 1)
+                      : null,
+                  onNextUsers: (_snapshot?.totalUsers ?? 0) > _userPage * 20
+                      ? () => _goToUserPage(_userPage + 1)
+                      : null,
+                  onPreviousAudits: _auditPage > 1
+                      ? () => _goToAuditPage(_auditPage - 1)
+                      : null,
+                  onNextAudits:
+                      (_snapshot?.totalAuditLogs ?? 0) > _auditPage * 20
+                      ? () => _goToAuditPage(_auditPage + 1)
+                      : null,
                 );
               },
             ),
@@ -188,17 +345,43 @@ class _AdminContent extends StatelessWidget {
     required this.snapshot,
     required this.canManageUsers,
     required this.canReadRbac,
+    required this.statusMessage,
     required this.searchController,
+    required this.roleController,
     required this.auditActionController,
+    required this.auditActorController,
+    required this.userPage,
+    required this.auditPage,
     required this.onApplyFilters,
+    required this.onCreateUser,
+    required this.onEditUser,
+    required this.onToggleUser,
+    required this.onDeleteUser,
+    required this.onPreviousUsers,
+    required this.onNextUsers,
+    required this.onPreviousAudits,
+    required this.onNextAudits,
   });
 
   final AdminSnapshot snapshot;
   final bool canManageUsers;
   final bool canReadRbac;
+  final String? statusMessage;
   final TextEditingController searchController;
+  final TextEditingController roleController;
   final TextEditingController auditActionController;
+  final TextEditingController auditActorController;
+  final int userPage;
+  final int auditPage;
   final VoidCallback onApplyFilters;
+  final VoidCallback onCreateUser;
+  final ValueChanged<AdminUser> onEditUser;
+  final ValueChanged<AdminUser> onToggleUser;
+  final ValueChanged<AdminUser> onDeleteUser;
+  final VoidCallback? onPreviousUsers;
+  final VoidCallback? onNextUsers;
+  final VoidCallback? onPreviousAudits;
+  final VoidCallback? onNextAudits;
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +391,17 @@ class _AdminContent extends StatelessWidget {
         children: [
           Text('Users', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
+          if (canManageUsers)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                key: const Key('admin-create-user-button'),
+                onPressed: onCreateUser,
+                icon: const Icon(Icons.person_add),
+                label: const Text('Create user'),
+              ),
+            ),
+          if (canManageUsers) const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -222,11 +416,28 @@ class _AdminContent extends StatelessWidget {
                 ),
               ),
               SizedBox(
+                width: 160,
+                child: TextField(
+                  key: const Key('admin-role-field'),
+                  controller: roleController,
+                  decoration: const InputDecoration(labelText: 'Role'),
+                ),
+              ),
+              SizedBox(
                 width: 220,
                 child: TextField(
                   key: const Key('admin-audit-action-field'),
                   controller: auditActionController,
                   decoration: const InputDecoration(labelText: 'Audit action'),
+                ),
+              ),
+              SizedBox(
+                width: 160,
+                child: TextField(
+                  key: const Key('admin-audit-actor-field'),
+                  controller: auditActorController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Actor id'),
                 ),
               ),
               FilledButton.icon(
@@ -236,6 +447,10 @@ class _AdminContent extends StatelessWidget {
               ),
             ],
           ),
+          if (statusMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(statusMessage!),
+          ],
           if (!snapshot.realtime) ...[
             const SizedBox(height: 8),
             const Text('管理数据不是实时状态。'),
@@ -248,13 +463,35 @@ class _AdminContent extends StatelessWidget {
           if (snapshot.isEmpty)
             const Text('没有符合条件的记录。')
           else ...[
-            _UserTable(users: snapshot.users, canManageUsers: canManageUsers),
+            _UserTable(
+              users: snapshot.users,
+              canManageUsers: canManageUsers,
+              onEditUser: onEditUser,
+              onToggleUser: onToggleUser,
+              onDeleteUser: onDeleteUser,
+            ),
+            _AdminPager(
+              page: userPage,
+              total: snapshot.totalUsers,
+              previousKey: const Key('admin-users-previous-page-button'),
+              nextKey: const Key('admin-users-next-page-button'),
+              onPrevious: onPreviousUsers,
+              onNext: onNextUsers,
+            ),
             if (canReadRbac) ...[
               const SizedBox(height: 20),
               _PermissionMatrix(rolePermissions: snapshot.rolePermissions),
             ],
             const SizedBox(height: 20),
             _AuditLogList(logs: snapshot.auditLogs),
+            _AdminPager(
+              page: auditPage,
+              total: snapshot.totalAuditLogs,
+              previousKey: const Key('admin-audits-previous-page-button'),
+              nextKey: const Key('admin-audits-next-page-button'),
+              onPrevious: onPreviousAudits,
+              onNext: onNextAudits,
+            ),
           ],
         ],
       ),
@@ -263,10 +500,19 @@ class _AdminContent extends StatelessWidget {
 }
 
 class _UserTable extends StatelessWidget {
-  const _UserTable({required this.users, required this.canManageUsers});
+  const _UserTable({
+    required this.users,
+    required this.canManageUsers,
+    required this.onEditUser,
+    required this.onToggleUser,
+    required this.onDeleteUser,
+  });
 
   final List<AdminUser> users;
   final bool canManageUsers;
+  final ValueChanged<AdminUser> onEditUser;
+  final ValueChanged<AdminUser> onToggleUser;
+  final ValueChanged<AdminUser> onDeleteUser;
 
   @override
   Widget build(BuildContext context) {
@@ -276,33 +522,102 @@ class _UserTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
+        dataRowMinHeight: 72,
+        dataRowMaxHeight: 88,
         columns: const [
+          DataColumn(label: Text('Action')),
           DataColumn(label: Text('User')),
           DataColumn(label: Text('Email')),
           DataColumn(label: Text('Role')),
           DataColumn(label: Text('Status')),
-          DataColumn(label: Text('Action')),
         ],
         rows: [
           for (final user in users)
             DataRow(
               cells: [
+                DataCell(
+                  canManageUsers
+                      ? Wrap(
+                          spacing: 4,
+                          children: [
+                            TextButton(
+                              key: Key('admin-edit-user-${user.id}-button'),
+                              onPressed: () => onEditUser(user),
+                              child: Text('Manage ${user.username}'),
+                            ),
+                            IconButton(
+                              key: Key('admin-toggle-user-${user.id}-button'),
+                              tooltip: user.active
+                                  ? 'Disable ${user.username}'
+                                  : 'Enable ${user.username}',
+                              onPressed: () => onToggleUser(user),
+                              icon: Icon(
+                                user.active
+                                    ? Icons.block
+                                    : Icons.check_circle_outline,
+                              ),
+                            ),
+                            IconButton(
+                              key: Key('admin-delete-user-${user.id}-button'),
+                              tooltip: 'Delete ${user.username}',
+                              onPressed: () => onDeleteUser(user),
+                              icon: const Icon(Icons.delete_outline),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                ),
                 DataCell(Text(user.username)),
                 DataCell(Text(user.email)),
                 DataCell(Text(user.role)),
                 DataCell(Text(user.active ? 'active' : 'inactive')),
-                DataCell(
-                  canManageUsers
-                      ? TextButton(
-                          onPressed: () {},
-                          child: Text('Manage ${user.username}'),
-                        )
-                      : const SizedBox.shrink(),
-                ),
               ],
             ),
         ],
       ),
+    );
+  }
+}
+
+class _AdminPager extends StatelessWidget {
+  const _AdminPager({
+    required this.page,
+    required this.total,
+    required this.previousKey,
+    required this.nextKey,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int total;
+  final Key previousKey;
+  final Key nextKey;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total <= 20 && page <= 1) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        Text('Page $page'),
+        const Spacer(),
+        IconButton(
+          key: previousKey,
+          tooltip: 'Previous page',
+          onPressed: onPrevious,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        IconButton(
+          key: nextKey,
+          tooltip: 'Next page',
+          onPressed: onNext,
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
     );
   }
 }

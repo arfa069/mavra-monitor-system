@@ -311,6 +311,18 @@ class _VisualAdminRepository implements AdminRepository {
     permissionsAvailable: true,
     realtime: true,
   );
+
+  @override
+  Future<void> createUser(AdminUserDraft draft) async {}
+
+  @override
+  Future<void> updateUser(int userId, AdminUserDraft draft) async {}
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {}
+
+  @override
+  Future<void> deleteUser(int userId) async {}
 }
 
 class _VisualProductRepository implements ProductRepository {

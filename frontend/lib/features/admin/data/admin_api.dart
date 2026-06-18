@@ -20,10 +20,15 @@ class GeneratedAdminRepository implements AdminRepository {
   @override
   Future<AdminSnapshot> loadAdmin(AdminFilter filter) async {
     final usersResponse = await _adminApi.adminListUsers(
+      page: filter.userPage,
+      pageSize: filter.pageSize,
       search: filter.search,
       role: filter.role,
     );
     final auditsResponse = await _adminApi.adminListAuditLogs(
+      page: filter.auditPage,
+      pageSize: filter.pageSize,
+      actorUserId: filter.auditActorUserId,
       action: filter.auditAction,
     );
     final matrixResponse = filter.includeRolePermissions
@@ -69,6 +74,48 @@ class GeneratedAdminRepository implements AdminRepository {
       permissionsAvailable: matrix != null,
       realtime: false,
     );
+  }
+
+  @override
+  Future<void> createUser(AdminUserDraft draft) async {
+    await _adminApi.adminCreateUser(
+      userCreate: generated.UserCreate(
+        (builder) => builder
+          ..username = draft.username
+          ..email = draft.email
+          ..password = draft.password ?? ''
+          ..role = draft.role,
+      ),
+    );
+  }
+
+  @override
+  Future<void> updateUser(int userId, AdminUserDraft draft) async {
+    await _adminApi.adminUpdateUser(
+      userId: userId,
+      adminUserUpdate: generated.AdminUserUpdate(
+        (builder) => builder
+          ..username = draft.username
+          ..email = draft.email
+          ..role = draft.role
+          ..isActive = draft.active,
+      ),
+    );
+  }
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {
+    await _adminApi.adminUpdateUser(
+      userId: userId,
+      adminUserUpdate: generated.AdminUserUpdate(
+        (builder) => builder.isActive = active,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteUser(int userId) async {
+    await _adminApi.adminDeleteUser(userId: userId);
   }
 
   static String _serviceRoot(String apiBaseUrl) {
