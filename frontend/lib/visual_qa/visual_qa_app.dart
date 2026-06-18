@@ -70,6 +70,7 @@ String? _resolveInitialLocation(String? requested) {
 
 const _knownVisualRoutes = {
   '/today',
+  '/dashboard',
   '/events',
   '/alerts',
   '/analytics',

@@ -29,6 +29,7 @@ import '../features/smart_home/domain/smart_home_models.dart';
 import '../features/smart_home/presentation/smart_home_page.dart';
 import '../features/today/domain/today_models.dart';
 import '../features/today/presentation/today_page.dart';
+import 'app_shell.dart';
 
 GoRouter createMavraRouter({
   required AuthController authController,
@@ -85,92 +86,101 @@ GoRouter createMavraRouter({
           queryParameters: state.uri.queryParameters,
         ),
       ),
-      GoRoute(
-        path: '/today',
-        builder: (context, state) => TodayPage(repository: todayRepository),
-      ),
-      GoRoute(
-        path: '/events',
-        builder: (context, state) => EventsPage(repository: eventRepository),
-      ),
-      GoRoute(
-        path: '/alerts',
-        builder: (context, state) => AlertsPage(repository: alertRepository),
-      ),
-      GoRoute(
-        path: '/analytics',
-        builder: (context, state) =>
-            AnalyticsPage(repository: analyticsRepository),
-      ),
-      GoRoute(
-        path: '/jobs',
-        builder: (context, state) => JobsPage(repository: jobsRepository),
-      ),
-      GoRoute(
-        path: '/products',
-        builder: (context, state) =>
-            ProductsPage(repository: productRepository),
-      ),
-      GoRoute(
-        path: '/schedule',
-        builder: (context, state) =>
-            SchedulePage(repository: scheduleRepository),
-      ),
-      GoRoute(
-        path: '/smart-home',
-        builder: (context, state) =>
-            SmartHomePage(repository: smartHomeRepository),
-      ),
-      GoRoute(path: '/dashboard', redirect: (context, state) => '/analytics'),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) =>
-            ProfilePage(authController: authController),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => _permissionPage(
-          authController,
-          'config:read',
-          SettingsPage(
-            repository: settingsRepository,
-            config: config,
-            permissions: _settingsPermissions(authController),
+      GoRoute(path: '/analytics', redirect: (context, state) => '/dashboard'),
+      ShellRoute(
+        builder: (context, state, child) =>
+            MavraShell(authController: authController, child: child),
+        routes: [
+          GoRoute(
+            path: '/today',
+            builder: (context, state) =>
+                TodayPage(repository: todayRepository),
           ),
-        ),
-      ),
-      GoRoute(
-        path: '/admin/users',
-        builder: (context, state) => _permissionPage(
-          authController,
-          'user:read',
-          AdminPage(
-            repository: adminRepository,
-            permissions: _adminPermissions(authController),
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) =>
+                AnalyticsPage(repository: analyticsRepository),
           ),
-        ),
-      ),
-      GoRoute(
-        path: '/admin/audit-logs',
-        builder: (context, state) => _permissionPage(
-          authController,
-          'user:read',
-          AdminPage(
-            repository: adminRepository,
-            permissions: _adminPermissions(authController),
+          GoRoute(
+            path: '/events',
+            builder: (context, state) =>
+                EventsPage(repository: eventRepository),
           ),
-        ),
-      ),
-      GoRoute(
-        path: '/admin/blog',
-        builder: (context, state) => _permissionPage(
-          authController,
-          'blog:read_admin',
-          BlogPage(
-            repository: blogRepository,
-            permissions: _blogPermissions(authController),
+          GoRoute(
+            path: '/alerts',
+            builder: (context, state) =>
+                AlertsPage(repository: alertRepository),
           ),
-        ),
+          GoRoute(
+            path: '/jobs',
+            builder: (context, state) => JobsPage(repository: jobsRepository),
+          ),
+          GoRoute(
+            path: '/products',
+            builder: (context, state) =>
+                ProductsPage(repository: productRepository),
+          ),
+          GoRoute(
+            path: '/schedule',
+            builder: (context, state) =>
+                SchedulePage(repository: scheduleRepository),
+          ),
+          GoRoute(
+            path: '/smart-home',
+            builder: (context, state) =>
+                SmartHomePage(repository: smartHomeRepository),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) =>
+                ProfilePage(authController: authController),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => _permissionPage(
+              authController,
+              'config:read',
+              SettingsPage(
+                repository: settingsRepository,
+                config: config,
+                permissions: _settingsPermissions(authController),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/admin/users',
+            builder: (context, state) => _permissionPage(
+              authController,
+              'user:read',
+              AdminPage(
+                repository: adminRepository,
+                permissions: _adminPermissions(authController),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/admin/audit-logs',
+            builder: (context, state) => _permissionPage(
+              authController,
+              'user:read',
+              AdminPage(
+                repository: adminRepository,
+                permissions: _adminPermissions(authController),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/admin/blog',
+            builder: (context, state) => _permissionPage(
+              authController,
+              'blog:read_admin',
+              BlogPage(
+                repository: blogRepository,
+                permissions: _blogPermissions(authController),
+              ),
+            ),
+          ),
+        ],
       ),
     ],
   );
