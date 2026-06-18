@@ -3,6 +3,11 @@
 Date: 2026-06-18
 Worktree: `C:\Users\arfac\Documents\mavra-monitor-system\.worktrees\flutter-full-replacement`
 
+> Superseded for implementation by
+> `docs/flutter-migration/task-17-full-react-parity-spec.md`. The newer Task 17
+> spec removes the earlier "accepted follow-up" standard and requires all old
+> React protected-route workflows to be brought into the current parity pass.
+
 ## Purpose
 
 This ledger supersedes the optimistic route-only parity view in
