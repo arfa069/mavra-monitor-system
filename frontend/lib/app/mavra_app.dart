@@ -174,6 +174,10 @@ class _MavraAppState extends State<MavraApp> {
     if (widget.authController != null) {
       return null;
     }
+    final repository = _defaultAuthRepository();
+    if (repository.policy == TokenPersistencePolicy.webHttpOnlyRefreshCookie) {
+      return null;
+    }
     return _authController().restoreSession();
   }
 

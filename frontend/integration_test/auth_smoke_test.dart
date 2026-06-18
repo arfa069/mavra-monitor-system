@@ -4,6 +4,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mavra_frontend/app/mavra_app.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
 import 'package:mavra_frontend/features/auth/domain/auth_models.dart';
+import 'package:mavra_frontend/features/today/domain/today_models.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +13,11 @@ void main() {
     final auth = AuthController(api: SmokeAuthApi());
 
     await tester.pumpWidget(
-      MavraApp(authController: auth, initialLocation: '/login'),
+      MavraApp(
+        authController: auth,
+        todayRepository: SmokeTodayRepository(),
+        initialLocation: '/login',
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -29,6 +34,11 @@ void main() {
 
     expect(find.text('Today'), findsWidgets);
   });
+}
+
+class SmokeTodayRepository implements TodayRepository {
+  @override
+  Future<TodaySnapshot> loadToday() async => TodaySnapshot.quiet();
 }
 
 class SmokeAuthApi implements AuthApiClient {

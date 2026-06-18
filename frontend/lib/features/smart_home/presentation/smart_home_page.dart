@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/widgets/adaptive_scaffold.dart';
 import '../domain/smart_home_models.dart';
 
 class SmartHomePage extends StatefulWidget {
@@ -198,78 +196,56 @@ class _SmartHomePageState extends State<SmartHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AdaptiveScaffold(
-        destinations: const [
-          AdaptiveDestination(icon: Icons.today, label: 'Today'),
-          AdaptiveDestination(icon: Icons.home, label: 'Smart Home'),
-          AdaptiveDestination(icon: Icons.schedule, label: 'Schedule'),
-          AdaptiveDestination(icon: Icons.work, label: 'Jobs'),
-          AdaptiveDestination(icon: Icons.analytics, label: 'Analytics'),
-        ],
-        selectedIndex: 1,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go('/today');
-            case 2:
-              context.go('/schedule');
-            case 3:
-              context.go('/jobs');
-            case 4:
-              context.go('/analytics');
-          }
-        },
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: FutureBuilder<SmartHomeSnapshot>(
-              future: _smartHomeFuture,
-              builder: (context, snapshot) {
-                if (_error != null) {
-                  return const Center(child: Text('智能家居状态加载失败。'));
-                }
-                if (snapshot.connectionState != ConnectionState.done &&
-                    _snapshot == null) {
-                  return const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 12),
-                        Text('正在连接 Home Assistant...'),
-                      ],
-                    ),
-                  );
-                }
-                final current = _snapshot ?? const SmartHomeSnapshot.empty();
-                return _SmartHomeContent(
-                  snapshot: current,
-                  entities: _filteredEntities(_entities),
-                  allDomains: _domains(_entities),
-                  selectedDomain: _domainFilter,
-                  statusMessage: _statusMessage,
-                  showConfigForm: _showConfigForm,
-                  configEnabled: _configEnabled,
-                  baseUrlController: _baseUrlController,
-                  tokenController: _tokenController,
-                  serviceEntityController: _serviceEntityController,
-                  serviceNameController: _serviceNameController,
-                  onEditConfig: current.canConfigure ? _editConfig : null,
-                  onSaveConfig: _saveConfig,
-                  onTestConfig: current.canConfigure ? _testConfig : null,
-                  onConfigEnabledChanged: (value) {
-                    setState(() => _configEnabled = value ?? true);
-                  },
-                  onDomainSelected: (domain) {
-                    setState(() => _domainFilter = domain);
-                  },
-                  onCallService: current.canControl ? _callService : null,
-                  onEntityService: current.canControl
-                      ? _confirmEntityService
-                      : null,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: FutureBuilder<SmartHomeSnapshot>(
+            future: _smartHomeFuture,
+            builder: (context, snapshot) {
+              if (_error != null) {
+                return const Center(child: Text('智能家居状态加载失败。'));
+              }
+              if (snapshot.connectionState != ConnectionState.done &&
+                  _snapshot == null) {
+                return const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text('正在连接 Home Assistant...'),
+                    ],
+                  ),
                 );
-              },
-            ),
+              }
+              final current = _snapshot ?? const SmartHomeSnapshot.empty();
+              return _SmartHomeContent(
+                snapshot: current,
+                entities: _filteredEntities(_entities),
+                allDomains: _domains(_entities),
+                selectedDomain: _domainFilter,
+                statusMessage: _statusMessage,
+                showConfigForm: _showConfigForm,
+                configEnabled: _configEnabled,
+                baseUrlController: _baseUrlController,
+                tokenController: _tokenController,
+                serviceEntityController: _serviceEntityController,
+                serviceNameController: _serviceNameController,
+                onEditConfig: current.canConfigure ? _editConfig : null,
+                onSaveConfig: _saveConfig,
+                onTestConfig: current.canConfigure ? _testConfig : null,
+                onConfigEnabledChanged: (value) {
+                  setState(() => _configEnabled = value ?? true);
+                },
+                onDomainSelected: (domain) {
+                  setState(() => _domainFilter = domain);
+                },
+                onCallService: current.canControl ? _callService : null,
+                onEntityService: current.canControl
+                    ? _confirmEntityService
+                    : null,
+              );
+            },
           ),
         ),
       ),
@@ -340,20 +316,20 @@ class _SmartHomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Smart Home',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: onEditConfig,
-                icon: const Icon(Icons.settings),
-                label: const Text('Edit config'),
-              ),
-            ],
+          Text(
+            'Smart Home',
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: onEditConfig,
+              icon: const Icon(Icons.settings),
+              label: const Text('Edit config'),
+            ),
           ),
           const SizedBox(height: 8),
           Text(_summaryText(snapshot)),

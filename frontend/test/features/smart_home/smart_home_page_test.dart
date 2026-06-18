@@ -55,6 +55,9 @@ void main() {
       find.byKey(const Key('smart-home-token-field')),
       'new-secret-token',
     );
+    await tester.ensureVisible(
+      find.byKey(const Key('smart-home-test-config-button')),
+    );
     await tester.tap(find.byKey(const Key('smart-home-test-config-button')));
     await tester.pumpAndSettle();
 

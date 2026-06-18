@@ -1,18 +1,25 @@
 # Flutter Migration Final Verification Report
 
-Date: 2026-06-17
+Date: 2026-06-18
 Worktree: `C:\Users\arfac\Documents\mavra-monitor-system\.worktrees\flutter-full-replacement`
 Branch: `codex/flutter-full-replacement`
 
 ## Verdict
 
-**Current supported-platform gates are final-green.**
+**Current supported-platform gates are final-green after Task 16 feature parity revalidation.**
 
 Gates 01-06 were executed and are green or explicitly deferred as planned. The Windows release white-screen blocker found during Gate 05 no longer reproduces after the current release rebuild; the release executable renders the login shell from its release directory and the authenticated visual harness renders protected pages. The high-severity FileService runtime finding from Gate 06 is fixed with a real `file_selector`-backed platform implementation. Default `AuthController` startup restore now loads the injected or platform-selected repository before route guarding.
 
 iOS remains deferred by the Windows-only environment constraint and is not counted as a current blocker.
 
 No automated gate triggered real crawling, Profile login/import/export, job matching, or Home Assistant service calls.
+
+Task 16 revalidated the React-to-Flutter feature parity surface after restoring
+the global shell and expanding Products, Jobs, Schedule, Events, Admin, Blog,
+and Smart Home workflows. The current Web main build no longer stalls on the
+startup restore shell for the Web cookie-token policy; Web local restore is
+skipped because no JS-readable refresh token is available under that policy.
+Native and Windows secure-storage restore remains enabled.
 
 ## Gate Summary
 
@@ -24,6 +31,54 @@ No automated gate triggered real crawling, Profile login/import/export, job matc
 | 04 Web integration workaround | Passed with accepted exception | Web build passed; Chrome route/refresh smoke passed; `flutter test integration_test -d chrome` is unsupported by Flutter |
 | 05 Web/Windows visual QA | Passed | Web and Windows screenshots captured for Auth, Today, Analytics, Admin, Settings, plus dense Web Products/Jobs/Smart Home/Blog states |
 | 06 Independent code review | Completed, findings resolved at review surface | FileService, Windows release, native repository storage, default auth restore, Web font fallback, and authenticated visual QA findings are resolved |
+
+## Task 16: React Feature Parity Revalidation
+
+Commands run on 2026-06-18:
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/.worktrees/flutter-full-replacement/frontend
+flutter analyze
+flutter test
+flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1 --no-web-resources-cdn
+flutter build web -t lib/main_visual_qa.dart --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1 --no-web-resources-cdn
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+flutter test integration_test/app_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter test integration_test/auth_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter test integration_test/platform_capability_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+flutter test integration_test -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+```
+
+Results:
+
+- Flutter analyzer: `No issues found`.
+- Flutter tests: `87` tests passed.
+- Web main build passed and was served through a local SPA fallback server.
+- Web main smoke passed in Chrome: `/login` rendered the login shell; `/today` while unauthenticated redirected to `#/login`; no console/page/request errors were captured.
+- Web visual QA harness captured current screenshots for Today, Dashboard, Events, Jobs, Products, Schedule, Smart Home, Admin Users, Audit Logs, Blog, and Settings.
+- A visual regression found during this pass, Smart Home title wrapping vertically on desktop, was fixed by removing the stale page-local shell/header constraint and recapturing `web-visual-smart-home.png`.
+- Windows release build passed: `Built build\windows\x64\runner\Release\mavra_frontend.exe`.
+- Windows integration smoke passed for `app_smoke_test.dart`, `auth_smoke_test.dart`, and `platform_capability_smoke_test.dart`.
+- Android release APK build passed: `Built build\app\outputs\flutter-apk\app-release.apk (55.2MB)`.
+- Android emulator folder-level integration smoke passed: `3` tests.
+- The auth smoke now injects a fake Today repository so login smoke does not depend on a real backend dashboard request on Android.
+
+New screenshot evidence:
+
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-main-login.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-main-today-redirect.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-today.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-dashboard.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-events.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-jobs.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-products.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-schedule.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-smart-home.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-admin-users.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-admin-audit-logs.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-admin-blog.png`
+- `docs/flutter-migration/screenshots/2026-06-18/task16/web-visual-settings.png`
 
 ## Gate 01: Backend Pytest
 
@@ -238,7 +293,7 @@ Results:
 - Auth flow targeted tests passed after adding repository-backed save/load/logout coverage.
 - The default app now restores a saved session before route guarding and preserves a protected initial route (`/settings`).
 - Full Flutter analyzer passed: `No issues found`.
-- Full Flutter tests passed: `77` tests.
+- Full Flutter tests passed: `87` tests.
 - Web, Windows, and Android builds passed after the auth restore change.
 
 Decision:

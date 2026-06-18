@@ -18,4 +18,21 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
     expect(find.text('Mavra watches quietly'), findsOneWidget);
   });
+
+  testWidgets('skips local restore for web cookie token policy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MavraApp(
+        authRepository: AuthRepository(
+          storage: InMemoryTokenStorage(),
+          policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Mavra'), findsOneWidget);
+    expect(find.text('Login'), findsOneWidget);
+  });
 }
