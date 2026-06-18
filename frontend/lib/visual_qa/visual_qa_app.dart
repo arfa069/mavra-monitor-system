@@ -783,10 +783,8 @@ class _VisualEventRepository implements EventRepository {
   const _VisualEventRepository();
 
   @override
-  Future<List<EventFeedItem>> listEvents({
-    EventFilter filter = EventFilter.all,
-  }) async {
-    return [
+  Future<EventPage> listEvents({EventQuery query = const EventQuery()}) async {
+    final items = [
       EventFeedItem(
         id: 'evt-1',
         kind: EventKind.audit,
@@ -808,10 +806,22 @@ class _VisualEventRepository implements EventRepository {
         occurredAt: DateTime.utc(2026, 6, 17, 9, 10),
       ),
     ];
+    return EventPage(
+      items: items
+          .where(
+            (item) =>
+                query.filter == EventFilter.all ||
+                item.kind.name == query.filter.name,
+          )
+          .toList(),
+      page: query.page,
+      pageSize: query.pageSize,
+      total: items.length,
+    );
   }
 
   @override
-  Stream<EventFeedItem> watchEvents({EventFilter filter = EventFilter.all}) {
+  Stream<EventFeedItem> watchEvents({EventQuery query = const EventQuery()}) {
     return const Stream.empty();
   }
 }

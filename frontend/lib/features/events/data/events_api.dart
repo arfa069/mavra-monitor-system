@@ -23,25 +23,40 @@ class GeneratedEventRepository implements EventRepository {
   generated.EventsApi get _eventsApi => _client.getEventsApi();
 
   @override
-  Future<List<EventFeedItem>> listEvents({
-    EventFilter filter = EventFilter.all,
-  }) async {
+  Future<EventPage> listEvents({EventQuery query = const EventQuery()}) async {
     final response = await _eventsApi.eventsListEvents(
-      eventType: filter.apiValue,
+      kind: query.filter.apiValue,
+      eventType: query.eventType,
+      category: query.category,
+      severity: query.severity,
+      source_: query.source,
+      keyword: query.keyword,
+      startAt: query.startAt,
+      endAt: query.endAt,
+      page: query.page,
+      pageSize: query.pageSize,
     );
-    return [
-      for (final item in response.data?.items ?? <generated.EventCenterItem>[])
-        _mapEvent(item),
-    ];
+    final data = response.data;
+    return EventPage(
+      items: [
+        for (final item in data?.items ?? <generated.EventCenterItem>[])
+          _mapEvent(item),
+      ],
+      page: data?.page ?? query.page,
+      pageSize: data?.pageSize ?? query.pageSize,
+      total: data?.total ?? 0,
+    );
   }
 
   @override
-  Stream<EventFeedItem> watchEvents({EventFilter filter = EventFilter.all}) {
+  Stream<EventFeedItem> watchEvents({EventQuery query = const EventQuery()}) {
     return _realtimeClient
         .connect('events')
         .map(_eventFromRealtime)
         .where(
-          (item) => filter == EventFilter.all || item.kind.name == filter.name,
+          (item) =>
+              query.filter == EventFilter.all ||
+              item.kind.name == query.filter.name,
         );
   }
 
