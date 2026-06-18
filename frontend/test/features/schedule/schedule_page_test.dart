@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/schedule/domain/schedule_models.dart';
 import 'package:mavra_frontend/features/schedule/presentation/schedule_page.dart';
 
@@ -30,6 +31,67 @@ void main() {
       expect(find.text('30 8 * * 1-5'), findsOneWidget);
     },
   );
+
+  testWidgets('matches React schedule table action parity', (tester) async {
+    final repository = _FakeScheduleRepository.full();
+    tester.view.physicalSize = const Size(1280, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: SchedulePage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byType(MavraResponsiveDataView<ProductSchedule>),
+      findsOneWidget,
+    );
+    expect(find.byType(MavraResponsiveDataView<JobSchedule>), findsOneWidget);
+    expect(find.byType(DataTable), findsNWidgets(2));
+    expect(
+      find.byKey(const Key('schedule-product-edit-taobao-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('schedule-product-delete-taobao-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('schedule-job-edit-7-button')), findsOneWidget);
+
+    final deleteButton = tester.widget<IconButton>(
+      find.byKey(const Key('schedule-product-delete-taobao-button')),
+    );
+    expect(deleteButton.onPressed, isNotNull);
+    deleteButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedProductCronPlatform, 'taobao');
+
+    final editJobButton = tester.widget<IconButton>(
+      find.byKey(const Key('schedule-job-edit-7-button')),
+    );
+    expect(editJobButton.onPressed, isNotNull);
+    editJobButton.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('schedule-target-field')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('schedule-target-field')))
+          .controller
+          ?.text,
+      '7',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('schedule-hour-field')))
+          .controller
+          ?.text,
+      '8',
+    );
+  });
 
   testWidgets('saves retention and webhook configuration', (tester) async {
     final repository = _FakeScheduleRepository.full();

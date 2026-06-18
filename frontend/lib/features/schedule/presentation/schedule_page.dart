@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/schedule_models.dart';
 
 class SchedulePage extends StatefulWidget {
@@ -88,6 +89,52 @@ class _SchedulePageState extends State<SchedulePage> {
       _validationMessage = null;
       _previewExpression = null;
     });
+  }
+
+  void _editProductSchedule(ProductSchedule schedule) {
+    setState(() {
+      _showForm = true;
+      _targetType = ScheduleRuleTarget.productPlatform;
+      _targetController.text = schedule.platform;
+      _setCronFields(schedule.cronExpression);
+      _validationMessage = null;
+      _previewExpression = schedule.cronExpression;
+    });
+  }
+
+  void _editJobSchedule(JobSchedule schedule) {
+    setState(() {
+      _showForm = true;
+      _targetType = ScheduleRuleTarget.jobConfig;
+      _targetController.text = '${schedule.configId}';
+      _setCronFields(schedule.cronExpression);
+      _validationMessage = null;
+      _previewExpression = schedule.cronExpression;
+    });
+  }
+
+  Future<void> _deleteProductSchedule(ProductSchedule schedule) async {
+    try {
+      await widget.repository.deleteProductCron(schedule.platform);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _statusMessage = 'Deleted ${schedule.platform} schedule');
+      _load();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Delete failed: $error');
+      }
+    }
+  }
+
+  void _setCronFields(String expression) {
+    final parts = expression.split(RegExp(r'\s+'));
+    if (parts.length == 5) {
+      _minuteController.text = parts[0];
+      _hourController.text = parts[1];
+      _weekdaysController.text = parts[4];
+    }
   }
 
   Future<void> _previewCron() async {
@@ -270,6 +317,13 @@ class _SchedulePageState extends State<SchedulePage> {
                   onPreviewCron: _previewCron,
                   onSaveRule: _saveRule,
                   onSaveSettings: current.canConfigure ? _saveSettings : null,
+                  onEditProductSchedule: _editProductSchedule,
+                  onDeleteProductSchedule: current.canConfigure
+                      ? (schedule) {
+                          _deleteProductSchedule(schedule);
+                        }
+                      : null,
+                  onEditJobSchedule: _editJobSchedule,
                 );
               },
             ),
@@ -299,6 +353,9 @@ class _ScheduleContent extends StatelessWidget {
     required this.onPreviewCron,
     required this.onSaveRule,
     required this.onSaveSettings,
+    required this.onEditProductSchedule,
+    required this.onDeleteProductSchedule,
+    required this.onEditJobSchedule,
   });
 
   final ScheduleSnapshot snapshot;
@@ -318,6 +375,9 @@ class _ScheduleContent extends StatelessWidget {
   final Future<void> Function() onPreviewCron;
   final Future<void> Function() onSaveRule;
   final Future<void> Function()? onSaveSettings;
+  final ValueChanged<ProductSchedule> onEditProductSchedule;
+  final ValueChanged<ProductSchedule>? onDeleteProductSchedule;
+  final ValueChanged<JobSchedule> onEditJobSchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -393,28 +453,19 @@ class _ScheduleContent extends StatelessWidget {
             _ScheduleSection(
               key: const Key('schedule-product-table'),
               title: 'Product schedules',
-              children: [
-                for (final schedule in snapshot.productSchedules)
-                  _ScheduleTile(
-                    title: schedule.platform,
-                    subtitle: schedule.cronExpression,
-                    nextRunAt: schedule.nextRunAt,
-                    icon: Icons.inventory_2,
-                  ),
-              ],
+              child: _ProductScheduleTable(
+                schedules: snapshot.productSchedules,
+                onEdit: onEditProductSchedule,
+                onDelete: onDeleteProductSchedule,
+              ),
             ),
             _ScheduleSection(
               key: const Key('schedule-job-table'),
               title: 'Job schedules',
-              children: [
-                for (final schedule in snapshot.jobSchedules)
-                  _ScheduleTile(
-                    title: schedule.name,
-                    subtitle: schedule.cronExpression,
-                    nextRunAt: schedule.nextRunAt,
-                    icon: Icons.work,
-                  ),
-              ],
+              child: _JobScheduleTable(
+                schedules: snapshot.jobSchedules,
+                onEdit: onEditJobSchedule,
+              ),
             ),
           ],
         ],
@@ -616,14 +667,10 @@ class _ScheduleSettingsForm extends StatelessWidget {
 }
 
 class _ScheduleSection extends StatelessWidget {
-  const _ScheduleSection({
-    super.key,
-    required this.title,
-    required this.children,
-  });
+  const _ScheduleSection({super.key, required this.title, required this.child});
 
   final String title;
-  final List<Widget> children;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -634,25 +681,146 @@ class _ScheduleSection extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 6),
-          ...children,
+          child,
         ],
       ),
     );
   }
 }
 
-class _ScheduleTile extends StatelessWidget {
-  const _ScheduleTile({
+class _ProductScheduleTable extends StatelessWidget {
+  const _ProductScheduleTable({
+    required this.schedules,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final List<ProductSchedule> schedules;
+  final ValueChanged<ProductSchedule> onEdit;
+  final ValueChanged<ProductSchedule>? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return MavraResponsiveDataView<ProductSchedule>(
+      rows: schedules,
+      wideBreakpoint: 900,
+      columns: const [
+        DataColumn(label: Text('Platform')),
+        DataColumn(label: Text('Cron')),
+        DataColumn(label: Text('Next run')),
+        DataColumn(label: Text('Actions')),
+      ],
+      tableCells: (schedule) => [
+        DataCell(Text(schedule.platform)),
+        DataCell(Text(schedule.cronExpression)),
+        DataCell(Text(_nextRunLabel(schedule.nextRunAt))),
+        DataCell(
+          Wrap(
+            spacing: 4,
+            children: [
+              IconButton(
+                key: Key('schedule-product-edit-${schedule.platform}-button'),
+                tooltip: 'Edit ${schedule.platform}',
+                onPressed: () => onEdit(schedule),
+                icon: const Icon(Icons.edit_calendar),
+              ),
+              IconButton(
+                key: Key('schedule-product-delete-${schedule.platform}-button'),
+                tooltip: 'Delete ${schedule.platform}',
+                onPressed: onDelete == null ? null : () => onDelete!(schedule),
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
+        ),
+      ],
+      mobileBuilder: (context, schedule) => _ScheduleMobileTile(
+        title: schedule.platform,
+        subtitle: schedule.cronExpression,
+        nextRunAt: schedule.nextRunAt,
+        icon: Icons.inventory_2,
+        trailing: Wrap(
+          spacing: 4,
+          children: [
+            IconButton(
+              key: Key('schedule-product-edit-${schedule.platform}-button'),
+              tooltip: 'Edit ${schedule.platform}',
+              onPressed: () => onEdit(schedule),
+              icon: const Icon(Icons.edit_calendar),
+            ),
+            IconButton(
+              key: Key('schedule-product-delete-${schedule.platform}-button'),
+              tooltip: 'Delete ${schedule.platform}',
+              onPressed: onDelete == null ? null : () => onDelete!(schedule),
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JobScheduleTable extends StatelessWidget {
+  const _JobScheduleTable({required this.schedules, required this.onEdit});
+
+  final List<JobSchedule> schedules;
+  final ValueChanged<JobSchedule> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return MavraResponsiveDataView<JobSchedule>(
+      rows: schedules,
+      wideBreakpoint: 900,
+      columns: const [
+        DataColumn(label: Text('Config')),
+        DataColumn(label: Text('Cron')),
+        DataColumn(label: Text('Next run')),
+        DataColumn(label: Text('Actions')),
+      ],
+      tableCells: (schedule) => [
+        DataCell(Text(schedule.name)),
+        DataCell(Text(schedule.cronExpression)),
+        DataCell(Text(_nextRunLabel(schedule.nextRunAt))),
+        DataCell(
+          IconButton(
+            key: Key('schedule-job-edit-${schedule.configId}-button'),
+            tooltip: 'Edit ${schedule.name}',
+            onPressed: () => onEdit(schedule),
+            icon: const Icon(Icons.edit_calendar),
+          ),
+        ),
+      ],
+      mobileBuilder: (context, schedule) => _ScheduleMobileTile(
+        title: schedule.name,
+        subtitle: schedule.cronExpression,
+        nextRunAt: schedule.nextRunAt,
+        icon: Icons.work,
+        trailing: IconButton(
+          key: Key('schedule-job-edit-${schedule.configId}-button'),
+          tooltip: 'Edit ${schedule.name}',
+          onPressed: () => onEdit(schedule),
+          icon: const Icon(Icons.edit_calendar),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleMobileTile extends StatelessWidget {
+  const _ScheduleMobileTile({
     required this.title,
     required this.subtitle,
     required this.nextRunAt,
     required this.icon,
+    required this.trailing,
   });
 
   final String title;
   final String subtitle;
   final String? nextRunAt;
   final IconData icon;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -668,7 +836,12 @@ class _ScheduleTile extends StatelessWidget {
             if (nextRunAt != null) Text('Next run $nextRunAt'),
           ],
         ),
+        trailing: trailing,
       ),
     );
   }
+}
+
+String _nextRunLabel(String? nextRunAt) {
+  return nextRunAt == null ? '-' : 'Next run $nextRunAt';
 }
