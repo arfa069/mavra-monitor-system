@@ -5,36 +5,101 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/schedule/domain/schedule_models.dart';
 import 'package:mavra_frontend/features/schedule/presentation/schedule_page.dart';
+import 'package:mavra_frontend/visual_qa/visual_qa_app.dart';
 
 void main() {
-  testWidgets(
-    'renders product schedules, job schedules, and scheduler status',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: SchedulePage(repository: _FakeScheduleRepository.full()),
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('renders product timers as the default schedule tab', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchedulePage(repository: _FakeScheduleRepository.full()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Rules'), findsOneWidget);
-      expect(find.text('Scheduler running'), findsOneWidget);
-      expect(find.text('Asia/Shanghai'), findsOneWidget);
-      expect(find.text('Product schedules'), findsOneWidget);
-      expect(find.byKey(const Key('schedule-product-table')), findsOneWidget);
-      expect(find.text('taobao'), findsOneWidget);
-      expect(find.text('0 9 * * *'), findsOneWidget);
-      expect(find.text('Next run 2026-06-17 09:00'), findsOneWidget);
-      expect(find.text('Job schedules'), findsOneWidget);
-      expect(find.byKey(const Key('schedule-job-table')), findsOneWidget);
-      expect(find.text('Boss morning'), findsOneWidget);
-      expect(find.text('30 8 * * 1-5'), findsOneWidget);
-    },
-  );
+    expect(find.text('Schedule Configuration'), findsOneWidget);
+    expect(find.text('Scheduler running'), findsOneWidget);
+    expect(find.text('Asia/Shanghai'), findsOneWidget);
+    expect(
+      find.byKey(const Key('schedule-tab-product-timers')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('schedule-tab-job-timers')), findsOneWidget);
+    expect(find.byKey(const Key('schedule-tab-settings')), findsOneWidget);
+    expect(find.text('Product Timers'), findsWidgets);
+    expect(find.text('Job Timers'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
 
-  testWidgets('matches React schedule table action parity', (tester) async {
+    expect(find.byKey(const Key('schedule-product-table')), findsOneWidget);
+    expect(
+      find.byType(MavraResponsiveDataView<ProductSchedule>),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('schedule-job-table')), findsNothing);
+    expect(find.text('Data Retention & Notification Config'), findsNothing);
+    expect(find.text('Product Crawl Schedule Config'), findsOneWidget);
+    expect(find.text('Job Crawl Schedule Config'), findsNothing);
+    expect(find.text('taobao'), findsOneWidget);
+    expect(
+      find.byKey(const Key('schedule-product-cron-taobao-field')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('2026-06-17 09:00'), findsOneWidget);
+  });
+
+  testWidgets('keeps the product timers panel title horizontal on desktop', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(buildVisualQaApp(initialLocation: '/schedule'));
+    await tester.pumpAndSettle();
+
+    final titleBox = tester.renderObject<RenderBox>(
+      find.text('Product Crawl Schedule Config'),
+    );
+    expect(titleBox.size.width, greaterThan(220));
+    expect(titleBox.size.height, lessThan(48));
+  });
+
+  testWidgets('switches between job timers and settings tabs', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchedulePage(repository: _FakeScheduleRepository.full()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('schedule-tab-job-timers')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('schedule-product-table')), findsNothing);
+    expect(find.byKey(const Key('schedule-job-table')), findsOneWidget);
+    expect(find.text('Job Crawl Schedule Config'), findsOneWidget);
+    expect(find.text('Product Crawl Schedule Config'), findsNothing);
+    expect(find.text('Boss morning'), findsOneWidget);
+    expect(find.byKey(const Key('schedule-job-cron-7-field')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('schedule-tab-settings')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('schedule-product-table')), findsNothing);
+    expect(find.byKey(const Key('schedule-job-table')), findsNothing);
+    expect(find.text('Data Retention & Notification Config'), findsOneWidget);
+    expect(
+      find.byKey(const Key('schedule-retention-days-field')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('schedule-webhook-url-field')), findsOneWidget);
+  });
+
+  testWidgets('updates, creates, and deletes product cron timers', (
+    tester,
+  ) async {
     final repository = _FakeScheduleRepository.full();
-    tester.view.physicalSize = const Size(1280, 1200);
+    tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -44,64 +109,157 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.byType(MavraResponsiveDataView<ProductSchedule>),
-      findsOneWidget,
+    await tester.enterText(
+      find.byKey(const Key('schedule-product-cron-taobao-field')),
+      '15 10 * * 1-5',
     );
-    expect(find.byType(MavraResponsiveDataView<JobSchedule>), findsOneWidget);
-    expect(find.byType(DataTable), findsNWidgets(2));
-    expect(
-      find.byKey(const Key('schedule-product-edit-taobao-button')),
-      findsOneWidget,
+    await tester.tap(
+      find.byKey(const Key('schedule-product-save-taobao-button')),
     );
-    expect(
-      find.byKey(const Key('schedule-product-delete-taobao-button')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const Key('schedule-job-edit-7-button')), findsOneWidget);
-
-    final deleteButton = tester.widget<IconButton>(
-      find.byKey(const Key('schedule-product-delete-taobao-button')),
-    );
-    expect(deleteButton.onPressed, isNotNull);
-    deleteButton.onPressed!();
     await tester.pumpAndSettle();
 
+    expect(repository.savedProductPlatform, 'taobao');
+    expect(repository.savedProductCronExpression, '15 10 * * 1-5');
+    expect(find.text('Saved taobao schedule'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('schedule-add-product-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add Product Crawl Timer'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('schedule-add-product-platform-field')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('JD').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('schedule-add-product-cron-field')),
+      '0 11 * * *',
+    );
+    await tester.tap(
+      find.byKey(const Key('schedule-add-product-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.createdProductPlatform, 'jd');
+    expect(repository.createdProductCronExpression, '0 11 * * *');
+
+    await tester.tap(
+      find.byKey(const Key('schedule-product-delete-taobao-button')),
+    );
+    await tester.pumpAndSettle();
     expect(repository.deletedProductCronPlatform, 'taobao');
+  });
 
-    final editJobButton = tester.widget<IconButton>(
-      find.byKey(const Key('schedule-job-edit-7-button')),
+  testWidgets('updates and disables job cron timers', (tester) async {
+    final repository = _FakeScheduleRepository.full();
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(home: SchedulePage(repository: repository)),
     );
-    expect(editJobButton.onPressed, isNotNull);
-    editJobButton.onPressed!();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('schedule-tab-job-timers')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('schedule-target-field')), findsOneWidget);
-    expect(
-      tester
-          .widget<TextField>(find.byKey(const Key('schedule-target-field')))
-          .controller
-          ?.text,
-      '7',
+    await tester.enterText(
+      find.byKey(const Key('schedule-job-cron-7-field')),
+      '45 7 * * 1-5',
     );
+    await tester.tap(find.byKey(const Key('schedule-job-save-7-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.savedJobCronConfigId, 7);
+    expect(repository.savedJobCronExpression, '45 7 * * 1-5');
+    expect(find.text('Saved Boss morning schedule'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('schedule-job-cron-7-field')),
+      '',
+    );
+    await tester.tap(find.byKey(const Key('schedule-job-save-7-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.disabledJobCronConfigId, 7);
+    expect(repository.savedJobCronExpression, isNull);
+  });
+
+  testWidgets('applies cron generator presets and natural-language output', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SchedulePage(repository: _FakeScheduleRepository.full()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('schedule-product-generate-taobao-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cron Expression Generator'), findsOneWidget);
+    await tester.tap(find.text('Weekdays at 6pm'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 18 * * 1-5'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('schedule-cron-generator-apply-button')),
+    );
+    await tester.pumpAndSettle();
+
     expect(
       tester
-          .widget<TextField>(find.byKey(const Key('schedule-hour-field')))
+          .widget<TextField>(
+            find.byKey(const Key('schedule-product-cron-taobao-field')),
+          )
           .controller
           ?.text,
-      '8',
+      '0 18 * * 1-5',
+    );
+
+    await tester.tap(find.byKey(const Key('schedule-tab-job-timers')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('schedule-job-generate-7-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('schedule-cron-generator-input')),
+      '每天早上9点',
+    );
+    await tester.tap(
+      find.byKey(const Key('schedule-cron-generator-generate-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('0 9 * * *'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('schedule-cron-generator-apply-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('schedule-job-cron-7-field')))
+          .controller
+          ?.text,
+      '0 9 * * *',
     );
   });
 
-  testWidgets('saves retention and webhook configuration', (tester) async {
+  testWidgets('saves retention and webhook configuration from settings tab', (
+    tester,
+  ) async {
     final repository = _FakeScheduleRepository.full();
 
     await tester.pumpWidget(
       MaterialApp(home: SchedulePage(repository: repository)),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('schedule-tab-settings')));
+    await tester.pumpAndSettle();
 
-    expect(find.text('Notification and retention'), findsOneWidget);
+    expect(find.text('Data Retention & Notification Config'), findsOneWidget);
     expect(find.text('365 days'), findsOneWidget);
     await tester.enterText(
       find.byKey(const Key('schedule-retention-days-field')),
@@ -122,67 +280,6 @@ void main() {
     expect(find.text('Saved schedule settings'), findsOneWidget);
   });
 
-  testWidgets('previews cron and saves a rule draft', (tester) async {
-    final repository = _FakeScheduleRepository.full();
-
-    await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: repository)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('New rule'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('schedule-target-field')),
-      'jd',
-    );
-    await tester.enterText(find.byKey(const Key('schedule-hour-field')), '9');
-    await tester.enterText(find.byKey(const Key('schedule-minute-field')), '0');
-    await tester.enterText(
-      find.byKey(const Key('schedule-weekdays-field')),
-      '1-5',
-    );
-    await tester.tap(find.text('预览 cron'));
-    await tester.pumpAndSettle();
-
-    expect(repository.previewedDraft?.targetName, 'jd');
-    expect(find.text('0 9 * * 1-5'), findsWidgets);
-
-    await tester.tap(find.text('保存规则'));
-    await tester.pumpAndSettle();
-
-    expect(repository.savedDrafts.single.targetName, 'jd');
-    expect(repository.savedDrafts.single.cronExpression, '0 9 * * 1-5');
-    expect(find.text('Saved jd'), findsOneWidget);
-  });
-
-  testWidgets('validates cron inputs before preview or save', (tester) async {
-    final repository = _FakeScheduleRepository.full();
-
-    await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: repository)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('New rule'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('schedule-target-field')),
-      'jd',
-    );
-    await tester.enterText(find.byKey(const Key('schedule-hour-field')), '25');
-    await tester.enterText(find.byKey(const Key('schedule-minute-field')), '0');
-    await tester.tap(find.text('预览 cron'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Hour must be 0-23'), findsOneWidget);
-    expect(repository.previewedDraft, isNull);
-
-    await tester.tap(find.text('保存规则'));
-    await tester.pumpAndSettle();
-    expect(repository.savedDrafts, isEmpty);
-  });
-
   testWidgets('renders loading, empty, error, and read-only states', (
     tester,
   ) async {
@@ -198,7 +295,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('还没有自动运行规则。'), findsOneWidget);
+    expect(find.text('No product schedule configs'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(home: SchedulePage(repository: _FailingScheduleRepository())),
@@ -213,10 +310,18 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('没有权限修改自动规则。'), findsOneWidget);
-    final newRule = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'New rule'),
+    final addProduct = tester.widget<FilledButton>(
+      find.byKey(const Key('schedule-add-product-button')),
     );
-    expect(newRule.onPressed, isNull);
+    expect(addProduct.onPressed, isNull);
+    final saveProduct = tester.widget<OutlinedButton>(
+      find.byKey(const Key('schedule-product-save-taobao-button')),
+    );
+    expect(saveProduct.onPressed, isNull);
+    final deleteProduct = tester.widget<IconButton>(
+      find.byKey(const Key('schedule-product-delete-taobao-button')),
+    );
+    expect(deleteProduct.onPressed, isNull);
   });
 
   testWidgets('explicit permissions override repository canConfigure state', (
@@ -232,11 +337,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final newRule = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'New rule'),
+    final addProduct = tester.widget<FilledButton>(
+      find.byKey(const Key('schedule-add-product-button')),
     );
-    expect(newRule.onPressed, isNull);
+    expect(addProduct.onPressed, isNull);
 
+    await tester.tap(find.byKey(const Key('schedule-tab-settings')));
+    await tester.pumpAndSettle();
     final saveSettings = tester.widget<FilledButton>(
       find.byKey(const Key('schedule-save-settings-button')),
     );
@@ -299,18 +406,29 @@ class _FakeScheduleRepository implements ScheduleRepository {
           nextRunAt: null,
         ),
       ],
-      jobSchedules: const [],
+      jobSchedules: const [
+        JobSchedule(
+          configId: 7,
+          name: 'Boss morning',
+          cronExpression: '30 8 * * 1-5',
+          nextRunAt: null,
+        ),
+      ],
       settings: const ScheduleSettings(retentionDays: 365),
       canConfigure: false,
     ),
   );
 
   final ScheduleSnapshot snapshot;
-  final savedDrafts = <ScheduleRuleDraft>[];
   ScheduleSettings? savedSettings;
-  ScheduleRuleDraft? previewedDraft;
+  String? savedProductPlatform;
+  String? savedProductCronExpression;
+  String? createdProductPlatform;
+  String? createdProductCronExpression;
   String? deletedProductCronPlatform;
   int? savedJobCronConfigId;
+  int? disabledJobCronConfigId;
+  String? savedJobCronExpression;
 
   @override
   Future<ScheduleSnapshot> loadSchedule() async => snapshot;
@@ -327,7 +445,6 @@ class _FakeScheduleRepository implements ScheduleRepository {
 
   @override
   Future<CronPreview> previewCron(ScheduleRuleDraft draft) async {
-    previewedDraft = draft;
     return CronPreview(expression: draft.cronExpression);
   }
 
@@ -337,26 +454,26 @@ class _FakeScheduleRepository implements ScheduleRepository {
   }
 
   @override
-  Future<void> saveRule(ScheduleRuleDraft draft) async {
-    savedDrafts.add(draft);
-  }
+  Future<void> saveRule(ScheduleRuleDraft draft) async {}
 
   @override
   Future<void> saveProductCron({
     required String platform,
+    required String? cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    savedProductPlatform = platform;
+    savedProductCronExpression = cronExpression;
+  }
+
+  @override
+  Future<void> createProductCron({
+    required String platform,
     required String cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {
-    savedDrafts.add(
-      ScheduleRuleDraft(
-        targetType: ScheduleRuleTarget.productPlatform,
-        targetName: platform,
-        hour: 0,
-        minute: 0,
-        weekdays: '*',
-        timezone: timezone,
-      ),
-    );
+    createdProductPlatform = platform;
+    createdProductCronExpression = cronExpression;
   }
 
   @override
@@ -367,10 +484,14 @@ class _FakeScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveJobCron({
     required int configId,
-    required String cronExpression,
+    required String? cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {
     savedJobCronConfigId = configId;
+    savedJobCronExpression = cronExpression;
+    if (cronExpression == null || cronExpression.isEmpty) {
+      disabledJobCronConfigId = configId;
+    }
   }
 
   @override
@@ -407,6 +528,13 @@ class _SlowScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveProductCron({
     required String platform,
+    required String? cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> createProductCron({
+    required String platform,
     required String cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
@@ -417,7 +545,7 @@ class _SlowScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveJobCron({
     required int configId,
-    required String cronExpression,
+    required String? cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
 
@@ -453,6 +581,13 @@ class _FailingScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveProductCron({
     required String platform,
+    required String? cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> createProductCron({
+    required String platform,
     required String cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
@@ -463,7 +598,7 @@ class _FailingScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveJobCron({
     required int configId,
-    required String cronExpression,
+    required String? cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
 

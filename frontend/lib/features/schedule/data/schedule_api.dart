@@ -26,20 +26,28 @@ class GeneratedScheduleRepository implements ScheduleRepository {
   @override
   Future<ScheduleSnapshot> loadSchedule() async {
     final responses = await Future.wait([
+      _productsApi.productsListProductCronConfigs(),
       _productsApi.productsGetProductCronSchedules(),
+      _jobsApi.jobsListConfigs(),
       _jobsApi.jobsGetJobConfigSchedules(),
       _schedulerApi.schedulerGetSchedulerStatus(),
       _configApi.configGetConfig(),
     ]);
 
     final productData =
-        responses[0].data as generated.ProductCronSchedulesResponse?;
-    final jobData = responses[1].data as generated.JobConfigSchedulesResponse?;
-    final statusData = responses[2].data as generated.SchedulerStatusResponse?;
-    final configData = responses[3].data as generated.UserConfigResponse?;
-    final productEntries =
-        productData?.platforms?.entries.toList() ??
-        const <MapEntry<String, generated.ScheduleInfo>>[];
+        responses[0].data as Iterable<generated.ProductPlatformCronResponse>?;
+    final productScheduleData =
+        responses[1].data as generated.ProductCronSchedulesResponse?;
+    final jobConfigData =
+        responses[2].data as Iterable<generated.JobSearchConfigResponse>?;
+    final jobScheduleData =
+        responses[3].data as generated.JobConfigSchedulesResponse?;
+    final statusData = responses[4].data as generated.SchedulerStatusResponse?;
+    final configData = responses[5].data as generated.UserConfigResponse?;
+    final jobSchedulesByConfigId = {
+      for (final schedule in jobScheduleData?.configs?.toList() ?? const [])
+        schedule.configId: schedule,
+    };
 
     return ScheduleSnapshot(
       status: SchedulerStatus(
@@ -47,20 +55,25 @@ class GeneratedScheduleRepository implements ScheduleRepository {
         timezone: statusData?.timezone,
       ),
       productSchedules: [
-        for (final entry in productEntries)
+        for (final config in productData?.toList() ?? const [])
           ProductSchedule(
-            platform: entry.key,
-            cronExpression: entry.value.cronExpression ?? 'Disabled',
-            nextRunAt: entry.value.nextRunAt,
+            platform: config.platform,
+            cronExpression: config.cronExpression ?? '',
+            nextRunAt:
+                productScheduleData?.platforms?[config.platform]?.nextRunAt,
+            timezone: config.cronTimezone,
+            configured: _isConfigured(config.cronExpression),
           ),
       ],
       jobSchedules: [
-        for (final config in jobData?.configs?.toList() ?? const [])
+        for (final config in jobConfigData?.toList() ?? const [])
           JobSchedule(
-            configId: config.configId,
-            name: 'Job config #${config.configId}',
-            cronExpression: config.cronExpression ?? 'Disabled',
-            nextRunAt: config.nextRunAt,
+            configId: config.id,
+            name: config.name,
+            cronExpression: config.cronExpression ?? '',
+            nextRunAt: jobSchedulesByConfigId[config.id]?.nextRunAt,
+            timezone: config.cronTimezone ?? 'Asia/Shanghai',
+            configured: _isConfigured(config.cronExpression),
           ),
       ],
       settings: ScheduleSettings(
@@ -97,28 +110,43 @@ class GeneratedScheduleRepository implements ScheduleRepository {
     CronGenerator.validateDraft(draft);
     switch (draft.targetType) {
       case ScheduleRuleTarget.productPlatform:
-        await _productsApi.productsCreateProductCronConfig(
-          productPlatformCronCreate: generated.ProductPlatformCronCreate(
-            (builder) => builder
-              ..platform = draft.targetName
-              ..cronExpression = draft.cronExpression
-              ..cronTimezone = draft.timezone,
-          ),
+        await createProductCron(
+          platform: draft.targetName,
+          cronExpression: draft.cronExpression,
+          timezone: draft.timezone,
         );
       case ScheduleRuleTarget.jobConfig:
-        await _jobsApi.jobsUpdateConfigCron(
+        await saveJobCron(
           configId: draft.configId!,
-          jobConfigCronUpdate: generated.JobConfigCronUpdate(
-            (builder) => builder
-              ..cronExpression = draft.cronExpression
-              ..cronTimezone = draft.timezone,
-          ),
+          cronExpression: draft.cronExpression,
+          timezone: draft.timezone,
         );
     }
   }
 
   @override
   Future<void> saveProductCron({
+    required String platform,
+    required String? cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {
+    final normalizedCron = cronExpression?.trim() ?? '';
+    if (normalizedCron.isEmpty) {
+      await deleteProductCron(platform);
+      return;
+    }
+    await _productsApi.productsUpdateProductCronConfig(
+      platform: platform,
+      productPlatformCronUpdate: generated.ProductPlatformCronUpdate(
+        (builder) => builder
+          ..cronExpression = normalizedCron
+          ..cronTimezone = timezone,
+      ),
+    );
+  }
+
+  @override
+  Future<void> createProductCron({
     required String platform,
     required String cronExpression,
     String timezone = 'Asia/Shanghai',
@@ -127,7 +155,7 @@ class GeneratedScheduleRepository implements ScheduleRepository {
       productPlatformCronCreate: generated.ProductPlatformCronCreate(
         (builder) => builder
           ..platform = platform
-          ..cronExpression = cronExpression
+          ..cronExpression = cronExpression.trim()
           ..cronTimezone = timezone,
       ),
     );
@@ -141,14 +169,22 @@ class GeneratedScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveJobCron({
     required int configId,
-    required String cronExpression,
+    required String? cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {
+    final normalizedCron = cronExpression?.trim();
+    if (normalizedCron == null || normalizedCron.isEmpty) {
+      await _client.dio.patch<Object>(
+        '/api/v1/jobs/configs/$configId/cron',
+        data: {'cron_expression': null, 'cron_timezone': timezone},
+      );
+      return;
+    }
     await _jobsApi.jobsUpdateConfigCron(
       configId: configId,
       jobConfigCronUpdate: generated.JobConfigCronUpdate(
         (builder) => builder
-          ..cronExpression = cronExpression
+          ..cronExpression = normalizedCron
           ..cronTimezone = timezone,
       ),
     );
@@ -171,6 +207,10 @@ class GeneratedScheduleRepository implements ScheduleRepository {
       return 'Scheduler unknown';
     }
     return 'Scheduler $normalized';
+  }
+
+  static bool _isConfigured(String? cronExpression) {
+    return cronExpression?.trim().isNotEmpty ?? false;
   }
 
   static String _serviceRoot(String apiBaseUrl) {

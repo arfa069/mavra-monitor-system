@@ -1004,6 +1004,13 @@ class _VisualScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveProductCron({
     required String platform,
+    required String? cronExpression,
+    String timezone = 'Asia/Shanghai',
+  }) async {}
+
+  @override
+  Future<void> createProductCron({
+    required String platform,
     required String cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
@@ -1014,7 +1021,7 @@ class _VisualScheduleRepository implements ScheduleRepository {
   @override
   Future<void> saveJobCron({
     required int configId,
-    required String cronExpression,
+    required String? cronExpression,
     String timezone = 'Asia/Shanghai',
   }) async {}
 
