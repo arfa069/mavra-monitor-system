@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +10,7 @@ import 'package:mavra_frontend/features/products/domain/product_models.dart';
 import 'package:mavra_frontend/features/products/presentation/products_page.dart';
 
 void main() {
-  testWidgets('renders products, history, bindings, cron, and crawl logs', (
+  testWidgets('renders products, schedule config, and crawl logs', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -21,14 +22,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Taobao rice cooker'), findsOneWidget);
-    expect(find.text('¥299'), findsOneWidget);
-    expect(find.text('Price history'), findsOneWidget);
-    expect(find.text('Monday: ¥329'), findsOneWidget);
-    expect(find.text('Profile binding'), findsOneWidget);
-    expect(find.text('taobao-main'), findsOneWidget);
-    expect(find.text('Platform cron'), findsOneWidget);
+    expect(find.text('Products'), findsWidgets);
+    expect(find.text('Crawl Logs'), findsWidgets);
+    expect(find.text('Schedule Config'), findsOneWidget);
+    expect(find.text('Product Crawl Schedule Config'), findsOneWidget);
     expect(find.text('0 9 * * *'), findsOneWidget);
-    expect(find.text('Crawl logs'), findsOneWidget);
+    expect(find.text('Taobao'), findsWidgets);
+    expect(find.text('JD'), findsWidgets);
+    expect(find.text('Amazon'), findsWidgets);
     expect(find.text('Crawl completed'), findsOneWidget);
   });
 
@@ -40,8 +41,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('New product'));
+    expect(find.byKey(const Key('product-form-dialog')), findsNothing);
+
+    await tester.tap(find.text('Add Product'));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('product-form-dialog')), findsOneWidget);
+    expect(find.text('Add Product'), findsWidgets);
     await tester.enterText(
       find.byKey(const Key('product-title-field')),
       'JD desk lamp',
@@ -50,9 +55,13 @@ void main() {
       find.byKey(const Key('product-url-field')),
       'https://jd.example/lamp',
     );
-    await tester.enterText(
-      find.byKey(const Key('product-platform-field')),
-      'jd',
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('product-platform-field')),
+        matching: find.text('JD'),
+      ),
+      findsOneWidget,
     );
     await tester.tap(find.text('Save product'));
     await tester.pumpAndSettle();
@@ -60,8 +69,10 @@ void main() {
     expect(repository.savedDrafts.last.title, 'JD desk lamp');
     expect(repository.savedDrafts.last.platform, 'jd');
 
-    await tester.tap(find.text('Edit Taobao rice cooker'));
+    await tester.ensureVisible(find.byKey(const Key('product-edit-1-button')));
+    await tester.tap(find.byKey(const Key('product-edit-1-button')));
     await tester.pumpAndSettle();
+    expect(find.text('Edit Product'), findsOneWidget);
     await tester.enterText(
       find.byKey(const Key('product-title-field')),
       'Taobao rice cooker Pro',
@@ -73,33 +84,54 @@ void main() {
     expect(repository.savedDrafts.last.title, 'Taobao rice cooker Pro');
   });
 
-  testWidgets('imports products from a picked file', (tester) async {
+  testWidgets('imports products through the React-style paste workflow', (
+    tester,
+  ) async {
     final repository = _FakeProductRepository.full();
+    final openedUrls = <String>[];
 
     await tester.pumpWidget(
       MaterialApp(
-        home: ProductsPage(
-          repository: repository,
-          fileService: const _FakeFileService(),
-        ),
+        home: ProductsPage(repository: repository, urlOpener: openedUrls.add),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Batch import'));
+    await tester.tap(find.text('Batch Import'));
     await tester.pumpAndSettle();
 
-    expect(repository.importedFileName, 'products.csv');
-    expect(find.text('Imported products.csv'), findsOneWidget);
+    expect(find.text('Batch Import Products'), findsOneWidget);
+    expect(find.text('Paste URLs'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('product-import-raw-field')),
+      'https://item.jd.com/10001234.html\n'
+      'https://detail.tmall.com/item.htm?id=12345',
+    );
+    await tester.tap(find.byKey(const Key('product-import-next-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm Platform'), findsOneWidget);
+    expect(find.text('JD'), findsWidgets);
+    expect(find.text('Taobao'), findsWidgets);
+    await tester.tap(find.byKey(const Key('product-import-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.importedFileName, 'batch-import.csv');
+    expect(repository.importedCsvContent, contains('10001234'));
+    expect(repository.importedCsvContent, contains('taobao'));
+    expect(find.text('Imported 2 products'), findsOneWidget);
   });
 
   testWidgets('exposes table filters, trends, crawl, and deletion intents', (
     tester,
   ) async {
     final repository = _FakeProductRepository.full();
+    final openedUrls = <String>[];
 
     await tester.pumpWidget(
-      MaterialApp(home: ProductsPage(repository: repository)),
+      MaterialApp(
+        home: ProductsPage(repository: repository, urlOpener: openedUrls.add),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -107,22 +139,35 @@ void main() {
       find.byKey(const Key('product-search-field')),
       'chair',
     );
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
     expect(find.text('Taobao rice cooker'), findsNothing);
     expect(find.text('JD office chair'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('product-clear-search-button')));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('product-open-1-button')));
+    await tester.tap(find.byKey(const Key('product-open-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(openedUrls, ['https://taobao.example/rice']);
+
+    await tester.ensureVisible(find.byKey(const Key('product-trend-1-button')));
     await tester.tap(find.byKey(const Key('product-trend-1-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Price trend: Taobao rice cooker'), findsOneWidget);
+    expect(find.text('Taobao rice cooker Price Trend'), findsOneWidget);
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('product-select-1')));
     await tester.tap(find.byKey(const Key('product-select-1')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('product-batch-delete-button')),
+    );
     await tester.tap(find.byKey(const Key('product-batch-delete-button')));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -156,7 +201,7 @@ void main() {
     tester,
   ) async {
     final repository = _FakeProductRepository.full();
-    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.physicalSize = const Size(1600, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -174,51 +219,68 @@ void main() {
       find.byKey(const Key('product-batch-delete-confirm-button')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('product-pagination-summary')), findsOneWidget);
+    expect(find.text('Page 1 of 3 - 42 products'), findsOneWidget);
     expect(find.byType(MavraResponsiveDataView<ProductItem>), findsOneWidget);
     expect(find.byType(DataTable), findsOneWidget);
-    expect(find.byType(MavraTrendChart), findsOneWidget);
 
-    await tester.enterText(
-      find.byKey(const Key('product-platform-filter')),
-      'jd',
-    );
-    await tester.enterText(
-      find.byKey(const Key('product-page-size-field')),
-      '10',
-    );
-    await tester.tap(find.text('Inactive'));
-    await tester.tap(find.byKey(const Key('product-apply-filters-button')));
+    await tester.tap(find.byKey(const Key('product-next-page-button')));
+    await tester.pumpAndSettle();
+    expect(repository.lastListQuery.page, 2);
+
+    await tester.tap(find.byKey(const Key('product-platform-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('JD').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-page-size-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('20').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-active-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inactive').last);
     await tester.pumpAndSettle();
 
     expect(repository.lastListQuery.platform, 'jd');
     expect(repository.lastListQuery.active, false);
-    expect(repository.lastListQuery.pageSize, 10);
+    expect(repository.lastListQuery.page, 1);
+    expect(repository.lastListQuery.pageSize, 20);
 
     await tester.ensureVisible(find.byKey(const Key('product-edit-1-button')));
     await tester.tap(find.byKey(const Key('product-edit-1-button')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Edit Product'), findsOneWidget);
     expect(
       find.byKey(const Key('product-alert-enabled-field')),
       findsOneWidget,
     );
     await tester.tap(find.byKey(const Key('product-alert-enabled-field')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('product-alert-threshold-field')),
+      '8',
+    );
     await tester.tap(find.text('Save product'));
     await tester.pumpAndSettle();
 
     expect(repository.savedProductAlertId, 1);
     expect(repository.savedProductAlertDraft?.enabled, isTrue);
+    expect(repository.savedProductAlertDraft?.thresholdPercent, 8);
 
-    await tester.ensureVisible(
-      find.byKey(const Key('product-profile-binding-taobao-button')),
-    );
-    await tester.tap(
-      find.byKey(const Key('product-profile-binding-taobao-button')),
-    );
+    await tester.ensureVisible(find.byKey(const Key('product-trend-1-button')));
+    await tester.tap(find.byKey(const Key('product-trend-1-button')));
     await tester.pumpAndSettle();
 
-    expect(repository.savedProfileBindingPlatform, 'taobao');
-    expect(repository.savedProfileBindingProfileKey, 'taobao-main');
+    expect(find.text('Taobao rice cooker Price Trend'), findsOneWidget);
+    expect(find.text('7d'), findsOneWidget);
+    expect(find.text('30d'), findsOneWidget);
+    expect(find.text('90d'), findsOneWidget);
+    expect(find.text('Lowest'), findsOneWidget);
+    expect(find.text('Highest'), findsOneWidget);
+    expect(find.byType(MavraTrendChart), findsAtLeastNWidgets(1));
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(
       find.byKey(const Key('product-cron-taobao-edit-button')),
@@ -273,10 +335,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final crawlNow = tester.widget<OutlinedButton>(
-      find.byKey(const Key('product-crawl-now-button')),
-    );
-    expect(crawlNow.onPressed, isNull);
+    expect(find.byKey(const Key('product-crawl-now-button')), findsNothing);
   });
 }
 
@@ -303,6 +362,29 @@ class _FakeProductRepository implements ProductRepository {
           enabled: true,
         ),
       ],
+      page: const ProductPageState(
+        items: [
+          ProductItem(
+            id: 1,
+            title: 'Taobao rice cooker',
+            platform: 'taobao',
+            currentPrice: '¥299',
+            url: 'https://taobao.example/rice',
+            enabled: true,
+          ),
+          ProductItem(
+            id: 2,
+            title: 'JD office chair',
+            platform: 'jd',
+            currentPrice: '¥899',
+            url: 'https://jd.example/chair',
+            enabled: true,
+          ),
+        ],
+        page: 1,
+        pageSize: 15,
+        total: 42,
+      ),
       history: const [
         PriceHistoryPoint(label: 'Monday', price: '¥329'),
         PriceHistoryPoint(label: 'Tuesday', price: '¥299'),
@@ -340,6 +422,7 @@ class _FakeProductRepository implements ProductRepository {
   int? deletedProductId;
   List<int>? batchDeletedIds;
   String? importedFileName;
+  String? importedCsvContent;
   bool crawlRequested = false;
   ProductListQuery lastListQuery = const ProductListQuery();
   int? savedProductAlertId;
@@ -359,7 +442,9 @@ class _FakeProductRepository implements ProductRepository {
       items: snapshot.products,
       page: query.page,
       pageSize: query.pageSize,
-      total: snapshot.products.length,
+      total: snapshot.page.total == 0
+          ? snapshot.products.length
+          : snapshot.page.total,
     );
   }
 
@@ -432,14 +517,16 @@ class _FakeProductRepository implements ProductRepository {
   }
 
   @override
-  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {
+  Future<int?> saveProduct(ProductDraft draft, {int? productId}) async {
     savedDrafts.add(draft);
     updatedProductId = productId;
+    return productId ?? 99;
   }
 
   @override
   Future<void> importProducts(PickedFileReference file) async {
     importedFileName = file.name;
+    importedCsvContent = file.bytes == null ? null : utf8.decode(file.bytes!);
   }
 
   @override
@@ -520,7 +607,8 @@ class _SlowProductRepository implements ProductRepository {
   Future<void> deleteProductSchedule(String platform) async {}
 
   @override
-  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
+  Future<int?> saveProduct(ProductDraft draft, {int? productId}) async =>
+      productId ?? 99;
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}
@@ -594,7 +682,8 @@ class _FailingProductRepository implements ProductRepository {
   Future<void> deleteProductSchedule(String platform) async {}
 
   @override
-  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
+  Future<int?> saveProduct(ProductDraft draft, {int? productId}) async =>
+      productId ?? 99;
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}
@@ -607,14 +696,4 @@ class _FailingProductRepository implements ProductRepository {
 
   @override
   Future<void> requestCrawlNow() async {}
-}
-
-class _FakeFileService extends FileService {
-  const _FakeFileService()
-    : super(canPickFiles: true, canSaveFiles: false, canDownloadFiles: false);
-
-  @override
-  Future<PickedFileReference?> pickFile() async {
-    return const PickedFileReference(name: 'products.csv', bytes: [1, 2, 3]);
-  }
 }

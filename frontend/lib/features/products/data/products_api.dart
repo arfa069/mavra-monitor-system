@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:built_collection/built_collection.dart';
+import 'package:built_value/serializer.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -29,64 +30,37 @@ class GeneratedProductRepository implements ProductRepository {
   @override
   Future<ProductsSnapshot> loadProducts() async {
     final productPage = await listProducts(
-      const ProductListQuery(page: 1, pageSize: 50),
+      const ProductListQuery(page: 1, pageSize: 15),
     );
-    final products = productPage.items;
 
-    final firstProductId = products.isEmpty ? null : products.first.id;
     final results = await Future.wait([
-      if (firstProductId != null)
-        _productsApi.productsGetProductHistory(productId: firstProductId),
-      _productsApi.productsListProductProfileBindings(),
       _productsApi.productsListProductCronConfigs(),
       _productsCrawlApi.productsCrawlGetCrawlLogs(limit: 20),
+      _alertsApi.alertsListAlerts(),
     ]);
 
-    final history = firstProductId == null
-        ? <generated.PriceHistoryResponse>[]
-        : ((results[0].data as BuiltList<generated.PriceHistoryResponse>?)
-                  ?.toList() ??
-              const []);
-    final offset = firstProductId == null ? 0 : 1;
-    final bindings =
-        (results[offset].data
-                as BuiltList<generated.ProductPlatformProfileBindingResponse>?)
-            ?.toList() ??
-        const [];
     final cronConfigs =
-        (results[offset + 1].data
-                as BuiltList<generated.ProductPlatformCronResponse>?)
+        (results[0].data as BuiltList<generated.ProductPlatformCronResponse>?)
             ?.toList() ??
         const [];
     final logs =
-        (results[offset + 2].data as BuiltList<generated.CrawlLogResponse>?)
-            ?.toList() ??
+        (results[1].data as BuiltList<generated.CrawlLogResponse>?)?.toList() ??
+        const [];
+    final alerts =
+        (results[2].data as BuiltList<generated.AlertResponse>?)?.toList() ??
         const [];
 
     return ProductsSnapshot(
-      products: [
-        for (final product in products)
-          product.copyWith(currentPrice: _latestPrice(product.id, history)),
-      ],
-      history: [
-        for (final point in history)
-          PriceHistoryPoint(
-            label: _shortDate(point.scrapedAt),
-            price: _formatPrice(point.price, point.currency),
-          ),
-      ],
-      bindings: [
-        for (final binding in bindings)
-          ProductProfileBinding(
-            platform: binding.platform,
-            profileName: binding.profileKey ?? 'Unbound',
-          ),
-      ],
+      products: productPage.items,
+      history: const [],
+      bindings: const [],
       cronConfigs: [
         for (final cron in cronConfigs)
           ProductCronConfig(
             platform: cron.platform,
             cron: cron.cronExpression ?? 'Disabled',
+            timezone: cron.cronTimezone,
+            configured: cron.cronExpression != null,
           ),
       ],
       crawlLogs: [
@@ -95,6 +69,15 @@ class GeneratedProductRepository implements ProductRepository {
             message: log.errorMessage ?? _crawlLogMessage(log),
             status: log.status ?? 'unknown',
             createdAt: log.timestamp,
+          ),
+      ],
+      alerts: [
+        for (final alert in alerts)
+          ProductAlertInfo(
+            id: alert.id,
+            productId: alert.productId,
+            active: alert.active,
+            thresholdPercent: _parseDouble(alert.thresholdPercent) ?? 5,
           ),
       ],
       page: productPage,
@@ -151,7 +134,10 @@ class GeneratedProductRepository implements ProductRepository {
         alertCreate: generated.AlertCreate(
           (builder) => builder
             ..productId = productId
-            ..active = draft.enabled,
+            ..active = draft.enabled
+            ..thresholdPercent = _thresholdPercent(
+              draft.thresholdPercent,
+            ).toBuilder(),
         ),
       );
       return;
@@ -160,7 +146,11 @@ class GeneratedProductRepository implements ProductRepository {
     await _alertsApi.alertsUpdateAlert(
       alertId: alertId,
       alertUpdate: generated.AlertUpdate(
-        (builder) => builder.active = draft.enabled,
+        (builder) => builder
+          ..active = draft.enabled
+          ..thresholdPercent = _thresholdPercentUpdate(
+            draft.thresholdPercent,
+          ).toBuilder(),
       ),
     );
   }
@@ -226,6 +216,8 @@ class GeneratedProductRepository implements ProductRepository {
         ProductCronConfig(
           platform: cron.platform,
           cron: cron.cronExpression ?? 'Disabled',
+          timezone: cron.cronTimezone,
+          configured: cron.cronExpression != null,
         ),
     ];
   }
@@ -252,18 +244,18 @@ class GeneratedProductRepository implements ProductRepository {
   }
 
   @override
-  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {
+  Future<int?> saveProduct(ProductDraft draft, {int? productId}) async {
     if (productId == null) {
-      await _productsApi.productsCreateProduct(
+      final response = await _productsApi.productsCreateProduct(
         productCreate: generated.ProductCreate(
           (builder) => builder
             ..title = draft.title
             ..url = draft.url
             ..platform = draft.platform
-            ..active = true,
+            ..active = draft.active,
         ),
       );
-      return;
+      return response.data?.id;
     }
 
     await _productsApi.productsUpdateProduct(
@@ -273,9 +265,10 @@ class GeneratedProductRepository implements ProductRepository {
           ..title = draft.title
           ..url = draft.url
           ..platform = draft.platform
-          ..active = true,
+          ..active = draft.active,
       ),
     );
+    return productId;
   }
 
   @override
@@ -353,20 +346,6 @@ class GeneratedProductRepository implements ProductRepository {
     );
   }
 
-  static String _latestPrice(
-    int productId,
-    List<generated.PriceHistoryResponse> history,
-  ) {
-    final matches = history.where((point) => point.productId == productId);
-    if (matches.isEmpty) {
-      return '-';
-    }
-    final latest = matches.reduce(
-      (a, b) => a.scrapedAt.isAfter(b.scrapedAt) ? a : b,
-    );
-    return _formatPrice(latest.price, latest.currency);
-  }
-
   static String _formatPrice(String price, String currency) {
     if (currency == 'CNY') {
       return '¥$price';
@@ -376,6 +355,13 @@ class GeneratedProductRepository implements ProductRepository {
 
   static String _shortDate(DateTime value) {
     return '${value.month}/${value.day}';
+  }
+
+  static double? _parseDouble(String? value) {
+    if (value == null) {
+      return null;
+    }
+    return double.tryParse(value);
   }
 
   static String _crawlLogMessage(generated.CrawlLogResponse log) {
@@ -390,5 +376,21 @@ class GeneratedProductRepository implements ProductRepository {
       return apiBaseUrl.substring(0, apiBaseUrl.length - apiPrefix.length);
     }
     return apiBaseUrl;
+  }
+
+  static generated.ThresholdPercent _thresholdPercent(double value) {
+    return generated.standardSerializers.deserialize(
+          value,
+          specifiedType: const FullType(generated.ThresholdPercent),
+        )
+        as generated.ThresholdPercent;
+  }
+
+  static generated.ThresholdPercent1 _thresholdPercentUpdate(double value) {
+    return generated.standardSerializers.deserialize(
+          value,
+          specifiedType: const FullType(generated.ThresholdPercent1),
+        )
+        as generated.ThresholdPercent1;
   }
 }

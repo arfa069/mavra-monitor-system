@@ -535,7 +535,8 @@ class _VisualProductRepository implements ProductRepository {
   Future<void> deleteProductSchedule(String platform) async {}
 
   @override
-  Future<void> saveProduct(ProductDraft draft, {int? productId}) async {}
+  Future<int?> saveProduct(ProductDraft draft, {int? productId}) async =>
+      productId ?? 99;
 
   @override
   Future<void> importProducts(PickedFileReference file) async {}

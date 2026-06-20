@@ -67,10 +67,17 @@ class ProductPlatformProfileBinding {
 }
 
 class ProductCronConfig {
-  const ProductCronConfig({required this.platform, required this.cron});
+  const ProductCronConfig({
+    required this.platform,
+    required this.cron,
+    this.timezone = 'Asia/Shanghai',
+    this.configured = true,
+  });
 
   final String platform;
   final String cron;
+  final String timezone;
+  final bool configured;
 }
 
 class ProductCrawlLog {
@@ -90,11 +97,13 @@ class ProductDraft {
     required this.title,
     required this.url,
     required this.platform,
+    this.active = true,
   });
 
   final String title;
   final String url;
   final String platform;
+  final bool active;
 }
 
 class ProductListQuery {
@@ -139,6 +148,20 @@ class ProductAlertDraft {
   final double thresholdPercent;
 }
 
+class ProductAlertInfo {
+  const ProductAlertInfo({
+    required this.id,
+    required this.productId,
+    required this.active,
+    required this.thresholdPercent,
+  });
+
+  final int id;
+  final int productId;
+  final bool active;
+  final double thresholdPercent;
+}
+
 class ProductsSnapshot {
   const ProductsSnapshot({
     required this.products,
@@ -146,6 +169,7 @@ class ProductsSnapshot {
     required this.bindings,
     required this.cronConfigs,
     required this.crawlLogs,
+    this.alerts = const [],
     ProductPageState? page,
   }) : page =
            page ??
@@ -157,6 +181,7 @@ class ProductsSnapshot {
       bindings = const [],
       cronConfigs = const [],
       crawlLogs = const [],
+      alerts = const [],
       page = const ProductPageState(items: [], page: 1, pageSize: 20, total: 0);
 
   final List<ProductItem> products;
@@ -164,6 +189,7 @@ class ProductsSnapshot {
   final List<ProductProfileBinding> bindings;
   final List<ProductCronConfig> cronConfigs;
   final List<ProductCrawlLog> crawlLogs;
+  final List<ProductAlertInfo> alerts;
   final ProductPageState page;
 }
 
@@ -204,7 +230,7 @@ abstract class ProductRepository {
 
   Future<void> deleteProductSchedule(String platform);
 
-  Future<void> saveProduct(ProductDraft draft, {int? productId});
+  Future<int?> saveProduct(ProductDraft draft, {int? productId});
 
   Future<void> importProducts(PickedFileReference file);
 
