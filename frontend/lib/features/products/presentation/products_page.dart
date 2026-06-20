@@ -1,18 +1,21 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/files/file_service.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
-import '../../../core/widgets/mavra_chart.dart';
 import '../../../core/widgets/mavra_confirm.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/product_models.dart';
 
 typedef ProductUrlOpener = FutureOr<void> Function(String url);
+
+enum _ProductWorkbenchTab { products, recentCrawlLogs }
 
 class ProductsPage extends StatefulWidget {
   const ProductsPage({
@@ -42,6 +45,7 @@ class _ProductsPageState extends State<ProductsPage> {
   int? _editingAlertId;
   bool _productActive = true;
   bool _alertEnabled = false;
+  _ProductWorkbenchTab _activeTab = _ProductWorkbenchTab.products;
   Timer? _searchDebounce;
   final Set<int> _selectedProductIds = {};
 
@@ -406,6 +410,25 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
+  Future<void> _refreshCrawlLogs() async {
+    try {
+      final logs = await widget.repository.listCrawlLogs();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _snapshot = (_snapshot ?? const ProductsSnapshot.empty()).copyWith(
+          crawlLogs: logs,
+        );
+        _statusMessage = 'Loaded ${logs.length} crawl logs';
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Crawl logs unavailable');
+      }
+    }
+  }
+
   Future<void> _deleteProductCron(ProductCronConfig cron) async {
     final confirmed = await mavraConfirm(
       context,
@@ -513,6 +536,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   page: _page,
                   statusMessage: _statusMessage,
                   canRequestCrawlNow: _canRequestCrawlNow,
+                  activeTab: _activeTab,
                   searchController: _searchController,
                   filterPlatformController: _filterPlatformController,
                   pageSizeController: _pageSizeController,
@@ -532,6 +556,8 @@ class _ProductsPageState extends State<ProductsPage> {
                   onClearSearch: _clearSearch,
                   onOpenProduct: _openProduct,
                   onShowTrend: _showPriceTrend,
+                  onTabChanged: (tab) => setState(() => _activeTab = tab),
+                  onRefreshCrawlLogs: _refreshCrawlLogs,
                   onOpenSchedule: () => context.go('/schedule'),
                   onDeleteProductCron: _deleteProductCron,
                 );
@@ -602,6 +628,7 @@ class _ProductsContent extends StatelessWidget {
     required this.page,
     required this.statusMessage,
     required this.canRequestCrawlNow,
+    required this.activeTab,
     required this.searchController,
     required this.filterPlatformController,
     required this.pageSizeController,
@@ -621,6 +648,8 @@ class _ProductsContent extends StatelessWidget {
     required this.onClearSearch,
     required this.onOpenProduct,
     required this.onShowTrend,
+    required this.onTabChanged,
+    required this.onRefreshCrawlLogs,
     required this.onOpenSchedule,
     required this.onDeleteProductCron,
   });
@@ -629,6 +658,7 @@ class _ProductsContent extends StatelessWidget {
   final ProductPageState? page;
   final String? statusMessage;
   final bool canRequestCrawlNow;
+  final _ProductWorkbenchTab activeTab;
   final TextEditingController searchController;
   final TextEditingController filterPlatformController;
   final TextEditingController pageSizeController;
@@ -648,13 +678,13 @@ class _ProductsContent extends StatelessWidget {
   final VoidCallback onClearSearch;
   final ValueChanged<ProductItem> onOpenProduct;
   final ValueChanged<ProductItem> onShowTrend;
+  final ValueChanged<_ProductWorkbenchTab> onTabChanged;
+  final Future<void> Function() onRefreshCrawlLogs;
   final VoidCallback onOpenSchedule;
   final ValueChanged<ProductCronConfig> onDeleteProductCron;
 
   @override
   Widget build(BuildContext context) {
-    final productsSectionKey = GlobalKey();
-    final logsSectionKey = GlobalKey();
     final pageState =
         page ??
         ProductPageState(
@@ -674,10 +704,7 @@ class _ProductsContent extends StatelessWidget {
             Text(statusMessage!),
           ],
           const SizedBox(height: 16),
-          _ProductSectionTabs(
-            onProductsTap: () => _scrollTo(productsSectionKey),
-            onCrawlLogsTap: () => _scrollTo(logsSectionKey),
-          ),
+          _ProductSectionTabs(activeTab: activeTab, onTabChanged: onTabChanged),
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -712,30 +739,31 @@ class _ProductsContent extends StatelessWidget {
                 onDeleteProductCron: onDeleteProductCron,
               );
               final logsPanel = _Section(
-                title: 'Crawl Logs',
-                emptyText: 'No crawl logs yet',
+                title: 'Recent Crawl Logs',
+                emptyText: 'No crawl records',
+                actions: OutlinedButton.icon(
+                  key: const Key('product-crawl-logs-refresh-button'),
+                  onPressed: onRefreshCrawlLogs,
+                  style: _compactOutlinedButtonStyle(),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Refresh'),
+                ),
                 children: [
-                  for (final log in snapshot.crawlLogs)
-                    ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.receipt_long),
-                      title: Text(log.message),
-                      subtitle: Text(
-                        '${log.status} - ${_shortDateTime(log.createdAt)}',
-                      ),
-                    ),
+                  if (snapshot.crawlLogs.isNotEmpty)
+                    _ProductCrawlLogsTable(logs: snapshot.crawlLogs),
                 ],
               );
+
+              if (activeTab == _ProductWorkbenchTab.recentCrawlLogs) {
+                return logsPanel;
+              }
 
               if (!wide) {
                 return Column(
                   children: [
-                    KeyedSubtree(key: productsSectionKey, child: productsPanel),
+                    productsPanel,
                     const SizedBox(height: 16),
                     sidePanel,
-                    const SizedBox(height: 16),
-                    KeyedSubtree(key: logsSectionKey, child: logsPanel),
                   ],
                 );
               }
@@ -743,19 +771,7 @@ class _ProductsContent extends StatelessWidget {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 7,
-                    child: Column(
-                      children: [
-                        KeyedSubtree(
-                          key: productsSectionKey,
-                          child: productsPanel,
-                        ),
-                        const SizedBox(height: 16),
-                        KeyedSubtree(key: logsSectionKey, child: logsPanel),
-                      ],
-                    ),
-                  ),
+                  Expanded(flex: 7, child: Column(children: [productsPanel])),
                   const SizedBox(width: 16),
                   Expanded(flex: 3, child: sidePanel),
                 ],
@@ -778,18 +794,6 @@ class _ProductsContent extends StatelessWidget {
           product,
     ];
   }
-
-  static void _scrollTo(GlobalKey key) {
-    final context = key.currentContext;
-    if (context == null) {
-      return;
-    }
-    Scrollable.ensureVisible(
-      context,
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-    );
-  }
 }
 
 const _productPlatforms = ['taobao', 'jd', 'amazon'];
@@ -803,18 +807,33 @@ String _platformLabel(String value) {
   };
 }
 
+ButtonStyle _compactOutlinedButtonStyle() {
+  return OutlinedButton.styleFrom(
+    minimumSize: const Size(0, 36),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+}
+
+ButtonStyle _compactFilledButtonStyle() {
+  return FilledButton.styleFrom(
+    minimumSize: const Size(0, 36),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+}
+
 class _ProductSectionTabs extends StatelessWidget {
   const _ProductSectionTabs({
-    required this.onProductsTap,
-    required this.onCrawlLogsTap,
+    required this.activeTab,
+    required this.onTabChanged,
   });
 
-  final VoidCallback onProductsTap;
-  final VoidCallback onCrawlLogsTap;
+  final _ProductWorkbenchTab activeTab;
+  final ValueChanged<_ProductWorkbenchTab> onTabChanged;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -825,36 +844,54 @@ class _ProductSectionTabs extends StatelessWidget {
       child: Wrap(
         spacing: 28,
         children: [
-          TextButton(
-            onPressed: onProductsTap,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.only(bottom: 10),
-              shape: const RoundedRectangleBorder(),
-              foregroundColor: color.onSurface,
-            ),
-            child: DecoratedBox(
+          _tabButton(
+            context,
+            key: const Key('product-tab-products'),
+            tab: _ProductWorkbenchTab.products,
+            label: 'Products',
+          ),
+          _tabButton(
+            context,
+            key: const Key('product-tab-recent-crawl-logs'),
+            tab: _ProductWorkbenchTab.recentCrawlLogs,
+            label: 'Recent Crawl Logs',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(
+    BuildContext context, {
+    required Key key,
+    required _ProductWorkbenchTab tab,
+    required String label,
+  }) {
+    final color = Theme.of(context).colorScheme;
+    final selected = activeTab == tab;
+    final labelWidget = Padding(
+      padding: EdgeInsets.only(bottom: selected ? 8 : 0),
+      child: Text(label),
+    );
+
+    return TextButton(
+      key: key,
+      onPressed: () => onTabChanged(tab),
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.only(bottom: selected ? 10 : 18),
+        shape: const RoundedRectangleBorder(),
+        foregroundColor: selected ? color.onSurface : color.onSurfaceVariant,
+      ),
+      child: selected
+          ? DecoratedBox(
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: color.primary, width: 2),
                 ),
               ),
-              child: const Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child: Text('Products'),
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: onCrawlLogsTap,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.only(bottom: 18),
-              shape: const RoundedRectangleBorder(),
-              foregroundColor: color.onSurfaceVariant,
-            ),
-            child: const Text('Crawl Logs'),
-          ),
-        ],
-      ),
+              child: labelWidget,
+            )
+          : labelWidget,
     );
   }
 }
@@ -891,6 +928,7 @@ class _ScheduleConfigPanel extends StatelessWidget {
       actions: OutlinedButton.icon(
         key: const Key('product-schedule-add-button'),
         onPressed: onOpenSchedule,
+        style: _compactOutlinedButtonStyle(),
         icon: const Icon(Icons.add),
         label: const Text('Add Schedule'),
       ),
@@ -1071,6 +1109,7 @@ class _ProductsPanel extends StatelessWidget {
           ? OutlinedButton.icon(
               key: const Key('product-crawl-now-button'),
               onPressed: onRequestCrawlNow,
+              style: _compactOutlinedButtonStyle(),
               icon: const Icon(Icons.travel_explore),
               label: const Text('Crawl Now'),
             )
@@ -1146,110 +1185,133 @@ class _ProductFilters extends StatelessWidget {
         ? null
         : platformController.text.trim();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final actions = Wrap(
+      key: const Key('product-primary-actions-row'),
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              key: const Key('product-import-open-button'),
-              onPressed: onImportProducts,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Batch Import'),
-            ),
-            KeyedSubtree(
-              key: const Key('product-batch-delete-confirm-button'),
-              child: OutlinedButton.icon(
-                key: const Key('product-batch-delete-button'),
-                onPressed: selectedCount == 0 ? null : onBatchDeleteProducts,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Batch Delete'),
-              ),
-            ),
-            FilledButton.icon(
-              key: const Key('product-add-button'),
-              onPressed: onNewProduct,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Product'),
-            ),
-          ],
+        OutlinedButton.icon(
+          key: const Key('product-import-open-button'),
+          onPressed: onImportProducts,
+          style: _compactOutlinedButtonStyle(),
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Batch Import'),
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            SizedBox(
-              width: 280,
-              child: TextField(
-                key: const Key('product-search-field'),
-                controller: searchController,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  labelText: 'Search title or URL',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    key: const Key('product-clear-search-button'),
-                    tooltip: 'Clear search',
-                    onPressed: onClearSearch,
-                    icon: const Icon(Icons.clear),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(
-              width: 230,
-              child: DropdownButtonFormField<String?>(
-                key: const Key('product-platform-filter'),
-                initialValue: platformValue,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Platform'),
-                items: const [
-                  DropdownMenuItem(value: null, child: Text('All Platforms')),
-                  DropdownMenuItem(value: 'taobao', child: Text('Taobao')),
-                  DropdownMenuItem(value: 'jd', child: Text('JD')),
-                  DropdownMenuItem(value: 'amazon', child: Text('Amazon')),
-                ],
-                selectedItemBuilder: (context) => const [
-                  Text('All', overflow: TextOverflow.ellipsis),
-                  Text('Taobao', overflow: TextOverflow.ellipsis),
-                  Text('JD', overflow: TextOverflow.ellipsis),
-                  Text('Amazon', overflow: TextOverflow.ellipsis),
-                ],
-                onChanged: onPlatformFilterChanged,
-              ),
-            ),
-            SizedBox(
-              width: 220,
-              child: DropdownButtonFormField<String>(
-                key: const Key('product-active-filter'),
-                initialValue: activeFilter,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('All Statuses')),
-                  DropdownMenuItem(value: 'active', child: Text('Active')),
-                  DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-                ],
-                selectedItemBuilder: (context) => const [
-                  Text('All', overflow: TextOverflow.ellipsis),
-                  Text('Active', overflow: TextOverflow.ellipsis),
-                  Text('Inactive', overflow: TextOverflow.ellipsis),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    onActiveFilterChanged(value);
-                  }
-                },
-              ),
-            ),
-          ],
+        KeyedSubtree(
+          key: const Key('product-batch-delete-confirm-button'),
+          child: OutlinedButton.icon(
+            key: const Key('product-batch-delete-button'),
+            onPressed: selectedCount == 0 ? null : onBatchDeleteProducts,
+            style: _compactOutlinedButtonStyle(),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Batch Delete'),
+          ),
+        ),
+        FilledButton.icon(
+          key: const Key('product-add-button'),
+          onPressed: onNewProduct,
+          style: _compactFilledButtonStyle(),
+          icon: const Icon(Icons.add),
+          label: const Text('Add Product'),
         ),
       ],
+    );
+
+    final filters = Wrap(
+      key: const Key('product-filter-row'),
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 280,
+          child: TextField(
+            key: const Key('product-search-field'),
+            controller: searchController,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: 'Search title or URL',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(
+                key: const Key('product-clear-search-button'),
+                tooltip: 'Clear search',
+                onPressed: onClearSearch,
+                icon: const Icon(Icons.clear),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 230,
+          child: DropdownButtonFormField<String?>(
+            key: const Key('product-platform-filter'),
+            initialValue: platformValue,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Platform'),
+            items: const [
+              DropdownMenuItem(value: null, child: Text('All Platforms')),
+              DropdownMenuItem(value: 'taobao', child: Text('Taobao')),
+              DropdownMenuItem(value: 'jd', child: Text('JD')),
+              DropdownMenuItem(value: 'amazon', child: Text('Amazon')),
+            ],
+            selectedItemBuilder: (context) => const [
+              Text('All', overflow: TextOverflow.ellipsis),
+              Text('Taobao', overflow: TextOverflow.ellipsis),
+              Text('JD', overflow: TextOverflow.ellipsis),
+              Text('Amazon', overflow: TextOverflow.ellipsis),
+            ],
+            onChanged: onPlatformFilterChanged,
+          ),
+        ),
+        SizedBox(
+          width: 220,
+          child: DropdownButtonFormField<String>(
+            key: const Key('product-active-filter'),
+            initialValue: activeFilter,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Status'),
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('All Statuses')),
+              DropdownMenuItem(value: 'active', child: Text('Active')),
+              DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+            ],
+            selectedItemBuilder: (context) => const [
+              Text('All', overflow: TextOverflow.ellipsis),
+              Text('Active', overflow: TextOverflow.ellipsis),
+              Text('Inactive', overflow: TextOverflow.ellipsis),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                onActiveFilterChanged(value);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 980) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: actions),
+              const SizedBox(width: 12),
+              Flexible(
+                flex: 2,
+                child: Align(alignment: Alignment.centerRight, child: filters),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [actions, const SizedBox(height: 12), filters],
+        );
+      },
     );
   }
 }
@@ -1827,6 +1889,54 @@ class _ProductActionButtons extends StatelessWidget {
   }
 }
 
+class _ProductCrawlLogsTable extends StatelessWidget {
+  const _ProductCrawlLogsTable({required this.logs});
+
+  final List<ProductCrawlLog> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    return MavraResponsiveDataView<ProductCrawlLog>(
+      key: const Key('product-crawl-logs-table'),
+      rows: logs,
+      wideBreakpoint: 720,
+      columns: const [
+        DataColumn(label: Text('Time')),
+        DataColumn(label: Text('Platform')),
+        DataColumn(label: Text('Status')),
+        DataColumn(label: Text('Price')),
+        DataColumn(label: Text('Error')),
+      ],
+      tableCells: (log) => [
+        DataCell(Text(_shortDateTime(log.createdAt))),
+        DataCell(Text(_platformLabel(log.platform ?? '-'))),
+        DataCell(Text(_crawlStatusLabel(log.status))),
+        DataCell(Text(log.price ?? '-')),
+        DataCell(
+          SizedBox(
+            width: 280,
+            child: Text(
+              log.errorMessage ?? log.message,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ],
+      mobileBuilder: (context, log) => ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.receipt_long),
+        title: Text(
+          '${_platformLabel(log.platform ?? '-')} - ${log.price ?? '-'}',
+        ),
+        subtitle: Text(
+          '${_crawlStatusLabel(log.status)} - ${_shortDateTime(log.createdAt)}\n${log.errorMessage ?? log.message}',
+        ),
+        isThreeLine: true,
+      ),
+    );
+  }
+}
+
 class _PriceTrendDialog extends StatefulWidget {
   const _PriceTrendDialog({required this.repository, required this.product});
 
@@ -1843,6 +1953,7 @@ class _PriceTrendDialogState extends State<_PriceTrendDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      key: const Key('product-price-trend-dialog'),
       title: Text('${widget.product.title} Price Trend'),
       content: SizedBox(
         width: 760,
@@ -1875,23 +1986,11 @@ class _PriceTrendDialogState extends State<_PriceTrendDialog> {
                   else ...[
                     _PriceStats(history: history),
                     const SizedBox(height: 12),
+                    _PricePeriodChange(history: history),
+                    const SizedBox(height: 12),
                     _PriceHistoryChart(history: history),
                     const SizedBox(height: 12),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 180),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final point in history)
-                            ListTile(
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(point.label),
-                              trailing: Text(point.price),
-                            ),
-                        ],
-                      ),
-                    ),
+                    _PriceHistoryTable(history: history),
                   ],
                 ],
               );
@@ -1905,6 +2004,37 @@ class _PriceTrendDialogState extends State<_PriceTrendDialog> {
           child: const Text('Close'),
         ),
       ],
+    );
+  }
+}
+
+class _PricePeriodChange extends StatelessWidget {
+  const _PricePeriodChange({required this.history});
+
+  final List<PriceHistoryPoint> history;
+
+  @override
+  Widget build(BuildContext context) {
+    if (history.length < 2) {
+      return const SizedBox.shrink();
+    }
+    final first = _parsePrice(history.first.price);
+    final last = _parsePrice(history.last.price);
+    if (first <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    final diff = last - first;
+    final percent = (diff / first * 100).abs();
+    final label = diff < 0
+        ? 'Drop ${percent.toStringAsFixed(1)}%'
+        : diff > 0
+        ? 'Rise ${percent.toStringAsFixed(1)}%'
+        : 'Flat';
+
+    return Chip(
+      label: Text('Period change: $label'),
+      visualDensity: VisualDensity.compact,
     );
   }
 }
@@ -1985,12 +2115,123 @@ class _PriceHistoryChart extends StatelessWidget {
       return const Text('No price history yet');
     }
 
-    return MavraTrendChart(
-      title: 'Price trend',
-      points: [
-        for (final point in history)
-          MavraChartPoint(label: point.label, value: _parsePrice(point.price)),
+    final values = [for (final point in history) _parsePrice(point.price)];
+    final minValue = values.reduce(math.min);
+    final maxValue = values.reduce(math.max);
+    final range = math.max(1.0, maxValue - minValue);
+    final minY = math.max(0.0, minValue - range * 0.12);
+    final maxY = maxValue + range * 0.12;
+    final color = Theme.of(context).colorScheme.primary;
+
+    return Column(
+      key: const Key('product-price-history-chart'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Price trend', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 260,
+          child: LineChart(
+            LineChartData(
+              minY: minY,
+              maxY: maxY,
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: true,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: Theme.of(context).dividerColor,
+                  strokeWidth: 0.8,
+                ),
+                getDrawingVerticalLine: (value) => FlLine(
+                  color: Theme.of(context).dividerColor,
+                  strokeWidth: 0.8,
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 56,
+                    getTitlesWidget: (value, meta) => Text(
+                      '¥${value.toStringAsFixed(0)}',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: _chartLabelInterval(history.length),
+                    getTitlesWidget: (value, meta) {
+                      final index = value.round();
+                      if (index < 0 || index >= history.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          history[index].label,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: [
+                    for (var index = 0; index < values.length; index++)
+                      FlSpot(index.toDouble(), values[index]),
+                  ],
+                  isCurved: true,
+                  color: color,
+                  barWidth: 2,
+                  dotData: const FlDotData(show: true),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: color.withValues(alpha: 0.12),
+                  ),
+                ),
+              ],
+              lineTouchData: const LineTouchData(enabled: true),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _PriceHistoryTable extends StatelessWidget {
+  const _PriceHistoryTable({required this.history});
+
+  final List<PriceHistoryPoint> history;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      key: const Key('product-price-history-table'),
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text('Date')),
+          DataColumn(label: Text('Price')),
+        ],
+        rows: [
+          for (final point in history)
+            DataRow(
+              cells: [DataCell(Text(point.label)), DataCell(Text(point.price))],
+            ),
+        ],
+      ),
     );
   }
 }
@@ -2010,6 +2251,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final action = actions;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 8, bottom: 12),
@@ -2022,14 +2264,16 @@ class _Section extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                if (actions != null) ...[
-                  const SizedBox(height: 8),
-                  Align(alignment: Alignment.centerRight, child: actions),
-                ],
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                ?action,
               ],
             ),
             const Divider(height: 20),
@@ -2046,12 +2290,28 @@ double _parsePrice(String value) {
   return double.tryParse(normalized) ?? 0;
 }
 
+double _chartLabelInterval(int count) {
+  if (count <= 6) {
+    return 1;
+  }
+  return (count / 6).ceilToDouble();
+}
+
 String _formatStatPrice(double value) {
   if (value == 0) {
     return '-';
   }
   final fixed = value % 1 == 0 ? value.toStringAsFixed(0) : value.toString();
   return '¥$fixed';
+}
+
+String _crawlStatusLabel(String value) {
+  return switch (value.toUpperCase()) {
+    'SUCCESS' => 'Success',
+    'ERROR' => 'Failed',
+    'SKIPPED' => 'Skipped',
+    _ => value,
+  };
 }
 
 String _shortDateTime(DateTime value) {

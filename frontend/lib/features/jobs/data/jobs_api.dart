@@ -32,7 +32,7 @@ class GeneratedJobsRepository implements JobsRepository {
 
   @override
   Future<JobsSnapshot> loadJobs() async {
-    final jobPage = await listJobs(const JobListQuery(page: 1, pageSize: 50));
+    final jobPage = await listJobs(const JobListQuery(page: 1, pageSize: 20));
     final configsResponse = await _jobsApi.jobsListConfigs();
     final resumesResponse = await _jobsApi.jobsListResumes();
     final matchesResponse = await _jobsApi.jobsListMatchResults(pageSize: 20);
@@ -57,6 +57,17 @@ class GeneratedJobsRepository implements JobsRepository {
             keyword: config.keyword ?? '-',
             location: config.cityCode ?? '-',
             cron: config.cronExpression ?? 'Disabled',
+            url: config.url,
+            profileKey: config.profileKey,
+            cityCode: config.cityCode,
+            salaryMin: config.salaryMin,
+            salaryMax: config.salaryMax,
+            experience: config.experience,
+            education: config.education,
+            active: config.active,
+            notifyOnNew: config.notifyOnNew,
+            enableMatchAnalysis: config.enableMatchAnalysis,
+            deactivationThreshold: config.deactivationThreshold,
           ),
       ],
       resumes: [
@@ -64,12 +75,11 @@ class GeneratedJobsRepository implements JobsRepository {
           ResumeItem(
             id: resume.id,
             fileName: resume.name,
+            resumeText: resume.resumeText,
             updatedAt: resume.updatedAt,
           ),
       ],
-      matches: [
-        for (final match in matches) _mapMatch(match),
-      ],
+      matches: [for (final match in matches) _mapMatch(match)],
       profiles: [
         for (final profile in profiles)
           CrawlProfileItem(
@@ -84,6 +94,10 @@ class GeneratedJobsRepository implements JobsRepository {
             message: log.errorMessage ?? _jobLogMessage(log),
             status: log.status,
             createdAt: log.scrapedAt,
+            configId: log.searchConfigId,
+            newJobs: log.newJobsCount,
+            totalJobs: log.totalJobsCount,
+            error: log.errorMessage,
           ),
       ],
       page: jobPage,
@@ -101,9 +115,7 @@ class GeneratedJobsRepository implements JobsRepository {
     );
     final data = response.data;
     return JobPageState(
-      items: [
-        for (final job in data?.items.toList() ?? const []) _mapJob(job),
-      ],
+      items: [for (final job in data?.items.toList() ?? const []) _mapJob(job)],
       page: data?.page ?? query.page,
       pageSize: data?.pageSize ?? query.pageSize,
       total: data?.total ?? 0,
@@ -123,6 +135,12 @@ class GeneratedJobsRepository implements JobsRepository {
       company: job.company ?? 'Unknown company',
       description: job.description,
       url: job.url,
+      salary: job.salary,
+      location: job.location ?? job.address,
+      experience: job.experience,
+      education: job.education,
+      status: job.isActive ? 'active' : 'inactive',
+      updatedAt: job.lastUpdatedAt.toLocal().toString(),
     );
   }
 
@@ -157,8 +175,16 @@ class GeneratedJobsRepository implements JobsRepository {
             ..cronExpression = draft.cron
             ..cronTimezone = 'Asia/Shanghai'
             ..platform = _createPlatform(draft.platform)
-            ..profileKey = 'default'
-            ..url = _searchUrl(draft),
+            ..profileKey = draft.profileKey ?? 'default'
+            ..url = draft.url ?? _searchUrl(draft)
+            ..salaryMin = draft.salaryMin
+            ..salaryMax = draft.salaryMax
+            ..experience = draft.experience
+            ..education = draft.education
+            ..active = draft.active
+            ..notifyOnNew = draft.notifyOnNew
+            ..enableMatchAnalysis = draft.enableMatchAnalysis
+            ..deactivationThreshold = draft.deactivationThreshold,
         ),
       );
       return;
@@ -174,8 +200,16 @@ class GeneratedJobsRepository implements JobsRepository {
           ..cronExpression = draft.cron
           ..cronTimezone = 'Asia/Shanghai'
           ..platform = _updatePlatform(draft.platform)
-          ..profileKey = 'default'
-          ..url = _searchUrl(draft),
+          ..profileKey = draft.profileKey ?? 'default'
+          ..url = draft.url ?? _searchUrl(draft)
+          ..salaryMin = draft.salaryMin
+          ..salaryMax = draft.salaryMax
+          ..experience = draft.experience
+          ..education = draft.education
+          ..active = draft.active
+          ..notifyOnNew = draft.notifyOnNew
+          ..enableMatchAnalysis = draft.enableMatchAnalysis
+          ..deactivationThreshold = draft.deactivationThreshold,
       ),
     );
   }
@@ -437,14 +471,24 @@ class GeneratedJobsRepository implements JobsRepository {
       platform: _platformName(job.platform),
       location: job.location ?? job.address ?? '-',
       status: job.isActive ? 'active' : 'inactive',
+      jobId: job.jobId,
+      salary: job.salary,
+      updatedAt: job.lastUpdatedAt.toLocal().toString(),
+      url: job.url,
+      matchRecommendation: job.applyRecommendation,
     );
   }
 
   static JobMatchResult _mapMatch(generated.MatchResultResponse match) {
     return JobMatchResult(
       jobTitle: match.jobTitle ?? 'Job #${match.jobId}',
+      company: match.jobCompany,
+      salary: match.jobSalary,
       score: '${match.matchScore}%',
+      recommendation: match.applyRecommendation,
       reason: match.matchReason ?? match.applyRecommendation ?? '-',
+      updatedAt: match.updatedAt.toLocal().toString(),
+      url: match.jobUrl,
     );
   }
 

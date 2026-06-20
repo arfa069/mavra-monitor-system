@@ -23,14 +23,27 @@ void main() {
 
     expect(find.text('Taobao rice cooker'), findsOneWidget);
     expect(find.text('Products'), findsWidgets);
-    expect(find.text('Crawl Logs'), findsWidgets);
+    expect(find.byKey(const Key('product-tab-products')), findsOneWidget);
+    expect(
+      find.byKey(const Key('product-tab-recent-crawl-logs')),
+      findsOneWidget,
+    );
+    expect(find.text('Crawl Logs'), findsNothing);
     expect(find.text('Schedule Config'), findsOneWidget);
     expect(find.text('Product Crawl Schedule Config'), findsOneWidget);
     expect(find.text('0 9 * * *'), findsOneWidget);
     expect(find.text('Taobao'), findsWidgets);
     expect(find.text('JD'), findsWidgets);
     expect(find.text('Amazon'), findsWidgets);
+    expect(find.text('Crawl completed'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('product-tab-recent-crawl-logs')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recent Crawl Logs'), findsWidgets);
+    expect(find.byKey(const Key('product-crawl-logs-table')), findsOneWidget);
     expect(find.text('Crawl completed'), findsOneWidget);
+    expect(find.text('Schedule Config'), findsNothing);
   });
 
   testWidgets('creates and edits a product from the form', (tester) async {
@@ -214,6 +227,11 @@ void main() {
     expect(find.byKey(const Key('product-platform-filter')), findsOneWidget);
     expect(find.byKey(const Key('product-active-filter')), findsOneWidget);
     expect(find.byKey(const Key('product-page-size-field')), findsOneWidget);
+    expect(
+      find.byKey(const Key('product-primary-actions-row')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('product-filter-row')), findsOneWidget);
     expect(find.byKey(const Key('product-import-open-button')), findsOneWidget);
     expect(
       find.byKey(const Key('product-batch-delete-confirm-button')),
@@ -222,7 +240,7 @@ void main() {
     expect(find.byKey(const Key('product-pagination-summary')), findsOneWidget);
     expect(find.text('Page 1 of 3 - 42 products'), findsOneWidget);
     expect(find.byType(MavraResponsiveDataView<ProductItem>), findsOneWidget);
-    expect(find.byType(DataTable), findsOneWidget);
+    expect(find.byType(DataTable), findsAtLeastNWidgets(1));
 
     await tester.tap(find.byKey(const Key('product-next-page-button')));
     await tester.pumpAndSettle();
@@ -278,7 +296,16 @@ void main() {
     expect(find.text('90d'), findsOneWidget);
     expect(find.text('Lowest'), findsOneWidget);
     expect(find.text('Highest'), findsOneWidget);
-    expect(find.byType(MavraTrendChart), findsAtLeastNWidgets(1));
+    expect(
+      find.byKey(const Key('product-price-history-chart')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('product-price-history-table')),
+      findsOneWidget,
+    );
+    expect(find.text('Period change: Drop 9.1%'), findsOneWidget);
+    expect(find.byType(MavraTrendChart), findsNothing);
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
@@ -301,6 +328,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.deletedCronPlatform, 'jd');
+  });
+
+  testWidgets('renders React-style crawl logs table and refresh action', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProductsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('product-tab-recent-crawl-logs')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recent Crawl Logs'), findsWidgets);
+    expect(
+      find.byKey(const Key('product-crawl-logs-refresh-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Time'), findsOneWidget);
+    expect(find.text('Platform'), findsWidgets);
+    expect(find.text('Status'), findsWidgets);
+    expect(find.text('Price'), findsOneWidget);
+    expect(find.text('Error'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('product-crawl-logs-refresh-button')),
+    );
+    await tester.tap(
+      find.byKey(const Key('product-crawl-logs-refresh-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.crawlLogsRefreshCount, 1);
   });
 
   testWidgets('renders loading, empty, and error states', (tester) async {
@@ -431,6 +493,7 @@ class _FakeProductRepository implements ProductRepository {
   String? savedProfileBindingProfileKey;
   String? deletedProfileBindingPlatform;
   String? deletedCronPlatform;
+  int crawlLogsRefreshCount = 0;
 
   @override
   Future<ProductsSnapshot> loadProducts() async => snapshot;
@@ -496,6 +559,7 @@ class _FakeProductRepository implements ProductRepository {
     int? productId,
     String? status,
   }) async {
+    crawlLogsRefreshCount += 1;
     return snapshot.crawlLogs;
   }
 

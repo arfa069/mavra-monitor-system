@@ -35,7 +35,7 @@ class GeneratedProductRepository implements ProductRepository {
 
     final results = await Future.wait([
       _productsApi.productsListProductCronConfigs(),
-      _productsCrawlApi.productsCrawlGetCrawlLogs(limit: 20),
+      _productsCrawlApi.productsCrawlGetCrawlLogs(hours: 720, limit: 20),
       _alertsApi.alertsListAlerts(),
     ]);
 
@@ -66,9 +66,13 @@ class GeneratedProductRepository implements ProductRepository {
       crawlLogs: [
         for (final log in logs)
           ProductCrawlLog(
+            id: log.id,
             message: log.errorMessage ?? _crawlLogMessage(log),
             status: log.status ?? 'unknown',
             createdAt: log.timestamp,
+            platform: log.platform,
+            price: _formatNullablePrice(log.price, log.currency),
+            errorMessage: log.errorMessage,
           ),
       ],
       alerts: [
@@ -114,8 +118,9 @@ class GeneratedProductRepository implements ProductRepository {
       productId: productId,
       days: days,
     );
+    final points = response.data?.toList() ?? const [];
     return [
-      for (final point in response.data?.toList() ?? const [])
+      for (final point in points.reversed)
         PriceHistoryPoint(
           label: _shortDate(point.scrapedAt),
           price: _formatPrice(point.price, point.currency),
@@ -196,14 +201,19 @@ class GeneratedProductRepository implements ProductRepository {
     final response = await _productsCrawlApi.productsCrawlGetCrawlLogs(
       productId: productId,
       status: status,
+      hours: 720,
       limit: 50,
     );
     return [
       for (final log in response.data?.toList() ?? const [])
         ProductCrawlLog(
+          id: log.id,
           message: log.errorMessage ?? _crawlLogMessage(log),
           status: log.status ?? 'unknown',
           createdAt: log.timestamp,
+          platform: log.platform,
+          price: _formatNullablePrice(log.price, log.currency),
+          errorMessage: log.errorMessage,
         ),
     ];
   }
@@ -351,6 +361,13 @@ class GeneratedProductRepository implements ProductRepository {
       return '¥$price';
     }
     return '$currency $price';
+  }
+
+  static String? _formatNullablePrice(String? price, String? currency) {
+    if (price == null) {
+      return null;
+    }
+    return _formatPrice(price, currency ?? 'CNY');
   }
 
   static String _shortDate(DateTime value) {

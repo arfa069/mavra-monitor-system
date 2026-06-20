@@ -85,11 +85,19 @@ class ProductCrawlLog {
     required this.message,
     required this.status,
     required this.createdAt,
+    this.id,
+    this.platform,
+    this.price,
+    this.errorMessage,
   });
 
   final String message;
   final String status;
   final DateTime createdAt;
+  final int? id;
+  final String? platform;
+  final String? price;
+  final String? errorMessage;
 }
 
 class ProductDraft {
@@ -191,6 +199,26 @@ class ProductsSnapshot {
   final List<ProductCrawlLog> crawlLogs;
   final List<ProductAlertInfo> alerts;
   final ProductPageState page;
+
+  ProductsSnapshot copyWith({
+    List<ProductItem>? products,
+    List<PriceHistoryPoint>? history,
+    List<ProductProfileBinding>? bindings,
+    List<ProductCronConfig>? cronConfigs,
+    List<ProductCrawlLog>? crawlLogs,
+    List<ProductAlertInfo>? alerts,
+    ProductPageState? page,
+  }) {
+    return ProductsSnapshot(
+      products: products ?? this.products,
+      history: history ?? this.history,
+      bindings: bindings ?? this.bindings,
+      cronConfigs: cronConfigs ?? this.cronConfigs,
+      crawlLogs: crawlLogs ?? this.crawlLogs,
+      alerts: alerts ?? this.alerts,
+      page: page ?? this.page,
+    );
+  }
 }
 
 abstract class ProductRepository {

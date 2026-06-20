@@ -10,6 +10,11 @@ class JobItem {
     required this.platform,
     required this.location,
     required this.status,
+    this.jobId,
+    this.salary,
+    this.updatedAt,
+    this.url,
+    this.matchRecommendation,
   });
 
   final int id;
@@ -18,6 +23,11 @@ class JobItem {
   final String platform;
   final String location;
   final String status;
+  final String? jobId;
+  final String? salary;
+  final String? updatedAt;
+  final String? url;
+  final String? matchRecommendation;
 }
 
 class JobListQuery {
@@ -57,6 +67,12 @@ class JobDetail {
     required this.company,
     this.description,
     this.url,
+    this.salary,
+    this.location,
+    this.experience,
+    this.education,
+    this.status,
+    this.updatedAt,
   });
 
   final int id;
@@ -64,6 +80,12 @@ class JobDetail {
   final String company;
   final String? description;
   final String? url;
+  final String? salary;
+  final String? location;
+  final String? experience;
+  final String? education;
+  final String? status;
+  final String? updatedAt;
 }
 
 class JobSearchConfig {
@@ -74,6 +96,17 @@ class JobSearchConfig {
     required this.keyword,
     required this.location,
     required this.cron,
+    this.url,
+    this.profileKey,
+    this.cityCode,
+    this.salaryMin,
+    this.salaryMax,
+    this.experience,
+    this.education,
+    this.active = true,
+    this.notifyOnNew = true,
+    this.enableMatchAnalysis = false,
+    this.deactivationThreshold = 3,
   });
 
   final int id;
@@ -82,6 +115,17 @@ class JobSearchConfig {
   final String keyword;
   final String location;
   final String cron;
+  final String? url;
+  final String? profileKey;
+  final String? cityCode;
+  final int? salaryMin;
+  final int? salaryMax;
+  final String? experience;
+  final String? education;
+  final bool active;
+  final bool notifyOnNew;
+  final bool enableMatchAnalysis;
+  final int deactivationThreshold;
 }
 
 class ResumeItem {
@@ -89,11 +133,13 @@ class ResumeItem {
     required this.id,
     required this.fileName,
     required this.updatedAt,
+    this.resumeText = '',
   });
 
   final int id;
   final String fileName;
   final DateTime updatedAt;
+  final String resumeText;
 }
 
 class ResumeDraft {
@@ -108,11 +154,21 @@ class JobMatchResult {
     required this.jobTitle,
     required this.score,
     required this.reason,
+    this.company,
+    this.salary,
+    this.recommendation,
+    this.updatedAt,
+    this.url,
   });
 
   final String jobTitle;
   final String score;
   final String reason;
+  final String? company;
+  final String? salary;
+  final String? recommendation;
+  final String? updatedAt;
+  final String? url;
 }
 
 class CrawlProfileItem {
@@ -120,11 +176,17 @@ class CrawlProfileItem {
     required this.platform,
     required this.profileKey,
     required this.status,
+    this.taskId,
+    this.leaseUntil,
+    this.lastError,
   });
 
   final String platform;
   final String profileKey;
   final String status;
+  final String? taskId;
+  final String? leaseUntil;
+  final String? lastError;
 }
 
 class JobCrawlLog {
@@ -132,11 +194,19 @@ class JobCrawlLog {
     required this.message,
     required this.status,
     required this.createdAt,
+    this.configId,
+    this.newJobs,
+    this.totalJobs,
+    this.error,
   });
 
   final String message;
   final String status;
   final DateTime createdAt;
+  final int? configId;
+  final int? newJobs;
+  final int? totalJobs;
+  final String? error;
 }
 
 class JobConfigDraft {
@@ -146,6 +216,17 @@ class JobConfigDraft {
     required this.keyword,
     required this.location,
     required this.cron,
+    this.url,
+    this.profileKey,
+    this.cityCode,
+    this.salaryMin,
+    this.salaryMax,
+    this.experience,
+    this.education,
+    this.active = true,
+    this.notifyOnNew = true,
+    this.enableMatchAnalysis = false,
+    this.deactivationThreshold = 3,
   });
 
   final String name;
@@ -153,6 +234,17 @@ class JobConfigDraft {
   final String keyword;
   final String location;
   final String cron;
+  final String? url;
+  final String? profileKey;
+  final String? cityCode;
+  final int? salaryMin;
+  final int? salaryMax;
+  final String? experience;
+  final String? education;
+  final bool active;
+  final bool notifyOnNew;
+  final bool enableMatchAnalysis;
+  final int deactivationThreshold;
 }
 
 class ProfileBackupExport {
@@ -173,12 +265,7 @@ class JobsSnapshot {
     JobPageState? page,
   }) : page =
            page ??
-           const JobPageState(
-             items: [],
-             page: 1,
-             pageSize: 20,
-             total: 0,
-           );
+           const JobPageState(items: [], page: 1, pageSize: 20, total: 0);
 
   const JobsSnapshot.empty()
     : jobs = const [],
@@ -187,12 +274,7 @@ class JobsSnapshot {
       matches = const [],
       profiles = const [],
       crawlLogs = const [],
-      page = const JobPageState(
-        items: [],
-        page: 1,
-        pageSize: 20,
-        total: 0,
-      );
+      page = const JobPageState(items: [], page: 1, pageSize: 20, total: 0);
 
   final List<JobItem> jobs;
   final List<JobSearchConfig> configs;

@@ -31,14 +31,21 @@ class _JobsPageState extends State<JobsPage> {
   Object? _error;
   String? _statusMessage;
   int? _editingConfigId;
-  bool _showConfigForm = false;
   int? _selectedResumeId;
+  _JobWorkbenchTab _activeTab = _JobWorkbenchTab.jobsList;
 
   final _nameController = TextEditingController();
+  final _urlController = TextEditingController();
+  final _configProfileKeyController = TextEditingController();
   final _keywordController = TextEditingController();
   final _locationController = TextEditingController();
   final _platformController = TextEditingController();
   final _cronController = TextEditingController();
+  final _salaryMinController = TextEditingController();
+  final _salaryMaxController = TextEditingController();
+  final _experienceController = TextEditingController();
+  final _educationController = TextEditingController();
+  final _deactivationThresholdController = TextEditingController(text: '3');
   final _jobKeywordFilterController = TextEditingController();
   final _jobPageSizeController = TextEditingController(text: '20');
   final _resumeNameController = TextEditingController();
@@ -77,10 +84,17 @@ class _JobsPageState extends State<JobsPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _urlController.dispose();
+    _configProfileKeyController.dispose();
     _keywordController.dispose();
     _locationController.dispose();
     _platformController.dispose();
     _cronController.dispose();
+    _salaryMinController.dispose();
+    _salaryMaxController.dispose();
+    _experienceController.dispose();
+    _educationController.dispose();
+    _deactivationThresholdController.dispose();
     _jobKeywordFilterController.dispose();
     _jobPageSizeController.dispose();
     _resumeNameController.dispose();
@@ -98,14 +112,18 @@ class _JobsPageState extends State<JobsPage> {
           if (mounted) {
             setState(() {
               _snapshot = snapshot;
-              _jobPage = snapshot.page.items.isEmpty
+              final fallbackPageSize =
+                  int.tryParse(_jobPageSizeController.text.trim()) ?? 20;
+              final pageState = snapshot.page.items.isEmpty
                   ? JobPageState(
                       items: snapshot.jobs,
                       page: 1,
-                      pageSize: snapshot.jobs.length,
+                      pageSize: fallbackPageSize,
                       total: snapshot.jobs.length,
                     )
                   : snapshot.page;
+              _jobPage = pageState;
+              _jobPageSizeController.text = '${pageState.pageSize}';
             });
           }
         }).catchError((Object error) {
@@ -118,28 +136,83 @@ class _JobsPageState extends State<JobsPage> {
     });
   }
 
-  void _newConfig() {
-    setState(() {
-      _editingConfigId = null;
-      _showConfigForm = true;
-      _nameController.clear();
-      _keywordController.clear();
-      _locationController.clear();
-      _platformController.clear();
-      _cronController.clear();
-    });
+  Future<void> _newConfig() async {
+    _editingConfigId = null;
+    _nameController.clear();
+    _urlController.clear();
+    _configProfileKeyController.text = 'default';
+    _keywordController.clear();
+    _locationController.clear();
+    _platformController.text = 'boss';
+    _cronController.clear();
+    _salaryMinController.clear();
+    _salaryMaxController.clear();
+    _experienceController.clear();
+    _educationController.clear();
+    _deactivationThresholdController.text = '3';
+    await _showConfigDialog();
   }
 
-  void _editConfig(JobSearchConfig config) {
-    setState(() {
-      _editingConfigId = config.id;
-      _showConfigForm = true;
-      _nameController.text = config.name;
-      _keywordController.text = config.keyword;
-      _locationController.text = config.location;
-      _platformController.text = config.platform;
-      _cronController.text = config.cron;
-    });
+  Future<void> _editConfig(JobSearchConfig config) async {
+    _editingConfigId = config.id;
+    _nameController.text = config.name;
+    _urlController.text = config.url ?? '';
+    _configProfileKeyController.text = config.profileKey ?? 'default';
+    _keywordController.text = config.keyword;
+    _locationController.text = config.cityCode ?? config.location;
+    _platformController.text = config.platform;
+    _cronController.text = config.cron == 'Disabled' ? '' : config.cron;
+    _salaryMinController.text = config.salaryMin?.toString() ?? '';
+    _salaryMaxController.text = config.salaryMax?.toString() ?? '';
+    _experienceController.text = config.experience ?? '';
+    _educationController.text = config.education ?? '';
+    _deactivationThresholdController.text = config.deactivationThreshold
+        .toString();
+    await _showConfigDialog(config: config);
+  }
+
+  Future<void> _showConfigDialog({JobSearchConfig? config}) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(config == null ? 'Add Job Config' : 'Edit Job Config'),
+        content: SizedBox(
+          width: 720,
+          child: SingleChildScrollView(
+            child: _JobConfigForm(
+              nameController: _nameController,
+              urlController: _urlController,
+              profileKeyController: _configProfileKeyController,
+              keywordController: _keywordController,
+              locationController: _locationController,
+              platformController: _platformController,
+              cronController: _cronController,
+              salaryMinController: _salaryMinController,
+              salaryMaxController: _salaryMaxController,
+              experienceController: _experienceController,
+              educationController: _educationController,
+              deactivationThresholdController: _deactivationThresholdController,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await _saveConfig();
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Save config'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveConfig() async {
@@ -149,6 +222,15 @@ class _JobsPageState extends State<JobsPage> {
       keyword: _keywordController.text.trim(),
       location: _locationController.text.trim(),
       cron: _cronController.text.trim(),
+      url: _emptyToNull(_urlController.text),
+      profileKey: _emptyToNull(_configProfileKeyController.text),
+      cityCode: _emptyToNull(_locationController.text),
+      salaryMin: int.tryParse(_salaryMinController.text.trim()),
+      salaryMax: int.tryParse(_salaryMaxController.text.trim()),
+      experience: _emptyToNull(_experienceController.text),
+      education: _emptyToNull(_educationController.text),
+      deactivationThreshold:
+          int.tryParse(_deactivationThresholdController.text.trim()) ?? 3,
     );
     try {
       await widget.repository.saveConfig(draft, configId: _editingConfigId);
@@ -157,7 +239,6 @@ class _JobsPageState extends State<JobsPage> {
       }
       setState(() {
         _statusMessage = 'Saved ${draft.name}';
-        _showConfigForm = false;
       });
       _load();
     } catch (error) {
@@ -167,11 +248,12 @@ class _JobsPageState extends State<JobsPage> {
     }
   }
 
-  Future<void> _applyJobFilters() async {
+  Future<void> _loadJobPage({required int page}) async {
     final pageSize = int.tryParse(_jobPageSizeController.text.trim()) ?? 20;
     final query = JobListQuery(
       keyword: _emptyToNull(_jobKeywordFilterController.text),
       status: _jobStatusFilter == 'all' ? null : _jobStatusFilter,
+      page: page,
       pageSize: pageSize,
     );
 
@@ -190,6 +272,10 @@ class _JobsPageState extends State<JobsPage> {
       }
     }
   }
+
+  Future<void> _applyJobFilters() => _loadJobPage(page: 1);
+
+  Future<void> _changeJobPage(int page) => _loadJobPage(page: page);
 
   Future<void> _showJobDetails(JobItem job) async {
     try {
@@ -312,31 +398,74 @@ class _JobsPageState extends State<JobsPage> {
 
   Future<void> _editResume(ResumeItem resume) async {
     _resumeNameController.text = resume.fileName;
-    _resumeTextController.text = 'Existing resume text';
+    _resumeTextController.text = resume.resumeText;
     await _showResumeDialog(resume: resume);
   }
 
+  Future<void> _viewResume(ResumeItem resume) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('View: ${resume.fileName}'),
+        content: SizedBox(
+          width: 680,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              resume.resumeText.isEmpty
+                  ? 'No resume content'
+                  : resume.resumeText,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _showResumeDialog({ResumeItem? resume}) async {
+    final dialogHeight = MediaQuery.sizeOf(context).height * 0.72;
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(resume == null ? 'Create resume' : 'Edit resume'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              key: const Key('job-resume-name-field'),
-              controller: _resumeNameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+        title: Text(
+          resume == null ? 'Create resume' : 'Edit: ${resume.fileName}',
+        ),
+        content: SizedBox(
+          width: 860,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: dialogHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  key: const Key('job-resume-name-field'),
+                  controller: _resumeNameController,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 360,
+                  child: TextField(
+                    key: const Key('job-resume-text-field'),
+                    controller: _resumeTextController,
+                    expands: true,
+                    maxLines: null,
+                    minLines: null,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      alignLabelWithHint: true,
+                      labelText: 'Resume text',
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('job-resume-text-field'),
-              controller: _resumeTextController,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Resume text'),
-            ),
-          ],
+          ),
         ),
         actions: [
           TextButton(
@@ -615,21 +744,22 @@ class _JobsPageState extends State<JobsPage> {
                   statusMessage: _statusMessage,
                   canRunCrawl: _canRunCrawl,
                   canImportExportBackups: _canImportExportBackups,
-                  showConfigForm: _showConfigForm,
                   selectedResumeId: _selectedResumeId,
-                  nameController: _nameController,
-                  keywordController: _keywordController,
-                  locationController: _locationController,
-                  platformController: _platformController,
-                  cronController: _cronController,
                   jobKeywordFilterController: _jobKeywordFilterController,
                   jobPageSizeController: _jobPageSizeController,
                   jobStatusFilter: _jobStatusFilter,
+                  activeTab: _activeTab,
+                  onTabChanged: (tab) => setState(() {
+                    _activeTab = tab;
+                    if (_statusMessage?.startsWith('Detail failed:') ?? false) {
+                      _statusMessage = null;
+                    }
+                  }),
                   onJobStatusFilterChanged: (value) =>
                       setState(() => _jobStatusFilter = value),
                   onApplyJobFilters: _applyJobFilters,
+                  onJobPageChanged: _changeJobPage,
                   onNewConfig: _newConfig,
-                  onSaveConfig: _saveConfig,
                   onEditConfig: _editConfig,
                   onDeleteConfig: _deleteConfig,
                   onRequestCrawlAll: _requestCrawlAll,
@@ -638,6 +768,7 @@ class _JobsPageState extends State<JobsPage> {
                   onShowJobDetails: _showJobDetails,
                   onUploadResume: _uploadResume,
                   onCreateResume: _createResume,
+                  onViewResume: _viewResume,
                   onEditResume: _editResume,
                   onDeleteResume: _deleteResume,
                   onSelectResume: _selectResume,
@@ -662,6 +793,37 @@ class _JobsPageState extends State<JobsPage> {
   }
 }
 
+enum _JobWorkbenchTab { jobsList, configs, profiles, resumes, matches, logs }
+
+extension _JobWorkbenchTabMeta on _JobWorkbenchTab {
+  String get key => switch (this) {
+    _JobWorkbenchTab.jobsList => 'job-tab-jobs-list',
+    _JobWorkbenchTab.configs => 'job-tab-configs',
+    _JobWorkbenchTab.profiles => 'job-tab-profiles',
+    _JobWorkbenchTab.resumes => 'job-tab-resumes',
+    _JobWorkbenchTab.matches => 'job-tab-matches',
+    _JobWorkbenchTab.logs => 'job-tab-logs',
+  };
+
+  String get label => switch (this) {
+    _JobWorkbenchTab.jobsList => 'Jobs List',
+    _JobWorkbenchTab.configs => 'Search Config',
+    _JobWorkbenchTab.profiles => 'Profiles Management',
+    _JobWorkbenchTab.resumes => 'Resume Management',
+    _JobWorkbenchTab.matches => 'Analysis Results',
+    _JobWorkbenchTab.logs => 'Crawl Logs',
+  };
+
+  IconData get icon => switch (this) {
+    _JobWorkbenchTab.jobsList => Icons.work_outline,
+    _JobWorkbenchTab.configs => Icons.tune,
+    _JobWorkbenchTab.profiles => Icons.person_search,
+    _JobWorkbenchTab.resumes => Icons.description,
+    _JobWorkbenchTab.matches => Icons.fact_check,
+    _JobWorkbenchTab.logs => Icons.receipt_long,
+  };
+}
+
 class _JobsContent extends StatelessWidget {
   const _JobsContent({
     required this.snapshot,
@@ -669,20 +831,16 @@ class _JobsContent extends StatelessWidget {
     required this.statusMessage,
     required this.canRunCrawl,
     required this.canImportExportBackups,
-    required this.showConfigForm,
     required this.selectedResumeId,
-    required this.nameController,
-    required this.keywordController,
-    required this.locationController,
-    required this.platformController,
-    required this.cronController,
     required this.jobKeywordFilterController,
     required this.jobPageSizeController,
     required this.jobStatusFilter,
+    required this.activeTab,
+    required this.onTabChanged,
     required this.onJobStatusFilterChanged,
     required this.onApplyJobFilters,
+    required this.onJobPageChanged,
     required this.onNewConfig,
-    required this.onSaveConfig,
     required this.onEditConfig,
     required this.onDeleteConfig,
     required this.onRequestCrawlAll,
@@ -691,6 +849,7 @@ class _JobsContent extends StatelessWidget {
     required this.onShowJobDetails,
     required this.onUploadResume,
     required this.onCreateResume,
+    required this.onViewResume,
     required this.onEditResume,
     required this.onDeleteResume,
     required this.onSelectResume,
@@ -712,20 +871,16 @@ class _JobsContent extends StatelessWidget {
   final String? statusMessage;
   final bool canRunCrawl;
   final bool canImportExportBackups;
-  final bool showConfigForm;
   final int? selectedResumeId;
-  final TextEditingController nameController;
-  final TextEditingController keywordController;
-  final TextEditingController locationController;
-  final TextEditingController platformController;
-  final TextEditingController cronController;
   final TextEditingController jobKeywordFilterController;
   final TextEditingController jobPageSizeController;
   final String jobStatusFilter;
+  final _JobWorkbenchTab activeTab;
+  final ValueChanged<_JobWorkbenchTab> onTabChanged;
   final ValueChanged<String> onJobStatusFilterChanged;
   final Future<void> Function() onApplyJobFilters;
+  final ValueChanged<int> onJobPageChanged;
   final VoidCallback onNewConfig;
-  final Future<void> Function() onSaveConfig;
   final ValueChanged<JobSearchConfig> onEditConfig;
   final ValueChanged<JobSearchConfig> onDeleteConfig;
   final Future<void> Function() onRequestCrawlAll;
@@ -734,6 +889,7 @@ class _JobsContent extends StatelessWidget {
   final ValueChanged<JobItem> onShowJobDetails;
   final VoidCallback onUploadResume;
   final VoidCallback onCreateResume;
+  final ValueChanged<ResumeItem> onViewResume;
   final ValueChanged<ResumeItem> onEditResume;
   final ValueChanged<ResumeItem> onDeleteResume;
   final ValueChanged<ResumeItem> onSelectResume;
@@ -750,59 +906,39 @@ class _JobsContent extends StatelessWidget {
   final ValueChanged<CrawlProfileItem> onTestProfile;
   final ValueChanged<String> onExportBackup;
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
+  Widget _buildActiveTab() => switch (activeTab) {
+    _JobWorkbenchTab.jobsList => _buildJobsListTab(),
+    _JobWorkbenchTab.configs => _buildSearchConfigTab(),
+    _JobWorkbenchTab.profiles => _buildProfilesTab(),
+    _JobWorkbenchTab.resumes => _buildResumesTab(),
+    _JobWorkbenchTab.matches => _buildMatchesTab(),
+    _JobWorkbenchTab.logs => _buildLogsTab(),
+  };
+
+  JobPageState _resolvedJobPageState() =>
+      jobPage ??
+      JobPageState(
+        items: snapshot.jobs,
+        page: 1,
+        pageSize: int.tryParse(jobPageSizeController.text.trim()) ?? 20,
+        total: snapshot.jobs.length,
+      );
+
+  Widget _buildJobsListTab() {
+    final pageState = _resolvedJobPageState();
+    final jobs = pageState.items;
+
+    return _WorkbenchPanel(
+      title: 'Jobs List',
+      trailing: TextButton.icon(
+        key: const Key('job-crawl-all-button'),
+        onPressed: canRunCrawl ? () => onRequestCrawlAll() : null,
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Crawl All'),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Jobs', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              TextButton.icon(
-                onPressed: canImportExportBackups ? onImportBackup : null,
-                icon: const Icon(Icons.archive),
-                label: const Text('Import backup'),
-              ),
-              TextButton.icon(
-                onPressed: onUploadResume,
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Upload resume'),
-              ),
-              TextButton.icon(
-                key: const Key('job-crawl-all-button'),
-                onPressed: canRunCrawl ? onRequestCrawlAll : null,
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Run crawl'),
-              ),
-              FilledButton.icon(
-                onPressed: onNewConfig,
-                icon: const Icon(Icons.add),
-                label: const Text('New config'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const _JobTabStrip(),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
-          ],
-          if (showConfigForm) ...[
-            const SizedBox(height: 12),
-            _JobConfigForm(
-              nameController: nameController,
-              keywordController: keywordController,
-              locationController: locationController,
-              platformController: platformController,
-              cronController: cronController,
-              onSave: onSaveConfig,
-            ),
-          ],
-          const SizedBox(height: 16),
           _JobFilters(
             keywordController: jobKeywordFilterController,
             pageSizeController: jobPageSizeController,
@@ -811,180 +947,343 @@ class _JobsContent extends StatelessWidget {
             onApplyFilters: onApplyJobFilters,
           ),
           const SizedBox(height: 12),
-          if (snapshot.jobs.isEmpty)
-            const Center(child: Text('No jobs yet'))
-          else
-            _JobsTable(
-              jobs: jobPage?.items ?? snapshot.jobs,
-              onShowDetails: onShowJobDetails,
+          if (jobs.isEmpty)
+            const Center(child: Text('No data'))
+          else ...[
+            _JobsTable(jobs: jobs, onShowDetails: onShowJobDetails),
+            const SizedBox(height: 10),
+            _JobPaginationControls(
+              page: pageState,
+              onPageChanged: onJobPageChanged,
             ),
-          const SizedBox(height: 20),
-          _Section(
-            title: 'Search configs',
-            emptyText: 'No job configs yet',
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchConfigTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _WorkbenchPanel(
+          title: 'Job Search Config',
+          titleKey: const Key('job-config-panel-title'),
+          dividerKey: const Key('job-config-panel-divider'),
+          trailing: SizedBox(
+            width: 160,
+            child: FilledButton.icon(
+              key: const Key('job-new-config-button'),
+              onPressed: onNewConfig,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Config'),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final config in snapshot.configs)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.tune),
-                  title: Text(config.name),
-                  subtitle: Text('${config.platform} - ${config.keyword}'),
-                  trailing: Wrap(
-                    spacing: 4,
-                    children: [
-                      IconButton(
-                        key: Key('job-crawl-config-${config.id}-button'),
-                        tooltip: 'Run crawl ${config.name}',
-                        onPressed: canRunCrawl
-                            ? () => onRequestCrawlConfig(config)
-                            : null,
-                        icon: const Icon(Icons.play_circle),
-                      ),
-                      TextButton(
-                        onPressed: () => onEditConfig(config),
-                        child: Text('Edit ${config.name}'),
-                      ),
-                      IconButton(
-                        key: Key('job-delete-config-${config.id}-button'),
-                        tooltip: 'Delete ${config.name}',
-                        onPressed: () => onDeleteConfig(config),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
+              if (snapshot.configs.isEmpty)
+                const Center(child: Text('No Configs'))
+              else
+                for (final config in snapshot.configs) ...[
+                  _JobConfigCard(
+                    config: config,
+                    canRunCrawl: canRunCrawl,
+                    onEdit: () => onEditConfig(config),
+                    onDelete: () => onDeleteConfig(config),
+                    onRequestCrawl: () => onRequestCrawlConfig(config),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                ],
             ],
           ),
-          _Section(
-            title: 'Schedule',
-            emptyText: 'No schedules yet',
-            children: [
-              for (final config in snapshot.configs)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.schedule),
-                  title: Text(config.cron),
-                  subtitle: Text(config.location),
-                ),
-            ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfilesTab() {
+    return _WorkbenchPanel(
+      title: 'Crawler Profiles',
+      trailing: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          TextButton.icon(
+            onPressed: canImportExportBackups ? onImportBackup : null,
+            icon: const Icon(Icons.archive),
+            label: const Text('Import backup'),
           ),
-          _Section(
-            title: 'Resume manager',
-            emptyText: 'No resumes yet',
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const Key('job-resume-create-button'),
-                  onPressed: onCreateResume,
-                  icon: const Icon(Icons.note_add),
-                  label: const Text('Create resume'),
-                ),
-              ),
-              for (final resume in snapshot.resumes)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.description),
-                  title: Text(resume.fileName),
-                  subtitle: Text(
-                    selectedResumeId == resume.id
-                        ? 'Selected for matching'
-                        : resume.updatedAt.toIso8601String(),
-                  ),
-                  trailing: Wrap(
-                    spacing: 4,
-                    children: [
-                      IconButton(
-                        key: Key('job-resume-select-${resume.id}-button'),
-                        tooltip: 'Select ${resume.fileName}',
-                        onPressed: () => onSelectResume(resume),
-                        icon: const Icon(Icons.check_circle_outline),
-                      ),
-                      IconButton(
-                        key: Key('job-resume-edit-${resume.id}-button'),
-                        tooltip: 'Edit ${resume.fileName}',
-                        onPressed: () => onEditResume(resume),
-                        icon: const Icon(Icons.edit),
-                      ),
-                      IconButton(
-                        key: Key('job-resume-delete-${resume.id}-button'),
-                        tooltip: 'Delete ${resume.fileName}',
-                        onPressed: () => onDeleteResume(resume),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          _Section(
-            title: 'Match results',
-            emptyText: 'No match results yet',
-            children: [
-              for (final match in snapshot.matches)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.fact_check),
-                  title: Text(match.score),
-                  subtitle: Text('${match.jobTitle} - ${match.reason}'),
-                ),
-            ],
-          ),
-          _Section(
-            title: 'Profile management',
-            emptyText: 'No profiles yet',
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: const Key('job-profile-create-button'),
-                  onPressed: onCreateProfile,
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Create profile'),
-                ),
-              ),
-              for (final profile in snapshot.profiles)
-                _ProfileTile(
-                  profile: profile,
-                  onExportBackup: canImportExportBackups
-                      ? onExportBackup
-                      : null,
-                  onRenameProfile: onRenameProfile,
-                  onUpdateProfileStatus: onUpdateProfileStatus,
-                  onCopyProfile: onCopyProfile,
-                  onDeleteProfile: onDeleteProfile,
-                  onReleaseStaleProfile: canRunCrawl
-                      ? onReleaseStaleProfile
-                      : null,
-                  onOpenProfileLoginSession: canRunCrawl
-                      ? onOpenProfileLoginSession
-                      : null,
-                  onCloseProfileLoginSession: canRunCrawl
-                      ? onCloseProfileLoginSession
-                      : null,
-                  onTestProfile: canRunCrawl ? onTestProfile : null,
-                ),
-            ],
-          ),
-          _Section(
-            title: 'Crawl logs',
-            emptyText: 'No crawl logs yet',
-            children: [
-              for (final log in snapshot.crawlLogs)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.receipt_long),
-                  title: Text(log.message),
-                  subtitle: Text(log.status),
-                ),
-            ],
+          SizedBox(
+            width: 172,
+            child: FilledButton.icon(
+              key: const Key('job-profile-create-button'),
+              onPressed: onCreateProfile,
+              icon: const Icon(Icons.person_add),
+              label: const Text('Create profile'),
+            ),
           ),
         ],
+      ),
+      child: snapshot.profiles.isEmpty
+          ? const Center(child: Text('No profiles yet'))
+          : _ProfilesTable(
+              profiles: snapshot.profiles,
+              onExportBackup: canImportExportBackups ? onExportBackup : null,
+              onRenameProfile: onRenameProfile,
+              onUpdateProfileStatus: onUpdateProfileStatus,
+              onCopyProfile: onCopyProfile,
+              onDeleteProfile: onDeleteProfile,
+              onReleaseStaleProfile: canRunCrawl ? onReleaseStaleProfile : null,
+              onOpenProfileLoginSession: canRunCrawl
+                  ? onOpenProfileLoginSession
+                  : null,
+              onCloseProfileLoginSession: canRunCrawl
+                  ? onCloseProfileLoginSession
+                  : null,
+              onTestProfile: canRunCrawl ? onTestProfile : null,
+            ),
+    );
+  }
+
+  Widget _buildResumesTab() {
+    return _WorkbenchPanel(
+      title: 'Resume Management',
+      trailing: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          TextButton.icon(
+            onPressed: onUploadResume,
+            icon: const Icon(Icons.picture_as_pdf),
+            label: const Text('Upload resume'),
+          ),
+          SizedBox(
+            width: 172,
+            child: FilledButton.icon(
+              key: const Key('job-resume-create-button'),
+              onPressed: onCreateResume,
+              icon: const Icon(Icons.note_add),
+              label: const Text('Create resume'),
+            ),
+          ),
+        ],
+      ),
+      child: snapshot.resumes.isEmpty
+          ? const Center(child: Text('No resumes yet'))
+          : Column(
+              children: [
+                for (final resume in snapshot.resumes)
+                  Card(
+                    key: Key('job-resume-card-${resume.id}'),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.description),
+                      title: Text(resume.fileName),
+                      subtitle: Text(
+                        selectedResumeId == resume.id
+                            ? 'Selected for matching'
+                            : resume.updatedAt.toIso8601String(),
+                      ),
+                      trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          IconButton(
+                            key: Key('job-resume-select-${resume.id}-button'),
+                            tooltip: 'Select ${resume.fileName}',
+                            onPressed: () => onSelectResume(resume),
+                            icon: const Icon(Icons.check_circle_outline),
+                          ),
+                          IconButton(
+                            key: Key('job-resume-view-${resume.id}-button'),
+                            tooltip: 'View ${resume.fileName}',
+                            onPressed: () => onViewResume(resume),
+                            icon: const Icon(Icons.visibility_outlined),
+                          ),
+                          IconButton(
+                            key: Key('job-resume-edit-${resume.id}-button'),
+                            tooltip: 'Edit ${resume.fileName}',
+                            onPressed: () => onEditResume(resume),
+                            icon: const Icon(Icons.edit),
+                          ),
+                          IconButton(
+                            key: Key('job-resume-delete-${resume.id}-button'),
+                            tooltip: 'Delete ${resume.fileName}',
+                            onPressed: () => onDeleteResume(resume),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildMatchesTab() {
+    return _WorkbenchPanel(
+      title: 'Analysis Results',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _MatchToolbar(
+            resumes: snapshot.resumes,
+            selectedResumeId: selectedResumeId,
+          ),
+          const SizedBox(height: 12),
+          snapshot.matches.isEmpty
+              ? const Center(child: Text('No Analysis Results'))
+              : _MatchesTable(matches: snapshot.matches),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogsTab() {
+    final configNames = {
+      for (final config in snapshot.configs) config.id: config.name,
+    };
+    return _WorkbenchPanel(
+      title: 'Recent Job Crawl Logs',
+      child: snapshot.crawlLogs.isEmpty
+          ? const Center(child: Text('No crawl logs yet'))
+          : _CrawlLogsTable(logs: snapshot.crawlLogs, configNames: configNames),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PageIntro(
+            eyebrow: 'Job Search',
+            title: 'Job Management',
+            subtitle:
+                'Configure Boss Zhipin, 51job, and Liepin search rules, intelligently match candidates',
+          ),
+          const SizedBox(height: 20),
+          _JobTabStrip(activeTab: activeTab, onChanged: onTabChanged),
+          if (statusMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(statusMessage!),
+          ],
+          const SizedBox(height: 16),
+          _buildActiveTab(),
+        ],
+      ),
+    );
+  }
+}
+
+class _PageIntro extends StatelessWidget {
+  const _PageIntro({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(24),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.36,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(eyebrow, style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Text(title, style: theme.textTheme.headlineMedium),
+            const SizedBox(height: 4),
+            Text(subtitle, style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkbenchPanel extends StatelessWidget {
+  const _WorkbenchPanel({
+    required this.title,
+    required this.child,
+    this.titleKey,
+    this.dividerKey,
+    this.trailing,
+  });
+
+  final String title;
+  final Widget child;
+  final Key? titleKey;
+  final Key? dividerKey;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final titleWidget = Text(
+                  title,
+                  key: titleKey,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: theme.textTheme.titleMedium,
+                );
+                final trailingWidget = trailing;
+                if (trailingWidget == null) {
+                  return titleWidget;
+                }
+                if (constraints.maxWidth < 560) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleWidget,
+                      const SizedBox(height: 8),
+                      trailingWidget,
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: titleWidget),
+                    const SizedBox(width: 12),
+                    trailingWidget,
+                  ],
+                );
+              },
+            ),
+            Divider(key: dividerKey, height: 22),
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -993,83 +1292,139 @@ class _JobsContent extends StatelessWidget {
 class _JobConfigForm extends StatelessWidget {
   const _JobConfigForm({
     required this.nameController,
+    required this.urlController,
+    required this.profileKeyController,
     required this.keywordController,
     required this.locationController,
     required this.platformController,
     required this.cronController,
-    required this.onSave,
+    required this.salaryMinController,
+    required this.salaryMaxController,
+    required this.experienceController,
+    required this.educationController,
+    required this.deactivationThresholdController,
   });
 
   final TextEditingController nameController;
+  final TextEditingController urlController;
+  final TextEditingController profileKeyController;
   final TextEditingController keywordController;
   final TextEditingController locationController;
   final TextEditingController platformController;
   final TextEditingController cronController;
-  final Future<void> Function() onSave;
+  final TextEditingController salaryMinController;
+  final TextEditingController salaryMaxController;
+  final TextEditingController experienceController;
+  final TextEditingController educationController;
+  final TextEditingController deactivationThresholdController;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          key: const Key('job-config-name-field'),
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Config Name'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-platform-field'),
+          controller: platformController,
+          decoration: const InputDecoration(labelText: 'Platform'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-profile-key-field'),
+          controller: profileKeyController,
+          decoration: const InputDecoration(labelText: 'Profile'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-url-field'),
+          controller: urlController,
+          decoration: const InputDecoration(labelText: 'Search URL'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-keyword-field'),
+          controller: keywordController,
+          decoration: const InputDecoration(labelText: 'Keyword'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-location-field'),
+          controller: locationController,
+          decoration: const InputDecoration(labelText: 'City Code'),
+        ),
+        const SizedBox(height: 8),
+        Row(
           children: [
-            Text('Config form', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('job-config-name-field'),
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
+            Expanded(
+              child: TextField(
+                key: const Key('job-salary-min-field'),
+                controller: salaryMinController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Min Salary (K)'),
+              ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('job-keyword-field'),
-              controller: keywordController,
-              decoration: const InputDecoration(labelText: 'Keyword'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('job-location-field'),
-              controller: locationController,
-              decoration: const InputDecoration(labelText: 'Location'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('job-platform-field'),
-              controller: platformController,
-              decoration: const InputDecoration(labelText: 'Platform'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('job-cron-field'),
-              controller: cronController,
-              decoration: const InputDecoration(labelText: 'Cron'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onSave,
-              icon: const Icon(Icons.save),
-              label: const Text('Save config'),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                key: const Key('job-salary-max-field'),
+                controller: salaryMaxController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Max Salary (K)'),
+              ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-experience-field'),
+          controller: experienceController,
+          decoration: const InputDecoration(labelText: 'Experience'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-education-field'),
+          controller: educationController,
+          decoration: const InputDecoration(labelText: 'Education'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-deactivation-threshold-field'),
+          controller: deactivationThresholdController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Deactivation Threshold',
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('job-cron-field'),
+          controller: cronController,
+          decoration: const InputDecoration(labelText: 'Cron'),
+        ),
+      ],
     );
   }
 }
 
 class _JobTabStrip extends StatelessWidget {
-  const _JobTabStrip();
+  const _JobTabStrip({required this.activeTab, required this.onChanged});
+
+  final _JobWorkbenchTab activeTab;
+  final ValueChanged<_JobWorkbenchTab> onChanged;
 
   static const _tabs = [
-    (key: 'job-tab-configs', label: 'Configs', icon: Icons.tune),
-    (key: 'job-tab-jobs', label: 'Jobs', icon: Icons.work),
-    (key: 'job-tab-matches', label: 'Match Results', icon: Icons.fact_check),
-    (key: 'job-tab-resumes', label: 'Resumes', icon: Icons.description),
-    (key: 'job-tab-profiles', label: 'Profiles', icon: Icons.person_search),
-    (key: 'job-tab-logs', label: 'Crawl Logs', icon: Icons.receipt_long),
+    _JobWorkbenchTab.jobsList,
+    _JobWorkbenchTab.configs,
+    _JobWorkbenchTab.profiles,
+    _JobWorkbenchTab.resumes,
+    _JobWorkbenchTab.matches,
+    _JobWorkbenchTab.logs,
   ];
 
   @override
@@ -1079,12 +1434,181 @@ class _JobTabStrip extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (final tab in _tabs)
-          ActionChip(
+          ChoiceChip(
             key: Key(tab.key),
             avatar: Icon(tab.icon, size: 16),
             label: Text(tab.label),
-            onPressed: () {},
+            selected: activeTab == tab,
+            onSelected: (_) => onChanged(tab),
           ),
+      ],
+    );
+  }
+}
+
+class _JobConfigCard extends StatelessWidget {
+  const _JobConfigCard({
+    required this.config,
+    required this.canRunCrawl,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onRequestCrawl,
+  });
+
+  final JobSearchConfig config;
+  final bool canRunCrawl;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onRequestCrawl;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: Key('job-config-card-${config.id}'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(config.name, style: theme.textTheme.titleMedium),
+                _PillText(config.platform),
+                _PillText(config.active ? 'Enabled' : 'Disabled'),
+                if (config.notifyOnNew) const _PillText('Notify'),
+                _PillText(
+                  config.enableMatchAnalysis
+                      ? 'Auto-match on'
+                      : 'Auto-match off',
+                ),
+                if (config.profileKey != null)
+                  _PillText('Profile: ${config.profileKey}'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              config.url ?? '${config.keyword} - ${config.location}',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${config.keyword} - ${config.cityCode ?? config.location} - ${config.cron}',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton.icon(
+                  key: Key('job-crawl-config-${config.id}-button'),
+                  onPressed: canRunCrawl ? onRequestCrawl : null,
+                  icon: const Icon(Icons.play_circle),
+                  label: const Text('Crawl'),
+                ),
+                TextButton(
+                  onPressed: onEdit,
+                  child: Text('Edit ${config.name}'),
+                ),
+                TextButton.icon(
+                  key: Key('job-delete-config-${config.id}-button'),
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PillText extends StatelessWidget {
+  const _PillText(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(999),
+        color: theme.colorScheme.surfaceContainerHighest,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(label, style: theme.textTheme.labelSmall),
+      ),
+    );
+  }
+}
+
+class _MatchToolbar extends StatelessWidget {
+  const _MatchToolbar({required this.resumes, required this.selectedResumeId});
+
+  final List<ResumeItem> resumes;
+  final int? selectedResumeId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 220,
+          child: DropdownButtonFormField<int?>(
+            key: const Key('job-match-resume-filter'),
+            initialValue: selectedResumeId,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Select Resume'),
+            items: [
+              const DropdownMenuItem<int?>(
+                value: null,
+                child: Text('Select Resume'),
+              ),
+              for (final resume in resumes)
+                DropdownMenuItem<int?>(
+                  value: resume.id,
+                  child: Text(resume.fileName),
+                ),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+        SizedBox(
+          width: 220,
+          child: DropdownButtonFormField<String>(
+            key: const Key('job-match-recommendation-filter'),
+            initialValue: 'all',
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Recommendation'),
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('Recommendation')),
+              DropdownMenuItem(value: 'strong', child: Text('强烈推荐')),
+              DropdownMenuItem(value: 'good', child: Text('推荐')),
+              DropdownMenuItem(value: 'weak', child: Text('不推荐')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+        FilledButton.icon(
+          key: const Key('job-reanalyze-button'),
+          onPressed: resumes.isEmpty ? null : () {},
+          icon: const Icon(Icons.psychology),
+          label: const Text('Re-analyze'),
+        ),
       ],
     );
   }
@@ -1143,15 +1667,86 @@ class _JobFilters extends StatelessWidget {
           onSelectionChanged: (selection) =>
               onStatusFilterChanged(selection.first),
         ),
-        FilledButton.icon(
-          key: const Key('job-apply-filters-button'),
-          onPressed: onApplyFilters,
-          icon: const Icon(Icons.filter_alt),
-          label: const Text('Apply'),
+        SizedBox(
+          width: 128,
+          child: FilledButton.icon(
+            key: const Key('job-apply-filters-button'),
+            onPressed: onApplyFilters,
+            icon: const Icon(Icons.filter_alt),
+            label: const Text('Apply'),
+          ),
         ),
       ],
     );
   }
+}
+
+class _JobPaginationControls extends StatelessWidget {
+  const _JobPaginationControls({
+    required this.page,
+    required this.onPageChanged,
+  });
+
+  final JobPageState page;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalPages = _totalPages(page.total, page.pageSize);
+    final currentPage = page.page < 1 ? 1 : page.page;
+    final canGoBack = currentPage > 1;
+    final canGoForward = currentPage < totalPages;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          'Page $currentPage of $totalPages - ${page.total} jobs',
+          key: const Key('job-pagination-summary'),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          key: const Key('job-first-page-button'),
+          tooltip: 'First page',
+          onPressed: canGoBack ? () => onPageChanged(1) : null,
+          icon: const Icon(Icons.first_page),
+        ),
+        IconButton(
+          key: const Key('job-previous-page-button'),
+          tooltip: 'Previous page',
+          onPressed: canGoBack ? () => onPageChanged(currentPage - 1) : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        IconButton(
+          key: const Key('job-next-page-button'),
+          tooltip: 'Next page',
+          onPressed: canGoForward ? () => onPageChanged(currentPage + 1) : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+        IconButton(
+          key: const Key('job-last-page-button'),
+          tooltip: 'Last page',
+          onPressed: canGoForward ? () => onPageChanged(totalPages) : null,
+          icon: const Icon(Icons.last_page),
+        ),
+      ],
+    );
+  }
+
+  int _totalPages(int total, int pageSize) {
+    if (total <= 0 || pageSize <= 0) {
+      return 1;
+    }
+    final pages = (total + pageSize - 1) ~/ pageSize;
+    return pages < 1 ? 1 : pages;
+  }
+}
+
+class _IndexedJobRow {
+  const _IndexedJobRow({required this.number, required this.job});
+
+  final int number;
+  final JobItem job;
 }
 
 class _JobsTable extends StatelessWidget {
@@ -1162,63 +1757,118 @@ class _JobsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MavraResponsiveDataView<JobItem>(
-      rows: jobs,
+    final rows = [
+      for (var index = 0; index < jobs.length; index++)
+        _IndexedJobRow(number: index + 1, job: jobs[index]),
+    ];
+
+    return MavraResponsiveDataView<_IndexedJobRow>(
+      rows: rows,
       wideBreakpoint: 960,
       columns: const [
-        DataColumn(label: Text('Title')),
-        DataColumn(label: Text('Company')),
-        DataColumn(label: Text('Platform')),
-        DataColumn(label: Text('Location')),
-        DataColumn(label: Text('Status')),
-        DataColumn(label: Text('Actions')),
+        DataColumn(label: _TableHeader('ID', width: 80)),
+        DataColumn(label: _TableHeader('Platform', width: 88)),
+        DataColumn(label: _TableHeader('Match', width: 112)),
+        DataColumn(label: _TableHeader('Job Title', width: 240)),
+        DataColumn(label: _TableHeader('Company', width: 260)),
+        DataColumn(label: _TableHeader('Salary', width: 120)),
+        DataColumn(label: _TableHeader('Location', width: 150)),
+        DataColumn(label: _TableHeader('Status', width: 96)),
+        DataColumn(label: _TableHeader('Last Updated', width: 160)),
+        DataColumn(label: _TableHeader('Actions', width: 72)),
       ],
-      tableCells: (job) => [
-        DataCell(
-          SizedBox(
-            width: 260,
-            child: Text(job.title, overflow: TextOverflow.ellipsis),
+      tableCells: (row) {
+        final job = row.job;
+        return [
+          DataCell(
+            _TableTextCell(
+              key: Key('job-id-cell-${job.id}'),
+              text: '${row.number}',
+              width: 80,
+            ),
           ),
-        ),
-        DataCell(Text(job.company)),
-        DataCell(Text(job.platform)),
-        DataCell(Text(job.location)),
-        DataCell(Text(job.status)),
-        DataCell(
-          IconButton(
-            key: Key('job-detail-${job.id}-button'),
-            tooltip: 'View ${job.title}',
-            onPressed: () => onShowDetails(job),
-            icon: const Icon(Icons.open_in_new),
+          DataCell(_TableTextCell(text: job.platform, width: 88)),
+          DataCell(
+            _TableTextCell(text: job.matchRecommendation ?? '-', width: 112),
           ),
-        ),
-      ],
-      mobileBuilder: (context, job) => Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(
-          leading: const Icon(Icons.work),
-          title: Text(job.title),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(job.company),
-              Text('${job.location} - ${job.platform}'),
-            ],
-          ),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              Text(job.status),
-              IconButton(
+          DataCell(_TableTextCell(text: job.title, width: 260)),
+          DataCell(_TableTextCell(text: job.company, width: 260)),
+          DataCell(_TableTextCell(text: job.salary ?? '-', width: 120)),
+          DataCell(_TableTextCell(text: job.location, width: 150)),
+          DataCell(_TableTextCell(text: job.status, width: 96)),
+          DataCell(_TableTextCell(text: job.updatedAt ?? '-', width: 160)),
+          DataCell(
+            SizedBox(
+              width: 72,
+              child: IconButton(
                 key: Key('job-detail-${job.id}-button'),
                 tooltip: 'View ${job.title}',
                 onPressed: () => onShowDetails(job),
                 icon: const Icon(Icons.open_in_new),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        ];
+      },
+      mobileBuilder: (context, row) {
+        final job = row.job;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: const Icon(Icons.work),
+            title: Text(job.title),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(job.company),
+                Text(
+                  '${job.salary ?? '-'} - ${job.location} - ${job.platform}',
+                ),
+                Text(job.matchRecommendation ?? '-'),
+              ],
+            ),
+            trailing: Wrap(
+              spacing: 8,
+              children: [
+                Text(job.status),
+                IconButton(
+                  key: Key('job-detail-${job.id}-button'),
+                  tooltip: 'View ${job.title}',
+                  onPressed: () => onShowDetails(job),
+                  icon: const Icon(Icons.open_in_new),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.label, {required this.width});
+
+  final String label;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: width, child: Text(label));
+  }
+}
+
+class _TableTextCell extends StatelessWidget {
+  const _TableTextCell({super.key, required this.text, required this.width});
+
+  final String text;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }
@@ -1238,8 +1888,22 @@ class _JobDetailPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(detail.company, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          children: [
+            _DetailField(label: 'Job ID', value: '${detail.id}'),
+            _DetailField(label: 'Salary', value: detail.salary ?? '-'),
+            _DetailField(label: 'Location', value: detail.location ?? '-'),
+            _DetailField(label: 'Experience', value: detail.experience ?? '-'),
+            _DetailField(label: 'Education', value: detail.education ?? '-'),
+            _DetailField(label: 'Status', value: detail.status ?? '-'),
+            _DetailField(label: 'Last Updated', value: detail.updatedAt ?? '-'),
+          ],
+        ),
         if (detail.url != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(detail.url!),
         ],
         if (detail.description != null) ...[
@@ -1258,9 +1922,32 @@ class _JobDetailPanel extends StatelessWidget {
   }
 }
 
-class _ProfileTile extends StatelessWidget {
-  const _ProfileTile({
-    required this.profile,
+class _DetailField extends StatelessWidget {
+  const _DetailField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 180,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.labelSmall),
+          const SizedBox(height: 2),
+          Text(value, overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfilesTable extends StatelessWidget {
+  const _ProfilesTable({
+    required this.profiles,
     required this.onExportBackup,
     required this.onRenameProfile,
     required this.onUpdateProfileStatus,
@@ -1272,7 +1959,7 @@ class _ProfileTile extends StatelessWidget {
     required this.onTestProfile,
   });
 
-  final CrawlProfileItem profile;
+  final List<CrawlProfileItem> profiles;
   final ValueChanged<String>? onExportBackup;
   final ValueChanged<CrawlProfileItem> onRenameProfile;
   final void Function(CrawlProfileItem profile, String status)
@@ -1284,133 +1971,243 @@ class _ProfileTile extends StatelessWidget {
   final ValueChanged<CrawlProfileItem>? onCloseProfileLoginSession;
   final ValueChanged<CrawlProfileItem>? onTestProfile;
 
+  void _handleMenuAction(CrawlProfileItem profile, String action) {
+    switch (action) {
+      case 'export':
+        onExportBackup?.call(profile.profileKey);
+        return;
+      case 'rename':
+        onRenameProfile(profile);
+        return;
+      case 'enable':
+        onUpdateProfileStatus(profile, 'available');
+        return;
+      case 'copy':
+        onCopyProfile(profile);
+        return;
+      case 'release':
+        onReleaseStaleProfile?.call(profile);
+        return;
+      case 'open-login':
+        onOpenProfileLoginSession?.call(profile);
+        return;
+      case 'close-login':
+        onCloseProfileLoginSession?.call(profile);
+        return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.person_search),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    profile.profileKey,
-                    style: Theme.of(context).textTheme.titleSmall,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        key: const Key('job-profiles-table'),
+        columns: const [
+          DataColumn(label: Text('Profile')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Platform')),
+          DataColumn(label: Text('Task')),
+          DataColumn(label: Text('Lease Until')),
+          DataColumn(label: Text('Last Error')),
+          DataColumn(label: Text('Actions')),
+        ],
+        rows: [
+          for (final profile in profiles)
+            DataRow(
+              cells: [
+                DataCell(Text(profile.profileKey)),
+                DataCell(Text(profile.status)),
+                DataCell(Text(profile.platform)),
+                DataCell(Text(profile.taskId ?? '-')),
+                DataCell(Text(profile.leaseUntil ?? '-')),
+                DataCell(Text(profile.lastError ?? '-')),
+                DataCell(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PopupMenuButton<String>(
+                        key: Key(
+                          'job-profile-edit-menu-${profile.profileKey}-button',
+                        ),
+                        tooltip: 'Edit ${profile.profileKey}',
+                        onSelected: (action) =>
+                            _handleMenuAction(profile, action),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-export-${profile.profileKey}-button',
+                            ),
+                            value: 'export',
+                            enabled: onExportBackup != null,
+                            child: const Text('Export backup'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-rename-${profile.profileKey}-button',
+                            ),
+                            value: 'rename',
+                            child: const Text('Rename'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-enable-${profile.profileKey}-button',
+                            ),
+                            value: 'enable',
+                            child: const Text('Mark available'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-copy-${profile.profileKey}-button',
+                            ),
+                            value: 'copy',
+                            child: const Text('Copy'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-release-${profile.profileKey}-button',
+                            ),
+                            value: 'release',
+                            enabled: onReleaseStaleProfile != null,
+                            child: const Text('Release stale'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-login-${profile.profileKey}-button',
+                            ),
+                            value: 'open-login',
+                            enabled: onOpenProfileLoginSession != null,
+                            child: const Text('Open login'),
+                          ),
+                          PopupMenuItem(
+                            key: Key(
+                              'job-profile-close-login-${profile.profileKey}-button',
+                            ),
+                            value: 'close-login',
+                            enabled: onCloseProfileLoginSession != null,
+                            child: const Text('Close login'),
+                          ),
+                        ],
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          child: Text('Edit'),
+                        ),
+                      ),
+                      TextButton(
+                        key: Key(
+                          'job-profile-test-${profile.profileKey}-button',
+                        ),
+                        onPressed: onTestProfile == null
+                            ? null
+                            : () => onTestProfile!(profile),
+                        child: const Text('Test'),
+                      ),
+                      TextButton(
+                        key: Key(
+                          'job-profile-disable-${profile.profileKey}-button',
+                        ),
+                        onPressed: () =>
+                            onUpdateProfileStatus(profile, 'disabled'),
+                        child: const Text('Disable'),
+                      ),
+                      TextButton(
+                        key: Key(
+                          'job-profile-delete-${profile.profileKey}-button',
+                        ),
+                        onPressed: () => onDeleteProfile(profile),
+                        child: const Text('Delete'),
+                      ),
+                    ],
                   ),
                 ),
-                Text('${profile.platform} - ${profile.status}'),
               ],
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                TextButton(
-                  onPressed: onExportBackup == null
-                      ? null
-                      : () => onExportBackup!(profile.profileKey),
-                  child: Text('Export backup ${profile.profileKey}'),
-                ),
-                IconButton(
-                  key: Key('job-profile-rename-${profile.profileKey}-button'),
-                  tooltip: 'Rename ${profile.profileKey}',
-                  onPressed: () => onRenameProfile(profile),
-                  icon: const Icon(Icons.drive_file_rename_outline),
-                ),
-                IconButton(
-                  key: Key('job-profile-enable-${profile.profileKey}-button'),
-                  tooltip: 'Mark available ${profile.profileKey}',
-                  onPressed: () => onUpdateProfileStatus(profile, 'available'),
-                  icon: const Icon(Icons.check_circle_outline),
-                ),
-                IconButton(
-                  key: Key('job-profile-disable-${profile.profileKey}-button'),
-                  tooltip: 'Disable ${profile.profileKey}',
-                  onPressed: () => onUpdateProfileStatus(profile, 'disabled'),
-                  icon: const Icon(Icons.block),
-                ),
-                IconButton(
-                  key: Key('job-profile-copy-${profile.profileKey}-button'),
-                  tooltip: 'Copy ${profile.profileKey}',
-                  onPressed: () => onCopyProfile(profile),
-                  icon: const Icon(Icons.copy),
-                ),
-                IconButton(
-                  key: Key('job-profile-release-${profile.profileKey}-button'),
-                  tooltip: 'Release stale ${profile.profileKey}',
-                  onPressed: onReleaseStaleProfile == null
-                      ? null
-                      : () => onReleaseStaleProfile!(profile),
-                  icon: const Icon(Icons.lock_open),
-                ),
-                IconButton(
-                  key: Key('job-profile-login-${profile.profileKey}-button'),
-                  tooltip: 'Open login session ${profile.profileKey}',
-                  onPressed: onOpenProfileLoginSession == null
-                      ? null
-                      : () => onOpenProfileLoginSession!(profile),
-                  icon: const Icon(Icons.login),
-                ),
-                IconButton(
-                  key: Key(
-                    'job-profile-close-login-${profile.profileKey}-button',
-                  ),
-                  tooltip: 'Close login session ${profile.profileKey}',
-                  onPressed: onCloseProfileLoginSession == null
-                      ? null
-                      : () => onCloseProfileLoginSession!(profile),
-                  icon: const Icon(Icons.logout),
-                ),
-                IconButton(
-                  key: Key('job-profile-test-${profile.profileKey}-button'),
-                  tooltip: 'Test ${profile.profileKey}',
-                  onPressed: onTestProfile == null
-                      ? null
-                      : () => onTestProfile!(profile),
-                  icon: const Icon(Icons.science),
-                ),
-                IconButton(
-                  key: Key('job-profile-delete-${profile.profileKey}-button'),
-                  tooltip: 'Delete ${profile.profileKey}',
-                  onPressed: () => onDeleteProfile(profile),
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.emptyText,
-    required this.children,
-  });
+class _MatchesTable extends StatelessWidget {
+  const _MatchesTable({required this.matches});
 
-  final String title;
-  final String emptyText;
-  final List<Widget> children;
+  final List<JobMatchResult> matches;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 6),
-          if (children.isEmpty) Text(emptyText) else ...children,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        key: const Key('job-matches-table'),
+        columns: const [
+          DataColumn(label: Text('Recommendation')),
+          DataColumn(label: Text('Job Title')),
+          DataColumn(label: Text('Company')),
+          DataColumn(label: Text('Salary')),
+          DataColumn(label: Text('Reason')),
+          DataColumn(label: Text('Analysis Time')),
+          DataColumn(label: Text('Link')),
+        ],
+        rows: [
+          for (final match in matches)
+            DataRow(
+              cells: [
+                DataCell(Text(match.recommendation ?? match.score)),
+                DataCell(Text(match.jobTitle)),
+                DataCell(Text(match.company ?? '-')),
+                DataCell(Text(match.salary ?? '-')),
+                DataCell(Text(match.reason)),
+                DataCell(Text(match.updatedAt ?? '-')),
+                DataCell(Text(match.url == null ? '-' : 'View')),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CrawlLogsTable extends StatelessWidget {
+  const _CrawlLogsTable({required this.logs, required this.configNames});
+
+  final List<JobCrawlLog> logs;
+  final Map<int, String> configNames;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        key: const Key('job-crawl-logs-table'),
+        columns: const [
+          DataColumn(label: Text('Time')),
+          DataColumn(label: Text('Config')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('New Jobs')),
+          DataColumn(label: Text('Total')),
+          DataColumn(label: Text('Error')),
+        ],
+        rows: [
+          for (final log in logs)
+            DataRow(
+              cells: [
+                DataCell(Text(log.createdAt.toLocal().toString())),
+                DataCell(
+                  Text(
+                    log.configId == null
+                        ? '-'
+                        : configNames[log.configId] ?? '#${log.configId}',
+                  ),
+                ),
+                DataCell(Text(log.status)),
+                DataCell(Text(log.newJobs?.toString() ?? '-')),
+                DataCell(Text(log.totalJobs?.toString() ?? '-')),
+                DataCell(Text(log.error ?? log.message)),
+              ],
+            ),
         ],
       ),
     );
