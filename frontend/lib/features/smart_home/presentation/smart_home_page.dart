@@ -2,15 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/smart_home_models.dart';
 
+const _buttonMinimumSize = Size(0, 40);
+
+ButtonStyle _compactOutlinedButtonStyle() {
+  return OutlinedButton.styleFrom(minimumSize: _buttonMinimumSize);
+}
+
+ButtonStyle _compactFilledButtonStyle() {
+  return FilledButton.styleFrom(minimumSize: _buttonMinimumSize);
+}
+
 class SmartHomePage extends StatefulWidget {
-  const SmartHomePage({
-    super.key,
-    required this.repository,
-    this.permissions,
-  });
+  const SmartHomePage({super.key, required this.repository, this.permissions});
 
   final SmartHomeRepository repository;
   final Set<String>? permissions;
@@ -25,15 +30,11 @@ class _SmartHomePageState extends State<SmartHomePage> {
   List<SmartHomeEntityItem> _entities = const [];
   Object? _error;
   String? _statusMessage;
-  bool _showConfigForm = false;
-  bool _configEnabled = true;
-  String _domainFilter = 'All';
+  bool _refreshing = false;
   StreamSubscription<List<SmartHomeEntityItem>>? _entitySubscription;
 
   final _baseUrlController = TextEditingController();
   final _tokenController = TextEditingController();
-  final _serviceEntityController = TextEditingController();
-  final _serviceNameController = TextEditingController(text: 'turn_on');
 
   bool get _canConfigure =>
       widget.permissions?.contains('smart_home:configure') ??
@@ -67,8 +68,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
     _entitySubscription?.cancel();
     _baseUrlController.dispose();
     _tokenController.dispose();
-    _serviceEntityController.dispose();
-    _serviceNameController.dispose();
     super.dispose();
   }
 
@@ -83,127 +82,259 @@ class _SmartHomePageState extends State<SmartHomePage> {
   void _load() {
     setState(() {
       _error = null;
-      _smartHomeFuture = Future.sync(widget.repository.loadSmartHome)
-        ..then((snapshot) {
-          if (mounted) {
-            setState(() {
-              _snapshot = snapshot;
-              _entities = snapshot.entities;
-            });
-          }
-        }).catchError((Object error) {
-          if (mounted) {
-            setState(() => _error = error);
-          }
+      _refreshing = true;
+      _smartHomeFuture = _fetchSmartHome();
+    });
+  }
+
+  Future<SmartHomeSnapshot> _fetchSmartHome() async {
+    try {
+      final snapshot = await widget.repository.loadSmartHome();
+      if (mounted) {
+        setState(() {
+          _snapshot = snapshot;
+          _entities = snapshot.entities;
         });
-    });
+      }
+      return snapshot;
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error);
+      }
+      rethrow;
+    } finally {
+      if (mounted) {
+        setState(() => _refreshing = false);
+      }
+    }
   }
 
-  void _editConfig() {
+  Future<void> _openConfigDialog() async {
     final config = _snapshot?.config;
-    setState(() {
-      _showConfigForm = true;
-      _baseUrlController.text = config?.baseUrl ?? '';
-      _tokenController.clear();
-      _configEnabled = config?.enabled ?? true;
-    });
+    _baseUrlController.text = config?.baseUrl ?? '';
+    _tokenController.clear();
+    var enabled = config?.enabled ?? true;
+    var testing = false;
+    var saving = false;
+    String? dialogMessage;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            SmartHomeConfigDraft draft() {
+              final token = _tokenController.text.trim();
+              return SmartHomeConfigDraft(
+                baseUrl: _baseUrlController.text.trim(),
+                enabled: enabled,
+                token: token.isEmpty ? null : token,
+              );
+            }
+
+            Future<void> testConfig() async {
+              setDialogState(() {
+                testing = true;
+                dialogMessage = null;
+              });
+              try {
+                final result = await widget.repository.testConfig(draft());
+                if (!context.mounted) {
+                  return;
+                }
+                setDialogState(() => dialogMessage = result.message);
+              } catch (_) {
+                if (context.mounted) {
+                  setDialogState(
+                    () => dialogMessage = 'Failed to test smart home config',
+                  );
+                }
+              } finally {
+                if (context.mounted) {
+                  setDialogState(() => testing = false);
+                }
+              }
+            }
+
+            Future<void> saveConfig() async {
+              setDialogState(() {
+                saving = true;
+                dialogMessage = null;
+              });
+              try {
+                await widget.repository.saveConfig(draft());
+                if (!mounted || !dialogContext.mounted) {
+                  return;
+                }
+                setState(() => _statusMessage = 'Smart home config saved');
+                Navigator.of(dialogContext).pop();
+                _load();
+              } catch (_) {
+                if (dialogContext.mounted) {
+                  setDialogState(
+                    () => dialogMessage = 'Failed to save smart home config',
+                  );
+                }
+              } finally {
+                if (dialogContext.mounted) {
+                  setDialogState(() => saving = false);
+                }
+              }
+            }
+
+            return AlertDialog(
+              key: const Key('smart-home-config-dialog'),
+              title: const Text('Home Assistant'),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        key: const Key('smart-home-url-field'),
+                        controller: _baseUrlController,
+                        decoration: const InputDecoration(
+                          labelText: 'Base URL',
+                          hintText: 'http://homeassistant.local:8123',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const Key('smart-home-token-field'),
+                        controller: _tokenController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: config?.tokenConfigured == true
+                              ? 'New Token'
+                              : 'Long-Lived Access Token',
+                          hintText: config?.tokenConfigured == true
+                              ? 'Leave blank to keep existing token'
+                              : 'Paste token',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Enabled'),
+                        value: enabled,
+                        onChanged: (value) {
+                          setDialogState(() => enabled = value);
+                        },
+                      ),
+                      OutlinedButton(
+                        key: const Key('smart-home-test-config-button'),
+                        style: _compactOutlinedButtonStyle(),
+                        onPressed: testing ? null : testConfig,
+                        child: Text(testing ? 'Testing...' : 'Test Connection'),
+                      ),
+                      if (dialogMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(dialogMessage!),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const Key('smart-home-save-config-button'),
+                  style: _compactFilledButtonStyle(),
+                  onPressed: saving ? null : saveConfig,
+                  child: Text(saving ? 'Saving...' : 'Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
-  Future<void> _saveConfig() async {
-    final draft = SmartHomeConfigDraft(
-      baseUrl: _baseUrlController.text.trim(),
-      enabled: _configEnabled,
-      token: _tokenController.text.trim(),
-    );
+  Future<void> _callEntityService(
+    SmartHomeEntityItem entity,
+    String service, {
+    Map<String, Object?> serviceData = const {},
+  }) async {
     try {
-      await widget.repository.saveConfig(draft);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _statusMessage = 'Saved Home Assistant config';
-        _showConfigForm = false;
-        _tokenController.clear();
-      });
-      _load();
-    } catch (error) {
+      final result = await widget.repository.callService(
+        SmartHomeServiceDraft(
+          entityId: entity.entityId,
+          service: service,
+          serviceData: serviceData,
+        ),
+      );
       if (mounted) {
-        setState(() => _statusMessage = 'Save config failed');
+        setState(() {
+          _statusMessage = result.message;
+          _entities = [
+            for (final current in _entities)
+              current.entityId == entity.entityId
+                  ? _entityAfterService(current, service, serviceData)
+                  : current,
+          ];
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _statusMessage = 'Command failed');
       }
     }
   }
 
-  Future<void> _testConfig() async {
-    final draft = SmartHomeConfigDraft(
-      baseUrl: _baseUrlController.text.trim(),
-      enabled: _configEnabled,
-      token: _tokenController.text.trim(),
-    );
-    try {
-      final result = await widget.repository.testConfig(draft);
-      if (mounted) {
-        setState(() => _statusMessage = result.message);
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _statusMessage = 'Test config failed');
-      }
-    }
-  }
-
-  Future<void> _callService() async {
-    final draft = SmartHomeServiceDraft(
-      entityId: _serviceEntityController.text.trim(),
-      service: _serviceNameController.text.trim(),
-    );
-    try {
-      final result = await widget.repository.callService(draft);
-      if (mounted) {
-        setState(() => _statusMessage = result.message);
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _statusMessage = 'Service call failed');
-      }
-    }
-  }
-
-  Future<void> _confirmEntityService(
+  SmartHomeEntityItem _entityAfterService(
     SmartHomeEntityItem entity,
     String service,
-  ) async {
+    Map<String, Object?> serviceData,
+  ) {
+    switch (service) {
+      case 'turn_on':
+        return entity.copyWith(state: 'on');
+      case 'turn_off':
+        return entity.copyWith(state: 'off');
+      case 'set_hvac_mode':
+        final mode = serviceData['hvac_mode'];
+        return mode is String ? entity.copyWith(state: mode) : entity;
+      case 'set_temperature':
+        final temperature = serviceData['temperature'];
+        return temperature is num
+            ? entity.copyWith(
+                attributes: {...entity.attributes, 'temperature': temperature},
+              )
+            : entity;
+      default:
+        return entity;
+    }
+  }
+
+  Future<void> _confirmRunEntity(SmartHomeEntityItem entity) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Confirm ${entity.name}'),
-        content: Text('Call $service for ${entity.entityId}?'),
+        title: Text('Run ${entity.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            key: Key('smart-home-confirm-${entity.entityId}-$service'),
+            key: Key('smart-home-confirm-${entity.entityId}-turn_on'),
+            style: _compactFilledButtonStyle(),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Confirm'),
           ),
         ],
       ),
     );
-    if (confirmed != true) {
-      return;
-    }
-    try {
-      final result = await widget.repository.callService(
-        SmartHomeServiceDraft(entityId: entity.entityId, service: service),
-      );
-      if (mounted) {
-        setState(() => _statusMessage = result.message);
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _statusMessage = 'Service call failed');
-      }
+    if (confirmed == true) {
+      await _callEntityService(entity, 'turn_on');
     }
   }
 
@@ -216,9 +347,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
           child: FutureBuilder<SmartHomeSnapshot>(
             future: _smartHomeFuture,
             builder: (context, snapshot) {
-              if (_error != null) {
-                return const Center(child: Text('智能家居状态加载失败。'));
-              }
               if (snapshot.connectionState != ConnectionState.done &&
                   _snapshot == null) {
                 return const Center(
@@ -227,7 +355,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
                     children: [
                       CircularProgressIndicator(),
                       SizedBox(height: 12),
-                      Text('正在连接 Home Assistant...'),
+                      Text('Connecting to Home Assistant...'),
                     ],
                   ),
                 );
@@ -235,31 +363,18 @@ class _SmartHomePageState extends State<SmartHomePage> {
               final current = _snapshot ?? const SmartHomeSnapshot.empty();
               return _SmartHomeContent(
                 snapshot: current,
+                entities: _entities,
                 canConfigure: _canConfigure,
                 canControl: _canControl,
-                entities: _filteredEntities(_entities),
-                allDomains: _domains(_entities),
-                selectedDomain: _domainFilter,
+                loading: _refreshing,
+                loadError: _error == null
+                    ? null
+                    : 'Failed to load smart home entities',
                 statusMessage: _statusMessage,
-                showConfigForm: _showConfigForm,
-                configEnabled: _configEnabled,
-                baseUrlController: _baseUrlController,
-                tokenController: _tokenController,
-                serviceEntityController: _serviceEntityController,
-                serviceNameController: _serviceNameController,
-                onEditConfig: _canConfigure ? _editConfig : null,
-                onSaveConfig: _canConfigure ? _saveConfig : null,
-                onTestConfig: _canConfigure ? _testConfig : null,
-                onConfigEnabledChanged: (value) {
-                  setState(() => _configEnabled = value ?? true);
-                },
-                onDomainSelected: (domain) {
-                  setState(() => _domainFilter = domain);
-                },
-                onCallService: _canControl ? _callService : null,
-                onEntityService: _canControl
-                    ? _confirmEntityService
-                    : null,
+                onRefresh: _load,
+                onConfigure: _canConfigure ? _openConfigDialog : null,
+                onCallEntityService: _canControl ? _callEntityService : null,
+                onConfirmRunEntity: _canControl ? _confirmRunEntity : null,
               );
             },
           ),
@@ -267,429 +382,497 @@ class _SmartHomePageState extends State<SmartHomePage> {
       ),
     );
   }
-
-  List<SmartHomeEntityItem> _filteredEntities(
-    List<SmartHomeEntityItem> entities,
-  ) {
-    if (_domainFilter == 'All') {
-      return entities;
-    }
-    return entities.where((entity) => entity.domain == _domainFilter).toList();
-  }
-
-  List<String> _domains(List<SmartHomeEntityItem> entities) {
-    final domains = entities.map((entity) => entity.domain).toSet().toList()
-      ..sort();
-    return ['All', ...domains];
-  }
 }
 
 class _SmartHomeContent extends StatelessWidget {
   const _SmartHomeContent({
     required this.snapshot,
+    required this.entities,
     required this.canConfigure,
     required this.canControl,
-    required this.entities,
-    required this.allDomains,
-    required this.selectedDomain,
+    required this.loading,
+    required this.loadError,
     required this.statusMessage,
-    required this.showConfigForm,
-    required this.configEnabled,
-    required this.baseUrlController,
-    required this.tokenController,
-    required this.serviceEntityController,
-    required this.serviceNameController,
-    required this.onEditConfig,
-    required this.onSaveConfig,
-    required this.onTestConfig,
-    required this.onConfigEnabledChanged,
-    required this.onDomainSelected,
-    required this.onCallService,
-    required this.onEntityService,
+    required this.onRefresh,
+    required this.onConfigure,
+    required this.onCallEntityService,
+    required this.onConfirmRunEntity,
   });
 
   final SmartHomeSnapshot snapshot;
+  final List<SmartHomeEntityItem> entities;
   final bool canConfigure;
   final bool canControl;
-  final List<SmartHomeEntityItem> entities;
-  final List<String> allDomains;
-  final String selectedDomain;
+  final bool loading;
+  final String? loadError;
   final String? statusMessage;
-  final bool showConfigForm;
-  final bool configEnabled;
-  final TextEditingController baseUrlController;
-  final TextEditingController tokenController;
-  final TextEditingController serviceEntityController;
-  final TextEditingController serviceNameController;
-  final VoidCallback? onEditConfig;
-  final Future<void> Function()? onSaveConfig;
-  final Future<void> Function()? onTestConfig;
-  final ValueChanged<bool?> onConfigEnabledChanged;
-  final ValueChanged<String> onDomainSelected;
-  final Future<void> Function()? onCallService;
-  final void Function(SmartHomeEntityItem entity, String service)?
-  onEntityService;
+  final VoidCallback onRefresh;
+  final VoidCallback? onConfigure;
+  final Future<void> Function(
+    SmartHomeEntityItem entity,
+    String service, {
+    Map<String, Object?> serviceData,
+  })?
+  onCallEntityService;
+  final Future<void> Function(SmartHomeEntityItem entity)? onConfirmRunEntity;
 
   @override
   Widget build(BuildContext context) {
+    final groups = _groupEntities(entities);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Smart Home',
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineSmall,
+          _SmartHomeHeader(
+            connected: snapshot.summary.connected,
+            loading: loading,
+            onRefresh: onRefresh,
+            onConfigure: onConfigure,
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: onEditConfig,
-              icon: const Icon(Icons.settings),
-              label: const Text('Edit config'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(_summaryText(snapshot)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(
-                avatar: Icon(
-                  snapshot.summary.connected
-                      ? Icons.cloud_done
-                      : Icons.cloud_off,
-                ),
-                label: Text(
-                  snapshot.summary.connected ? 'Connected' : 'Disconnected',
-                ),
-              ),
-              Chip(label: Text('${snapshot.summary.activeCount} active')),
-              Chip(
-                label: Text(
-                  'Unavailable devices ${snapshot.summary.unavailableCount}',
-                ),
-              ),
-              if (!snapshot.realtimeConnected)
-                const Chip(label: Text('Realtime disconnected')),
-            ],
-          ),
-          if (!canControl) ...[
-            const SizedBox(height: 8),
-            const Text('没有权限控制这个设备。'),
+          if (loadError != null) ...[
+            _MessageCard(message: loadError!, error: true),
+            const SizedBox(height: 16),
           ],
           if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
+            _MessageCard(message: statusMessage!, error: false),
+            const SizedBox(height: 16),
           ],
-          const SizedBox(height: 16),
-          _ConfigSection(config: snapshot.config),
-          if (showConfigForm) ...[
-            const SizedBox(height: 12),
-            _ConfigForm(
-              enabled: configEnabled,
-              baseUrlController: baseUrlController,
-              tokenController: tokenController,
-              onEnabledChanged: onConfigEnabledChanged,
-              onSaveConfig: onSaveConfig,
-              onTestConfig: onTestConfig,
-            ),
+          if (!canControl) ...[
+            const Text('You do not have permission to control devices.'),
+            const SizedBox(height: 16),
           ],
-          const SizedBox(height: 16),
-          _ServiceForm(
-            serviceEntityController: serviceEntityController,
-            serviceNameController: serviceNameController,
-            onCallService: onCallService,
-          ),
-          const SizedBox(height: 16),
-          _DomainFilters(
-            domains: allDomains,
-            selectedDomain: selectedDomain,
-            onSelected: onDomainSelected,
-          ),
-          const SizedBox(height: 12),
-          if (snapshot.entities.isEmpty)
-            const Center(child: Text('还没有可控制的 Home Assistant 设备。'))
+          if (groups.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Text('No supported Home Assistant entities found'),
+              ),
+            )
           else
-            _EntityTable(entities: entities, onEntityService: onEntityService),
+            for (final group in groups.entries) ...[
+              Text(group.key, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              _EntityGrid(
+                entities: group.value,
+                canControl: canControl,
+                onCallEntityService: onCallEntityService,
+                onConfirmRunEntity: onConfirmRunEntity,
+              ),
+              const SizedBox(height: 24),
+            ],
         ],
       ),
     );
   }
 
-  static String _summaryText(SmartHomeSnapshot snapshot) {
-    if (!snapshot.summary.configured) {
-      return 'Home Assistant is not configured.';
+  static Map<String, List<SmartHomeEntityItem>> _groupEntities(
+    List<SmartHomeEntityItem> entities,
+  ) {
+    final groups = <String, List<SmartHomeEntityItem>>{};
+    final primaryDeviceNames = _primaryDeviceNames(entities);
+    for (final entity in entities) {
+      groups
+          .putIfAbsent(_deviceName(entity, primaryDeviceNames), () => [])
+          .add(entity);
     }
-    if (!snapshot.summary.connected) {
-      return '智能家居状态加载失败。';
+    return groups;
+  }
+
+  static String _deviceName(
+    SmartHomeEntityItem entity,
+    Map<String, String> primaryDeviceNames,
+  ) {
+    final area = entity.area?.trim();
+    if (area != null && area.isNotEmpty) {
+      return area;
     }
-    return '家里设备都在安静运行。';
+    final body = _entityBody(entity.entityId);
+    if (body != null) {
+      final matchingPrefix = _longestMatchingPrefix(body, primaryDeviceNames);
+      if (matchingPrefix != null) {
+        return primaryDeviceNames[matchingPrefix]!;
+      }
+    }
+    if (entity.domain == 'scene' || entity.domain == 'script') {
+      return entity.name;
+    }
+    final parts = entity.name.split(' ');
+    if (parts.length <= 1) {
+      return entity.name;
+    }
+    return parts.take(parts.length - 1).join(' ');
+  }
+
+  static Map<String, String> _primaryDeviceNames(
+    List<SmartHomeEntityItem> entities,
+  ) {
+    final names = <String, String>{};
+    for (final entity in entities) {
+      if (!_isPrimaryDevice(entity.domain)) {
+        continue;
+      }
+      final body = _entityBody(entity.entityId);
+      if (body == null) {
+        continue;
+      }
+      names[_primaryDevicePrefix(body)] = entity.name;
+    }
+    return names;
+  }
+
+  static bool _isPrimaryDevice(String domain) {
+    return domain == 'climate' || domain == 'fan' || domain == 'cover';
+  }
+
+  static String? _entityBody(String entityId) {
+    final dot = entityId.indexOf('.');
+    if (dot < 0 || dot == entityId.length - 1) {
+      return null;
+    }
+    return entityId.substring(dot + 1);
+  }
+
+  static String _primaryDevicePrefix(String body) {
+    const suffixes = [
+      '_air_conditioner',
+      '_air_purifier',
+      '_fan',
+      '_cover',
+      '_curtain',
+      '_garage',
+    ];
+    for (final suffix in suffixes) {
+      if (body.endsWith(suffix)) {
+        return body.substring(0, body.length - suffix.length);
+      }
+    }
+    final lastUnderscore = body.lastIndexOf('_');
+    return lastUnderscore > 0 ? body.substring(0, lastUnderscore) : body;
+  }
+
+  static String? _longestMatchingPrefix(
+    String body,
+    Map<String, String> primaryDeviceNames,
+  ) {
+    String? match;
+    for (final prefix in primaryDeviceNames.keys) {
+      if ((body == prefix || body.startsWith('${prefix}_')) &&
+          (match == null || prefix.length > match.length)) {
+        match = prefix;
+      }
+    }
+    return match;
   }
 }
 
-class _ConfigSection extends StatelessWidget {
-  const _ConfigSection({required this.config});
+class _SmartHomeHeader extends StatelessWidget {
+  const _SmartHomeHeader({
+    required this.connected,
+    required this.loading,
+    required this.onRefresh,
+    required this.onConfigure,
+  });
 
-  final SmartHomeConfig? config;
+  final bool connected;
+  final bool loading;
+  final VoidCallback onRefresh;
+  final VoidCallback? onConfigure;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Home Assistant', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 6),
-        if (config == null)
-          const Text('No Home Assistant config')
-        else
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0x29D89A57),
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 680;
+          final title = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(config!.baseUrl),
-              Text(config!.enabled ? 'enabled' : 'disabled'),
               Text(
-                config!.tokenConfigured ? 'token configured' : 'token missing',
+                'Smart Home',
+                style: Theme.of(context).textTheme.labelMedium,
               ),
-              if (config!.lastStatus != null) Text(config!.lastStatus!),
+              const SizedBox(height: 4),
+              Text(
+                'Smart Home',
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Home Assistant devices and scenes',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
-          ),
-      ],
+          );
+          final actions = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Chip(
+                label: Text(connected ? 'Connected' : 'Offline'),
+                avatar: Icon(
+                  connected ? Icons.cloud_done : Icons.cloud_off,
+                  size: 18,
+                ),
+              ),
+              OutlinedButton(
+                key: const Key('smart-home-refresh-button'),
+                style: _compactOutlinedButtonStyle(),
+                onPressed: loading ? null : onRefresh,
+                child: Text(loading ? 'Refreshing' : 'Refresh'),
+              ),
+              if (onConfigure != null)
+                OutlinedButton.icon(
+                  key: const Key('smart-home-configure-button'),
+                  style: _compactOutlinedButtonStyle(),
+                  onPressed: onConfigure,
+                  icon: const Icon(Icons.settings, size: 18),
+                  label: const Text('Configure'),
+                ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [title, const SizedBox(height: 16), actions],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: 24),
+              Flexible(
+                child: Align(alignment: Alignment.topRight, child: actions),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-class _ConfigForm extends StatelessWidget {
-  const _ConfigForm({
-    required this.enabled,
-    required this.baseUrlController,
-    required this.tokenController,
-    required this.onEnabledChanged,
-    required this.onSaveConfig,
-    required this.onTestConfig,
-  });
+class _MessageCard extends StatelessWidget {
+  const _MessageCard({required this.message, required this.error});
 
-  final bool enabled;
-  final TextEditingController baseUrlController;
-  final TextEditingController tokenController;
-  final ValueChanged<bool?> onEnabledChanged;
-  final Future<void> Function()? onSaveConfig;
-  final Future<void> Function()? onTestConfig;
+  final String message;
+  final bool error;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Config form', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('smart-home-url-field'),
-              controller: baseUrlController,
-              decoration: const InputDecoration(labelText: 'Base URL'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('smart-home-token-field'),
-              controller: tokenController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Token'),
-            ),
-            const SizedBox(height: 8),
-            CheckboxListTile(
-              value: enabled,
-              onChanged: onEnabledChanged,
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Enabled'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: onSaveConfig,
-              icon: const Icon(Icons.save),
-              label: const Text('Save config'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('smart-home-test-config-button'),
-              onPressed: onTestConfig,
-              icon: const Icon(Icons.science),
-              label: const Text('Test config'),
-            ),
-          ],
+        child: Text(
+          message,
+          style: TextStyle(color: error ? scheme.error : null),
         ),
       ),
     );
   }
 }
 
-class _ServiceForm extends StatelessWidget {
-  const _ServiceForm({
-    required this.serviceEntityController,
-    required this.serviceNameController,
-    required this.onCallService,
+class _EntityGrid extends StatelessWidget {
+  const _EntityGrid({
+    required this.entities,
+    required this.canControl,
+    required this.onCallEntityService,
+    required this.onConfirmRunEntity,
   });
-
-  final TextEditingController serviceEntityController;
-  final TextEditingController serviceNameController;
-  final Future<void> Function()? onCallService;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Service request',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('service-entity-field'),
-              controller: serviceEntityController,
-              decoration: const InputDecoration(labelText: 'Entity ID'),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('service-name-field'),
-              controller: serviceNameController,
-              decoration: const InputDecoration(labelText: 'Service'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onCallService,
-              icon: const Icon(Icons.power_settings_new),
-              label: const Text('Call service'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DomainFilters extends StatelessWidget {
-  const _DomainFilters({
-    required this.domains,
-    required this.selectedDomain,
-    required this.onSelected,
-  });
-
-  final List<String> domains;
-  final String selectedDomain;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final domain in domains)
-          ChoiceChip(
-            label: Text(domain),
-            selected: selectedDomain == domain,
-            onSelected: (_) => onSelected(domain),
-          ),
-      ],
-    );
-  }
-}
-
-class _EntityTable extends StatelessWidget {
-  const _EntityTable({required this.entities, required this.onEntityService});
 
   final List<SmartHomeEntityItem> entities;
-  final void Function(SmartHomeEntityItem entity, String service)?
-  onEntityService;
+  final bool canControl;
+  final Future<void> Function(
+    SmartHomeEntityItem entity,
+    String service, {
+    Map<String, Object?> serviceData,
+  })?
+  onCallEntityService;
+  final Future<void> Function(SmartHomeEntityItem entity)? onConfirmRunEntity;
 
   @override
   Widget build(BuildContext context) {
-    return MavraResponsiveDataView<SmartHomeEntityItem>(
-      rows: entities,
-      wideBreakpoint: 900,
-      columns: const [
-        DataColumn(label: Text('Entity')),
-        DataColumn(label: Text('Domain')),
-        DataColumn(label: Text('State')),
-        DataColumn(label: Text('Area')),
-        DataColumn(label: Text('Actions')),
-      ],
-      tableCells: (entity) => [
-        DataCell(
-          KeyedSubtree(
-            key: Key('smart-home-entity-row-${entity.entityId}'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [Text(entity.name), Text(entity.entityId)],
-            ),
-          ),
-        ),
-        DataCell(Text(entity.domain)),
-        DataCell(Text(entity.state)),
-        DataCell(Text(entity.area ?? '-')),
-        DataCell(
-          _EntityActions(entity: entity, onEntityService: onEntityService),
-        ),
-      ],
-      mobileBuilder: (context, entity) =>
-          _EntityTile(entity: entity, onEntityService: onEntityService),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1120
+            ? 4
+            : width >= 860
+            ? 3
+            : width >= 560
+            ? 2
+            : 1;
+        final spacing = 16.0;
+        final cardWidth = (width - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final entity in entities)
+              SizedBox(
+                width: cardWidth,
+                child: _EntityCard(
+                  entity: entity,
+                  canControl: canControl,
+                  onCallEntityService: onCallEntityService,
+                  onConfirmRunEntity: onConfirmRunEntity,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _EntityTile extends StatelessWidget {
-  const _EntityTile({required this.entity, required this.onEntityService});
+class _EntityCard extends StatelessWidget {
+  const _EntityCard({
+    required this.entity,
+    required this.canControl,
+    required this.onCallEntityService,
+    required this.onConfirmRunEntity,
+  });
 
   final SmartHomeEntityItem entity;
-  final void Function(SmartHomeEntityItem entity, String service)?
-  onEntityService;
+  final bool canControl;
+  final Future<void> Function(
+    SmartHomeEntityItem entity,
+    String service, {
+    Map<String, Object?> serviceData,
+  })?
+  onCallEntityService;
+  final Future<void> Function(SmartHomeEntityItem entity)? onConfirmRunEntity;
+
+  bool get _canUseAvailableControl =>
+      entity.available && canControl && onCallEntityService != null;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(_EntityActions._iconForDomain(entity.domain)),
-        title: Text(entity.name),
-        subtitle: Column(
+      key: Key('smart-home-card-${entity.entityId}'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(entity.entityId),
-            if (entity.area != null) Text(entity.area!),
-          ],
-        ),
-        trailing: Wrap(
-          spacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _EntityActions(entity: entity, onEntityService: onEntityService),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(_iconForDomain(entity.domain), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entity.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Chip(label: Text(entity.state)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(entity.entityId, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            _controls(),
+            if (!entity.available) ...[
+              const SizedBox(height: 12),
+              const Chip(
+                avatar: Icon(Icons.warning_amber, size: 18),
+                label: Text('unavailable'),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
-}
 
-class _EntityActions extends StatelessWidget {
-  const _EntityActions({required this.entity, required this.onEntityService});
-
-  final SmartHomeEntityItem entity;
-  final void Function(SmartHomeEntityItem entity, String service)?
-  onEntityService;
+  Widget _controls() {
+    switch (entity.domain) {
+      case 'light':
+      case 'switch':
+      case 'fan':
+        return Switch(
+          key: Key('smart-home-toggle-${entity.entityId}'),
+          value: entity.state == 'on',
+          onChanged: _canUseAvailableControl
+              ? (_) => onCallEntityService!(
+                  entity,
+                  entity.state == 'on' ? 'turn_off' : 'turn_on',
+                )
+              : null,
+        );
+      case 'cover':
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton(
+              key: Key('smart-home-cover-open-${entity.entityId}'),
+              style: _compactOutlinedButtonStyle(),
+              onPressed: canControl && onCallEntityService != null
+                  ? () => onCallEntityService!(entity, 'open_cover')
+                  : null,
+              child: const Text('Open'),
+            ),
+            OutlinedButton(
+              key: Key('smart-home-cover-stop-${entity.entityId}'),
+              style: _compactOutlinedButtonStyle(),
+              onPressed: canControl && onCallEntityService != null
+                  ? () => onCallEntityService!(entity, 'stop_cover')
+                  : null,
+              child: const Text('Stop'),
+            ),
+            OutlinedButton(
+              key: Key('smart-home-cover-close-${entity.entityId}'),
+              style: _compactOutlinedButtonStyle(),
+              onPressed: canControl && onCallEntityService != null
+                  ? () => onCallEntityService!(entity, 'close_cover')
+                  : null,
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      case 'climate':
+        return _ClimateControls(
+          entity: entity,
+          enabled: _canUseAvailableControl,
+          onCallEntityService: onCallEntityService,
+        );
+      case 'scene':
+      case 'script':
+        return FilledButton.icon(
+          key: Key('smart-home-run-${entity.entityId}'),
+          style: _compactFilledButtonStyle(),
+          onPressed: canControl && onConfirmRunEntity != null
+              ? () => onConfirmRunEntity!(entity)
+              : null,
+          icon: const Icon(Icons.power_settings_new, size: 18),
+          label: const Text('Run'),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   static IconData _iconForDomain(String domain) {
     switch (domain) {
@@ -697,45 +880,103 @@ class _EntityActions extends StatelessWidget {
         return Icons.lightbulb;
       case 'switch':
         return Icons.toggle_on;
-      case 'climate':
-        return Icons.thermostat;
       case 'fan':
         return Icons.air;
+      case 'cover':
+        return Icons.garage;
+      case 'climate':
+        return Icons.thermostat;
+      case 'scene':
+      case 'script':
+        return Icons.play_circle;
       default:
         return Icons.home;
     }
   }
+}
+
+class _ClimateControls extends StatelessWidget {
+  const _ClimateControls({
+    required this.entity,
+    required this.enabled,
+    required this.onCallEntityService,
+  });
+
+  final SmartHomeEntityItem entity;
+  final bool enabled;
+  final Future<void> Function(
+    SmartHomeEntityItem entity,
+    String service, {
+    Map<String, Object?> serviceData,
+  })?
+  onCallEntityService;
 
   @override
   Widget build(BuildContext context) {
+    final modes = _stringList(entity.attributes['hvac_modes']);
+    final temperature = _number(entity.attributes['temperature']);
     return Wrap(
       spacing: 8,
+      runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Chip(label: Text(entity.domain)),
-        Chip(label: Text(entity.state)),
-        IconButton(
-          key: Key('smart-home-entity-on-${entity.entityId}'),
-          tooltip: 'Turn on ${entity.name}',
-          onPressed: entity.available && onEntityService != null
-              ? () => onEntityService!(entity, 'turn_on')
-              : null,
-          icon: const Icon(Icons.power),
-        ),
-        IconButton(
-          key: Key('smart-home-entity-off-${entity.entityId}'),
-          tooltip: 'Turn off ${entity.name}',
-          onPressed: entity.available && onEntityService != null
-              ? () => onEntityService!(entity, 'turn_off')
-              : null,
-          icon: const Icon(Icons.power_off),
-        ),
-        if (!entity.available)
-          const Chip(
-            avatar: Icon(Icons.warning_amber),
-            label: Text('unavailable'),
+        SizedBox(
+          width: 120,
+          child: DropdownButtonFormField<String>(
+            key: Key('smart-home-climate-mode-${entity.entityId}'),
+            isExpanded: true,
+            initialValue: modes.contains(entity.state)
+                ? entity.state
+                : (modes.isEmpty ? null : modes.first),
+            items: [
+              for (final mode in modes)
+                DropdownMenuItem(value: mode, child: Text(mode)),
+            ],
+            onChanged: enabled && onCallEntityService != null
+                ? (mode) {
+                    if (mode != null) {
+                      onCallEntityService!(
+                        entity,
+                        'set_hvac_mode',
+                        serviceData: {'hvac_mode': mode},
+                      );
+                    }
+                  }
+                : null,
           ),
+        ),
+        SizedBox(
+          width: 110,
+          child: TextFormField(
+            key: Key('smart-home-temperature-${entity.entityId}'),
+            initialValue: temperature?.toString() ?? '',
+            enabled: enabled && onCallEntityService != null,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(suffixText: 'C'),
+            onFieldSubmitted: (value) {
+              final next = double.tryParse(value.trim());
+              if (next != null && onCallEntityService != null) {
+                onCallEntityService!(
+                  entity,
+                  'set_temperature',
+                  serviceData: {'temperature': next},
+                );
+              }
+            },
+          ),
+        ),
       ],
     );
+  }
+
+  static List<String> _stringList(Object? value) {
+    if (value is Iterable) {
+      return value.whereType<String>().toList();
+    }
+    return const [];
+  }
+
+  static num? _number(Object? value) {
+    return value is num ? value : null;
   }
 }

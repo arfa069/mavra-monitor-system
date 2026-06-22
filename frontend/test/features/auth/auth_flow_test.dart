@@ -115,6 +115,95 @@ void main() {
     expect(find.text('Login'), findsNothing);
   });
 
+  testWidgets(
+    'default web app restores cookie-backed sessions before guarding',
+    (tester) async {
+      var refreshCalls = 0;
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
+        refreshRemote: () async {
+          refreshCalls += 1;
+          return _session(
+            username: 'cookie-restored',
+            permissions: {'config:read'},
+          );
+        },
+      );
+
+      await tester.pumpWidget(
+        MavraApp(
+          authRepository: repository,
+          settingsRepository: const _FakeSettingsRepository(),
+          todayRepository: const _FakeTodayRepository(),
+          initialLocation: '/settings',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(refreshCalls, 1);
+      expect(repository.currentSession?.username, 'cookie-restored');
+      expect(find.text('Settings'), findsWidgets);
+      expect(find.text('Theme preference: system'), findsOneWidget);
+      expect(find.text('Login'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'default web app preserves the browser route after cookie restore',
+    (tester) async {
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      binding.platformDispatcher.defaultRouteNameTestValue = '/settings';
+      addTearDown(binding.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
+        refreshRemote: () async =>
+            _session(username: 'cookie-restored', permissions: {'config:read'}),
+      );
+
+      await tester.pumpWidget(
+        MavraApp(
+          authRepository: repository,
+          settingsRepository: const _FakeSettingsRepository(),
+          todayRepository: const _FakeTodayRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Settings'), findsWidgets);
+      expect(find.text('Theme preference: system'), findsOneWidget);
+      expect(find.text('Login'), findsNothing);
+    },
+  );
+
+  testWidgets('authenticated login redirect preserves hash route targets', (
+    tester,
+  ) async {
+    final auth = AuthController(
+      api: FakeAuthApi(),
+      initialSession: _session(
+        username: 'cookie-restored',
+        permissions: {'config:read'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MavraApp(
+        authController: auth,
+        settingsRepository: const _FakeSettingsRepository(),
+        todayRepository: const _FakeTodayRepository(),
+        initialLocation: '/login#/settings',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Theme preference: system'), findsOneWidget);
+    expect(find.text('Login'), findsNothing);
+  });
+
   test('logout clears saved repository sessions', () async {
     final repository = AuthRepository(
       storage: InMemoryTokenStorage(),

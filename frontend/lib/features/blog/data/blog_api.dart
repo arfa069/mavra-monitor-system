@@ -1,4 +1,5 @@
 import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:dio/dio.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
 
@@ -109,6 +110,10 @@ class GeneratedBlogRepository implements BlogRepository {
       slug: post.slug,
       status: post.status.name,
       body: post.contentText,
+      editor: BlogEditorValue(
+        html: post.contentHtml,
+        json: _jsonObjectAttributes(post.contentJson),
+      ),
       excerpt: post.excerpt,
       categoryName: post.category?.name,
       tagNames: [for (final tag in post.tags?.toList() ?? const []) tag.name],
@@ -116,6 +121,8 @@ class GeneratedBlogRepository implements BlogRepository {
       publishedAt: post.publishedAt,
       seoTitle: post.seoTitle,
       seoDescription: post.seoDescription,
+      canonicalUrl: post.canonicalUrl,
+      ogImageUrl: post.ogImageUrl,
     );
   }
 
@@ -128,13 +135,16 @@ class GeneratedBlogRepository implements BlogRepository {
             ..title = draft.title
             ..slug = _blankToNull(draft.slug)
             ..status = _createStatus(draft.status)
-            ..contentHtml = draft.body
+            ..contentHtml = draft.editor.html
+            ..contentJson.replace(_jsonObjectMap(draft.editor.json))
             ..excerpt = _blankToNull(draft.excerpt)
             ..categoryName = _blankToNull(draft.categoryName)
             ..coverUrl = _blankToNull(draft.coverUrl)
             ..publishedAt = draft.publishedAt
             ..seoTitle = _blankToNull(draft.seoTitle)
             ..seoDescription = _blankToNull(draft.seoDescription)
+            ..canonicalUrl = _blankToNull(draft.canonicalUrl)
+            ..ogImageUrl = _blankToNull(draft.ogImageUrl)
             ..tagNames.replace(draft.tagNames),
         ),
       );
@@ -148,13 +158,16 @@ class GeneratedBlogRepository implements BlogRepository {
           ..title = draft.title
           ..slug = _blankToNull(draft.slug)
           ..status = _updateStatus(draft.status)
-          ..contentHtml = draft.body
+          ..contentHtml = draft.editor.html
+          ..contentJson.replace(_jsonObjectMap(draft.editor.json))
           ..excerpt = _blankToNull(draft.excerpt)
           ..categoryName = _blankToNull(draft.categoryName)
           ..coverUrl = _blankToNull(draft.coverUrl)
           ..publishedAt = draft.publishedAt
           ..seoTitle = _blankToNull(draft.seoTitle)
           ..seoDescription = _blankToNull(draft.seoDescription)
+          ..canonicalUrl = _blankToNull(draft.canonicalUrl)
+          ..ogImageUrl = _blankToNull(draft.ogImageUrl)
           ..tagNames.replace(draft.tagNames),
       ),
     );
@@ -211,6 +224,26 @@ class GeneratedBlogRepository implements BlogRepository {
   static String? _blankToNull(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static Map<String, Object?> _jsonObjectAttributes(
+    BuiltMap<String, JsonObject?> attributes,
+  ) {
+    if (attributes.isEmpty) {
+      return const {};
+    }
+    return {
+      for (final entry in attributes.entries) entry.key: entry.value?.value,
+    };
+  }
+
+  static BuiltMap<String, JsonObject?> _jsonObjectMap(
+    Map<String, Object?> values,
+  ) {
+    return BuiltMap<String, JsonObject?>({
+      for (final entry in values.entries)
+        entry.key: entry.value == null ? null : JsonObject(entry.value),
+    });
   }
 
   static String _serviceRoot(String apiBaseUrl) {

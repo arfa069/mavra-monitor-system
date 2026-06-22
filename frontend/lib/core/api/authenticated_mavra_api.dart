@@ -17,6 +17,10 @@ generated.MavraApi createAuthenticatedMavraApi({
     QueuedInterceptorsWrapper(
       onRequest: (options, handler) async {
         _omitEmptyQueryParameters(options);
+        if (authRepository.policy ==
+            TokenPersistencePolicy.webHttpOnlyRefreshCookie) {
+          options.extra['withCredentials'] = true;
+        }
         final token = await authRepository.getAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -36,10 +40,13 @@ generated.MavraApi createAuthenticatedMavraApi({
         }
 
         final existing = refreshFlight;
-        final refreshed = await (existing ??
-            (refreshFlight = authRepository.refreshSession().whenComplete(() {
-              refreshFlight = null;
-            })));
+        final refreshed =
+            await (existing ??
+                (refreshFlight = authRepository.refreshSession().whenComplete(
+                  () {
+                    refreshFlight = null;
+                  },
+                )));
         if (!refreshed) {
           handler.next(error);
           return;

@@ -176,8 +176,16 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> restoreSession() async {
-    final storedSession = await repository?.loadSession();
+    final authRepository = repository;
+    final storedSession = await authRepository?.loadSession();
     if (storedSession == null) {
+      if (authRepository?.policy ==
+              TokenPersistencePolicy.webHttpOnlyRefreshCookie &&
+          authRepository?.refreshRemote != null &&
+          await authRepository!.refreshSession()) {
+        _session = authRepository.currentSession;
+        notifyListeners();
+      }
       return;
     }
     _session = storedSession;

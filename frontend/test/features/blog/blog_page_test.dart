@@ -17,12 +17,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Blog Studio'), findsOneWidget);
+    expect(find.text('Public writing'), findsOneWidget);
     expect(find.text('Morning note'), findsOneWidget);
-    expect(find.text('draft'), findsOneWidget);
+    expect(find.text('Draft'), findsOneWidget);
     expect(find.text('Ops'), findsWidgets);
     expect(find.text('pricing'), findsWidgets);
     expect(find.text('New post'), findsOneWidget);
-    expect(find.text('Edit Morning note'), findsOneWidget);
+    expect(find.text('Edit'), findsOneWidget);
   });
 
   testWidgets('applies search and status filters', (tester) async {
@@ -34,13 +35,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('blog-filter-keyword-field')),
+      find.byKey(const Key('blog-search-field')),
       'morning',
     );
-    await tester.enterText(
-      find.byKey(const Key('blog-filter-status-field')),
-      'draft',
-    );
+    await tester.tap(find.byKey(const Key('blog-status-filter')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Draft').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('blog-apply-filters-button')));
     await tester.pumpAndSettle();
 
@@ -64,13 +65,30 @@ void main() {
     expect(find.byType(MavraResponsiveDataView<BlogPostItem>), findsOneWidget);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.byKey(const Key('blog-post-row-1')), findsOneWidget);
+    expect(find.text('Published'), findsOneWidget);
+    expect(find.text('Taxonomy'), findsOneWidget);
+    expect(find.text('Not set'), findsOneWidget);
 
-    await tester.tap(find.text('New post'));
+    await tester.tap(find.byKey(const Key('blog-new-post-button')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('blog-editor-panel')), findsOneWidget);
+    expect(find.byKey(const Key('blog-editor-dialog')), findsOneWidget);
     expect(find.byKey(const Key('blog-cover-upload-button')), findsOneWidget);
     expect(find.byKey(const Key('blog-excerpt-field')), findsOneWidget);
+    expect(find.byKey(const Key('blog-editor-bold-button')), findsOneWidget);
+    expect(find.byKey(const Key('blog-editor-italic-button')), findsOneWidget);
+    expect(
+      find.byKey(const Key('blog-editor-bullet-list-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('blog-editor-numbered-list-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('blog-editor-link-button')), findsOneWidget);
+    expect(find.byKey(const Key('blog-editor-image-button')), findsOneWidget);
+    expect(find.byKey(const Key('blog-canonical-url-field')), findsOneWidget);
+    expect(find.byKey(const Key('blog-og-image-field')), findsOneWidget);
   });
 
   testWidgets('creates posts and validates required editor fields', (
@@ -83,7 +101,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('New post'));
+    await tester.tap(find.byKey(const Key('blog-new-post-button')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save post'));
     await tester.pumpAndSettle();
@@ -121,6 +139,14 @@ void main() {
       find.byKey(const Key('blog-seo-description-field')),
       'A launch recap for search previews.',
     );
+    await tester.enterText(
+      find.byKey(const Key('blog-canonical-url-field')),
+      'https://example.com/blog/launch-recap',
+    );
+    await tester.enterText(
+      find.byKey(const Key('blog-og-image-field')),
+      '/blog-media/launch-og.png',
+    );
     await tester.ensureVisible(find.text('Save post'));
     await tester.tap(find.text('Save post'));
     await tester.pumpAndSettle();
@@ -139,7 +165,47 @@ void main() {
       repository.savedDrafts.last.seoDescription,
       'A launch recap for search previews.',
     );
+    expect(
+      repository.savedDrafts.last.canonicalUrl,
+      'https://example.com/blog/launch-recap',
+    );
+    expect(repository.savedDrafts.last.ogImageUrl, '/blog-media/launch-og.png');
+    expect(
+      repository.savedDrafts.last.editor.html,
+      contains('A compact markdown recap.'),
+    );
+    expect(repository.savedDrafts.last.editor.json['type'], 'doc');
     expect(repository.updatedPostId, isNull);
+  });
+
+  testWidgets('scheduled posts require a publish time', (tester) async {
+    final repository = _FakeBlogRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: BlogPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('blog-new-post-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('blog-title-field')),
+      'Scheduled draft',
+    );
+    await tester.tap(find.byKey(const Key('blog-status-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scheduled').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('blog-body-field')),
+      'This needs a date.',
+    );
+    await tester.ensureVisible(find.text('Save post'));
+    await tester.tap(find.text('Save post'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scheduled posts need a publish time'), findsOneWidget);
+    expect(repository.savedDrafts, isEmpty);
   });
 
   testWidgets('edits posts and saves status changes', (tester) async {
@@ -150,11 +216,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Edit Morning note'));
+    await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('blog-status-field')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('published').last);
+    await tester.tap(find.text('Published').last);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('blog-body-field')),
@@ -184,8 +250,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('New post'));
+    await tester.tap(find.byKey(const Key('blog-new-post-button')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Upload media'));
     await tester.tap(find.text('Upload media'));
     await tester.pumpAndSettle();
 
@@ -304,6 +371,7 @@ class _FakeBlogRepository implements BlogRepository {
       slug: 'morning-note',
       status: 'draft',
       body: 'Existing markdown body.',
+      editor: BlogEditorValue.fromBody('Existing markdown body.'),
       excerpt: 'Brief operating note.',
       categoryName: 'Ops',
       tagNames: ['pricing'],
@@ -311,6 +379,8 @@ class _FakeBlogRepository implements BlogRepository {
       publishedAt: DateTime.utc(2026, 6, 18, 9),
       seoTitle: 'Morning note SEO',
       seoDescription: 'Morning note description.',
+      canonicalUrl: 'https://example.com/blog/morning-note',
+      ogImageUrl: '/blog-media/morning-og.png',
     );
   }
 

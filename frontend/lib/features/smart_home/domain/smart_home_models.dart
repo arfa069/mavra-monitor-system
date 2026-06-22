@@ -34,6 +34,7 @@ class SmartHomeEntityItem {
     required this.state,
     required this.area,
     required this.available,
+    this.attributes = const {},
   });
 
   final String domain;
@@ -42,6 +43,27 @@ class SmartHomeEntityItem {
   final String state;
   final String? area;
   final bool available;
+  final Map<String, Object?> attributes;
+
+  SmartHomeEntityItem copyWith({
+    String? domain,
+    String? entityId,
+    String? name,
+    String? state,
+    String? area,
+    bool? available,
+    Map<String, Object?>? attributes,
+  }) {
+    return SmartHomeEntityItem(
+      domain: domain ?? this.domain,
+      entityId: entityId ?? this.entityId,
+      name: name ?? this.name,
+      state: state ?? this.state,
+      area: area ?? this.area,
+      available: available ?? this.available,
+      attributes: attributes ?? this.attributes,
+    );
+  }
 }
 
 class SmartHomeSnapshot {
@@ -88,10 +110,15 @@ class SmartHomeConfigDraft {
 }
 
 class SmartHomeServiceDraft {
-  const SmartHomeServiceDraft({required this.entityId, required this.service});
+  const SmartHomeServiceDraft({
+    required this.entityId,
+    required this.service,
+    this.serviceData = const {},
+  });
 
   final String entityId;
   final String service;
+  final Map<String, Object?> serviceData;
 }
 
 class SmartHomeServiceResult {

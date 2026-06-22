@@ -48,9 +48,7 @@ GoRouter createMavraRouter({
   String? initialLocation,
 }) {
   return GoRouter(
-    initialLocation:
-        initialLocation ??
-        (authController.isAuthenticated ? '/today' : '/login'),
+    initialLocation: initialLocation,
     refreshListenable: authController,
     redirect: (context, state) {
       final location = state.matchedLocation;
@@ -64,7 +62,7 @@ GoRouter createMavraRouter({
       }
       if (authController.isAuthenticated &&
           (location == '/login' || location == '/register')) {
-        return '/today';
+        return _authenticatedTargetFromFragment(state.uri) ?? '/today';
       }
       return null;
     },
@@ -93,8 +91,7 @@ GoRouter createMavraRouter({
         routes: [
           GoRoute(
             path: '/today',
-            builder: (context, state) =>
-                TodayPage(repository: todayRepository),
+            builder: (context, state) => TodayPage(repository: todayRepository),
           ),
           GoRoute(
             path: '/dashboard',
@@ -189,6 +186,40 @@ GoRouter createMavraRouter({
       ),
     ],
   );
+}
+
+String? _authenticatedTargetFromFragment(Uri uri) {
+  final fragment = uri.fragment.trim();
+  if (fragment.isEmpty || !fragment.startsWith('/')) {
+    return null;
+  }
+  final target = Uri.tryParse(fragment);
+  if (target == null || target.hasScheme || target.hasAuthority) {
+    return null;
+  }
+  if (!_isProtectedAppRoute(target.path)) {
+    return null;
+  }
+  return target.toString();
+}
+
+bool _isProtectedAppRoute(String path) {
+  return const {
+    '/today',
+    '/dashboard',
+    '/analytics',
+    '/events',
+    '/alerts',
+    '/jobs',
+    '/products',
+    '/schedule',
+    '/smart-home',
+    '/profile',
+    '/settings',
+    '/admin/users',
+    '/admin/audit-logs',
+    '/admin/blog',
+  }.contains(path);
 }
 
 Set<String> _adminPermissions(AuthController authController) {

@@ -1,3 +1,5 @@
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -59,6 +61,7 @@ class GeneratedSmartHomeRepository implements SmartHomeRepository {
             state: entity.state,
             area: entity.area,
             available: entity.available ?? true,
+            attributes: _jsonObjectAttributes(entity.attributes),
           ),
       ],
       canControl: false,
@@ -111,11 +114,15 @@ class GeneratedSmartHomeRepository implements SmartHomeRepository {
     SmartHomeServiceDraft draft,
   ) async {
     final response = await _smartHomeApi.smartHomeCallService(
-      smartHomeServiceRequest: generated.SmartHomeServiceRequest(
-        (builder) => builder
+      smartHomeServiceRequest: generated.SmartHomeServiceRequest((builder) {
+        builder
           ..entityId = draft.entityId
-          ..service = draft.service,
-      ),
+          ..service = draft.service;
+        final serviceData = _jsonObjectMap(draft.serviceData);
+        if (serviceData != null) {
+          builder.serviceData.replace(serviceData);
+        }
+      }),
     );
     final data = response.data;
     return SmartHomeServiceResult(
@@ -127,6 +134,29 @@ class GeneratedSmartHomeRepository implements SmartHomeRepository {
   static String _domainName(Object value) {
     final raw = value.toString().split('.').last;
     return raw.endsWith('_') ? raw.substring(0, raw.length - 1) : raw;
+  }
+
+  static Map<String, Object?> _jsonObjectAttributes(
+    BuiltMap<String, JsonObject?>? attributes,
+  ) {
+    if (attributes == null || attributes.isEmpty) {
+      return const {};
+    }
+    return {
+      for (final entry in attributes.entries) entry.key: entry.value?.value,
+    };
+  }
+
+  static BuiltMap<String, JsonObject?>? _jsonObjectMap(
+    Map<String, Object?> values,
+  ) {
+    if (values.isEmpty) {
+      return null;
+    }
+    return BuiltMap<String, JsonObject?>({
+      for (final entry in values.entries)
+        entry.key: entry.value == null ? null : JsonObject(entry.value),
+    });
   }
 
   static String _serviceRoot(String apiBaseUrl) {

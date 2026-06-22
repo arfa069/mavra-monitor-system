@@ -156,12 +156,15 @@ class _MavraAppState extends State<MavraApp> {
   }
 
   Widget _buildRestoringApp() {
-    return MaterialApp(
-      title: 'Mavra',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Theme(
+        data: AppTheme.light,
+        child: const ColoredBox(
+          color: Colors.white,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
     );
   }
 
@@ -175,7 +178,8 @@ class _MavraAppState extends State<MavraApp> {
       return null;
     }
     final repository = _defaultAuthRepository();
-    if (repository.policy == TokenPersistencePolicy.webHttpOnlyRefreshCookie) {
+    if (repository.policy == TokenPersistencePolicy.webHttpOnlyRefreshCookie &&
+        repository.refreshRemote == null) {
       return null;
     }
     return _authController().restoreSession();
@@ -232,8 +236,7 @@ class _MavraAppState extends State<MavraApp> {
 
     final capabilities = PlatformCapabilities.current();
     late final AuthRepository repository;
-    repository =
-        capabilities.secureStorageMode == SecureStorageMode.webCookie
+    repository = capabilities.secureStorageMode == SecureStorageMode.webCookie
         ? AuthRepository(
             storage: InMemoryTokenStorage(),
             policy: TokenPersistencePolicy.webHttpOnlyRefreshCookie,
