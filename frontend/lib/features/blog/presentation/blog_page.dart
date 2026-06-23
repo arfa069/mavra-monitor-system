@@ -495,10 +495,26 @@ class _BlogContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BlogHeader(canWrite: canWrite, onNewPost: onNewPost),
+          const _BlogHeader(),
           if (statusMessage != null) ...[
             const SizedBox(height: 8),
             Text(statusMessage!),
+          ],
+          if (canWrite) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: 140,
+                child: FilledButton.icon(
+                  key: const Key('blog-new-post-button'),
+                  style: _compactFilledButtonStyle(),
+                  onPressed: onNewPost,
+                  icon: const Icon(Icons.add),
+                  label: const Text('New post'),
+                ),
+              ),
+            ),
           ],
           const SizedBox(height: 16),
           _BlogFilters(
@@ -523,10 +539,7 @@ class _BlogContent extends StatelessWidget {
 }
 
 class _BlogHeader extends StatelessWidget {
-  const _BlogHeader({required this.canWrite, required this.onNewPost});
-
-  final bool canWrite;
-  final VoidCallback onNewPost;
+  const _BlogHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -539,43 +552,35 @@ class _BlogHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 320,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Public writing',
-                  style: Theme.of(context).textTheme.labelMedium,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Blog Studio',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          Text(
+            'Public writing',
+            style: Theme.of(context).textTheme.labelMedium,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
           ),
-          if (canWrite)
-            FilledButton.icon(
-              key: const Key('blog-new-post-button'),
-              onPressed: onNewPost,
-              icon: const Icon(Icons.add),
-              label: const Text('New post'),
-            ),
+          const SizedBox(height: 4),
+          Text(
+            'Blog Studio',
+            style: Theme.of(context).textTheme.headlineSmall,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
   }
+}
+
+ButtonStyle _compactFilledButtonStyle() {
+  return FilledButton.styleFrom(
+    minimumSize: const Size(0, 36),
+    padding: const EdgeInsets.symmetric(horizontal: 14),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+  );
 }
 
 class _BlogFilters extends StatelessWidget {
@@ -626,11 +631,15 @@ class _BlogFilters extends StatelessWidget {
             onChanged: onStatusChanged,
           ),
         ),
-        FilledButton.icon(
-          key: const Key('blog-apply-filters-button'),
-          onPressed: onApplyFilters,
-          icon: const Icon(Icons.filter_alt),
-          label: const Text('Apply filters'),
+        SizedBox(
+          width: 154,
+          child: FilledButton.icon(
+            key: const Key('blog-apply-filters-button'),
+            style: _compactFilledButtonStyle(),
+            onPressed: onApplyFilters,
+            icon: const Icon(Icons.filter_alt),
+            label: const Text('Apply filters'),
+          ),
         ),
       ],
     );

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/widgets/adaptive_scaffold.dart';
 import '../domain/today_models.dart';
+
+const _loadWarning = '今天的简报没有完全同步，稍后会再试。';
 
 class TodayPage extends StatefulWidget {
   const TodayPage({super.key, required this.repository});
@@ -25,44 +26,37 @@ class _TodayPageState extends State<TodayPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AdaptiveScaffold(
-        destinations: const [
-          AdaptiveDestination(icon: Icons.today, label: 'Today'),
-          AdaptiveDestination(icon: Icons.event_note, label: 'Events'),
-          AdaptiveDestination(icon: Icons.notifications, label: 'Alerts'),
-          AdaptiveDestination(icon: Icons.analytics, label: 'Analytics'),
-        ],
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 1:
-              context.go('/events');
-            case 2:
-              context.go('/alerts');
-            case 3:
-              context.go('/analytics');
-          }
-        },
-        body: FutureBuilder<TodaySnapshot>(
+      body: SafeArea(
+        child: FutureBuilder<TodaySnapshot>(
           future: _snapshot,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return const _TodayLoading();
             }
-            if (snapshot.hasError) {
-              return _TodayError(
-                onRetry: () {
-                  setState(() {
-                    _snapshot = widget.repository.loadToday();
-                  });
-                },
-              );
-            }
-            return _TodayContent(
-              snapshot: snapshot.data ?? TodaySnapshot.quiet(),
-            );
+            final brief = snapshot.hasError
+                ? TodaySnapshot.quiet(warningMessage: _loadWarning)
+                : snapshot.data ?? TodaySnapshot.quiet();
+            return _TodayContent(snapshot: brief);
           },
         ),
+      ),
+    );
+  }
+}
+
+class _TodayLoading extends StatelessWidget {
+  const _TodayLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('正在整理今天的节奏...'),
+        ],
       ),
     );
   }
@@ -77,11 +71,57 @@ class _TodayContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final content = constraints.maxWidth >= 900
+        final wide = constraints.maxWidth >= 900;
+        final content = wide
             ? _DesktopToday(snapshot: snapshot)
             : _MobileToday(snapshot: snapshot);
-        return SafeArea(child: content);
+        return content;
       },
+    );
+  }
+}
+
+class _DesktopToday extends StatelessWidget {
+  const _DesktopToday({required this.snapshot});
+
+  final TodaySnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1280),
+            child: Row(
+              key: const Key('today-desktop-rhythm'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (snapshot.warningMessage != null) ...[
+                        _WarningBanner(message: snapshot.warningMessage!),
+                        const SizedBox(height: 16),
+                      ],
+                      _DailySummary(snapshot: snapshot),
+                      const SizedBox(height: 16),
+                      _AttentionQueue(items: snapshot.attentionItems),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: 360,
+                  child: _QuietStatusPanel(statuses: snapshot.moduleStatuses),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -94,141 +134,144 @@ class _MobileToday extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      key: const Key('today-mobile-feed'),
+      key: const Key('today-mobile-rhythm'),
       padding: const EdgeInsets.all(16),
       children: [
-        _SummaryPanel(summary: snapshot.summary),
-        const SizedBox(height: 12),
-        _AttentionPanel(items: snapshot.attentionQueue),
-        const SizedBox(height: 12),
-        _ModulePanel(modules: snapshot.modules),
+        if (snapshot.warningMessage != null) ...[
+          _WarningBanner(message: snapshot.warningMessage!),
+          const SizedBox(height: 12),
+        ],
+        _DailySummary(snapshot: snapshot),
+        const SizedBox(height: 16),
+        _AttentionQueue(items: snapshot.attentionItems),
+        const SizedBox(height: 16),
+        _QuietStatusPanel(statuses: snapshot.moduleStatuses),
       ],
     );
   }
 }
 
-class _DesktopToday extends StatelessWidget {
-  const _DesktopToday({required this.snapshot});
+class _DailySummary extends StatelessWidget {
+  const _DailySummary({required this.snapshot});
 
   final TodaySnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        key: const Key('today-desktop-grid'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 5,
-            child: Column(
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.54),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withValues(alpha: 0.08),
+            blurRadius: 36,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                _SummaryPanel(summary: snapshot.summary),
-                const SizedBox(height: 16),
-                _ModulePanel(modules: snapshot.modules),
+                Expanded(
+                  child: Text(
+                    '今天',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                _QuietScoreChip(score: snapshot.quietScore),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 4,
-            child: _AttentionPanel(items: snapshot.attentionQueue),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Text(
+              snapshot.headline,
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                height: 1.08,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              snapshot.subhead,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: colors.onSurfaceVariant,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel({required this.summary});
+class _QuietScoreChip extends StatelessWidget {
+  const _QuietScoreChip({required this.score});
 
-  final TodaySummary summary;
+  final int score;
 
   @override
   Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(summary.title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text(summary.subtitle),
-          const SizedBox(height: 10),
-          Text(summary.quietState),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final metric in summary.metrics)
-                _MetricChip(label: metric.label, value: metric.value),
-            ],
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.primaryContainer.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Text(
+          'Quiet score $score',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: colors.onPrimaryContainer,
+            fontWeight: FontWeight.w600,
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _AttentionPanel extends StatelessWidget {
-  const _AttentionPanel({required this.items});
+class _AttentionQueue extends StatelessWidget {
+  const _AttentionQueue({required this.items});
 
-  final List<AttentionItem> items;
+  final List<TodayAttentionItem> items;
 
   @override
   Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Attention queue',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          if (items.isEmpty)
-            const Text('No attention needed')
-          else
-            for (final item in items) _AttentionTile(item: item),
+    if (items.isEmpty) {
+      return const _TodayCard(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text('没有需要你立刻处理的事。'),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text('值得看', style: Theme.of(context).textTheme.titleLarge),
+        ),
+        const SizedBox(height: 12),
+        for (var index = 0; index < items.length; index++) ...[
+          _AttentionTile(item: items[index]),
+          if (index != items.length - 1) const SizedBox(height: 12),
         ],
-      ),
-    );
-  }
-}
-
-class _ModulePanel extends StatelessWidget {
-  const _ModulePanel({required this.modules});
-
-  final List<ModuleStatus> modules;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Module status', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
-          for (final module in modules) _ModuleTile(module: module),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text('$label: $value'),
-      avatar: const Icon(Icons.insights, size: 18),
+      ],
     );
   }
 }
@@ -236,83 +279,265 @@ class _MetricChip extends StatelessWidget {
 class _AttentionTile extends StatelessWidget {
   const _AttentionTile({required this.item});
 
-  final AttentionItem item;
+  final TodayAttentionItem item;
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (item.severity) {
-      AttentionSeverity.info => Theme.of(context).colorScheme.primary,
-      AttentionSeverity.warning => Colors.amber.shade800,
-      AttentionSeverity.critical => Theme.of(context).colorScheme.error,
-    };
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.flag, color: color),
-      title: Text(item.title),
-      subtitle: Text(item.detail),
-      trailing: item.route == null ? null : const Icon(Icons.chevron_right),
-      onTap: item.route == null ? null : () => context.go(item.route!),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 620;
+        return _TodayCard(
+          child: wide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(width: 76, child: _AttentionTime(item: item)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _AttentionCopy(item: item)),
+                    const SizedBox(width: 16),
+                    _AttentionAction(item: item),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _AttentionTime(item: item),
+                    const SizedBox(height: 8),
+                    _AttentionCopy(item: item),
+                    const SizedBox(height: 12),
+                    _AttentionAction(item: item),
+                  ],
+                ),
+        );
+      },
     );
   }
 }
 
-class _ModuleTile extends StatelessWidget {
-  const _ModuleTile({required this.module});
+class _AttentionTime extends StatelessWidget {
+  const _AttentionTime({required this.item});
 
-  final ModuleStatus module;
+  final TodayAttentionItem item;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        module.healthy ? Icons.check_circle_outline : Icons.error_outline,
-        color: module.healthy
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.error,
+    return Text(
+      item.timeLabel,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-      title: Text(module.name),
-      subtitle: Text('${module.status} - ${module.detail}'),
     );
   }
 }
 
-class _TodayError extends StatelessWidget {
-  const _TodayError({required this.onRetry});
+class _AttentionCopy extends StatelessWidget {
+  const _AttentionCopy({required this.item});
 
-  final VoidCallback onRetry;
+  final TodayAttentionItem item;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.cloud_off, size: 40),
-          const SizedBox(height: 12),
-          const Text('Today could not load'),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          item.title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          item.description,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+class _AttentionAction extends StatelessWidget {
+  const _AttentionAction({required this.item});
+
+  final TodayAttentionItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          item.metric,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: colors.tertiary,
+            fontWeight: FontWeight.w700,
           ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+          ),
+          onPressed: () => context.go(item.route),
+          child: Text(item.actionLabel),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuietStatusPanel extends StatelessWidget {
+  const _QuietStatusPanel({required this.statuses});
+
+  final List<TodayModuleStatus> statuses;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TodayCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('今天的状态', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          for (var index = 0; index < statuses.length; index++) ...[
+            _StatusRow(status: statuses[index]),
+            if (index != statuses.length - 1) const Divider(height: 1),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Surface extends StatelessWidget {
-  const _Surface({required this.child});
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.status});
+
+  final TodayModuleStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => context.go(status.route),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    status.label,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    status.summary,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _statusText(status.state),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: _statusColor(context, status.state),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WarningBanner extends StatelessWidget {
+  const _WarningBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.errorContainer.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: colors.onErrorContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: colors.onErrorContainer),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({required this.child});
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.72),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow.withValues(alpha: 0.05),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );
   }
+}
+
+String _statusText(TodayStatusState status) {
+  return switch (status) {
+    TodayStatusState.attention => '需要看看',
+    TodayStatusState.inactive => '未启用',
+    TodayStatusState.quiet => '安静运行',
+  };
+}
+
+Color _statusColor(BuildContext context, TodayStatusState status) {
+  final colors = Theme.of(context).colorScheme;
+  return switch (status) {
+    TodayStatusState.attention => colors.tertiary,
+    TodayStatusState.inactive => colors.onSurfaceVariant,
+    TodayStatusState.quiet => colors.primary,
+  };
 }

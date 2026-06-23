@@ -43,7 +43,7 @@ The target typography is editorial warmth plus utility precision.
 - **Body/UI:** IBM Plex Sans / Noto Sans SC where self-hosted assets are available. Fallback: Outfit, Microsoft YaHei, system sans-serif.
 - **Data/Code:** IBM Plex Mono where self-hosted assets are available. Fallback: JetBrains Mono, monospace.
 
-Current implementation must not add remote font runtime dependencies. If exact target fonts are needed, vendor the font files into `frontend/public/fonts` and declare them in `frontend/src/styles/fonts.css`.
+Current implementation must not add remote font runtime dependencies. If exact target fonts are needed, vendor the font files into `frontend/assets/fonts/` and declare them in `frontend/pubspec.yaml`.
 
 ### Type Scale
 

@@ -1,3 +1,5 @@
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -53,11 +55,7 @@ class GeneratedEventRepository implements EventRepository {
     return _realtimeClient
         .connect('events')
         .map(_eventFromRealtime)
-        .where(
-          (item) =>
-              query.filter == EventFilter.all ||
-              item.kind.name == query.filter.name,
-        );
+        .where((item) => _matchesQuery(item, query));
   }
 
   EventFeedItem _mapEvent(generated.EventCenterItem item) {
@@ -70,6 +68,12 @@ class GeneratedEventRepository implements EventRepository {
       severity: item.severity,
       source: item.source_,
       occurredAt: item.occurredAt,
+      status: item.status,
+      userId: item.userId,
+      entityType: item.entityType,
+      entityId: item.entityId,
+      traceId: item.traceId,
+      payload: _mapPayload(item.payload),
     );
   }
 
@@ -86,6 +90,12 @@ class GeneratedEventRepository implements EventRepository {
       occurredAt:
           DateTime.tryParse(payload['occurred_at']?.toString() ?? '') ??
           DateTime.now().toUtc(),
+      status: payload['status']?.toString(),
+      userId: _intOrNull(payload['user_id']),
+      entityType: payload['entity_type']?.toString(),
+      entityId: payload['entity_id']?.toString(),
+      traceId: payload['trace_id']?.toString(),
+      payload: _mapRealtimePayload(payload['payload']),
     );
   }
 
@@ -95,6 +105,93 @@ class GeneratedEventRepository implements EventRepository {
       'platform' => EventKind.platform,
       _ => EventKind.system,
     };
+  }
+
+  bool _matchesQuery(EventFeedItem item, EventQuery query) {
+    if (query.filter != EventFilter.all &&
+        item.kind.name != query.filter.name) {
+      return false;
+    }
+    if (!_equalsIfPresent(query.eventType, item.eventType)) {
+      return false;
+    }
+    if (!_equalsIfPresent(query.category, item.category)) {
+      return false;
+    }
+    if (!_equalsIfPresent(query.severity, item.severity)) {
+      return false;
+    }
+    if (!_equalsIfPresent(query.source, item.source)) {
+      return false;
+    }
+    final startAt = query.startAt;
+    if (startAt != null && item.occurredAt.isBefore(startAt)) {
+      return false;
+    }
+    final endAt = query.endAt;
+    if (endAt != null && item.occurredAt.isAfter(endAt)) {
+      return false;
+    }
+    final keyword = query.keyword?.trim().toLowerCase();
+    if (keyword == null || keyword.isEmpty) {
+      return true;
+    }
+    return [
+      item.message,
+      item.eventType,
+      item.category,
+      item.severity,
+      item.source,
+      item.status,
+      item.entityType,
+      item.entityId,
+      item.traceId,
+      item.userId?.toString(),
+    ].whereType<String>().any((value) => value.toLowerCase().contains(keyword));
+  }
+
+  bool _equalsIfPresent(String? expected, String actual) {
+    return expected == null || expected.isEmpty || actual == expected;
+  }
+
+  int? _intOrNull(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  Map<String, Object?>? _mapPayload(BuiltMap<String, JsonObject?>? payload) {
+    if (payload == null) {
+      return null;
+    }
+    return {
+      for (final entry in payload.entries)
+        entry.key: _normalizeJson(entry.value?.value),
+    };
+  }
+
+  Map<String, Object?>? _mapRealtimePayload(Object? payload) {
+    if (payload is Map) {
+      return {
+        for (final entry in payload.entries)
+          entry.key.toString(): _normalizeJson(entry.value),
+      };
+    }
+    return null;
+  }
+
+  Object? _normalizeJson(Object? value) {
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _normalizeJson(entry.value),
+      };
+    }
+    if (value is Iterable) {
+      return [for (final item in value) _normalizeJson(item)];
+    }
+    return value;
   }
 
   static String _serviceRoot(String apiBaseUrl) {

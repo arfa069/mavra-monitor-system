@@ -11,6 +11,7 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
     required this.tableCells,
     required this.mobileBuilder,
     this.wideBreakpoint = 760,
+    this.columnSpacing,
     this.empty,
   });
 
@@ -19,6 +20,7 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
   final MavraTableCells<T> tableCells;
   final MavraMobileRowBuilder<T> mobileBuilder;
   final double wideBreakpoint;
+  final double? columnSpacing;
   final Widget? empty;
 
   @override
@@ -33,10 +35,9 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
+              columnSpacing: columnSpacing,
               columns: columns,
-              rows: [
-                for (final row in rows) DataRow(cells: tableCells(row)),
-              ],
+              rows: [for (final row in rows) DataRow(cells: tableCells(row))],
             ),
           );
         }

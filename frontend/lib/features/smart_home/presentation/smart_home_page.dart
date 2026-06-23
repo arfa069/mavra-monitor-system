@@ -423,12 +423,15 @@ class _SmartHomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SmartHomeHeader(
+          const _SmartHomeHeader(),
+          const SizedBox(height: 12),
+          _SmartHomeActions(
             connected: snapshot.summary.connected,
             loading: loading,
             onRefresh: onRefresh,
             onConfigure: onConfigure,
           ),
+          const SizedBox(height: 32),
           if (loadError != null) ...[
             _MessageCard(message: loadError!, error: true),
             const SizedBox(height: 16),
@@ -566,7 +569,47 @@ class _SmartHomeContent extends StatelessWidget {
 }
 
 class _SmartHomeHeader extends StatelessWidget {
-  const _SmartHomeHeader({
+  const _SmartHomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      key: const Key('smart-home-title-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0x29D89A57),
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Smart Home', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Smart Home',
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Home Assistant devices and scenes',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmartHomeActions extends StatelessWidget {
+  const _SmartHomeActions({
     required this.connected,
     required this.loading,
     required this.onRefresh,
@@ -580,88 +623,35 @@ class _SmartHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 32),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0x29D89A57),
-        border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 680;
-          final title = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Smart Home',
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Smart Home',
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Home Assistant devices and scenes',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          );
-          final actions = Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Chip(
-                label: Text(connected ? 'Connected' : 'Offline'),
-                avatar: Icon(
-                  connected ? Icons.cloud_done : Icons.cloud_off,
-                  size: 18,
-                ),
-              ),
-              OutlinedButton(
-                key: const Key('smart-home-refresh-button'),
-                style: _compactOutlinedButtonStyle(),
-                onPressed: loading ? null : onRefresh,
-                child: Text(loading ? 'Refreshing' : 'Refresh'),
-              ),
-              if (onConfigure != null)
-                OutlinedButton.icon(
-                  key: const Key('smart-home-configure-button'),
-                  style: _compactOutlinedButtonStyle(),
-                  onPressed: onConfigure,
-                  icon: const Icon(Icons.settings, size: 18),
-                  label: const Text('Configure'),
-                ),
-            ],
-          );
-
-          if (compact) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [title, const SizedBox(height: 16), actions],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: title),
-              const SizedBox(width: 24),
-              Flexible(
-                child: Align(alignment: Alignment.topRight, child: actions),
-              ),
-            ],
-          );
-        },
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Chip(
+            label: Text(connected ? 'Connected' : 'Offline'),
+            avatar: Icon(
+              connected ? Icons.cloud_done : Icons.cloud_off,
+              size: 18,
+            ),
+          ),
+          OutlinedButton(
+            key: const Key('smart-home-refresh-button'),
+            style: _compactOutlinedButtonStyle(),
+            onPressed: loading ? null : onRefresh,
+            child: Text(loading ? 'Refreshing' : 'Refresh'),
+          ),
+          if (onConfigure != null)
+            OutlinedButton.icon(
+              key: const Key('smart-home-configure-button'),
+              style: _compactOutlinedButtonStyle(),
+              onPressed: onConfigure,
+              icon: const Icon(Icons.settings, size: 18),
+              label: const Text('Configure'),
+            ),
+        ],
       ),
     );
   }

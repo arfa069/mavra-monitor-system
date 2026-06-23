@@ -1,3 +1,5 @@
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/json_object.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -43,7 +45,9 @@ class GeneratedAdminRepository implements AdminRepository {
     final resourcePermissions = resourcePermissionsResponse.data;
 
     return AdminSnapshot(
-      users: [for (final user in users?.items.toList() ?? const []) _mapUser(user)],
+      users: [
+        for (final user in users?.items.toList() ?? const []) _mapUser(user),
+      ],
       rolePermissions: [
         for (final role in matrix?.roles.toList() ?? const []) _mapRole(role),
       ],
@@ -175,9 +179,7 @@ class GeneratedAdminRepository implements AdminRepository {
 
   @override
   Future<void> revokeResourcePermission(int permissionId) async {
-    await _adminApi.adminRevokeResourcePermission(
-      permissionId: permissionId,
-    );
+    await _adminApi.adminRevokeResourcePermission(permissionId: permissionId);
   }
 
   @override
@@ -248,7 +250,34 @@ class GeneratedAdminRepository implements AdminRepository {
       targetType: log.targetType,
       targetId: log.targetId,
       createdAt: log.createdAt,
+      details: _mapAuditDetails(log.details),
+      ipAddress: log.ipAddress,
     );
+  }
+
+  static Map<String, Object?>? _mapAuditDetails(
+    BuiltMap<String, JsonObject?>? details,
+  ) {
+    if (details == null || details.isEmpty) {
+      return null;
+    }
+    return {
+      for (final entry in details.entries)
+        entry.key: _jsonValue(entry.value?.value),
+    };
+  }
+
+  static Object? _jsonValue(Object? value) {
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _jsonValue(entry.value),
+      };
+    }
+    if (value is Iterable) {
+      return [for (final item in value) _jsonValue(item)];
+    }
+    return value;
   }
 
   static ResourcePermissionItem _mapResourcePermission(

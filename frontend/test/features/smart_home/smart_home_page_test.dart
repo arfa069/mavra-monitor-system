@@ -63,6 +63,17 @@ void main() {
     );
     expect(refreshBox.size.width, greaterThan(72));
     expect(refreshBox.size.height, lessThan(56));
+    final bannerBottom = tester
+        .getBottomLeft(find.byKey(const Key('smart-home-title-banner')))
+        .dy;
+    final bannerSize = tester.getSize(
+      find.byKey(const Key('smart-home-title-banner')),
+    );
+    final refreshTop = tester
+        .getTopLeft(find.byKey(const Key('smart-home-refresh-button')))
+        .dy;
+    expect(bannerSize.width, greaterThan(900));
+    expect(refreshTop, greaterThan(bannerBottom));
 
     final cardBox = tester.renderObject<RenderBox>(
       find.byKey(const Key('smart-home-card-light.living_room')),

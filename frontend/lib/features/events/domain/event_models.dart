@@ -64,6 +64,12 @@ class EventFeedItem {
     required this.severity,
     required this.source,
     required this.occurredAt,
+    this.status,
+    this.userId,
+    this.entityType,
+    this.entityId,
+    this.traceId,
+    this.payload,
   });
 
   final String id;
@@ -74,6 +80,12 @@ class EventFeedItem {
   final String severity;
   final String source;
   final DateTime occurredAt;
+  final String? status;
+  final int? userId;
+  final String? entityType;
+  final String? entityId;
+  final String? traceId;
+  final Map<String, Object?>? payload;
 }
 
 class EventPage {
@@ -114,5 +126,20 @@ extension EventKindLabel on EventKind {
     EventKind.audit => 'Audit',
     EventKind.system => 'System',
     EventKind.platform => 'Platform',
+  };
+
+  String get badgeLabel => switch (this) {
+    EventKind.audit => 'AUDIT',
+    EventKind.system => 'SYSTEM',
+    EventKind.platform => 'PLATFORM',
+  };
+}
+
+extension EventFilterLabel on EventFilter {
+  String get label => switch (this) {
+    EventFilter.all => 'All Kinds',
+    EventFilter.audit => 'Audit',
+    EventFilter.system => 'System',
+    EventFilter.platform => 'Platform',
   };
 }

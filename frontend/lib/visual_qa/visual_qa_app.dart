@@ -173,48 +173,59 @@ class _VisualTodayRepository implements TodayRepository {
 
   @override
   Future<TodaySnapshot> loadToday() async => const TodaySnapshot(
-    summary: TodaySummary(
-      title: 'Good morning',
-      subtitle: '5 things need attention',
-      quietState: 'Mavra is watching quietly.',
-      metrics: [
-        TodayMetric(label: 'Price drops', value: '3'),
-        TodayMetric(label: 'New jobs', value: '8'),
-        TodayMetric(label: 'Crawls', value: '21'),
-      ],
-    ),
-    attentionQueue: [
-      AttentionItem(
-        title: 'Boss profile needs review',
-        detail: 'Session challenge detected in the last crawl window',
-        severity: AttentionSeverity.warning,
-        route: '/jobs',
-      ),
-      AttentionItem(
-        title: 'Rice cooker dropped below target',
-        detail: 'Taobao monitor is 12% under the alert threshold',
-        severity: AttentionSeverity.critical,
+    headline: '今天只提醒 3 件事。',
+    subhead: '其他事情都在安静运行，你可以先看最值得注意的变化。',
+    quietScore: 48,
+    attentionItems: [
+      TodayAttentionItem(
+        id: 'visual-price',
+        kind: TodayAttentionKind.price,
+        timeLabel: '今天',
+        title: 'Taobao rice cooker 到了心理价位',
+        description: '价格低于你设定的提醒条件，适合今天决定要不要买。',
+        metric: '-3',
+        actionLabel: '查看',
         route: '/products',
       ),
+      TodayAttentionItem(
+        id: 'visual-job',
+        kind: TodayAttentionKind.job,
+        timeLabel: '稍后',
+        title: 'Senior Flutter Engineer 值得晚点打开',
+        description: 'Mavra Labs · Shanghai',
+        metric: '92',
+        actionLabel: '收藏',
+        route: '/jobs',
+      ),
+      TodayAttentionItem(
+        id: 'visual-home',
+        kind: TodayAttentionKind.home,
+        timeLabel: '早晨',
+        title: '家里连接需要看一下',
+        description: 'Home Assistant 状态不是完全正常，建议确认连接和设备状态。',
+        metric: '2',
+        actionLabel: '看家里',
+        route: '/smart-home',
+      ),
     ],
-    modules: [
-      ModuleStatus(
-        name: 'Products',
-        status: 'Monitoring',
-        detail: '18 active products across Taobao and JD',
-        healthy: true,
+    moduleStatuses: [
+      TodayModuleStatus(
+        label: '价格看守',
+        state: TodayStatusState.attention,
+        summary: '3 个商品到了值得看的价位。',
+        route: '/products',
       ),
-      ModuleStatus(
-        name: 'Jobs',
-        status: 'Needs login',
-        detail: '1 crawl profile requires attention',
-        healthy: false,
+      TodayModuleStatus(
+        label: '职位雷达',
+        state: TodayStatusState.attention,
+        summary: '8 个职位值得看看。',
+        route: '/jobs',
       ),
-      ModuleStatus(
-        name: 'Smart Home',
-        status: 'Connected',
-        detail: '12 entities synced from Home Assistant',
-        healthy: true,
+      TodayModuleStatus(
+        label: '家里设备',
+        state: TodayStatusState.attention,
+        summary: '2 个设备需要看一下。',
+        route: '/smart-home',
       ),
     ],
   );
@@ -224,16 +235,87 @@ class _VisualAnalyticsRepository implements AnalyticsRepository {
   const _VisualAnalyticsRepository();
 
   @override
-  Future<AnalyticsOverview> loadOverview() async => const AnalyticsOverview(
-    kpis: [
-      AnalyticsKpi(label: 'Price drops', value: '3'),
-      AnalyticsKpi(label: 'New jobs', value: '8'),
-      AnalyticsKpi(label: 'Crawler success', value: '96%'),
-      AnalyticsKpi(label: 'HA devices online', value: '12'),
+  Future<AnalyticsOverview> loadOverview({
+    int days = 30,
+    bool includeAdmin = false,
+  }) async => AnalyticsOverview(
+    userKpi: const DashboardUserKpi(
+      totalProducts: 24,
+      priceDropsToday: 3,
+      newJobsToday: 8,
+      matchCount: 12,
+      crawlCountToday: 46,
+    ),
+    systemKpi: includeAdmin
+        ? const DashboardSystemKpi(
+            totalUsers: 6,
+            totalCrawls: 240,
+            successRate: 0.96,
+            activeAlerts: 4,
+            diskUsage: 0.42,
+            memoryUsage: 0.58,
+          )
+        : null,
+    userTrends: _visualUserTrends,
+    systemTrends: includeAdmin ? _visualSystemTrends : const [],
+    recentAlerts: [
+      AnalyticsRecentAlert(
+        id: 1,
+        message: 'Taobao rice cooker dropped 12%',
+        productTitle: 'Taobao rice cooker',
+        alertType: 'price_drop',
+        active: true,
+        createdAt: DateTime.utc(2026, 6, 17, 8),
+        platform: 'taobao',
+      ),
+      AnalyticsRecentAlert(
+        id: 2,
+        message: 'Boss Flutter lead match scored 92%',
+        productTitle: 'Senior Flutter Engineer',
+        alertType: 'job_match',
+        active: false,
+        createdAt: DateTime.utc(2026, 6, 17, 8, 30),
+        platform: 'boss',
+      ),
+      AnalyticsRecentAlert(
+        id: 3,
+        message: 'Crawler profile needs review',
+        productTitle: null,
+        alertType: 'profile_review',
+        active: true,
+        createdAt: DateTime.utc(2026, 6, 17, 9),
+        platform: null,
+      ),
     ],
-    trends: [
+  );
+
+  @override
+  Stream<AnalyticsKpiSnapshot> watchKpiUpdates() => const Stream.empty();
+}
+
+const _visualUserTrends = [
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.platformProducts,
+    title: '各平台商品分布',
+    chartKind: AnalyticsChartKind.pie,
+    series: [
       TrendSeries(
-        label: 'Price trend',
+        label: 'products',
+        points: [
+          TrendPoint(label: 'taobao', value: 12),
+          TrendPoint(label: 'jd', value: 8),
+          TrendPoint(label: 'amazon', value: 4),
+        ],
+      ),
+    ],
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.price,
+    title: '价格趋势',
+    chartKind: AnalyticsChartKind.line,
+    series: [
+      TrendSeries(
+        label: 'price',
         points: [
           TrendPoint(label: 'Mon', value: 12),
           TrendPoint(label: 'Tue', value: 18),
@@ -241,8 +323,46 @@ class _VisualAnalyticsRepository implements AnalyticsRepository {
           TrendPoint(label: 'Thu', value: 22),
         ],
       ),
+    ],
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.priceChange,
+    title: '价格变化率趋势',
+    chartKind: AnalyticsChartKind.line,
+    series: [
       TrendSeries(
-        label: 'Job matches',
+        label: 'change',
+        points: [
+          TrendPoint(label: 'Mon', value: -4),
+          TrendPoint(label: 'Tue', value: -9),
+          TrendPoint(label: 'Wed', value: 2),
+          TrendPoint(label: 'Thu', value: -12),
+        ],
+      ),
+    ],
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.platformJobs,
+    title: '各平台职位分布',
+    chartKind: AnalyticsChartKind.pie,
+    series: [
+      TrendSeries(
+        label: 'jobs',
+        points: [
+          TrendPoint(label: 'boss', value: 9),
+          TrendPoint(label: 'liepin', value: 5),
+          TrendPoint(label: '51job', value: 4),
+        ],
+      ),
+    ],
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.jobs,
+    title: '新增职位趋势',
+    chartKind: AnalyticsChartKind.line,
+    series: [
+      TrendSeries(
+        label: 'jobs',
         points: [
           TrendPoint(label: 'Mon', value: 4),
           TrendPoint(label: 'Tue', value: 6),
@@ -251,23 +371,58 @@ class _VisualAnalyticsRepository implements AnalyticsRepository {
         ],
       ),
     ],
-    recentAlerts: [
-      AnalyticsRecentAlert(
-        message: 'Taobao rice cooker dropped 12%',
-        productTitle: 'Taobao rice cooker',
-        alertType: 'price_drop',
-      ),
-      AnalyticsRecentAlert(
-        message: 'Boss Flutter lead match scored 92%',
-        productTitle: 'Senior Flutter Engineer',
-        alertType: 'job_match',
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.jobMatches,
+    title: '职位匹配趋势',
+    chartKind: AnalyticsChartKind.line,
+    series: [
+      TrendSeries(
+        label: 'matches',
+        points: [
+          TrendPoint(label: 'Mon', value: 3),
+          TrendPoint(label: 'Tue', value: 5),
+          TrendPoint(label: 'Wed', value: 9),
+          TrendPoint(label: 'Thu', value: 12),
+        ],
       ),
     ],
-  );
+  ),
+];
 
-  @override
-  Stream<AnalyticsOverview> watchOverview() => const Stream.empty();
-}
+const _visualSystemTrends = [
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.platformSuccess,
+    title: '平台成功率对比',
+    chartKind: AnalyticsChartKind.bar,
+    series: [
+      TrendSeries(
+        label: 'success',
+        points: [
+          TrendPoint(label: 'taobao', value: 94),
+          TrendPoint(label: 'jd', value: 97),
+          TrendPoint(label: 'boss', value: 91),
+        ],
+      ),
+    ],
+  ),
+  AnalyticsTrendSection(
+    type: AnalyticsTrendType.crawlFailures,
+    title: '爬取失败趋势',
+    chartKind: AnalyticsChartKind.bar,
+    series: [
+      TrendSeries(
+        label: 'failures',
+        points: [
+          TrendPoint(label: 'Mon', value: 3),
+          TrendPoint(label: 'Tue', value: 1),
+          TrendPoint(label: 'Wed', value: 4),
+          TrendPoint(label: 'Thu', value: 2),
+        ],
+      ),
+    ],
+  ),
+];
 
 class _VisualAdminRepository implements AdminRepository {
   const _VisualAdminRepository();
@@ -305,23 +460,26 @@ class _VisualAdminRepository implements AdminRepository {
     auditLogs: [
       AdminAuditLog(
         id: 101,
-        action: 'user.login',
+        action: 'user.create',
         actorUserId: 1,
-        targetType: 'session',
-        targetId: null,
+        targetType: 'user',
+        targetId: 2,
+        details: const {'email': 'ops@example.local', 'role': 'viewer'},
+        ipAddress: '192.0.2.20',
         createdAt: DateTime.utc(2026, 6, 17, 9),
       ),
       AdminAuditLog(
         id: 102,
         action: 'settings.update',
-        actorUserId: 1,
-        targetType: 'user_config',
-        targetId: 1,
+        actorUserId: null,
+        targetType: null,
+        targetId: null,
+        ipAddress: '203.0.113.8',
         createdAt: DateTime.utc(2026, 6, 17, 9, 10),
       ),
     ],
     totalUsers: 2,
-    totalAuditLogs: 2,
+    totalAuditLogs: 40,
     permissionsAvailable: true,
     realtime: true,
   );
@@ -1170,6 +1328,12 @@ class _VisualEventRepository implements EventRepository {
         severity: 'info',
         source: 'visual-qa',
         occurredAt: DateTime.utc(2026, 6, 17, 9),
+        status: 'delivered',
+        userId: 1,
+        entityType: 'user',
+        entityId: '1',
+        traceId: 'trace-login-visual',
+        payload: const {'ip': '127.0.0.1', 'role': 'super_admin'},
       ),
       EventFeedItem(
         id: 'evt-2',
@@ -1180,16 +1344,32 @@ class _VisualEventRepository implements EventRepository {
         severity: 'warning',
         source: 'visual-qa',
         occurredAt: DateTime.utc(2026, 6, 17, 9, 10),
+        status: 'pending',
+        userId: 1,
+        entityType: 'profile',
+        entityId: 'boss-main',
+        traceId: 'trace-profile-visual',
+        payload: const {'reason': 'captcha', 'platform': 'boss'},
+      ),
+      EventFeedItem(
+        id: 'evt-3',
+        kind: EventKind.system,
+        category: 'runtime',
+        eventType: 'worker.restarted',
+        message: 'Crawler worker restarted after transient failure',
+        severity: 'error',
+        source: 'scheduler',
+        occurredAt: DateTime.utc(2026, 6, 17, 9, 20),
+        status: 'resolved',
+        entityType: 'worker',
+        entityId: 'crawler',
+        traceId: 'trace-worker-visual',
+        payload: const {'exit_code': 1, 'retry': true},
       ),
     ];
+    final filtered = items.where((item) => _visualEventMatches(item, query));
     return EventPage(
-      items: items
-          .where(
-            (item) =>
-                query.filter == EventFilter.all ||
-                item.kind.name == query.filter.name,
-          )
-          .toList(),
+      items: filtered.toList(),
       page: query.page,
       pageSize: query.pageSize,
       total: items.length,
@@ -1200,4 +1380,39 @@ class _VisualEventRepository implements EventRepository {
   Stream<EventFeedItem> watchEvents({EventQuery query = const EventQuery()}) {
     return const Stream.empty();
   }
+}
+
+bool _visualEventMatches(EventFeedItem item, EventQuery query) {
+  if (query.filter != EventFilter.all && item.kind.name != query.filter.name) {
+    return false;
+  }
+  if (!_visualEqualsIfPresent(query.eventType, item.eventType)) {
+    return false;
+  }
+  if (!_visualEqualsIfPresent(query.category, item.category)) {
+    return false;
+  }
+  if (!_visualEqualsIfPresent(query.severity, item.severity)) {
+    return false;
+  }
+  if (!_visualEqualsIfPresent(query.source, item.source)) {
+    return false;
+  }
+  final keyword = query.keyword?.trim().toLowerCase();
+  if (keyword == null || keyword.isEmpty) {
+    return true;
+  }
+  return [
+    item.message,
+    item.eventType,
+    item.category,
+    item.source,
+    item.entityType,
+    item.entityId,
+    item.traceId,
+  ].whereType<String>().any((value) => value.toLowerCase().contains(keyword));
+}
+
+bool _visualEqualsIfPresent(String? expected, String actual) {
+  return expected == null || expected.isEmpty || actual == expected;
 }

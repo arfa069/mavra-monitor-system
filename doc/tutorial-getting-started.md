@@ -7,7 +7,7 @@
 
 完成本教程后，你将得到：
 
-- 一台本机运行的后端（端口 8000）+ 前端（端口 3000）+ 一个爬虫 worker
+- 一台本机运行的后端（端口 8000）+ 前端（Flutter Web，端口 3000）+ 一个爬虫 worker
 - 一个京东商品加入监控
 - 当价格下降 ≥ 5% 时，飞书机器人自动推送一条消息
 
@@ -31,7 +31,7 @@
 git clone <your-fork-url> mavra-monitor-system
 cd mavra-monitor-system
 powershell.exe -Command "cd backend; uv sync --extra dev"
-powershell.exe -Command "cd frontend; npm install"
+powershell.exe -Command "cd frontend; flutter pub get"
 ```
 
 ## Step 3：写 .env
@@ -77,7 +77,7 @@ powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start
 1. 杀掉占用 3000 / 8000 端口的旧进程
 2. 启动后端（uvicorn，无 `--reload`，因为 Windows 上 Playwright 子进程会崩）
 3. 启动爬虫 worker（`python -m app.workers.crawler --kind all`，使用后端虚拟环境）
-4. 启动前端（Vite，端口 3000）
+4. 启动前端（Flutter Web，端口 3000）
 
 验证：
 

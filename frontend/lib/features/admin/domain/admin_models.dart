@@ -91,6 +91,8 @@ class AdminAuditLog {
     required this.targetType,
     required this.targetId,
     required this.createdAt,
+    this.details,
+    this.ipAddress,
   });
 
   final int id;
@@ -99,6 +101,8 @@ class AdminAuditLog {
   final String? targetType;
   final int? targetId;
   final DateTime createdAt;
+  final Map<String, Object?>? details;
+  final String? ipAddress;
 }
 
 class AuditLogPageState {

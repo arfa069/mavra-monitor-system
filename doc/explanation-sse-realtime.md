@@ -48,14 +48,13 @@ class SSEManager:
 
 ### 客户端
 
-```typescript
-const es = new EventSource("/api/v1/dashboard/events", {
-  withCredentials: true,
+```dart
+// 局部 Stream 监听 (示意)
+final client = PollingRealtimeClient(poll: ...);
+client.connect('events').listen((message) {
+  final payload = message.payload;
+  // 刷新状态与组件局部视图 (例如 notifyListeners() 或 setState)
 });
-es.onmessage = (e) => {
-  const data = JSON.parse(e.data);
-  // 局部 setState，不重渲染整个页面
-};
 ```
 
 `EventSource` 自动重连，**不用**手动 reconnect。
@@ -87,8 +86,8 @@ es.onmessage = (e) => {
 
 **前端**：
 
-- `useDashboardSSE` 维护一个 `Map<cardId, value>`
-- 收到增量 → `qc.setQueryData('dashboard-kpi', ...)` React Query 内部触发组件 re-render
+- `watchEvents()` 监听 `Stream<EventFeedItem>` 增量推送。
+- 收到增量 → 触发监听器并局部更新 Widget 状态。
 
 ### 2. Event Center
 
@@ -161,12 +160,10 @@ CSRF 不用（SSE 是 GET）。
 
 ## 重连
 
-`EventSource` 自动重连，**但重连后不会重放历史**。所以：
+长连接重连时不会自动重放历史。因此：
 
-- 短暂断开（< 30s）→ 没事，前端本地状态还在
-- 长断开 → 前端调一次 REST `GET /events?since=<last_id>` 拉增量
-
-这条逻辑在 `useDashboardSSE` / `useSmartHomeSSE` 内。
+- 短暂断开（< 30s）→ 客户端状态保留，重连即可。
+- 长期断开 → 客户端可通过重新拉取分页数据补齐丢失的增量。
 
 ## 失败兜底
 

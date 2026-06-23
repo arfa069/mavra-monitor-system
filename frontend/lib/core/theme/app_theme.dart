@@ -27,6 +27,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: 'Roboto',
+      fontFamilyFallback: const ['NotoSansSC'],
       scaffoldBackgroundColor: scheme.brightness == Brightness.dark
           ? const Color(0xFF211A16)
           : const Color(0xFFF5EFE6),

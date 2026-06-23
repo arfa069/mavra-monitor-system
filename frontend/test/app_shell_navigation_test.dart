@@ -61,6 +61,36 @@ void main() {
     expect(dashboardTile.selected, isTrue);
   });
 
+  testWidgets('dashboard route renders the restored analytics page', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(buildVisualQaApp(initialLocation: '/dashboard'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('数据分析'), findsOneWidget);
+    expect(find.text('监控系统运行状态、价格走势统计与候选人匹配度分析'), findsOneWidget);
+    expect(find.byKey(const Key('dashboard-range-toolbar')), findsOneWidget);
+    expect(find.byKey(const Key('app-shell-nav-/analytics')), findsNothing);
+  });
+
+  testWidgets('events route renders the restored event center page', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(buildVisualQaApp(initialLocation: '/events'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('System Events'), findsOneWidget);
+    expect(find.text('Event Center'), findsOneWidget);
+    expect(find.byKey(const Key('events-filter-toolbar')), findsOneWidget);
+    expect(find.text('visual-qa-admin logged in'), findsOneWidget);
+  });
+
   testWidgets('limited users do not see gated admin or blog navigation', (
     tester,
   ) async {
@@ -93,6 +123,23 @@ void main() {
       find.byKey(const Key('app-shell-nav-/admin/audit-logs')),
       findsNothing,
     );
+  });
+
+  testWidgets('audit logs route renders the standalone audit page', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      buildVisualQaApp(initialLocation: '/admin/audit-logs'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Audit Logs'), findsWidgets);
+    expect(find.text('View system operation audit records'), findsOneWidget);
+    expect(find.text('User Management'), findsNothing);
+    expect(find.byKey(const Key('admin-create-user-button')), findsNothing);
   });
 }
 

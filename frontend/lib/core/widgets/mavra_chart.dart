@@ -11,11 +11,7 @@ class MavraChartPoint {
 }
 
 class MavraTrendChart extends StatelessWidget {
-  const MavraTrendChart({
-    super.key,
-    required this.title,
-    required this.points,
-  });
+  const MavraTrendChart({super.key, required this.title, required this.points});
 
   final String title;
   final List<MavraChartPoint> points;
@@ -30,7 +26,7 @@ class MavraTrendChart extends StatelessWidget {
       labels: [for (final point in points) point.label],
       child: LineChart(
         LineChartData(
-          minY: 0,
+          minY: _minY(points),
           maxY: _maxY(points),
           gridData: const FlGridData(show: true),
           titlesData: const FlTitlesData(show: false),
@@ -54,11 +50,7 @@ class MavraTrendChart extends StatelessWidget {
 }
 
 class MavraBarChart extends StatelessWidget {
-  const MavraBarChart({
-    super.key,
-    required this.title,
-    required this.points,
-  });
+  const MavraBarChart({super.key, required this.title, required this.points});
 
   final String title;
   final List<MavraChartPoint> points;
@@ -97,11 +89,7 @@ class MavraBarChart extends StatelessWidget {
 }
 
 class MavraPieChart extends StatelessWidget {
-  const MavraPieChart({
-    super.key,
-    required this.title,
-    required this.points,
-  });
+  const MavraPieChart({super.key, required this.title, required this.points});
 
   final String title;
   final List<MavraChartPoint> points;
@@ -163,10 +151,7 @@ class _MavraChartFrame extends StatelessWidget {
           runSpacing: 4,
           children: [
             for (final label in labels)
-              Chip(
-                visualDensity: VisualDensity.compact,
-                label: Text(label),
-              ),
+              Chip(visualDensity: VisualDensity.compact, label: Text(label)),
           ],
         ),
       ],
@@ -192,4 +177,13 @@ double _maxY(List<MavraChartPoint> points) {
 
   final maxValue = points.map((point) => point.value).reduce(math.max);
   return math.max(1, maxValue * 1.2);
+}
+
+double _minY(List<MavraChartPoint> points) {
+  if (points.isEmpty) {
+    return 0;
+  }
+
+  final minValue = points.map((point) => point.value).reduce(math.min);
+  return minValue < 0 ? minValue * 1.2 : 0;
 }

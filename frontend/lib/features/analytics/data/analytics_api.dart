@@ -23,124 +23,157 @@ class GeneratedAnalyticsRepository implements AnalyticsRepository {
   generated.DashboardApi get _dashboardApi => _client.getDashboardApi();
 
   @override
-  Future<AnalyticsOverview> loadOverview() async {
-    final results = await Future.wait([
-      _dashboardApi.dashboardGetDashboardKpi(),
-      _dashboardApi.dashboardGetTrendData(type: 'price_change'),
-      _dashboardApi.dashboardGetRecentAlerts(),
+  Future<AnalyticsOverview> loadOverview({
+    int days = 30,
+    bool includeAdmin = false,
+  }) async {
+    final kpi = (await _dashboardApi.dashboardGetDashboardKpi()).data;
+    if (kpi == null) {
+      throw StateError('Dashboard KPI response was empty');
+    }
+
+    final userTrends = await Future.wait([
+      for (final spec in _userTrendSpecs) _loadTrend(spec, days),
     ]);
-    final kpi = results[0].data as generated.DashboardKPIResponse?;
-    final trends = results[1].data as generated.TrendResponse?;
-    final alerts = results[2].data as Iterable<generated.RecentAlert>?;
+    final systemTrends = includeAdmin
+        ? await Future.wait([
+            for (final spec in _systemTrendSpecs) _loadTrend(spec, days),
+          ])
+        : <AnalyticsTrendSection>[];
+    final recentAlerts = includeAdmin
+        ? await _loadRecentAlerts()
+        : const <AnalyticsRecentAlert>[];
 
     return AnalyticsOverview(
-      kpis: kpi == null
-          ? const []
-          : [
-              AnalyticsKpi(
-                label: 'Price drops',
-                value: '${kpi.user.priceDropsToday}',
-              ),
-              AnalyticsKpi(
-                label: 'New jobs',
-                value: '${kpi.user.newJobsToday}',
-              ),
-              AnalyticsKpi(
-                label: 'Crawls',
-                value: '${kpi.user.crawlCountToday}',
-              ),
-              AnalyticsKpi(label: 'Matches', value: '${kpi.user.matchCount}'),
-            ],
-      trends: [
-        for (final series in trends?.datasets ?? <generated.TrendDataset>[])
-          TrendSeries(
-            label: series.label,
-            points: [
-              for (final point in series.data)
-                TrendPoint(label: point.label, value: point.value),
-            ],
-          ),
-      ],
-      recentAlerts: [
-        for (final alert in alerts ?? <generated.RecentAlert>[])
-          AnalyticsRecentAlert(
-            message: alert.message,
-            productTitle: alert.productTitle ?? 'Product #${alert.productId}',
-            alertType: alert.alertType,
-          ),
-      ],
+      userKpi: _userKpiFromGenerated(kpi.user),
+      systemKpi: includeAdmin ? _systemKpiFromGenerated(kpi.system) : null,
+      userTrends: userTrends,
+      systemTrends: systemTrends,
+      recentAlerts: recentAlerts,
     );
   }
 
   @override
-  Stream<AnalyticsOverview> watchOverview() {
-    return _realtimeClient.connect('dashboard').map(_overviewFromRealtime);
+  Stream<AnalyticsKpiSnapshot> watchKpiUpdates() {
+    return _realtimeClient
+        .connect('dashboard')
+        .map(_kpiFromRealtime)
+        .where((snapshot) => snapshot != null)
+        .cast<AnalyticsKpiSnapshot>();
   }
 
-  AnalyticsOverview _overviewFromRealtime(RealtimeMessage message) {
+  Future<AnalyticsTrendSection> _loadTrend(_TrendSpec spec, int days) async {
+    try {
+      final response = await _dashboardApi.dashboardGetTrendData(
+        type: spec.apiType,
+        days: days,
+      );
+      return spec.toSection(_seriesFromTrend(response.data));
+    } catch (_) {
+      return spec.toSection(const []);
+    }
+  }
+
+  Future<List<AnalyticsRecentAlert>> _loadRecentAlerts() async {
+    try {
+      final response = await _dashboardApi.dashboardGetRecentAlerts(limit: 10);
+      return [
+        for (final alert in response.data ?? <generated.RecentAlert>[])
+          AnalyticsRecentAlert(
+            id: alert.id,
+            message: alert.message,
+            productTitle: alert.productTitle,
+            alertType: alert.alertType,
+            active: alert.active,
+            createdAt: _parseDate(alert.createdAt),
+            platform: alert.platform,
+          ),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<TrendSeries> _seriesFromTrend(generated.TrendResponse? trend) {
+    if (trend == null) {
+      return const [];
+    }
+    return [
+      for (final dataset in trend.datasets)
+        TrendSeries(
+          label: dataset.label,
+          points: [
+            for (final point in dataset.data)
+              TrendPoint(label: point.label, value: point.value),
+          ],
+        ),
+    ];
+  }
+
+  AnalyticsKpiSnapshot? _kpiFromRealtime(RealtimeMessage message) {
     final payload = message.payload;
-    return AnalyticsOverview(
-      kpis: _mapKpis(payload['kpis']),
-      trends: _mapTrends(payload['trends']),
-      recentAlerts: _mapRecentAlerts(payload['recent_alerts']),
+    final event = payload['event']?.toString() ?? message.type;
+    if (event != 'kpi_update') {
+      return null;
+    }
+
+    final userPayload = _asMap(payload['data']) ?? _asMap(payload['user']);
+    if (userPayload == null) {
+      return null;
+    }
+
+    return AnalyticsKpiSnapshot(
+      user: _userKpiFromMap(userPayload),
+      system: _systemKpiFromMap(_asMap(payload['system'])),
     );
   }
 
-  List<AnalyticsKpi> _mapKpis(Object? value) {
-    if (value is! Iterable) {
-      return const [];
-    }
-    return [
-      for (final item in value)
-        if (item is Map)
-          AnalyticsKpi(
-            label: item['label']?.toString() ?? 'Metric',
-            value: item['value']?.toString() ?? '-',
-          ),
-    ];
+  DashboardUserKpi _userKpiFromGenerated(generated.UserKPI kpi) {
+    return DashboardUserKpi(
+      totalProducts: kpi.totalProducts,
+      priceDropsToday: kpi.priceDropsToday,
+      newJobsToday: kpi.newJobsToday,
+      matchCount: kpi.matchCount,
+      crawlCountToday: kpi.crawlCountToday,
+    );
   }
 
-  List<TrendSeries> _mapTrends(Object? value) {
-    if (value is! Iterable) {
-      return const [];
+  DashboardSystemKpi? _systemKpiFromGenerated(generated.SystemKPI? kpi) {
+    if (kpi == null) {
+      return null;
     }
-    return [
-      for (final item in value)
-        if (item is Map)
-          TrendSeries(
-            label: item['label']?.toString() ?? 'Trend',
-            points: _mapTrendPoints(item['points']),
-          ),
-    ];
+    return DashboardSystemKpi(
+      totalUsers: kpi.totalUsers,
+      totalCrawls: kpi.totalCrawls,
+      successRate: kpi.successRate,
+      activeAlerts: kpi.activeAlerts,
+      diskUsage: kpi.diskUsage,
+      memoryUsage: kpi.memoryUsage,
+    );
   }
 
-  List<TrendPoint> _mapTrendPoints(Object? value) {
-    if (value is! Iterable) {
-      return const [];
-    }
-    return [
-      for (final item in value)
-        if (item is Map)
-          TrendPoint(
-            label: item['label']?.toString() ?? '',
-            value: num.tryParse(item['value']?.toString() ?? '') ?? 0,
-          ),
-    ];
+  DashboardUserKpi _userKpiFromMap(Map<Object?, Object?> map) {
+    return DashboardUserKpi(
+      totalProducts: _intValue(map, 'total_products'),
+      priceDropsToday: _intValue(map, 'price_drops_today'),
+      newJobsToday: _intValue(map, 'new_jobs_today'),
+      matchCount: _intValue(map, 'match_count'),
+      crawlCountToday: _intValue(map, 'crawl_count_today'),
+    );
   }
 
-  List<AnalyticsRecentAlert> _mapRecentAlerts(Object? value) {
-    if (value is! Iterable) {
-      return const [];
+  DashboardSystemKpi? _systemKpiFromMap(Map<Object?, Object?>? map) {
+    if (map == null) {
+      return null;
     }
-    return [
-      for (final item in value)
-        if (item is Map)
-          AnalyticsRecentAlert(
-            message: item['message']?.toString() ?? 'Alert update',
-            productTitle: item['product_title']?.toString() ?? 'Product',
-            alertType: item['alert_type']?.toString() ?? 'price_drop',
-          ),
-    ];
+    return DashboardSystemKpi(
+      totalUsers: _intValue(map, 'total_users'),
+      totalCrawls: _intValue(map, 'total_crawls'),
+      successRate: _numValue(map, 'success_rate'),
+      activeAlerts: _intValue(map, 'active_alerts'),
+      diskUsage: _numValue(map, 'disk_usage'),
+      memoryUsage: _numValue(map, 'memory_usage'),
+    );
   }
 
   static String _serviceRoot(String apiBaseUrl) {
@@ -150,4 +183,114 @@ class GeneratedAnalyticsRepository implements AnalyticsRepository {
     }
     return apiBaseUrl;
   }
+}
+
+const _userTrendSpecs = [
+  _TrendSpec(
+    type: AnalyticsTrendType.platformProducts,
+    apiType: 'platform_products',
+    title: '各平台商品分布',
+    chartKind: AnalyticsChartKind.pie,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.price,
+    apiType: 'price',
+    title: '价格趋势',
+    chartKind: AnalyticsChartKind.line,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.priceChange,
+    apiType: 'price_change',
+    title: '价格变化率趋势',
+    chartKind: AnalyticsChartKind.line,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.platformJobs,
+    apiType: 'platform_jobs',
+    title: '各平台职位分布',
+    chartKind: AnalyticsChartKind.pie,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.jobs,
+    apiType: 'jobs',
+    title: '新增职位趋势',
+    chartKind: AnalyticsChartKind.line,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.jobMatches,
+    apiType: 'job_matches',
+    title: '职位匹配趋势',
+    chartKind: AnalyticsChartKind.line,
+  ),
+];
+
+const _systemTrendSpecs = [
+  _TrendSpec(
+    type: AnalyticsTrendType.platformSuccess,
+    apiType: 'platform_success',
+    title: '平台成功率对比',
+    chartKind: AnalyticsChartKind.bar,
+  ),
+  _TrendSpec(
+    type: AnalyticsTrendType.crawlFailures,
+    apiType: 'crawl_failures',
+    title: '爬取失败趋势',
+    chartKind: AnalyticsChartKind.bar,
+  ),
+];
+
+class _TrendSpec {
+  const _TrendSpec({
+    required this.type,
+    required this.apiType,
+    required this.title,
+    required this.chartKind,
+  });
+
+  final AnalyticsTrendType type;
+  final String apiType;
+  final String title;
+  final AnalyticsChartKind chartKind;
+
+  AnalyticsTrendSection toSection(List<TrendSeries> series) {
+    return AnalyticsTrendSection(
+      type: type,
+      title: title,
+      chartKind: chartKind,
+      series: series,
+    );
+  }
+}
+
+DateTime? _parseDate(String? value) {
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(value);
+}
+
+Map<Object?, Object?>? _asMap(Object? value) {
+  if (value is Map) {
+    return value;
+  }
+  return null;
+}
+
+int _intValue(Map<Object?, Object?> map, String key) {
+  final value = map[key];
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+num _numValue(Map<Object?, Object?> map, String key) {
+  final value = map[key];
+  if (value is num) {
+    return value;
+  }
+  return num.tryParse(value?.toString() ?? '') ?? 0;
 }

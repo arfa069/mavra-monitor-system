@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/blog/domain/blog_models.dart';
 import 'package:mavra_frontend/features/blog/presentation/blog_page.dart';
@@ -89,6 +90,38 @@ void main() {
     expect(find.byKey(const Key('blog-editor-image-button')), findsOneWidget);
     expect(find.byKey(const Key('blog-canonical-url-field')), findsOneWidget);
     expect(find.byKey(const Key('blog-og-image-field')), findsOneWidget);
+  });
+
+  testWidgets('keeps header and filter buttons compact under app theme', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: BlogPage(repository: _FakeBlogRepository.full()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final newPostSize = tester.getSize(
+      find.byKey(const Key('blog-new-post-button')),
+    );
+    final applyFiltersSize = tester.getSize(
+      find.byKey(const Key('blog-apply-filters-button')),
+    );
+    final newPostTop = tester.getTopLeft(
+      find.byKey(const Key('blog-new-post-button')),
+    ).dy;
+    final titleBottom = tester.getBottomLeft(find.text('Blog Studio')).dy;
+
+    expect(newPostSize.width, lessThan(180));
+    expect(applyFiltersSize.width, lessThan(190));
+    expect(newPostTop, greaterThan(titleBottom));
   });
 
   testWidgets('creates posts and validates required editor fields', (

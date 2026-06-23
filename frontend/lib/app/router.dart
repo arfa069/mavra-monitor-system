@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../features/alerts/domain/alert_models.dart';
 import '../features/alerts/presentation/alerts_page.dart';
 import '../features/admin/domain/admin_models.dart';
-import '../features/admin/presentation/admin_page.dart';
+import '../features/admin/presentation/admin_audit_logs_page.dart';
+import '../features/admin/presentation/admin_users_page.dart';
 import '../features/analytics/domain/analytics_models.dart';
 import '../features/analytics/presentation/analytics_page.dart';
 import '../features/auth/domain/auth_models.dart';
@@ -95,8 +96,10 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) =>
-                AnalyticsPage(repository: analyticsRepository),
+            builder: (context, state) => AnalyticsPage(
+              repository: analyticsRepository,
+              canViewSystemAnalytics: authController.hasPermission('user:read'),
+            ),
           ),
           GoRoute(
             path: '/events',
@@ -154,7 +157,7 @@ GoRouter createMavraRouter({
             builder: (context, state) => _permissionPage(
               authController,
               'user:read',
-              AdminPage(
+              AdminUsersPage(
                 repository: adminRepository,
                 permissions: _adminPermissions(authController),
               ),
@@ -165,7 +168,7 @@ GoRouter createMavraRouter({
             builder: (context, state) => _permissionPage(
               authController,
               'user:read',
-              AdminPage(
+              AdminAuditLogsPage(
                 repository: adminRepository,
                 permissions: _adminPermissions(authController),
               ),
@@ -226,6 +229,7 @@ Set<String> _adminPermissions(AuthController authController) {
   return _permissions(authController, const {
     'user:read',
     'user:manage',
+    'user:delete',
     'rbac:read',
     'rbac:manage',
   });
