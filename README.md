@@ -54,7 +54,7 @@ Create a `.env` file at the project root:
 ```env
 DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/pricemonitor
 REDIS_URL=redis://localhost:6379/0
-FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>
 
 # Required to encrypt Home Assistant tokens at rest
 SMART_HOME_SECRET_KEY=...

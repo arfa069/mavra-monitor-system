@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.permissions import require_permission
 from app.core.security import get_current_user
 from app.database import get_db
 from app.domains.crawling import profile_runtime_service, profile_service
@@ -21,6 +22,7 @@ from app.schemas.crawl_profile import (
 )
 
 router = APIRouter(prefix="/crawl-profiles", tags=["crawl-profiles"])
+require_profile_manager = require_permission("crawl_profile:manage")
 
 # All profile exceptions that map to HTTPException responses
 _PROFILE_EXCEPTIONS = (
@@ -30,6 +32,7 @@ _PROFILE_EXCEPTIONS = (
     profile_service.CrawlProfileInUseError,
     profile_runtime_service.ProfileAlreadyOpenError,
     profile_runtime_service.ProfileRuntimeUnsupportedError,
+    profile_runtime_service.ProfileStartUrlError,
     profile_runtime_service.ProfileBackupError,
 )
 
@@ -53,6 +56,8 @@ def _raise_profile_http(exc: Exception) -> None:
         raise HTTPException(status_code=409, detail="Profile login session is already open") from exc
     if isinstance(exc, profile_runtime_service.ProfileRuntimeUnsupportedError):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if isinstance(exc, profile_runtime_service.ProfileStartUrlError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if isinstance(exc, profile_runtime_service.ProfileBackupError):
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     raise
@@ -67,7 +72,7 @@ async def get_runtime_capabilities(
 
 @router.get("", response_model=list[CrawlProfileResponse])
 async def list_profiles(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     return await profile_service.list_profiles(db)
@@ -76,7 +81,7 @@ async def list_profiles(
 @router.post("", response_model=CrawlProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     data: CrawlProfileCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     return await profile_service.create_profile(
@@ -90,7 +95,7 @@ async def create_profile(
 async def rename_profile(
     profile_key: str,
     data: CrawlProfileRenameRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     if profile_runtime_service.is_login_session_open(profile_key):
@@ -108,7 +113,7 @@ async def rename_profile(
 @router.post("/{profile_key}/copy", response_model=CrawlProfileResponse, status_code=status.HTTP_201_CREATED)
 async def copy_profile(
     profile_key: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     if profile_runtime_service.is_login_session_open(profile_key):
@@ -122,7 +127,7 @@ async def copy_profile(
 @router.delete("/{profile_key}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_profile(
     profile_key: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     if profile_runtime_service.is_login_session_open(profile_key):
@@ -138,7 +143,7 @@ async def delete_profile(
 async def update_profile(
     profile_key: str,
     data: CrawlProfileUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -156,7 +161,7 @@ async def update_profile(
 @router.post("/{profile_key}/release-stale", response_model=CrawlProfileResponse)
 async def release_stale_profile(
     profile_key: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -169,7 +174,7 @@ async def release_stale_profile(
 async def open_login_session(
     profile_key: str,
     data: CrawlProfileLoginSessionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -186,7 +191,7 @@ async def open_login_session(
 @router.get("/{profile_key}/login-session", response_model=CrawlProfileLoginSessionResponse)
 async def get_login_session(
     profile_key: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
 ):
     return await profile_runtime_service.get_login_session(profile_key)
 
@@ -194,7 +199,7 @@ async def get_login_session(
 @router.post("/{profile_key}/login-session/close", response_model=CrawlProfileLoginSessionResponse)
 async def close_login_session(
     profile_key: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
 ):
     return await profile_runtime_service.close_login_session(profile_key)
 
@@ -203,7 +208,7 @@ async def close_login_session(
 async def test_profile(
     profile_key: str,
     data: CrawlProfileTestRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     try:
@@ -240,7 +245,7 @@ async def test_profile(
 async def export_profile_backup(
     profile_key: str,
     data: CrawlProfileBackupExportRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     _require_admin(current_user)
@@ -265,7 +270,7 @@ async def import_profile_backup(
     password: str = Form(...),
     force: bool = Form(False),
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_profile_manager),
     db: AsyncSession = Depends(get_db),
 ):
     _require_admin(current_user)

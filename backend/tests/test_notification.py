@@ -23,25 +23,34 @@ class TestSendFeishuNotification:
 
         with patch("app.integrations.feishu._get_client", return_value=mock_client):
             result = await send_feishu_notification(
-                "https://open.feishu.cn/hook/test", "Hello"
+                "https://open.feishu.cn/open-apis/bot/v2/hook/test-token", "Hello"
             )
 
         assert result == {"code": 0, "msg": "ok"}
         mock_client.post.assert_called_once()
         call_args = mock_client.post.call_args
-        assert call_args[0][0] == "https://open.feishu.cn/hook/test"
+        assert call_args[0][0] == "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"
         assert call_args[1]["json"]["msg_type"] == "text"
         assert call_args[1]["json"]["content"]["text"] == "Hello"
 
     @pytest.mark.asyncio
     async def test_send_notification_empty_url_raises(self):
-        """Empty webhook URL raises after retries exhausted."""
-        from tenacity import RetryError
-
+        """Empty webhook URL raises without contacting an HTTP client."""
         from app.integrations.feishu import send_feishu_notification
 
-        with pytest.raises(RetryError):
+        with pytest.raises(ValueError):
             await send_feishu_notification("", "Hello")
+
+    @pytest.mark.asyncio
+    async def test_send_notification_rejects_non_feishu_url(self):
+        """Webhook sends must not accept legacy or attacker-controlled URLs."""
+        from app.integrations.feishu import send_feishu_notification
+
+        with pytest.raises(ValueError):
+            await send_feishu_notification("http://127.0.0.1/hook", "Hello")
+
+        with pytest.raises(ValueError):
+            await send_feishu_notification("https://evil.example/hook", "Hello")
 
     @pytest.mark.asyncio
     async def test_send_notification_http_error(self):
@@ -59,7 +68,7 @@ class TestSendFeishuNotification:
         with patch("app.integrations.feishu._get_client", return_value=mock_client):
             with pytest.raises(Exception):
                 await send_feishu_notification(
-                    "https://open.feishu.cn/hook/test", "Hello"
+                    "https://open.feishu.cn/open-apis/bot/v2/hook/test-token", "Hello"
                 )
 
 
@@ -79,7 +88,7 @@ class TestSendNewJobNotification:
             new_callable=AsyncMock,
         ) as mock_get_config:
             mock_get_config.return_value = {
-                "feishu_webhook_url": "https://open.feishu.cn/hook/test",
+                "feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token",
             }
             with patch(
                 "app.domains.jobs.notification_service.send_feishu_notification",

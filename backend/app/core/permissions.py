@@ -20,6 +20,7 @@ PERMISSIONS = {
     "user:manage": {"admin", "super_admin"},
     "user:delete": {"admin", "super_admin"},
     "crawl:execute": {"user", "super_admin"},
+    "crawl_profile:manage": {"admin", "super_admin"},
     "crawl:read_logs": {"user", "admin", "super_admin"},
     "schedule:read": {"user", "admin", "super_admin"},
     "schedule:configure": {"super_admin"},

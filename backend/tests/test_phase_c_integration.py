@@ -360,11 +360,11 @@ class TestScheduleConfigRealReadWrite:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.patch("/api/v1/config", json={
-                    "feishu_webhook_url": "https://new-webhook",
+                    "feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/test-token",
                 })
             assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
             data = response.json()
-            assert data["feishu_webhook_url"] == "https://new-webhook"
+            assert data["feishu_webhook_url"] == "https://open.feishu.cn/open-apis/bot/v2/hook/test-token"
             print("[C-05b] PASS: PATCH /config updates config")
         finally:
             app.dependency_overrides.clear()

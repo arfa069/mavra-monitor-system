@@ -23,10 +23,18 @@ def _mock_user(role="user"):
 
 
 @pytest.fixture
-def mock_auth():
+def mock_auth(monkeypatch):
     async def _mock():
         return _mock_user()
     app.dependency_overrides[get_current_user] = _mock
+    monkeypatch.setattr(
+        "app.core.permissions.role_has_permission",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        "app.core.permissions.permission_exists",
+        AsyncMock(return_value=True),
+    )
     yield
     app.dependency_overrides.pop(get_current_user, None)
 
@@ -270,6 +278,55 @@ def test_profile_backup_rejects_unsafe_tar_path():
 
     with pytest.raises(profile_runtime_service.ProfileBackupError):
         profile_runtime_service._safe_extract_tar(buffer.getvalue(), MagicMock())
+
+
+def test_profile_start_url_empty_uses_platform_default():
+    from app.domains.crawling import profile_runtime_service
+
+    assert (
+        profile_runtime_service.validate_profile_start_url("jd", None)
+        == "https://www.jd.com/"
+    )
+    assert (
+        profile_runtime_service.validate_profile_start_url("boss", "")
+        == "https://www.zhipin.com/"
+    )
+
+
+@pytest.mark.parametrize(
+    ("platform", "start_url"),
+    [
+        ("jd", "https://passport.jd.com/new/login.aspx"),
+        ("taobao", "https://login.taobao.com/member/login.jhtml"),
+        ("taobao", "https://login.tmall.com/"),
+        ("boss", "https://www.zhipin.com/web/user/"),
+        ("51job", "https://we.51job.com/"),
+        ("liepin", "https://www.liepin.com/"),
+        ("amazon", "https://www.amazon.com/"),
+    ],
+)
+def test_profile_start_url_accepts_platform_hosts(platform, start_url):
+    from app.domains.crawling import profile_runtime_service
+
+    assert profile_runtime_service.validate_profile_start_url(platform, start_url) == start_url
+
+
+@pytest.mark.parametrize(
+    ("platform", "start_url"),
+    [
+        ("jd", "http://passport.jd.com/new/login.aspx"),
+        ("jd", "https://127.0.0.1:8000/health/detailed"),
+        ("jd", "https://localhost/"),
+        ("jd", "https://evil.example/"),
+        ("jd", "https://www.taobao.com/"),
+        ("unknown", "https://www.zhipin.com/"),
+    ],
+)
+def test_profile_start_url_rejects_unsafe_or_wrong_platform_hosts(platform, start_url):
+    from app.domains.crawling import profile_runtime_service
+
+    with pytest.raises(profile_runtime_service.ProfileStartUrlError):
+        profile_runtime_service.validate_profile_start_url(platform, start_url)
 
 
 @pytest.mark.asyncio

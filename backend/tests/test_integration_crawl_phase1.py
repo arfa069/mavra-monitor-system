@@ -77,7 +77,7 @@ class TestCrawlStatusEndpoint:
     """GET /products/crawl/status/{task_id} — poll crawl progress."""
 
     @pytest.mark.asyncio
-    async def test_status_unknown_task_returns_404(self):
+    async def test_status_unknown_task_returns_404(self, mock_user):
         """Unknown task_id returns 404."""
 
         # Override get_db with a real session for the 404 case
@@ -204,11 +204,20 @@ class TestCrawlResultEndpoint:
     """GET /products/crawl/result/{task_id} — retrieve final result."""
 
     @pytest.mark.asyncio
-    async def test_result_unknown_returns_404(self):
+    async def test_result_unknown_returns_404(self, mock_user):
         """Unknown task_id returns 404."""
-        transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/v1/crawl/result/nonexistent")
+        async with AsyncSessionLocal() as db:
+
+            async def _override():
+                yield db
+
+            app.dependency_overrides[get_db] = _override
+            try:
+                transport = ASGITransport(app=app)
+                async with AsyncClient(transport=transport, base_url="http://test") as client:
+                    response = await client.get("/api/v1/crawl/result/nonexistent")
+            finally:
+                app.dependency_overrides.pop(get_db, None)
 
         assert response.status_code == 404
 

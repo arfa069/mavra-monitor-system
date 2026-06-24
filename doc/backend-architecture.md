@@ -637,7 +637,7 @@ REDIS_URL=redis://localhost:6379/0
 REDIS_PASSWORD=your_redis_password
 
 # 飞书
-FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>
 
 # JWT
 JWT_SECRET_KEY=your-very-long-secret-key-min-32-chars

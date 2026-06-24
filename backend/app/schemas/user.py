@@ -1,8 +1,9 @@
 """User configuration schemas."""
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.integrations.feishu import validate_feishu_webhook_url
 from app.schemas.base import BaseResponseSchema
 
 
@@ -11,11 +12,23 @@ class UserConfigCreate(BaseModel):
     feishu_webhook_url: str = Field(default="", description="Feishu webhook URL for notifications")
     data_retention_days: int = Field(default=365, ge=1, le=3650, description="Data retention period in days")
 
+    @field_validator("feishu_webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, value: str) -> str:
+        return validate_feishu_webhook_url(value)
+
 
 class UserConfigUpdate(BaseModel):
     """Schema for updating user configuration."""
     feishu_webhook_url: str | None = Field(default=None, description="Feishu webhook URL")
     data_retention_days: int | None = Field(default=None, ge=1, le=3650)
+
+    @field_validator("feishu_webhook_url")
+    @classmethod
+    def validate_webhook_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return validate_feishu_webhook_url(value)
 
 
 class UserConfigResponse(BaseResponseSchema):

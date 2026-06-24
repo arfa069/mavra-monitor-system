@@ -9,7 +9,7 @@
 2. 安全设置选**自定义关键词**（推荐 `价格` 或 `降价`）或 IP 白名单
 3. 复制 Webhook URL，**不要外传**
 
-URL 形如 `https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`。
+URL 形如 `https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>`。
 
 ## 项目侧
 
@@ -18,7 +18,7 @@ URL 形如 `https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx
 `.env` 写：
 
 ```env
-FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>
 ```
 
 适用：单机 / 演示。**所有用户共用同一个 webhook**。
@@ -33,7 +33,7 @@ FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/xxx
 curl -X PATCH http://localhost:8000/api/v1/config \
   -H "Content-Type: application/json" \
   -H "X-CSRF-Token: <csrf>" -b cookies.txt \
-  -d '{"feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/yyy"}'
+  -d '{"feishu_webhook_url": "https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>"}'
 ```
 
 读取当前值：

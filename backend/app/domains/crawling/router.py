@@ -86,11 +86,15 @@ async def crawl_now(
     response_model=TaskProgressResponse,
     responses={404: {"model": TaskErrorResponse}},
 )
-async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
+async def get_crawl_status(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Get the status of a crawl task from persistent store."""
     from app.domains.crawling.task_store import get_crawl_task_record
 
-    record = await get_crawl_task_record(db, task_id)
+    record = await get_crawl_task_record(db, task_id, user_id=current_user.id)
     if not record:
         return JSONResponse(content={"status": "error", "reason": "task_not_found"}, status_code=404)
 
@@ -119,11 +123,15 @@ async def get_crawl_status(task_id: str, db: AsyncSession = Depends(get_db)):
         500: {"model": TaskErrorResponse},
     },
 )
-async def get_crawl_result(task_id: str, db: AsyncSession = Depends(get_db)):
+async def get_crawl_result(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Get the final result of a completed crawl task from persistent store."""
     from app.domains.crawling.task_store import get_crawl_task_record
 
-    record = await get_crawl_task_record(db, task_id)
+    record = await get_crawl_task_record(db, task_id, user_id=current_user.id)
     if not record:
         return JSONResponse(content={"status": "error", "reason": "task_not_found"}, status_code=404)
 

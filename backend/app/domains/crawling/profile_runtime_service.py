@@ -11,7 +11,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
@@ -54,6 +56,10 @@ class ProfileRuntimeUnsupportedError(RuntimeError):
     pass
 
 
+class ProfileStartUrlError(ValueError):
+    pass
+
+
 class ProfileBackupError(RuntimeError):
     pass
 
@@ -88,6 +94,56 @@ def default_start_url(platform_name: str) -> str:
         "taobao": "https://www.taobao.com/",
         "amazon": "https://www.amazon.com/",
     }.get(platform_name, "https://www.zhipin.com/")
+
+
+_PLATFORM_ALLOWED_HOSTS = {
+    "boss": ("zhipin.com",),
+    "51job": ("51job.com",),
+    "liepin": ("liepin.com",),
+    "jd": ("jd.com",),
+    "taobao": ("taobao.com", "tmall.com"),
+    "amazon": ("amazon.com",),
+}
+
+
+def _host_matches(host: str, allowed_root: str) -> bool:
+    return host == allowed_root or host.endswith(f".{allowed_root}")
+
+
+def _is_ip_literal(host: str) -> bool:
+    try:
+        ip_address(host)
+    except ValueError:
+        return False
+    return True
+
+
+def validate_profile_start_url(platform_name: str, start_url: str | None) -> str:
+    url = (start_url or "").strip()
+    if not url:
+        return default_start_url(platform_name)
+
+    platform_key = platform_name.strip().lower()
+    allowed_hosts = _PLATFORM_ALLOWED_HOSTS.get(platform_key)
+    if allowed_hosts is None:
+        raise ProfileStartUrlError(f"Unsupported crawl profile platform: {platform_name}")
+
+    parsed = urlsplit(url)
+    host = parsed.hostname or ""
+    if (
+        parsed.scheme != "https"
+        or not host
+        or parsed.username is not None
+        or parsed.password is not None
+        or host == "localhost"
+        or host.endswith(".localhost")
+        or _is_ip_literal(host)
+        or not any(_host_matches(host, allowed) for allowed in allowed_hosts)
+    ):
+        raise ProfileStartUrlError(
+            f"start_url must be an HTTPS URL for the {platform_key} platform"
+        )
+    return url
 
 
 def runtime_capabilities() -> dict:
@@ -185,7 +241,7 @@ async def open_login_session(
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
 
-        url = start_url or default_start_url(platform_name)
+        url = validate_profile_start_url(platform_name, start_url)
 
         def _open():
             from cloakbrowser import launch_persistent_context
@@ -351,7 +407,7 @@ async def test_profile(
         assert_profile_not_leased(profile)
         if profile_key in _sessions:
             raise ProfileAlreadyOpenError(profile_key)
-        url = start_url or default_start_url(platform_name)
+        url = validate_profile_start_url(platform_name, start_url)
 
         def _run_test() -> tuple[str, str | None]:
             from cloakbrowser import launch_persistent_context
