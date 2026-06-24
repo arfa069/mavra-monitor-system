@@ -144,3 +144,11 @@ blog-frontend/node_modules/
 /frontend/playwright-report
 /frontend/coverage
 /.dup-scan
+/frontend/windows
+/frontend/windows/flutter
+backend/debug/shadow_dom.html
+frontend/windows/flutter/generated_plugin_registrant.cc
+frontend/windows/flutter/generated_plugin_registrant.h
+frontend/windows/flutter/generated_plugins.cmake
+frontend/windows/flutter/generated_plugins.cmake
+frontend/windows/flutter/generated_plugin_registrant.h
