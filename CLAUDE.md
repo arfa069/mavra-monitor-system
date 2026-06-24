@@ -87,8 +87,8 @@ cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
 flutter pub get
 flutter analyze
 flutter test
-flutter build web
-flutter build windows
+flutter build web --dart-define=API_BASE_URL=/api/v1
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 # 博客前端（Next.js，仍使用 npm；不是 Flutter 主前端）
 cd C:/Users/arfac/Documents/mavra-monitor-system/blog-frontend

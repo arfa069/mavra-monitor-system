@@ -16,6 +16,8 @@ Verified on June 16, 2026:
 
 - Deployment: static `flutter build web` output served behind the existing
   production reverse proxy.
+- Production build command: `flutter build web --dart-define=API_BASE_URL=/api/v1`.
+- Local static smoke command: `npx --yes serve -s build/web -l tcp://127.0.0.1:3001`.
 - Application path: `/`.
 - API base URL: `/api/v1` in same-origin production; explicit
   `API_BASE_URL` dart define in development.
@@ -66,7 +68,8 @@ URL is required evidence.
 
 - Toolchain: Visual Studio Build Tools 2022, C++ desktop workload, CMake, and
   Windows SDK.
-- Build command: `flutter build windows`.
+- Build command: `flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` for local backend smoke; use the production API origin for packaged releases.
+- Local executable: `build\windows\x64\runner\Release\mavra_frontend.exe`.
 - Package format: signed MSIX.
 - Installer fallback: a signed `.exe` or `.msi` installer may be added later,
   but MSIX is the default release artifact.
@@ -89,6 +92,8 @@ URL is required evidence.
 - Android, iOS, and Windows tokens: platform secure storage.
 - If secure storage is unavailable, authentication fails closed instead of
   writing refresh tokens to plain files or preferences.
+- Native startup validates stored session expiry before route guarding; refresh
+  failure clears the local session and returns to `/login`.
 - Logs and crash reports redact cookies, Bearer tokens, refresh tokens, Home
   Assistant tokens, webhook URLs, exchange codes, and authorization headers.
 - Build artifacts contain environment endpoints but no credentials.

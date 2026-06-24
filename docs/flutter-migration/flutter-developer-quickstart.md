@@ -11,9 +11,10 @@
 - Product direction: Today remains the first authenticated screen, with warm
   summary surfaces and compact operational tools.
 
-The owner has accepted big-bang replacement. A staged implementation with one
-final cutover remains the safer alternative, but it is not the active policy.
-Changing that policy must happen before Task 7 removes the React runtime.
+The owner accepted big-bang replacement. The Flutter replacement is the active
+main frontend; the React implementation is only a rollback/parity reference.
+When side-by-side local comparison is needed, keep the legacy frontend on
+`3000` and run Flutter manually on `3001`.
 
 ## Success Metrics
 
@@ -70,18 +71,31 @@ uv run --extra dev python -m uvicorn app.main:app
 Do not use `--reload` on Windows because it interferes with Playwright child
 processes.
 
-### Flutter setup after Task 7
+### Current Flutter setup
 
 ```powershell
 cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
 flutter pub get
 flutter analyze
 flutter test test/app_smoke_test.dart
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 Flutter prints the local Chrome debug URL. The expected first screen is the
-login shell.
+login shell. For side-by-side legacy comparison, change the port to `3001`.
+
+### Release build smoke
+
+```powershell
+flutter build web --dart-define=API_BASE_URL=/api/v1
+npx --yes serve -s build/web -l tcp://127.0.0.1:3001
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+.\build\windows\x64\runner\Release\mavra_frontend.exe
+```
+
+Windows release builds use platform secure storage for the native session. If a
+stored session is expired and refresh returns 401, the app clears local session
+state and returns to `/login` instead of staying on a protected loading screen.
 
 ### Common fixes
 

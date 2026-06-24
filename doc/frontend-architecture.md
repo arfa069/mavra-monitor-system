@@ -100,7 +100,7 @@ GoRoute(
   builder: (context, state) => _permissionPage(
     authController,
     'user:read', // 目标所需权限
-    AdminPage(repository: adminRepository),
+    AdminUsersPage(repository: adminRepository),
   ),
 )
 ```
@@ -114,7 +114,7 @@ GoRoute(
 
 `AuthController` 继承自 `ChangeNotifier`，是全局认证的单一真相来源：
 - 维护 `isAuthenticated`、`currentUser` (包含 username, role, permissions) 等关键变量。
-- **启动恢复 (Session Restore)**：应用启动时会静默请求 `/api/v1/auth/me`（在 Web 端由浏览器自动携带 HttpOnly Cookie，在原生 Windows/Android 端由 `flutter_secure_storage` 中读取持久化的令牌），恢复用户登录状态后再呈现对应的路由视图。
+- **启动恢复 (Session Restore)**：Web 端由浏览器自动携带 HttpOnly Cookie，并在需要时通过 refresh Cookie 恢复会话；原生 Windows/Android/iOS 端从平台安全存储读取会话，先校验本地过期时间，过期则调用 `POST /api/v1/auth/refresh` 轮换令牌。refresh 失败或本地会话无效时会清空本地状态并触发路由回到 `/login`。
 - **权限判定**：暴露 `hasPermission`、`hasAnyPermission` 等方法，在 UI 层级控制各种操作性按钮（如 "Crawl Now"、"Save"）的启用与禁用状态。
 
 ### 4.2 业务数据流动模式

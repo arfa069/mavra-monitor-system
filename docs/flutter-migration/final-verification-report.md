@@ -394,3 +394,42 @@ Results:
 Decision:
 
 - Code-review findings are resolved at their stated surface. Current supported-platform final gates are green. iOS remains deferred until macOS capacity exists.
+
+## 2026-06-24 Flutter Replacement Follow-up
+
+Commit:
+
+```text
+1ffdaa9d Finalize Flutter replacement UI parity
+```
+
+Scope:
+
+- Restored the remaining Flutter parity pages and visual cleanup for Today,
+  Dashboard, Events, Jobs, Products, Schedule, Smart Home, Blog Admin, Users,
+  and Audit Logs.
+- Standardized page banners, compact controls, and product-style tables across
+  the restored management pages.
+- Hardened admin user enable/disable/delete handling so the current or last
+  active `super_admin` cannot be disabled or deleted from the UI or backend.
+- Hardened native session restore: expired local sessions now refresh before
+  route guarding, and refresh failures clear local state and return to login
+  instead of leaving a protected page in a loading state.
+
+Verification:
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/.worktrees/flutter-full-replacement/frontend
+flutter test test/core/auth/auth_repository_test.dart test/features/auth/auth_flow_test.dart
+flutter analyze
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+git diff --check
+```
+
+Results:
+
+- Targeted auth tests passed.
+- Flutter analyzer passed.
+- Windows release build passed and produced
+  `build\windows\x64\runner\Release\mavra_frontend.exe`.
+- `git diff --check` reported only existing CRLF whitespace warnings.

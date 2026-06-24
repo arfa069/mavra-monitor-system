@@ -44,6 +44,8 @@ flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhos
 > **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Run uvicorn through the backend uv environment as shown above.
 >
 > `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts backend `8000`, serves the Flutter Web build on `3000`, starts crawler worker, and starts the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first. Run `cd frontend; flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1` before the default static mode, or pass `-FlutterDev` to run the Flutter dev server. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
+>
+> When comparing the Flutter replacement against the legacy frontend, keep the legacy frontend on `3000` and run Flutter manually on `3001`: `flutter run -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://localhost:8000/api/v1`.
 
 ## Configuration
 
@@ -262,6 +264,7 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 - **强密码策略**：注册、改密和微信注册绑定密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符
 - **Access Token 有效期**：15分钟；Refresh Token 有效期：14天
 - **Refresh 轮换**：`POST /api/v1/auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
+- **原生端会话恢复**：Windows/Android/iOS 使用平台安全存储保存会话；启动时会先校验本地过期时间，过期则尝试 refresh，refresh 失败会清空本地会话并回到登录页
 - **CSRF 保护**：不安全方法校验 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
 - **密码加密**：使用 bcrypt 算法加密存储
 - **数据隔离**：所有数据按 `user_id` 隔离，用户只能访问自己的数据
@@ -319,7 +322,10 @@ flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhos
 
 # Build frontend release artifacts
 flutter build web --dart-define=API_BASE_URL=/api/v1
-flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+
+# Local static Web smoke after build
+npx --yes serve -s build/web -l tcp://127.0.0.1:3001
 ```
 
 普通 HTTP 请求使用 `frontend/lib/core/api/generated/` 中的 Dart generated
