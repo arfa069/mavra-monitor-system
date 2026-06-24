@@ -55,6 +55,11 @@ async def get_active_user(db: AsyncSession, *, user_id: int) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_user_by_id(db: AsyncSession, *, user_id: int) -> User | None:
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
 async def get_active_user_by_username(
     db: AsyncSession, *, username: str, exclude_user_id: int | None = None
 ) -> User | None:
@@ -81,6 +86,7 @@ async def count_active_super_admins(db: AsyncSession) -> int:
     result = await db.execute(
         select(func.count(User.id)).where(
             User.role == "super_admin",
+            User.is_active.is_(True),
             User.deleted_at.is_(None),
         )
     )

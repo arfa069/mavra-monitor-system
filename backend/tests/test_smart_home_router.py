@@ -1,3 +1,5 @@
+import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime
 from importlib import import_module
 from types import SimpleNamespace
@@ -5,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.core.security import get_current_user
+from app.core.security import create_access_token_sid, get_current_user
 from app.database import get_db
 from app.main import app
 from app.models.user import User
@@ -50,6 +52,63 @@ def _override_user(role: str) -> None:
 def _clear_overrides() -> None:
     app.dependency_overrides.pop(get_current_user, None)
     app.dependency_overrides.pop(get_db, None)
+
+
+def _mock_bearer_db(user):
+    result = SimpleNamespace(scalar_one_or_none=lambda: user)
+    db = SimpleNamespace()
+
+    async def execute(_statement):
+        return result
+
+    db.execute = execute
+    return db
+
+
+async def _stream_response_start(path: str, token: str) -> dict:
+    """Run the ASGI app until response headers are sent for an SSE route."""
+    start_event = asyncio.Event()
+    start_message: dict = {}
+    request_sent = False
+
+    async def receive():
+        nonlocal request_sent
+        if not request_sent:
+            request_sent = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        nonlocal start_message
+        if message["type"] == "http.response.start":
+            start_message = message
+            start_event.set()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "headers": [
+            (b"host", b"test"),
+            (b"authorization", f"Bearer {token}".encode()),
+        ],
+        "client": ("testclient", 50000),
+        "server": ("test", 80),
+        "root_path": "",
+    }
+    task = asyncio.create_task(app(scope, receive, send))
+    try:
+        await asyncio.wait_for(start_event.wait(), timeout=2)
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+    return start_message
 
 
 @pytest.mark.asyncio
@@ -359,3 +418,30 @@ async def test_service_call_rejects_unsupported_service(monkeypatch):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported smart home service"
+
+
+@pytest.mark.asyncio
+async def test_smart_home_entity_stream_accepts_bearer_access_token(monkeypatch):
+    user = _user("user")
+
+    async def override_db():
+        yield _mock_bearer_db(user)
+
+    async def allow_permission(db, role_name, permission):
+        return True
+
+    monkeypatch.setattr("app.core.permissions.role_has_permission", allow_permission)
+    app.dependency_overrides[get_db] = override_db
+
+    token = create_access_token_sid(user.id, user.username, 42)
+    try:
+        response_start = await _stream_response_start(
+            "/api/v1/smart-home/entities/stream",
+            token,
+        )
+    finally:
+        _clear_overrides()
+
+    assert response_start["status"] == 200
+    headers = dict(response_start["headers"])
+    assert headers[b"content-type"].startswith(b"text/event-stream")

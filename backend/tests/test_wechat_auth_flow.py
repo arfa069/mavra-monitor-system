@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -57,6 +58,35 @@ def mock_get_db(mock_db_session):
 
     app.dependency_overrides[get_db] = _override
     return mock_db_session
+
+
+def _enable_wechat(monkeypatch):
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_login_enabled", True)
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_id", "wx-app")
+    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_secret", "wx-secret")
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.settings.wechat_frontend_callback_url",
+        "http://localhost:3000/auth/wechat/callback",
+    )
+
+
+def _extract_exchange_code(location: str) -> str:
+    parsed = urlparse(location)
+    values = parse_qs(parsed.query).get("exchange_code")
+    assert values and values[0]
+    return values[0]
+
+
+def _wechat_user() -> MagicMock:
+    user = MagicMock()
+    user.id = 1
+    user.username = "wechat-user"
+    user.email = "wechat@example.com"
+    user.role = "user"
+    user.is_active = True
+    user.deleted_at = None
+    user.created_at = datetime.now(UTC)
+    return user
 
 
 @pytest.mark.asyncio
@@ -168,20 +198,15 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
     monkeypatch,
     mock_get_db,
 ):
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_login_enabled", True)
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_id", "wx-app")
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_secret", "wx-secret")
-    monkeypatch.setattr(
-        "app.domains.auth.wechat_router.settings.wechat_frontend_callback_url",
-        "http://localhost:3000/auth/wechat/callback",
-    )
+    _enable_wechat(monkeypatch)
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.httpx.AsyncClient",
         lambda: MockWeChatClient({"openid": "openid-1"}),
     )
+    create_session_spy = AsyncMock(return_value=MagicMock(id=99))
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.create_session",
-        AsyncMock(return_value=MagicMock(id=99)),
+        create_session_spy,
     )
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.get_role_permissions",
@@ -192,13 +217,7 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
         AsyncMock(),
     )
 
-    user = MagicMock()
-    user.id = 1
-    user.username = "wechat-user"
-    user.email = "wechat@example.com"
-    user.role = "user"
-    user.is_active = True
-    user.created_at = datetime.now(UTC)
+    user = _wechat_user()
 
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.auth_service.get_user_for_wechat_login",
@@ -217,10 +236,16 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
         )
 
     assert response.status_code == 302
-    assert response.headers["location"].startswith(
+    location = response.headers["location"]
+    assert location.startswith(
         "http://localhost:3000/auth/wechat/callback?status=success"
     )
-    assert "pm_access_token=" in response.headers.get("set-cookie", "")
+    assert "exchange_code=" in location
+    assert "access_token=" not in location
+    assert "refresh_token=" not in location
+    assert "temp_token=" not in location
+    assert "set-cookie" not in response.headers
+    create_session_spy.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -228,13 +253,7 @@ async def test_wechat_callback_redirects_unbound_user_with_fragment(
     monkeypatch,
     mock_get_db,
 ):
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_login_enabled", True)
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_id", "wx-app")
-    monkeypatch.setattr("app.domains.auth.wechat_router.settings.wechat_app_secret", "wx-secret")
-    monkeypatch.setattr(
-        "app.domains.auth.wechat_router.settings.wechat_frontend_callback_url",
-        "http://localhost:3000/auth/wechat/callback",
-    )
+    _enable_wechat(monkeypatch)
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.httpx.AsyncClient",
         lambda: MockWeChatClient({"openid": "openid-2"}),
@@ -256,8 +275,117 @@ async def test_wechat_callback_redirects_unbound_user_with_fragment(
         )
 
     assert response.status_code == 302
-    assert "status=unbound" in response.headers["location"]
-    assert "#temp_token=" in response.headers["location"]
+    location = response.headers["location"]
+    assert "status=unbound" in location
+    assert "exchange_code=" in location
+    assert "#temp_token=" not in location
+
+
+@pytest.mark.asyncio
+async def test_wechat_exchange_bound_code_returns_native_session(
+    monkeypatch,
+    mock_get_db,
+):
+    _enable_wechat(monkeypatch)
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.httpx.AsyncClient",
+        lambda: MockWeChatClient({"openid": "openid-1"}),
+    )
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.get_role_permissions",
+        AsyncMock(return_value=["job:read"]),
+    )
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.log_audit_from_request",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.create_refresh_token",
+        lambda: "new-wechat-refresh-token-value",
+    )
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.create_session",
+        AsyncMock(return_value=MagicMock(id=99)),
+    )
+
+    user = _wechat_user()
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.auth_service.get_user_for_wechat_login",
+        AsyncMock(return_value=user),
+    )
+    wechat_router._state_cache["state-bound"] = wechat_router.WeChatStateEntry(
+        issued_at=datetime.now(UTC),
+        next_path="/jobs",
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        callback = await client.get(
+            "/api/v1/auth/wechat/callback?code=valid-code&state=state-bound",
+            follow_redirects=False,
+        )
+        exchange_code = _extract_exchange_code(callback.headers["location"])
+        response = await client.post(
+            "/api/v1/auth/wechat/exchange",
+            json={"exchange_code": exchange_code, "client_kind": "native"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "success"
+    assert payload["unbound"] is None
+    assert payload["session"]["access_token"]
+    assert payload["session"]["refresh_token"] == "new-wechat-refresh-token-value"
+    assert payload["session"]["user"]["username"] == "wechat-user"
+
+
+@pytest.mark.asyncio
+async def test_wechat_exchange_unbound_code_returns_temp_token_once(
+    monkeypatch,
+    mock_get_db,
+):
+    _enable_wechat(monkeypatch)
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.httpx.AsyncClient",
+        lambda: MockWeChatClient({"openid": "openid-2"}),
+    )
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.auth_service.get_user_for_wechat_login",
+        AsyncMock(return_value=None),
+    )
+    wechat_router._state_cache["state-unbound"] = wechat_router.WeChatStateEntry(
+        issued_at=datetime.now(UTC),
+        next_path="/today",
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        callback = await client.get(
+            "/api/v1/auth/wechat/callback?code=valid-code&state=state-unbound",
+            follow_redirects=False,
+        )
+        exchange_code = _extract_exchange_code(callback.headers["location"])
+        first = await client.post(
+            "/api/v1/auth/wechat/exchange",
+            json={"exchange_code": exchange_code},
+        )
+        replay = await client.post(
+            "/api/v1/auth/wechat/exchange",
+            json={"exchange_code": exchange_code},
+        )
+        missing = await client.post(
+            "/api/v1/auth/wechat/exchange",
+            json={"exchange_code": "expired-or-missing-exchange-code"},
+        )
+
+    assert first.status_code == 200
+    payload = first.json()
+    assert payload["status"] == "unbound"
+    assert payload["session"] is None
+    assert payload["unbound"]["temp_token"]
+    assert payload["unbound"]["next_path"] == "/today"
+    assert replay.status_code == 400
+    assert missing.status_code == 400
 
 
 @pytest.mark.asyncio

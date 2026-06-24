@@ -40,19 +40,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit, log_audit_from_request
-from app.core.auth_cookies import clear_auth_cookies, set_auth_cookies
+from app.core.auth_cookies import (
+    clear_auth_cookies,
+    set_web_refresh_cookie,
+)
 from app.core.permissions import get_role_permissions
 from app.core.security import (
     clear_login_attempts,
     create_access_token_sid,
-    create_csrf_token,
     create_refresh_token,
     create_session,
     csrf_protect,
+    decode_access_token_strict,
     delete_other_sessions,
     delete_session,
-    get_current_user_cookie,
+    get_access_token_expires_in_seconds,
+    get_current_user,
     get_password_hash,
+    get_session_by_id,
     get_session_by_refresh_token,
     get_user_sessions,
     is_account_locked,
@@ -60,18 +65,23 @@ from app.core.security import (
     record_failed_login,
     rotate_session_refresh_token,
     stage_delete_other_sessions,
+    validate_browser_origin,
     verify_password,
 )
 from app.database import get_db
 from app.domains.auth import service as auth_service
 from app.models.user import User
 from app.schemas.auth import (
+    AuthSessionResponse,
     BaseModel,
+    LoginClientKind,
     LoginLogResponse,
+    LogoutRequest,
     MessageResponse,
     PasswordChange,
     ProfileUpdate,
-    UserLogin,
+    RefreshTokenRequest,
+    TokenLoginRequest,
     UserRegister,
     UserResponse,
 )
@@ -79,6 +89,48 @@ from app.schemas.auth import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+async def _user_response(user: User, db: AsyncSession) -> UserResponse:
+    permissions = await get_role_permissions(db, user.role)
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        permissions=permissions,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
+
+
+def _session_id_from_access_token(token: str | None) -> int | None:
+    if not token:
+        return None
+
+    payload = decode_access_token_strict(token)
+    if payload is None:
+        return None
+    try:
+        return int(payload["sid"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _bearer_session_id(request: Request) -> int | None:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    return _session_id_from_access_token(auth_header[7:])
+
+
+def _authenticated_session_id(request: Request) -> int | None:
+    bearer_sid = _bearer_session_id(request)
+    if bearer_sid is not None:
+        return bearer_sid
+    return _session_id_from_access_token(
+        request.cookies.get(settings.auth_access_cookie_name)
+    )
 
 
 # ── Cookie helpers (see app.core.auth_cookies for implementation) ──────────
@@ -137,20 +189,17 @@ async def register(user_data: UserRegister, db: AsyncSession = Depends(get_db)):
 # ── Login ─────────────────────────────────────────────────────────────────────
 
 
-@router.post("/login", response_model=UserResponse, tags=["auth"])
+@router.post("/login", response_model=AuthSessionResponse, tags=["auth"])
 async def login(
-    login_data: UserLogin,
+    login_data: TokenLoginRequest,
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    """Login and set auth cookies.
+    """Login and return a token-first session.
 
-    Authenticates user with username and password, then sets
-    ``pm_access_token``, ``pm_refresh_token``, and ``pm_csrf_token`` cookies.
-
-    Returns:
-        UserResponse: Current user profile with permissions (no token in body)
+    Web clients receive the access token in the response and an HttpOnly
+    refresh cookie. Native clients receive both tokens in the response body.
 
     Raises:
         HTTPException 401: Invalid username or password
@@ -211,10 +260,8 @@ async def login(
         username=user.username,
         session_id=session.id,
     )
-    csrf_token = create_csrf_token()
-
-    # ── Set auth cookies on the response ──────────────────────────────────
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    if login_data.client_kind == LoginClientKind.web:
+        set_web_refresh_cookie(response, refresh_token)
 
     # ── Login log ─────────────────────────────────────────────────────────
     await auth_service.add_login_log(
@@ -238,29 +285,29 @@ async def login(
 
     logger.info(f"User logged in: {user.username}")
 
-    # ── Return user info (no bearer token) ────────────────────────────────
-    permissions = await get_role_permissions(db, user.role)
-    return UserResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        role=user.role,
-        permissions=permissions,
-        is_active=user.is_active,
-        created_at=user.created_at,
+    return AuthSessionResponse(
+        access_token=access_token,
+        refresh_token=(
+            refresh_token
+            if login_data.client_kind == LoginClientKind.native
+            else None
+        ),
+        expires_in=get_access_token_expires_in_seconds(),
+        user=await _user_response(user, db),
     )
 
 
 # ── Refresh ───────────────────────────────────────────────────────────────────
 
 
-@router.post("/refresh", response_model=UserResponse, tags=["auth"])
+@router.post("/refresh", response_model=AuthSessionResponse, tags=["auth"])
 async def refresh(
     request: Request,
     response: Response,
+    refresh_data: RefreshTokenRequest | None = Body(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    """Refresh auth tokens using the ``pm_refresh_token`` cookie.
+    """Refresh auth tokens using a native body token or Web cookie.
 
     Validates the refresh token, rotates it (token rotation), and sets
     fresh cookies on the response.
@@ -268,12 +315,18 @@ async def refresh(
     Returns:
         UserResponse: Current user profile with permissions
     """
-    refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    body_refresh_token = refresh_data.refresh_token if refresh_data else None
+    cookie_refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    refresh_token = body_refresh_token or cookie_refresh_token
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="未提供刷新令牌",
         )
+
+    uses_cookie = body_refresh_token is None
+    if uses_cookie:
+        validate_browser_origin(request)
 
     session = await get_session_by_refresh_token(refresh_token, db)
     if session is None:
@@ -306,23 +359,17 @@ async def refresh(
         username=user.username,
         session_id=session.id,
     )
-    csrf_token = create_csrf_token()
-
-    # Set fresh cookies
-    set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
+    if uses_cookie:
+        set_web_refresh_cookie(response, new_refresh_token)
 
     await db.commit()
 
-    permissions = await get_role_permissions(db, user.role)
     logger.info(f"Tokens refreshed for user: {user.username}")
-    return UserResponse(
-        id=user.id,
-        username=user.username,
-        email=user.email,
-        role=user.role,
-        permissions=permissions,
-        is_active=user.is_active,
-        created_at=user.created_at,
+    return AuthSessionResponse(
+        access_token=access_token,
+        refresh_token=None if uses_cookie else new_refresh_token,
+        expires_in=get_access_token_expires_in_seconds(),
+        user=await _user_response(user, db),
     )
 
 
@@ -333,7 +380,8 @@ async def refresh(
 async def logout(
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user_cookie),
+    logout_data: LogoutRequest | None = Body(default=None),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _=Depends(csrf_protect),
 ):
@@ -344,19 +392,40 @@ async def logout(
     Returns:
         MessageResponse: Logout success message
     """
-    # Delete current session via refresh token (best-effort)
+    bearer_sid = _bearer_session_id(request)
     try:
-        refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
-        if refresh_token:
-            session = await get_session_by_refresh_token(refresh_token, db)
-            if session:
-                await db.delete(session)
-                await db.commit()
+        if bearer_sid is not None:
+            session = await get_session_by_id(
+                bearer_sid,
+                current_user.id,
+                db,
+            )
+        else:
+            body_refresh_token = logout_data.refresh_token if logout_data else None
+            cookie_refresh_token = request.cookies.get(
+                settings.auth_refresh_cookie_name
+            )
+            refresh_token = body_refresh_token or cookie_refresh_token
+            if cookie_refresh_token and not body_refresh_token:
+                validate_browser_origin(request)
+            session = (
+                await get_session_by_refresh_token(refresh_token, db)
+                if refresh_token
+                else None
+            )
+        if session and session.user_id == current_user.id:
+            await db.delete(session)
+            await db.commit()
+    except HTTPException:
+        raise
     except Exception:
         logger.exception("Failed to delete session on logout")
         await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="登出失败，请稍后重试",
+        ) from None
 
-    # Clear auth cookies regardless of session deletion success
     clear_auth_cookies(response)
 
     await log_audit_from_request(
@@ -378,7 +447,7 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse, tags=["auth"])
 async def get_me(
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get current user information.
@@ -404,7 +473,7 @@ async def get_me(
 async def update_me(
     update_data: ProfileUpdate,
     response: Response,
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _=Depends(csrf_protect),
 ):
@@ -467,12 +536,12 @@ async def update_me(
     }
 
 
-@router.post("/me/password", response_model=MessageResponse, tags=["auth"])
+@router.post("/me/password", response_model=AuthSessionResponse, tags=["auth"])
 async def change_password(
     request: Request,
     response: Response,
     password_data: PasswordChange,
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _=Depends(csrf_protect),
 ):
@@ -502,15 +571,27 @@ async def change_password(
         )
 
     # Resolve current session from refresh token cookie
-    refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    body_refresh_token = password_data.refresh_token
+    cookie_refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    refresh_token = body_refresh_token or cookie_refresh_token
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="认证失败：当前会话不存在或已失效",
         )
+    if cookie_refresh_token and not body_refresh_token:
+        validate_browser_origin(request)
 
     session = await get_session_by_refresh_token(refresh_token, db)
-    if session is None:
+    authenticated_sid = _authenticated_session_id(request)
+    if (
+        session is None
+        or session.user_id != current_user.id
+        or (
+            authenticated_sid is not None
+            and session.id != authenticated_sid
+        )
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="认证失败：当前会话不存在或已失效",
@@ -526,19 +607,19 @@ async def change_password(
     new_refresh_token = create_refresh_token()
     await rotate_session_refresh_token(session, new_refresh_token, db)
 
-    # Create fresh access and CSRF tokens
+    # Create fresh access token
     access_token = create_access_token_sid(
         user_id=current_user.id,
         username=current_user.username,
         session_id=session.id,
     )
-    csrf_token = create_csrf_token()
 
     # Commit password change and session cleanup together
     await db.commit()
 
-    # Set fresh cookies after successful commit
-    set_auth_cookies(response, access_token, new_refresh_token, csrf_token)
+    uses_cookie = body_refresh_token is None
+    if uses_cookie:
+        set_web_refresh_cookie(response, new_refresh_token)
 
     logger.info(f"Password changed for user: {current_user.username}")
 
@@ -554,7 +635,12 @@ async def change_password(
         commit=True,
     )
 
-    return MessageResponse(message="密码修改成功")
+    return AuthSessionResponse(
+        access_token=access_token,
+        refresh_token=None if uses_cookie else new_refresh_token,
+        expires_in=get_access_token_expires_in_seconds(),
+        user=await _user_response(current_user, db),
+    )
 
 
 # ── Session management ────────────────────────────────────────────────────────
@@ -571,7 +657,7 @@ class SessionResponse(BaseModel):
 
 @router.get("/sessions", response_model=list[SessionResponse])
 async def list_my_sessions(
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get all active sessions for current user."""
@@ -584,7 +670,7 @@ async def delete_a_session(
     session_id: int,
     request: Request,
     response: Response,
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     _=Depends(csrf_protect),
 ):
@@ -612,7 +698,7 @@ async def delete_a_session(
 
 @router.delete("/sessions", response_model=MessageResponse)
 async def delete_other_sessions_endpoint(
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     session_id: int = Body(...),
     db: AsyncSession = Depends(get_db),
     _=Depends(csrf_protect),
@@ -627,7 +713,7 @@ async def delete_other_sessions_endpoint(
 
 @router.get("/me/login-history", response_model=list[LoginLogResponse])
 async def get_my_login_history(
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get login history for current user.

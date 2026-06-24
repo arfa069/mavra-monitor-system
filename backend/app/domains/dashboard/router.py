@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.json_utils import json_default, safe_json_dumps
-from app.core.security import get_current_user_cookie, require_role
+from app.core.security import get_current_user, require_role
 from app.database import get_db
 from app.domains.dashboard import service as dashboard_domain_service
 from app.domains.dashboard.dashboard_service import DashboardService
@@ -58,7 +58,7 @@ async def get_dashboard_kpi(
 )
 async def stream_dashboard_events(
     request: Request,
-    current_user: User = Depends(get_current_user_cookie),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Stream dashboard KPI updates over SSE."""

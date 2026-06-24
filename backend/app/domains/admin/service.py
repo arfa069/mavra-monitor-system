@@ -131,6 +131,20 @@ async def get_user(db: AsyncSession, *, user_id: int) -> User:
     return user
 
 
+async def get_user_for_update(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    update_data: AdminUserUpdate,
+) -> User:
+    if update_data.is_active is True:
+        user = await repository.get_user_by_id(db, user_id=user_id)
+        if not user:
+            raise UserNotFoundError
+        return user
+    return await get_user(db, user_id=user_id)
+
+
 async def update_user(
     db: AsyncSession,
     *,
@@ -139,7 +153,7 @@ async def update_user(
     actor: User,
     stage_delete_sessions: StageDeleteSessions,
 ) -> tuple[User, list[str]]:
-    user = await get_user(db, user_id=user_id)
+    user = await get_user_for_update(db, user_id=user_id, update_data=update_data)
 
     if update_data.username is not None and update_data.username != user.username:
         if await repository.get_active_user_by_username(
@@ -166,7 +180,6 @@ async def update_user(
     if "is_active" in update_dict:
         if update_data.is_active is False:
             await _ensure_not_last_super_admin(db, user)
-            user.deleted_at = datetime.now(UTC)
             user.is_active = False
             await stage_delete_sessions(user_id, db)
         elif update_data.is_active is True:

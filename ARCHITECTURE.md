@@ -18,8 +18,8 @@ Auth write paths use a shared strong-password policy: new registrations, passwor
 - **Cache**: Redis
 - **Crawler**: Playwright for product pages; `curl_cffi` HTTP clients for job platforms; CloakBrowser for Boss cookie refresh
 - **Notification**: Feishu Webhook
-- **Frontend**: React + Vite + TypeScript + Ant Design (mobile-responsive, WCAG accessible)
-- **API Generation**: Orval + React Query v5 hooks (automated End-to-End Type Safety)
+- **Frontend**: Flutter + Dart (mobile-responsive, desktop-dense, WCAG accessible)
+- **API Generation**: OpenAPI Generator CLI + generated Dart Dio package (automated End-to-End Type Safety)
 
 ## Architecture
 

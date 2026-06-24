@@ -38,7 +38,7 @@
 
 我们选 Cookie-first 是因为：
 
-1. 系统有**前端 UI**（Ant Design），登录一次一直用，refresh 走 cookie 不打扰用户
+1. 系统有**前端 UI**（Flutter UI），登录一次一直用，refresh 走 cookie 不打扰用户
 2. 真实凭证（HA token）必须**前端永远拿不到**，所以即便选 Bearer 也要走 cookie 形式
 3. 跨域只在 localhost ↔ 127.0.0.1 之间，简单
 

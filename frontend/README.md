@@ -1,56 +1,84 @@
-# 价格监控系统前端
+# Mavra Flutter Frontend
 
-React + Vite + TypeScript + Ant Design + Figma Design System（黑白核心 + 马卡龙色块 + 胶囊按钮）前端应用。
+Flutter replacement frontend for Mavra Monitor System. This app targets Web,
+Android, iOS, and Windows from the same Dart codebase.
 
-## 安装
+## Requirements
 
-```bash
-npm install
+- Flutter 3.44.2 stable
+- Dart 3.12.2
+- Java 17 for Android and OpenAPI generator runs
+- Node.js 20 for the pinned OpenAPI generator wrapper
+- Visual Studio Build Tools 2022 with C++ desktop workload for Windows builds
+- Android SDK and an API 36 emulator for Android smoke tests
+- macOS with Xcode for iOS builds and simulator smoke tests
+
+## Common Commands
+
+Run from `C:/Users/arfac/Documents/mavra-monitor-system/frontend` unless noted.
+
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+flutter build web --dart-define=API_BASE_URL=/api/v1
+flutter build windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
-## 开发
+Run the Web app in development:
 
-```bash
-# 确保后端运行在 http://127.0.0.1:8000
-npm run dev
+```powershell
+flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-前端运行在 http://localhost:3000，自动代理 `/api/v1` 请求到后端。
+Run desktop smoke tests when the platform toolchain is available:
 
-## 构建
-
-```bash
-npm run build
+```powershell
+flutter test integration_test/auth_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-产物输出到 `dist/` 目录。
+## API Client
 
-## 目录结构
+The backend OpenAPI document is the source of truth. The generated Dart Dio
+client lives in `lib/core/api/generated/`.
 
-```
-src/
-├── features/       # 按业务域组织页面、组件、hooks、api、types
-│   ├── dashboard/  # KPI 卡片、趋势图、SSE hook
-│   ├── products/   # 商品管理
-│   ├── jobs/       # 职位配置、职位列表、简历匹配
-│   ├── schedule/   # 商品/职位 cron 配置
-│   ├── admin/      # 用户、审计、RBAC 权限矩阵
-│   └── auth/       # 登录、注册、资料
-├── shared/         # Orval generated client、mutator、AuthContext、布局、公共类型/组件
-├── styles/         # Figma Design System（design-tokens.css + components.css）
-├── App.tsx         # 路由与布局
-└── main.tsx        # 入口，QueryClientProvider
+Regenerate from the repository root:
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system
+./scripts/generate_dart_client.ps1
 ```
 
-## 功能
+Check generated output without modifying tracked files:
 
-- **仪表盘**: KPI 卡片、趋势图、平台/薪资分布、SSE 实时更新；管理员可查看系统健康和最近告警
-- **商品管理页**: CRUD 操作、批量导入/删除/启停、分页（15条/页）、多条件筛选
-- **职位管理页**: 搜索配置管理、职位列表（含可点击链接跳转Boss详情页）、单配置/全量爬取
-- **定时配置页**: 商品 per-platform cron 配置表（添加/修改/删除定时器）、职位 per-config cron 配置表、数据保留天数 + 飞书 Webhook URL 设置
-- **权限控制**: UI 根据后端返回的 RBAC `permissions` 控制菜单和操作入口
-- **API 契约**: 普通 JSON 请求走 `src/shared/api/generated/`，通过 `mutator.ts` 接入共享 Axios 实例；不要在 feature 层新增手写 Axios 调用
-- **告警管理**: 商品级别价格告警设置，在编辑弹窗内集成
-- **爬取日志面板**: 实时查看爬取状态和历史记录
-- **无障碍支持**: WCAG 合规（键盘导航、aria 属性、减少动画偏好）
-- **移动端适配**: 侧边栏在移动端自动变为 Drawer 抽屉
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system
+./scripts/generate_dart_client.ps1 -Check
+cd backend
+uv run --extra dev python ../scripts/check_dart_api_usage.py
+```
+
+Feature code should depend on generated API clients through repositories.
+Only `lib/core/api/api_client.dart`, realtime transport, and file platform
+adapters own low-level transport details.
+
+## Local Full Stack
+
+The repository launcher serves a built Flutter Web app by default:
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
+flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+cd ..
+./scripts/start_server.ps1
+```
+
+Use Flutter's dev server explicitly:
+
+```powershell
+./scripts/start_server.ps1 -FlutterDev
+```
+
+Use `-NoCrawlerWorker`, `-NoBlogFrontend`, or `-BackendOnly` to avoid local
+services that are not needed for a focused frontend check.

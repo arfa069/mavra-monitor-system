@@ -7,7 +7,19 @@ from app.main import app
 
 
 def test_only_canonical_business_routes_are_registered():
-    paths = {route.path for route in app.routes}
+    paths = set()
+    for route in app.routes:
+        if route.__class__.__name__ == "_IncludedRouter":
+            prefix = route.include_context.prefix or ""
+            for sub_route in route.original_router.routes:
+                sub_path = getattr(sub_route, "path", None)
+                if sub_path is not None:
+                    full_path = (prefix.rstrip("/") + "/" + sub_path.lstrip("/")).replace("//", "/")
+                    paths.add(full_path)
+        else:
+            path = getattr(route, "path", None)
+            if path is not None:
+                paths.add(path)
 
     canonical = {
         "/api/v1/auth/login",

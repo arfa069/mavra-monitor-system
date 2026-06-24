@@ -416,7 +416,7 @@ async def test_admin_update_user_returns_200(admin_user, regular_user, mock_get_
 
 @pytest.mark.asyncio
 async def test_admin_soft_delete_user_via_patch_returns_200(admin_user, regular_user, mock_get_db):
-    """PATCH /admin/users/{user_id} with is_active=False soft deletes user."""
+    """PATCH /admin/users/{user_id} with is_active=False disables user."""
     setup_admin_mock(admin_user)
 
     try:
@@ -434,6 +434,8 @@ async def test_admin_soft_delete_user_via_patch_returns_200(admin_user, regular_
         assert response.status_code == 200
         data = response.json()
         assert data["is_active"] is False
+        assert regular_user.is_active is False
+        assert regular_user.deleted_at is None
     finally:
         clear_auth_mocks()
 

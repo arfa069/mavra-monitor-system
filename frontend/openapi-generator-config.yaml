@@ -1,0 +1,8 @@
+pubName: mavra_api
+pubVersion: 0.1.0
+pubDescription: Generated Dart Dio client for the Mavra API.
+serializationLibrary: built_value
+useEnumExtension: false
+ensureUniqueParams: true
+sortModelPropertiesByRequiredFlag: true
+sortParamsByRequiredFlag: true

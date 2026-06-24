@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import delete
 
 from app.database import AsyncSessionLocal
 from app.domains.crawling.task_store import task_types_for_kinds
 from app.models.crawl_task import CrawlTaskRecord
+from tests.db_safety import require_test_database
 
 
 def test_crawl_task_model_table_name_and_required_columns():
@@ -89,6 +91,10 @@ async def test_recover_stale_running_tasks_marks_failed():
     )
 
     async with AsyncSessionLocal() as db:
+        require_test_database()
+        await db.execute(delete(CrawlTaskRecord))
+        await db.commit()
+
         record = await create_crawl_task_record(
             db,
             source="cron",

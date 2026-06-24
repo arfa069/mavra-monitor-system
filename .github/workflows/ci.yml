@@ -5,14 +5,25 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: backend
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+  FLUTTER_VERSION: "3.44.2"
+  JAVA_VERSION: "17"
+  NODE_VERSION: "20"
+  OPENAPI_GENERATOR_WRAPPER_VERSION: "2.38.0"
+  OPENAPI_GENERATOR_VERSION: "7.23.0"
+  JWT_SECRET_KEY: "ci-only-jwt-secret-key-for-contract-and-tests-2026"
 
 jobs:
   lint:
-    name: Lint
+    name: Backend lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -30,12 +41,14 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+        working-directory: backend
 
       - name: Run ruff
-        run: uv run --extra dev ruff check .
+        run: uv run --extra dev python -m ruff check .
+        working-directory: backend
 
   test:
-    name: Test
+    name: Backend tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +56,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -53,12 +66,14 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+        working-directory: backend
 
       - name: Run pytest
-        run: uv run --extra dev pytest -v --tb=short
+        run: uv run --extra dev python -m pytest -v --tb=short
+        working-directory: backend
 
   compile:
-    name: Compile check
+    name: Backend compile check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +81,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -76,54 +91,11 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+        working-directory: backend
 
       - name: Compile Python files
-        run: |
-          uv run --extra dev python -m compileall app alembic
-          echo "All files compiled successfully"
-
-  frontend:
-    name: Frontend CI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-
-      - name: Install backend dependencies
-        run: uv sync --extra dev
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: frontend
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
-        working-directory: frontend
-
-      - name: Verify API usage
-        run: npm run api:check-usage
-        working-directory: frontend
-
-      - name: Run Frontend CI Pipeline
-        run: npm run test:frontend
-        working-directory: frontend
+        run: uv run --extra dev python -m compileall app alembic
+        working-directory: backend
 
   api-contract:
     name: API contract
@@ -134,7 +106,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -142,33 +114,338 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node.js for OpenAPI generator wrapper
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
       - name: Install backend dependencies
         run: uv sync --extra dev
         working-directory: backend
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
         working-directory: frontend
 
-      - name: Test API usage checker
-        run: uv run --extra dev pytest ../scripts/tests/test_check_frontend_api_usage.py -q
+      - name: Verify generator pins
+        shell: pwsh
+        run: |
+          $wrapperPinned = Select-String -Path scripts/generate_dart_client.ps1 -Pattern "@openapitools/openapi-generator-cli@$env:OPENAPI_GENERATOR_WRAPPER_VERSION" -Quiet
+          if (-not $wrapperPinned) {
+            throw "Expected OpenAPI generator wrapper $env:OPENAPI_GENERATOR_WRAPPER_VERSION in scripts/generate_dart_client.ps1"
+          }
+          $tools = Get-Content frontend/openapitools.json -Raw | ConvertFrom-Json
+          if ($tools.'generator-cli'.version -ne $env:OPENAPI_GENERATOR_VERSION) {
+            throw "Expected OpenAPI generator $env:OPENAPI_GENERATOR_VERSION, found $($tools.'generator-cli'.version)"
+          }
+
+      - name: Verify Dart API generator output
+        shell: pwsh
+        run: ./scripts/generate_dart_client.ps1 -Check
+
+      - name: Test Dart API usage checker
+        run: uv run --extra dev python -m pytest ../scripts/tests/test_check_dart_api_usage.py -q
         working-directory: backend
 
       - name: Verify generated API artifacts
         run: uv run --extra dev python ../scripts/check_api_contract.py
         working-directory: backend
 
-      - name: Verify API usage
-        run: npm run api:check-usage
+      - name: Verify Dart API usage
+        run: uv run --extra dev python ../scripts/check_dart_api_usage.py
+        working-directory: backend
+
+  flutter-web-fast:
+    name: Flutter Web fast PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node.js for OpenAPI generator wrapper
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
+      - name: Install backend dependencies
+        run: uv sync --extra dev
+        working-directory: backend
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
         working-directory: frontend
 
-      - name: Build generated frontend client
-        run: npm run build
+      - name: Verify Dart API generator output
+        shell: pwsh
+        run: ./scripts/generate_dart_client.ps1 -Check
+
+      - name: Run Flutter analyzer
+        shell: bash
+        run: |
+          mkdir -p build/ci
+          set -o pipefail
+          flutter analyze 2>&1 | tee build/ci/flutter-analyze.txt
         working-directory: frontend
+
+      - name: Run Flutter tests
+        run: flutter test --machine > build/ci/flutter-test-results.json
+        working-directory: frontend
+
+      - name: Build Flutter Web
+        run: flutter build web --dart-define=API_BASE_URL=/api/v1
+        working-directory: frontend
+
+      - name: Upload Flutter failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-web-fast-failure
+          path: frontend/build/ci/**
+          if-no-files-found: ignore
+
+  android-smoke:
+    name: Android build and smoke
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
+      - name: Cache Android and Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            frontend/android/.gradle
+          key: android-gradle-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: Build Android APK
+        run: flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+        working-directory: frontend
+
+      - name: Run Android auth smoke
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_8
+          script: cd frontend && flutter test integration_test/auth_smoke_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+
+  windows-smoke:
+    name: Windows build and smoke
+    runs-on: windows-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node.js for OpenAPI generator wrapper
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
+      - name: Install backend dependencies
+        run: uv sync --extra dev
+        working-directory: backend
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: Verify Dart API generator output
+        shell: pwsh
+        run: ./scripts/generate_dart_client.ps1 -Check
+
+      - name: Run Flutter analyzer
+        run: flutter analyze
+        working-directory: frontend
+
+      - name: Run Flutter tests
+        run: flutter test
+        working-directory: frontend
+
+      - name: Build Flutter Windows
+        run: flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+        working-directory: frontend
+
+      - name: Run Windows auth smoke
+        run: flutter test integration_test\auth_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+        working-directory: frontend
+
+  macos-smoke:
+    name: macOS iOS build and smoke
+    runs-on: macos-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Node.js for OpenAPI generator wrapper
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
+
+      - name: Install backend dependencies
+        run: uv sync --extra dev
+        working-directory: backend
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: Verify Dart API generator output
+        shell: pwsh
+        run: ./scripts/generate_dart_client.ps1 -Check
+
+      - name: Run Flutter analyzer
+        run: flutter analyze
+        working-directory: frontend
+
+      - name: Run Flutter tests
+        run: flutter test
+        working-directory: frontend
+
+      - name: Run iOS simulator auth smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_ID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { print $2; exit }')"
+          if [ -z "$DEVICE_ID" ]; then
+            echo "No available iPhone simulator found"
+            exit 1
+          fi
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          flutter devices
+          flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID" --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+        working-directory: frontend
+
+      - name: Build iOS without codesign
+        run: flutter build ios --no-codesign --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+        working-directory: frontend
+
+  full-platform-summary:
+    name: Scheduled full-platform summary
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs:
+      - flutter-web-fast
+      - android-smoke
+      - windows-smoke
+      - macos-smoke
+    steps:
+      - name: Summarize platform evidence
+        run: |
+          echo "Flutter Web, Android, Windows, and iOS smoke jobs completed."
+          echo "Use this scheduled run as full-platform release evidence."

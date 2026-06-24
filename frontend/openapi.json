@@ -412,6 +412,45 @@
         "title": "AuditLogResponse",
         "type": "object"
       },
+      "AuthSessionResponse": {
+        "description": "Token-first authentication response for Web and native clients.",
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "refresh_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "AuthSessionResponse",
+        "type": "object"
+      },
       "BatchOperationResult": {
         "description": "Result of a single batch operation item.",
         "properties": {
@@ -3027,6 +3066,15 @@
         "title": "JobSearchConfigUpdate",
         "type": "object"
       },
+      "LoginClientKind": {
+        "description": "Client storage mode for token delivery.",
+        "enum": [
+          "web",
+          "native"
+        ],
+        "title": "LoginClientKind",
+        "type": "string"
+      },
       "LoginLogResponse": {
         "description": "Response schema for login history.",
         "properties": {
@@ -3069,6 +3117,25 @@
           "created_at"
         ],
         "title": "LoginLogResponse",
+        "type": "object"
+      },
+      "LogoutRequest": {
+        "description": "Optional native refresh token used to identify the session.",
+        "properties": {
+          "refresh_token": {
+            "anyOf": [
+              {
+                "minLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
+          }
+        },
+        "title": "LogoutRequest",
         "type": "object"
       },
       "MatchAnalyzeRequest": {
@@ -3332,6 +3399,18 @@
           "old_password": {
             "title": "Old Password",
             "type": "string"
+          },
+          "refresh_token": {
+            "anyOf": [
+              {
+                "minLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
           }
         },
         "required": [
@@ -4050,6 +4129,25 @@
           "created_at"
         ],
         "title": "RecentAlert",
+        "type": "object"
+      },
+      "RefreshTokenRequest": {
+        "description": "Optional body token for native refresh.",
+        "properties": {
+          "refresh_token": {
+            "anyOf": [
+              {
+                "minLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Token"
+          }
+        },
+        "title": "RefreshTokenRequest",
         "type": "object"
       },
       "ResourcePermissionGrant": {
@@ -5074,6 +5172,31 @@
         "title": "TaskQueuedResponse",
         "type": "object"
       },
+      "TokenLoginRequest": {
+        "description": "Login request with explicit client token-storage mode.",
+        "properties": {
+          "client_kind": {
+            "$ref": "#/components/schemas/LoginClientKind",
+            "default": "web"
+          },
+          "password": {
+            "description": "密码",
+            "title": "Password",
+            "type": "string"
+          },
+          "username": {
+            "description": "用户名",
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "TokenLoginRequest",
+        "type": "object"
+      },
       "TrendDataPoint": {
         "description": "Single data point for trend charts.",
         "properties": {
@@ -5321,27 +5444,6 @@
         "title": "UserKPI",
         "type": "object"
       },
-      "UserLogin": {
-        "description": "Request schema for user login.",
-        "properties": {
-          "password": {
-            "description": "密码",
-            "title": "Password",
-            "type": "string"
-          },
-          "username": {
-            "description": "用户名",
-            "title": "Username",
-            "type": "string"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ],
-        "title": "UserLogin",
-        "type": "object"
-      },
       "UserRegister": {
         "description": "Request schema for user registration.",
         "properties": {
@@ -5579,6 +5681,59 @@
         "title": "WeChatBindRequest",
         "type": "object"
       },
+      "WeChatExchangeRequest": {
+        "description": "One-time WeChat callback exchange code.",
+        "properties": {
+          "client_kind": {
+            "$ref": "#/components/schemas/LoginClientKind",
+            "default": "web"
+          },
+          "exchange_code": {
+            "minLength": 20,
+            "title": "Exchange Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exchange_code"
+        ],
+        "title": "WeChatExchangeRequest",
+        "type": "object"
+      },
+      "WeChatExchangeResponse": {
+        "description": "Cross-platform WeChat exchange response.",
+        "properties": {
+          "session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthSessionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unbound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeChatUnboundResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WeChatExchangeResponse",
+        "type": "object"
+      },
       "WeChatQrResponse": {
         "description": "Response schema for WeChat QR login bootstrap.",
         "properties": {
@@ -5634,6 +5789,30 @@
         "title": "WeChatRegisterRequest",
         "type": "object"
       },
+      "WeChatUnboundResponse": {
+        "description": "Unbound WeChat account exchange result.",
+        "properties": {
+          "next_path": {
+            "default": "/today",
+            "title": "Next Path",
+            "type": "string"
+          },
+          "status": {
+            "default": "unbound",
+            "title": "Status",
+            "type": "string"
+          },
+          "temp_token": {
+            "title": "Temp Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "temp_token"
+        ],
+        "title": "WeChatUnboundResponse",
+        "type": "object"
+      },
       "app__schemas__auth__MessageResponse": {
         "description": "Generic message response.",
         "properties": {
@@ -5664,7 +5843,7 @@
     }
   },
   "info": {
-    "title": "Mavra",
+    "title": "Price Monitor",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",
@@ -6614,13 +6793,13 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "Login and set auth cookies.\n\nAuthenticates user with username and password, then sets\n``pm_access_token``, ``pm_refresh_token``, and ``pm_csrf_token`` cookies.\n\nReturns:\n    UserResponse: Current user profile with permissions (no token in body)\n\nRaises:\n    HTTPException 401: Invalid username or password\n    HTTPException 429: Account locked (5 failed attempts, 15 min lockout)",
+        "description": "Login and return a token-first session.\n\nWeb clients receive the access token in the response and an HttpOnly\nrefresh cookie. Native clients receive both tokens in the response body.\n\nRaises:\n    HTTPException 401: Invalid username or password\n    HTTPException 429: Account locked (5 failed attempts, 15 min lockout)",
         "operationId": "auth_login",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserLogin"
+                "$ref": "#/components/schemas/TokenLoginRequest"
               }
             }
           },
@@ -6631,7 +6810,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/AuthSessionResponse"
                 }
               }
             },
@@ -6659,6 +6838,23 @@
       "post": {
         "description": "Logout current user.\n\nDeletes the current session and clears all auth cookies.\n\nReturns:\n    MessageResponse: Logout success message",
         "operationId": "auth_logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/LogoutRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Logout Data"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -6669,6 +6865,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Logout",
@@ -6787,7 +6993,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__schemas__auth__MessageResponse"
+                  "$ref": "#/components/schemas/AuthSessionResponse"
                 }
               }
             },
@@ -6813,18 +7019,45 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "description": "Refresh auth tokens using the ``pm_refresh_token`` cookie.\n\nValidates the refresh token, rotates it (token rotation), and sets\nfresh cookies on the response.\n\nReturns:\n    UserResponse: Current user profile with permissions",
+        "description": "Refresh auth tokens using a native body token or Web cookie.\n\nValidates the refresh token, rotates it (token rotation), and sets\nfresh cookies on the response.\n\nReturns:\n    UserResponse: Current user profile with permissions",
         "operationId": "auth_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshTokenRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Refresh Data"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/AuthSessionResponse"
                 }
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Refresh",
@@ -7031,7 +7264,7 @@
     },
     "/api/v1/auth/wechat/callback": {
       "get": {
-        "description": "Handle WeChat OAuth callback.\n\nExchanges code for access_token and openid.\nIf the openid is already bound to a user, logs them in (sets auth cookies).\nOtherwise, returns a temporary token for binding/registration.",
+        "description": "Handle WeChat OAuth callback.\n\nExchanges code for access_token and openid.\nIf the openid is already bound to a user, stores a short-lived code for\ntoken-first exchange. Otherwise, stores a code for temp-token exchange.",
         "operationId": "wechat_wechat_callback",
         "parameters": [
           {
@@ -7055,7 +7288,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Redirects to frontend WeChat callback page with tokens"
+            "description": "Redirects with a one-time exchange code"
           },
           "307": {
             "description": "Successful Response"
@@ -7072,6 +7305,48 @@
           }
         },
         "summary": "Wechat Callback",
+        "tags": [
+          "wechat"
+        ]
+      }
+    },
+    "/api/v1/auth/wechat/exchange": {
+      "post": {
+        "description": "Consume a one-time WeChat callback code and return a token-first result.",
+        "operationId": "wechat_exchange_wechat_code",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeChatExchangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeChatExchangeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exchange Wechat Code",
         "tags": [
           "wechat"
         ]
@@ -7096,6 +7371,22 @@
                 }
               ],
               "title": "Next"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Platform"
             }
           }
         ],

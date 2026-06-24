@@ -15,6 +15,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Backward compat default for legacy callers
 SECRET_KEY = settings.jwt_secret_key
 
 
+def get_access_token_expires_in_seconds() -> int:
+    """Return the configured access-token lifetime in seconds."""
+    return settings.access_token_expire_minutes * 60
+
+
 # ── Legacy helpers ──────────────────────────────────────────────────────────
 # Kept for existing callers (auth router, wechat router) that pass raw dicts.
 # New code should use create_access_token_sid() for typed access tokens.

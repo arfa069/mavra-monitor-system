@@ -283,10 +283,9 @@ async def test_login_audit_failure_does_not_break_business_success():
             )
 
     assert response.status_code == 200
-    # UserResponse shape, no access_token in body
     data = response.json()
-    assert data["username"] == "loginuser"
-    assert "access_token" not in data
+    assert data["user"]["username"] == "loginuser"
+    assert "access_token" in data
     mock_db.commit.assert_awaited_once()
 
 
@@ -333,6 +332,7 @@ async def test_logout_audit_failure_does_not_break_business_success():
                 },
                 headers={
                     "X-CSRF-Token": "csrf-value",
+                    "Origin": "http://localhost:3000",
                 },
             )
 

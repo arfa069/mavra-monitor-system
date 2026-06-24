@@ -1,6 +1,7 @@
 """Tests for dashboard service and API."""
 import asyncio
 import json
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from importlib import import_module
@@ -11,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.security import get_current_user
+from app.core.security import create_access_token_sid, get_current_user
 from app.database import get_db
 from app.domains.dashboard.service import list_recent_alerts
 from app.main import app
@@ -29,6 +30,60 @@ def _make_user(user_id: int = 1, role: str = "user"):
     user.created_at = datetime.now(UTC)
     user.updated_at = datetime.now(UTC)
     return user
+
+
+def _mock_bearer_db(user):
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = user
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=result)
+    return db
+
+
+async def _stream_response_start(path: str, token: str) -> dict:
+    """Run the ASGI app until response headers are sent for an SSE route."""
+    start_event = asyncio.Event()
+    start_message: dict = {}
+    request_sent = False
+
+    async def receive():
+        nonlocal request_sent
+        if not request_sent:
+            request_sent = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        nonlocal start_message
+        if message["type"] == "http.response.start":
+            start_message = message
+            start_event.set()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "headers": [
+            (b"host", b"test"),
+            (b"authorization", f"Bearer {token}".encode()),
+        ],
+        "client": ("testclient", 50000),
+        "server": ("test", 80),
+        "root_path": "",
+    }
+    task = asyncio.create_task(app(scope, receive, send))
+    try:
+        await asyncio.wait_for(start_event.wait(), timeout=2)
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
+    return start_message
 
 
 def _make_alert(
@@ -876,3 +931,26 @@ class TestDashboardAPI:
 
         assert '"total_users": 1' in initial_chunk
         assert '"total_users": 2' in changed_chunk
+
+    @pytest.mark.asyncio
+    async def test_dashboard_events_accepts_bearer_access_token(self):
+        """Flutter/native clients can open dashboard SSE with a bearer token."""
+        user = _make_user(user_id=77, role="user")
+        db = _mock_bearer_db(user)
+
+        async def _override_db():
+            yield db
+
+        token = create_access_token_sid(user.id, user.username, 42)
+        app.dependency_overrides[get_db] = _override_db
+        try:
+            response_start = await _stream_response_start(
+                "/api/v1/dashboard/events",
+                token,
+            )
+        finally:
+            app.dependency_overrides.clear()
+
+        assert response_start["status"] == 200
+        headers = dict(response_start["headers"])
+        assert headers[b"content-type"].startswith(b"text/event-stream")

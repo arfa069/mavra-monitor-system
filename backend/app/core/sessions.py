@@ -115,7 +115,7 @@ async def get_session_by_refresh_token(
         select(Session).where(
             Session.refresh_token_hash == token_hash,
             Session.refresh_expires_at > datetime.now(UTC),
-        )
+        ).with_for_update()
     )
     return result.scalar_one_or_none()
 

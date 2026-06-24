@@ -4,7 +4,6 @@ from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.schemas._common import IsActiveFromDeletedAtMixin
 from app.schemas.base import BaseResponseSchema
 
 
@@ -45,11 +44,8 @@ class AdminUserUpdate(BaseModel):
     is_active: bool | None = None  # True=恢复, False=软删除
 
 
-class AdminUserResponse(IsActiveFromDeletedAtMixin, BaseResponseSchema):
-    """Schema for user response (admin).
-
-    is_active is a compatibility projection of deleted_at (not the DB column).
-    """
+class AdminUserResponse(BaseResponseSchema):
+    """Schema for user response (admin)."""
     id: int
     username: str
     email: str

@@ -1,0 +1,101 @@
+# Flutter Release Packaging
+
+## Current Environment Status
+
+Verified on June 16, 2026:
+
+| Target | Status | Evidence |
+| --- | --- | --- |
+| Flutter SDK | Ready | Flutter 3.44.2 stable, Dart 3.12.2 |
+| Web | Ready | Chrome and Edge detected |
+| Windows | Ready | A clean Flutter Windows project produced a release `.exe` |
+| Android | Ready | Android SDK/AVD evidence is expected from `flutter doctor -v` and CI emulator smoke |
+| iOS | CI-only on Windows | Requires a macOS runner for simulator and build checks |
+
+## Web
+
+- Deployment: static `flutter build web` output served behind the existing
+  production reverse proxy.
+- Production build command: `flutter build web --dart-define=API_BASE_URL=/api/v1`.
+- Local static smoke command: `npx --yes serve -s build/web -l tcp://127.0.0.1:3001`.
+- Application path: `/`.
+- API base URL: `/api/v1` in same-origin production; explicit
+  `API_BASE_URL` dart define in development.
+- Routing: browser history URLs with server fallback to `index.html`.
+- Cache policy: hashed assets are immutable; `index.html` and service-worker
+  metadata use no-cache or short revalidation.
+- Cache invalidation owner: deployment owner must purge or revalidate
+  `index.html`, `flutter_service_worker.js`, and `version.json` on every
+  release while allowing hashed assets to stay immutable.
+- Distribution: existing Web deployment channel.
+
+## Android
+
+- Compile and target SDK: API 36.
+- Emulator smoke target: Pixel 8 class device with API 36 x86_64 image.
+- Development output: `flutter build apk`.
+- Release output: `flutter build appbundle`.
+- Initial distribution: internal testing track or signed private AAB/APK.
+- Signing owner: repository owner or designated release maintainer.
+- Signing material: external secret storage only; never commit keystores or
+  passwords.
+- Deep-link scheme: `mavra://auth/wechat`.
+- CI artifact policy: unsigned debug/release APKs from CI are verification
+  artifacts only. User-facing Android releases must be signed outside git.
+
+The minimum Android SDK remains the Flutter-generated project default unless a
+plugin requires a higher version. Any increase must be recorded with the
+requiring plugin.
+
+## iOS
+
+- Bundle identifier: `com.mavra.monitor`.
+- CI build: `flutter build ios --no-codesign` on macOS.
+- Simulator smoke target: current stable iOS simulator available on the CI
+  runner.
+- Release distribution: TestFlight first, then private or App Store release.
+- Signing owner: repository owner or designated Apple release maintainer.
+- Certificates and provisioning profiles: CI secret storage only.
+- Callback scheme: `mavra://auth/wechat`.
+- Universal link owner: Apple release maintainer; universal links are optional
+  until a stable production domain and Associated Domains entitlement are
+  configured.
+
+No Windows developer may mark iOS complete from a local no-op. The macOS CI run
+URL is required evidence.
+
+## Windows
+
+- Toolchain: Visual Studio Build Tools 2022, C++ desktop workload, CMake, and
+  Windows SDK.
+- Build command: `flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1` for local backend smoke; use the production API origin for packaged releases.
+- Local executable: `build\windows\x64\runner\Release\mavra_frontend.exe`.
+- Package format: signed MSIX.
+- Installer fallback: a signed `.exe` or `.msi` installer may be added later,
+  but MSIX is the default release artifact.
+- Package identity: `Mavra.Monitor`.
+- Minimum supported OS: Windows 10 version 2004, build 19041.
+- Minimum window size: 1024 x 720 for dense management views.
+- File behavior: native open/save dialogs for import and export.
+- Callback scheme: `mavra://auth/wechat`, with loopback callback as a fallback
+  only if custom URI registration is unavailable.
+- File associations: none in the initial Windows release; imports use native
+  open dialogs rather than OS-level file association claims.
+- Initial update channel: signed GitHub Release or private release storage.
+  Automatic App Installer updates require a stable signed HTTPS feed.
+- Signing owner: repository owner or designated Windows release maintainer.
+
+## Shared Security And Operations
+
+- Web access token: memory only.
+- Web refresh token: HttpOnly cookie, unreadable by Flutter Web.
+- Android, iOS, and Windows tokens: platform secure storage.
+- If secure storage is unavailable, authentication fails closed instead of
+  writing refresh tokens to plain files or preferences.
+- Native startup validates stored session expiry before route guarding; refresh
+  failure clears the local session and returns to `/login`.
+- Logs and crash reports redact cookies, Bearer tokens, refresh tokens, Home
+  Assistant tokens, webhook URLs, exchange codes, and authorization headers.
+- Build artifacts contain environment endpoints but no credentials.
+- Web, Android, iOS, and Windows each require a release smoke test before
+  promotion.

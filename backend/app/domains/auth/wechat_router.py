@@ -3,6 +3,7 @@
 Provides WeChat QR code login, callback handling, and account binding.
 Feature-flagged: returns 503 when WeChat login is not configured.
 """
+import json
 import logging
 import secrets
 from dataclasses import dataclass
@@ -12,18 +13,21 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit_from_request
-from app.core.auth_cookies import set_auth_cookies
+from app.core.auth_cookies import set_auth_cookies, set_web_refresh_cookie
 from app.core.permissions import get_role_permissions
+from app.core.redis_client import get_redis
 from app.core.security import (
     create_access_token,
     create_access_token_sid,
     create_csrf_token,
     create_refresh_token,
     create_session,
+    get_access_token_expires_in_seconds,
     get_password_hash,
     parse_device,
 )
@@ -31,10 +35,15 @@ from app.database import get_db
 from app.domains.auth import service as auth_service
 from app.models.user import User
 from app.schemas.auth import (
+    AuthSessionResponse,
+    LoginClientKind,
     UserResponse,
     WeChatBindRequest,
+    WeChatExchangeRequest,
+    WeChatExchangeResponse,
     WeChatQrResponse,
     WeChatRegisterRequest,
+    WeChatUnboundResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,9 +57,107 @@ router = APIRouter(prefix="/auth/wechat", tags=["wechat"])
 class WeChatStateEntry:
     issued_at: datetime
     next_path: str
+    callback_url: str = ""
 
 
 _state_cache: dict[str, WeChatStateEntry] = {}
+EXCHANGE_CODE_TTL_SECONDS = 600
+
+
+@dataclass(slots=True)
+class WeChatExchangeEntry:
+    issued_at: datetime
+    status: str
+    openid: str
+    next_path: str
+
+
+class InMemoryWeChatExchangeCodeStore:
+    """Process-local fallback used when Redis is unavailable."""
+
+    def __init__(self) -> None:
+        self._entries: dict[str, WeChatExchangeEntry] = {}
+
+    def _cleanup_expired(self) -> None:
+        now = datetime.now(UTC)
+        expired = [
+            code
+            for code, entry in self._entries.items()
+            if now - entry.issued_at > timedelta(seconds=EXCHANGE_CODE_TTL_SECONDS)
+        ]
+        for code in expired:
+            del self._entries[code]
+
+    async def save(self, code: str, entry: WeChatExchangeEntry) -> None:
+        self._cleanup_expired()
+        self._entries[code] = entry
+
+    async def consume(self, code: str) -> WeChatExchangeEntry | None:
+        self._cleanup_expired()
+        return self._entries.pop(code, None)
+
+
+class RedisWeChatExchangeCodeStore:
+    """Redis-backed one-time exchange-code store with local fallback."""
+
+    def __init__(self) -> None:
+        self._fallback = InMemoryWeChatExchangeCodeStore()
+
+    @staticmethod
+    def _key(code: str) -> str:
+        return f"wechat_exchange:{code}"
+
+    @staticmethod
+    def _serialize(entry: WeChatExchangeEntry) -> str:
+        return json.dumps(
+            {
+                "issued_at": entry.issued_at.isoformat(),
+                "status": entry.status,
+                "openid": entry.openid,
+                "next_path": entry.next_path,
+            }
+        )
+
+    @staticmethod
+    def _deserialize(raw_value: bytes | str) -> WeChatExchangeEntry | None:
+        if isinstance(raw_value, bytes):
+            raw_value = raw_value.decode("utf-8")
+        try:
+            data = json.loads(raw_value)
+            return WeChatExchangeEntry(
+                issued_at=datetime.fromisoformat(data["issued_at"]),
+                status=data["status"],
+                openid=data["openid"],
+                next_path=_normalize_next_path(data.get("next_path")),
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return None
+
+    async def save(self, code: str, entry: WeChatExchangeEntry) -> None:
+        try:
+            redis_client = await get_redis()
+            await redis_client.set(
+                self._key(code),
+                self._serialize(entry),
+                ex=EXCHANGE_CODE_TTL_SECONDS,
+            )
+        except RedisError:
+            logger.exception("Redis unavailable for WeChat exchange-code save")
+            await self._fallback.save(code, entry)
+
+    async def consume(self, code: str) -> WeChatExchangeEntry | None:
+        try:
+            redis_client = await get_redis()
+            raw_value = await redis_client.execute_command("GETDEL", self._key(code))
+        except RedisError:
+            logger.exception("Redis unavailable for WeChat exchange-code consume")
+            return await self._fallback.consume(code)
+        if not raw_value:
+            return await self._fallback.consume(code)
+        return self._deserialize(raw_value)
+
+
+_exchange_code_store = RedisWeChatExchangeCodeStore()
 
 WECHAT_QR_CONNECT_URL = "https://open.weixin.qq.com/connect/qrconnect"
 WECHAT_TOKEN_URL = "https://api.weixin.qq.com/sns/oauth2/access_token"
@@ -101,6 +208,56 @@ async def _create_wechat_auth_session(
     )
 
 
+async def _create_wechat_token_session(
+    user: User,
+    request: Request,
+    response: Response,
+    db: AsyncSession,
+    client_kind: LoginClientKind,
+) -> AuthSessionResponse:
+    """Create a token-first WeChat session for exchange-code consumers."""
+    refresh_token = create_refresh_token()
+    device = parse_device(request.headers.get("user-agent", ""))
+    ip_address = request.client.host if request.client else ""
+
+    session = await create_session(
+        user_id=user.id,
+        refresh_token=refresh_token,
+        device=device,
+        ip_address=ip_address,
+        db=db,
+    )
+    await db.flush()
+
+    access_token = create_access_token_sid(
+        user_id=user.id,
+        username=user.username,
+        session_id=session.id,
+    )
+    if client_kind == LoginClientKind.web:
+        set_web_refresh_cookie(response, refresh_token)
+
+    permissions = await get_role_permissions(db, user.role)
+    return AuthSessionResponse(
+        access_token=access_token,
+        refresh_token=(
+            refresh_token
+            if client_kind == LoginClientKind.native
+            else None
+        ),
+        expires_in=get_access_token_expires_in_seconds(),
+        user=UserResponse(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            role=user.role,
+            permissions=permissions,
+            is_active=user.is_active,
+            created_at=user.created_at,
+        ),
+    )
+
+
 def _cleanup_expired_states() -> None:
     """Remove expired states from cache."""
     now = datetime.now(UTC)
@@ -128,36 +285,51 @@ def _normalize_next_path(raw_next: str | None) -> str:
     return urlunsplit(("", "", path, split.query, ""))
 
 
-def _get_frontend_callback_url() -> str:
-    """Return the frontend callback landing URL for browser flows."""
-    return settings.wechat_frontend_callback_url or "http://localhost:3000/auth/wechat/callback"
+def _get_frontend_callback_url(platform: str | None = None) -> str:
+    """Return the platform callback landing URL."""
+    normalized_platform = (platform or "web").lower()
+    if normalized_platform == "android":
+        return settings.wechat_android_callback_url
+    if normalized_platform == "ios":
+        return settings.wechat_ios_callback_url
+    if normalized_platform == "windows":
+        return settings.wechat_windows_callback_url
+    return (
+        settings.wechat_flutter_web_callback_url
+        or settings.wechat_frontend_callback_url
+        or "http://localhost:3000/auth/wechat/callback"
+    )
 
 
 def _build_frontend_callback_redirect(
     *,
     status_value: str,
+    callback_url: str | None = None,
     next_path: str | None = None,
     reason: str | None = None,
-    temp_token: str | None = None,
+    exchange_code: str | None = None,
 ) -> str:
-    """Build the frontend callback URL with status query and optional fragment token."""
-    base = urlsplit(_get_frontend_callback_url())
+    """Build the platform callback URL with status query and exchange code."""
+    base = urlsplit(callback_url or _get_frontend_callback_url())
     query_items = [("status", status_value)]
     if next_path:
         query_items.append(("next", next_path))
+    if exchange_code:
+        query_items.append(("exchange_code", exchange_code))
     if reason:
         query_items.append(("reason", reason))
-    fragment = urlencode({"temp_token": temp_token}) if temp_token else ""
-    return urlunsplit(
-        (base.scheme, base.netloc, base.path, urlencode(query_items), fragment)
-    )
+    return urlunsplit((base.scheme, base.netloc, base.path, urlencode(query_items), ""))
 
 
-def _redirect_to_frontend_error(reason: str) -> RedirectResponse:
+def _redirect_to_frontend_error(
+    reason: str,
+    callback_url: str | None = None,
+) -> RedirectResponse:
     """Redirect callback failures to the frontend error state."""
     return RedirectResponse(
         url=_build_frontend_callback_redirect(
             status_value="error",
+            callback_url=callback_url,
             reason=reason,
         ),
         status_code=status.HTTP_302_FOUND,
@@ -179,7 +351,10 @@ def _check_wechat_enabled() -> None:
 
 
 @router.get("/qr", response_model=WeChatQrResponse)
-async def get_wechat_qr_url(next: str | None = None):
+async def get_wechat_qr_url(
+    next: str | None = None,
+    platform: str | None = None,
+):
     """Generate WeChat QR code authorization URL.
 
     Returns a URL for the user to scan with WeChat.
@@ -192,6 +367,7 @@ async def get_wechat_qr_url(next: str | None = None):
     _state_cache[state] = WeChatStateEntry(
         issued_at=datetime.now(UTC),
         next_path=_normalize_next_path(next),
+        callback_url=_get_frontend_callback_url(platform),
     )
 
     redirect_uri = (
@@ -214,9 +390,7 @@ async def get_wechat_qr_url(next: str | None = None):
     "/callback",
     response_class=RedirectResponse,
     responses={
-        302: {
-            "description": "Redirects to frontend WeChat callback page with tokens",
-        }
+        302: {"description": "Redirects with a one-time exchange code"}
     },
 )
 async def wechat_callback(
@@ -229,8 +403,8 @@ async def wechat_callback(
     """Handle WeChat OAuth callback.
 
     Exchanges code for access_token and openid.
-    If the openid is already bound to a user, logs them in (sets auth cookies).
-    Otherwise, returns a temporary token for binding/registration.
+    If the openid is already bound to a user, stores a short-lived code for
+    token-first exchange. Otherwise, stores a code for temp-token exchange.
     """
     _check_wechat_enabled()
 
@@ -255,56 +429,133 @@ async def wechat_callback(
     token_data = token_resp.json()
     if "errcode" in token_data:
         logger.error("WeChat token exchange failed: %s", token_data)
-        return _redirect_to_frontend_error("oauth_failed")
+        return _redirect_to_frontend_error("oauth_failed", state_entry.callback_url)
 
     openid = token_data.get("openid")
     if not openid:
-        return _redirect_to_frontend_error("wechat_identity_missing")
+        return _redirect_to_frontend_error(
+            "wechat_identity_missing",
+            state_entry.callback_url,
+        )
 
     user = await auth_service.get_user_for_wechat_login(db, openid=openid)
 
     if user:
-        # Already bound - login (set auth cookies)
         if not user.is_active:
-            return _redirect_to_frontend_error("user_disabled")
+            return _redirect_to_frontend_error(
+                "user_disabled",
+                state_entry.callback_url,
+            )
 
-        redirect_response = RedirectResponse(
+        exchange_code = secrets.token_urlsafe(32)
+        await _exchange_code_store.save(
+            exchange_code,
+            WeChatExchangeEntry(
+                issued_at=datetime.now(UTC),
+                status="success",
+                openid=openid,
+                next_path=state_entry.next_path,
+            ),
+        )
+        return RedirectResponse(
             url=_build_frontend_callback_redirect(
                 status_value="success",
+                callback_url=state_entry.callback_url,
                 next_path=state_entry.next_path,
+                exchange_code=exchange_code,
             ),
             status_code=status.HTTP_302_FOUND,
         )
 
-        await _create_wechat_auth_session(user, request, redirect_response, db)
-
-        await log_audit_from_request(
-            request,
-            db,
-            action="auth.login",
-            actor_user_id=user.id,
-            target_type="user",
-            target_id=user.id,
-            details={"username": user.username, "method": "wechat"},
-            commit=True,
-        )
-
-        return redirect_response
-
-    # Not bound - return temporary token for binding
-    temp_token = create_access_token(
-        data={"wechat_openid": openid, "temp": True},
-        expires_delta=timedelta(minutes=10),
+    exchange_code = secrets.token_urlsafe(32)
+    await _exchange_code_store.save(
+        exchange_code,
+        WeChatExchangeEntry(
+            issued_at=datetime.now(UTC),
+            status="unbound",
+            openid=openid,
+            next_path=state_entry.next_path,
+        ),
     )
-
     return RedirectResponse(
         url=_build_frontend_callback_redirect(
             status_value="unbound",
+            callback_url=state_entry.callback_url,
             next_path=state_entry.next_path,
-            temp_token=temp_token,
+            exchange_code=exchange_code,
         ),
         status_code=status.HTTP_302_FOUND,
     )
+
+
+@router.post("/exchange", response_model=WeChatExchangeResponse)
+async def exchange_wechat_code(
+    payload: WeChatExchangeRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """Consume a one-time WeChat callback code and return a token-first result."""
+    _check_wechat_enabled()
+
+    entry = await _exchange_code_store.consume(payload.exchange_code)
+    if entry is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="微信交换码无效或已过期",
+        )
+
+    if entry.status == "unbound":
+        temp_token = create_access_token(
+            data={"wechat_openid": entry.openid, "temp": True},
+            expires_delta=timedelta(minutes=10),
+        )
+        return WeChatExchangeResponse(
+            status="unbound",
+            unbound=WeChatUnboundResponse(
+                temp_token=temp_token,
+                next_path=entry.next_path,
+            ),
+        )
+
+    if entry.status != "success":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="微信交换码状态无效",
+        )
+
+    user = await auth_service.get_user_for_wechat_login(db, openid=entry.openid)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="微信账号尚未绑定",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户已被禁用",
+        )
+
+    session_response = await _create_wechat_token_session(
+        user,
+        request,
+        response,
+        db,
+        payload.client_kind,
+    )
+
+    await log_audit_from_request(
+        request,
+        db,
+        action="auth.login",
+        actor_user_id=user.id,
+        target_type="user",
+        target_id=user.id,
+        details={"username": user.username, "method": "wechat_exchange"},
+        commit=True,
+    )
+
+    return WeChatExchangeResponse(status="success", session=session_response)
 
 
 @router.post("/bind", response_model=UserResponse)

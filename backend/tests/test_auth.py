@@ -1,4 +1,5 @@
 """Tests for authentication API."""
+import importlib
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -9,6 +10,20 @@ from app.core.security import get_password_hash
 from app.database import get_db
 from app.main import app
 from app.models.user import User
+
+auth_router_module = importlib.import_module("app.domains.auth.router")
+
+
+@pytest.fixture(autouse=True)
+def mock_login_lockout(monkeypatch):
+    """Keep auth unit tests independent from Redis."""
+    monkeypatch.setattr(
+        auth_router_module,
+        "is_account_locked",
+        AsyncMock(return_value=(False, 0)),
+    )
+    monkeypatch.setattr(auth_router_module, "record_failed_login", AsyncMock())
+    monkeypatch.setattr(auth_router_module, "clear_login_attempts", AsyncMock())
 
 
 class TestRegister:
@@ -126,7 +141,7 @@ class TestLogin:
 
     @pytest.mark.asyncio
     async def test_login_success(self):
-        """Test successful login returns UserResponse and sets auth cookies."""
+        """Test successful Web login returns tokens and a refresh cookie."""
         hashed = get_password_hash("password123")
         mock_user = MagicMock(spec=User)
         mock_user.id = 1
@@ -167,18 +182,22 @@ class TestLogin:
                 )
             assert response.status_code == 200
             data = response.json()
-            # UserResponse shape (no access_token in body)
-            assert data["username"] == "testuser"
-            assert data["email"] == "test@example.com"
-            assert data["role"] == "user"
-            assert "id" in data
-            assert "access_token" not in data
-            assert "token_type" not in data
-            # Cookies set via Set-Cookie header
-            set_cookie = response.headers.get("set-cookie", "")
-            assert "pm_access_token=" in set_cookie
-            assert "pm_refresh_token=" in set_cookie
-            assert "pm_csrf_token=" in set_cookie
+            assert data["access_token"]
+            assert data["token_type"] == "bearer"
+            assert data["refresh_token"] is None
+            assert data["user"]["username"] == "testuser"
+            assert data["user"]["email"] == "test@example.com"
+            assert data["user"]["role"] == "user"
+            set_cookie = response.headers.get_list("set-cookie")
+            assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+            access_clear = next(
+                value for value in set_cookie if value.startswith("pm_access_token=")
+            )
+            csrf_clear = next(
+                value for value in set_cookie if value.startswith("pm_csrf_token=")
+            )
+            assert "Max-Age=0" in access_clear
+            assert "Max-Age=0" in csrf_clear
         finally:
             app.dependency_overrides.clear()
 
@@ -342,12 +361,14 @@ class TestLogin:
                 )
             assert response.status_code == 200
             data = response.json()
-            # UserResponse, not TokenResponse
-            assert data["username"] == "testuser"
-            assert "access_token" not in data
-            # Cookies are set
-            set_cookie = response.headers.get("set-cookie", "")
-            assert "pm_access_token=" in set_cookie
+            assert data["user"]["username"] == "testuser"
+            assert data["access_token"]
+            set_cookie = response.headers.get_list("set-cookie")
+            assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+            access_clear = next(
+                value for value in set_cookie if value.startswith("pm_access_token=")
+            )
+            assert "Max-Age=0" in access_clear
         finally:
             app.dependency_overrides.clear()
 
@@ -357,7 +378,7 @@ class TestRefresh:
 
     @pytest.mark.asyncio
     async def test_refresh_success(self):
-        """Test successful token refresh returns UserResponse and sets new cookies."""
+        """Test Web refresh returns a new access token and refresh cookie."""
         from app.core.security import create_refresh_token
 
         old_refresh_token = create_refresh_token()
@@ -408,17 +429,24 @@ class TestRefresh:
                     },
                     headers={
                         "X-CSRF-Token": "csrf-value",
+                        "Origin": "http://localhost:3000",
                     },
                 )
             assert response.status_code == 200
             data = response.json()
-            assert data["username"] == "testuser"
-            assert "access_token" not in data
-            # New cookies set
-            set_cookie = response.headers.get("set-cookie", "")
-            assert "pm_access_token=" in set_cookie
-            assert "pm_refresh_token=" in set_cookie
-            assert "pm_csrf_token=" in set_cookie
+            assert data["user"]["username"] == "testuser"
+            assert data["access_token"]
+            assert data["refresh_token"] is None
+            set_cookie = response.headers.get_list("set-cookie")
+            assert any(value.startswith("pm_refresh_token=") for value in set_cookie)
+            access_clear = next(
+                value for value in set_cookie if value.startswith("pm_access_token=")
+            )
+            csrf_clear = next(
+                value for value in set_cookie if value.startswith("pm_csrf_token=")
+            )
+            assert "Max-Age=0" in access_clear
+            assert "Max-Age=0" in csrf_clear
         finally:
             app.dependency_overrides.clear()
 
@@ -457,6 +485,7 @@ class TestRefresh:
                     },
                     headers={
                         "X-CSRF-Token": "csrf-value",
+                        "Origin": "http://localhost:3000",
                     },
                 )
             assert response.status_code == 401
@@ -724,6 +753,7 @@ class TestLogout:
                     },
                     headers={
                         "X-CSRF-Token": "csrf-value",
+                        "Origin": "http://localhost:3000",
                     },
                 )
             assert response.status_code == 200
@@ -788,6 +818,7 @@ class TestLogout:
                     },
                     headers={
                         "X-CSRF-Token": "csrf-value",
+                        "Origin": "http://localhost:3000",
                     },
                 )
             assert response.status_code == 200

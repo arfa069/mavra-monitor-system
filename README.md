@@ -16,7 +16,7 @@ E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 5
 - Database-backed RBAC with dynamic role-permission matrix and resource-level permissions
 - Public SEO blog at `/blog` backed by a separate Next.js App Router app and admin writing tools in the console
 - RESTful API for product and alert management
-- Mobile-responsive UI with accessibility support (WCAG compliance)
+- Flutter Web, Android, iOS, and Windows frontend with responsive management UI and accessibility coverage
 
 ## Quick Start
 
@@ -37,13 +37,15 @@ uv run --extra dev uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # 4. Start the frontend in another terminal
 cd ../frontend
-npm install
-npm run dev
+flutter pub get
+flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 > **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Run uvicorn through the backend uv environment as shown above.
 >
-> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts backend `8000`, Vite console `3000`, crawler worker, and the Next.js public blog `3001`. Run `cd backend; uv sync --extra dev` first. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
+> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts backend `8000`, serves the Flutter Web build on `3000`, starts crawler worker, and starts the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first. Run `cd frontend; flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1` before the default static mode, or pass `-FlutterDev` to run the Flutter dev server. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
+>
+> When comparing the Flutter replacement against the legacy frontend, keep the legacy frontend on `3000` and run Flutter manually on `3001`: `flutter run -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://localhost:8000/api/v1`.
 
 ## Configuration
 
@@ -262,6 +264,7 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 - **强密码策略**：注册、改密和微信注册绑定密码必须至少 10 位，并同时包含大写字母、小写字母、数字和特殊字符
 - **Access Token 有效期**：15分钟；Refresh Token 有效期：14天
 - **Refresh 轮换**：`POST /api/v1/auth/refresh` 使用 `pm_refresh_token` Cookie，成功后轮换 refresh token 并重设三类认证 Cookie
+- **原生端会话恢复**：Windows/Android/iOS 使用平台安全存储保存会话；启动时会先校验本地过期时间，过期则尝试 refresh，refresh 失败会清空本地会话并回到登录页
 - **CSRF 保护**：不安全方法校验 `pm_csrf_token` Cookie 与 `X-CSRF-Token` 请求头
 - **密码加密**：使用 bcrypt 算法加密存储
 - **数据隔离**：所有数据按 `user_id` 隔离，用户只能访问自己的数据
@@ -291,18 +294,19 @@ curl -b cookies.txt http://localhost:8000/api/v1/auth/me
 ## Development
 
 ```powershell
-# Export backend OpenAPI schema and generate the frontend Orval client
+# Export backend OpenAPI schema and generate the Flutter Dart client
+cd C:/Users/arfac/Documents/mavra-monitor-system
 uv run --project backend --extra dev python scripts/export_openapi.py
-cd frontend && npm run api:generate
+./scripts/generate_dart_client.ps1
 
-# Check API contract drift, checker tests, and direct Axios/api usage
-cd ..
+# Check API contract drift, checker tests, and generated-client usage
 uv run --project backend --extra dev python scripts/check_api_contract.py
-uv run --project backend --extra dev python -m pytest scripts/tests/test_check_frontend_api_usage.py -q
-cd frontend && npm run api:check-usage
+uv run --project backend --extra dev python -m pytest scripts/tests/test_check_dart_api_usage.py -q
+uv run --project backend --extra dev python scripts/check_dart_api_usage.py
 
 # Run linter
-cd ../backend && uv run --extra dev python -m ruff check .
+cd backend
+uv run --extra dev python -m ruff check .
 
 # Run tests
 uv run --extra dev python -m pytest
@@ -312,17 +316,27 @@ uv run --extra dev coverage run -m pytest
 uv run --extra dev coverage report
 
 # Start frontend
-cd ../frontend && npm run dev
+cd ../frontend
+flutter pub get
+flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+
+# Build frontend release artifacts
+flutter build web --dart-define=API_BASE_URL=/api/v1
+flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+
+# Local static Web smoke after build
+npx --yes serve -s build/web -l tcp://127.0.0.1:3001
 ```
 
-普通 HTTP 请求使用 `frontend/src/shared/api/generated/` 中的生成函数、hooks
-或 query options。业务 wrapper 只负责轮询、缓存失效和 UI 数据映射。浏览器
-最终请求 `/api/v1/...`，Vite 与生产反向代理原样转发该路径；仅 profile
-backup blob 导出保留手写 Axios 适配器。
+普通 HTTP 请求使用 `frontend/lib/core/api/generated/` 中的 Dart generated
+client。业务 repository 只负责轮询、缓存失效和 UI 数据映射。Flutter Web
+最终请求 `/api/v1/...`，开发服务与生产反向代理原样转发该路径；Blob/文件导入
+导出通过 `frontend/lib/core/files/` 平台适配。
 
 ## Architecture
 
 - **FastAPI**: Web framework (async via asyncio)
+- **Flutter**: Main Web, Android, iOS, and Windows frontend
 - **PostgreSQL**: Database (async via SQLAlchemy)
 - **Playwright**: Product crawler for dynamic pages (launch or CDP mode)
 - **curl_cffi**: Job crawler HTTP client with browser-like TLS fingerprints
@@ -388,7 +402,7 @@ Query parameters: `page` (default 1), `size` (default 15, max 100), `platform`, 
 
 ### Public Blog Deployment
 
-The public blog is a separate Next.js app in `blog-frontend/`. In production, keep the existing Vite console and route these paths through the reverse proxy:
+The public blog is a separate Next.js app in `blog-frontend/`. In production, serve the Flutter Web console and route these paths through the reverse proxy:
 
 | Path | Target |
 | ---- | ------ |
