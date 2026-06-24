@@ -114,6 +114,24 @@ void main() {
     final applyFiltersSize = tester.getSize(
       find.byKey(const Key('blog-apply-filters-button')),
     );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('blog-apply-filters-button'))).dy,
+      tester.getTopLeft(find.byKey(const Key('blog-status-filter'))).dy,
+    );
+    expect(
+      tester
+          .getBottomLeft(find.byKey(const Key('blog-apply-filters-button')))
+          .dy,
+      tester.getBottomLeft(find.byKey(const Key('blog-status-filter'))).dy,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('blog-new-post-button'))).dy,
+      tester.getTopLeft(find.byKey(const Key('blog-status-filter'))).dy,
+    );
+    expect(
+      tester.getBottomLeft(find.byKey(const Key('blog-new-post-button'))).dy,
+      tester.getBottomLeft(find.byKey(const Key('blog-status-filter'))).dy,
+    );
     final newPostTop = tester.getTopLeft(
       find.byKey(const Key('blog-new-post-button')),
     ).dy;

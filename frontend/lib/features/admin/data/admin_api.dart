@@ -41,6 +41,10 @@ class GeneratedAdminRepository implements AdminRepository {
 
     final users = usersResponse.data;
     final matrix = matrixResponse?.data;
+    final allRolePermissions = <String>[
+      for (final permission in matrix?.allPermissions.toList() ?? const [])
+        permission.name,
+    ];
     final audits = auditsResponse.data;
     final resourcePermissions = resourcePermissionsResponse.data;
 
@@ -49,7 +53,8 @@ class GeneratedAdminRepository implements AdminRepository {
         for (final user in users?.items.toList() ?? const []) _mapUser(user),
       ],
       rolePermissions: [
-        for (final role in matrix?.roles.toList() ?? const []) _mapRole(role),
+        for (final role in matrix?.roles.toList() ?? const [])
+          _mapRole(role, allRolePermissions),
       ],
       auditLogs: [
         for (final log in audits?.items.toList() ?? const []) _mapAudit(log),
@@ -102,9 +107,13 @@ class GeneratedAdminRepository implements AdminRepository {
   @override
   Future<List<AdminRolePermission>> loadRolePermissionMatrix() async {
     final response = await _adminApi.adminGetRolePermissionMatrix();
+    final allRolePermissions = <String>[
+      for (final permission in response.data?.allPermissions.toList() ?? const [])
+        permission.name,
+    ];
     return [
       for (final role in response.data?.roles.toList() ?? const [])
-        _mapRole(role),
+        _mapRole(role, allRolePermissions),
     ];
   }
 
@@ -235,10 +244,14 @@ class GeneratedAdminRepository implements AdminRepository {
     );
   }
 
-  static AdminRolePermission _mapRole(generated.RolePermissionResponse role) {
+  static AdminRolePermission _mapRole(
+    generated.RolePermissionResponse role,
+    List<String> availablePermissions,
+  ) {
     return AdminRolePermission(
       role: role.role,
       permissions: role.permissions.toList(),
+      availablePermissions: availablePermissions,
     );
   }
 

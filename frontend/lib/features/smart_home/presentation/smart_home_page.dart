@@ -2,17 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/mavra_page_banner.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/smart_home_models.dart';
 
-const _buttonMinimumSize = Size(0, 40);
-
-ButtonStyle _compactOutlinedButtonStyle() {
-  return OutlinedButton.styleFrom(minimumSize: _buttonMinimumSize);
-}
-
-ButtonStyle _compactFilledButtonStyle() {
-  return FilledButton.styleFrom(minimumSize: _buttonMinimumSize);
-}
+// Button styles are defined in MavraButtonStyle
 
 class SmartHomePage extends StatefulWidget {
   const SmartHomePage({super.key, required this.repository, this.permissions});
@@ -195,23 +189,21 @@ class _SmartHomePageState extends State<SmartHomePage> {
                       TextField(
                         key: const Key('smart-home-url-field'),
                         controller: _baseUrlController,
-                        decoration: const InputDecoration(
-                          labelText: 'Base URL',
-                          hintText: 'http://homeassistant.local:8123',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Base URL',
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       TextField(
                         key: const Key('smart-home-token-field'),
                         controller: _tokenController,
                         obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: config?.tokenConfigured == true
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: config?.tokenConfigured == true
                               ? 'New Token'
                               : 'Long-Lived Access Token',
-                          hintText: config?.tokenConfigured == true
-                              ? 'Leave blank to keep existing token'
-                              : 'Paste token',
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -225,7 +217,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
                       ),
                       OutlinedButton(
                         key: const Key('smart-home-test-config-button'),
-                        style: _compactOutlinedButtonStyle(),
+                        style: MavraButtonStyle.compactOutlined(context: context),
                         onPressed: testing ? null : testConfig,
                         child: Text(testing ? 'Testing...' : 'Test Connection'),
                       ),
@@ -246,7 +238,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
                 ),
                 FilledButton(
                   key: const Key('smart-home-save-config-button'),
-                  style: _compactFilledButtonStyle(),
+                  style: MavraButtonStyle.compactFilled(context: context),
                   onPressed: saving ? null : saveConfig,
                   child: Text(saving ? 'Saving...' : 'Save'),
                 ),
@@ -326,7 +318,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
           ),
           FilledButton(
             key: Key('smart-home-confirm-${entity.entityId}-turn_on'),
-            style: _compactFilledButtonStyle(),
+            style: MavraButtonStyle.compactFilled(context: context),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Confirm'),
           ),
@@ -424,14 +416,14 @@ class _SmartHomeContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SmartHomeHeader(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _SmartHomeActions(
             connected: snapshot.summary.connected,
             loading: loading,
             onRefresh: onRefresh,
             onConfigure: onConfigure,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           if (loadError != null) ...[
             _MessageCard(message: loadError!, error: true),
             const SizedBox(height: 16),
@@ -573,37 +565,11 @@ class _SmartHomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      key: const Key('smart-home-title-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0x29D89A57),
-        border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Smart Home', style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Smart Home',
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Home Assistant devices and scenes',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
+    return const MavraPageBanner(
+      key: Key('smart-home-title-banner'),
+      eyebrow: 'Smart Home',
+      title: 'Smart Home',
+      subtitle: 'Home Assistant devices and scenes',
     );
   }
 }
@@ -623,36 +589,42 @@ class _SmartHomeActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          Chip(
-            label: Text(connected ? 'Connected' : 'Offline'),
-            avatar: Icon(
-              connected ? Icons.cloud_done : Icons.cloud_off,
-              size: 18,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        return SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: compact ? WrapAlignment.start : WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Chip(
+                label: Text(connected ? 'Connected' : 'Offline'),
+                avatar: Icon(
+                  connected ? Icons.cloud_done : Icons.cloud_off,
+                  size: 18,
+                ),
+              ),
+              OutlinedButton(
+                key: const Key('smart-home-refresh-button'),
+                style: MavraButtonStyle.compactOutlined(context: context),
+                onPressed: loading ? null : onRefresh,
+                child: Text(loading ? 'Refreshing' : 'Refresh'),
+              ),
+              if (onConfigure != null)
+                OutlinedButton.icon(
+                  key: const Key('smart-home-configure-button'),
+                  style: MavraButtonStyle.compactOutlined(context: context),
+                  onPressed: onConfigure,
+                  icon: const Icon(Icons.settings, size: 18),
+                  label: const Text('Configure'),
+                ),
+            ],
           ),
-          OutlinedButton(
-            key: const Key('smart-home-refresh-button'),
-            style: _compactOutlinedButtonStyle(),
-            onPressed: loading ? null : onRefresh,
-            child: Text(loading ? 'Refreshing' : 'Refresh'),
-          ),
-          if (onConfigure != null)
-            OutlinedButton.icon(
-              key: const Key('smart-home-configure-button'),
-              style: _compactOutlinedButtonStyle(),
-              onPressed: onConfigure,
-              icon: const Icon(Icons.settings, size: 18),
-              label: const Text('Configure'),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -755,9 +727,9 @@ class _EntityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       key: Key('smart-home-card-${entity.entityId}'),
-      margin: EdgeInsets.zero,
+      decoration: MavraTableStyle.panelDecoration(context),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -782,7 +754,7 @@ class _EntityCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(entity.entityId, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 16),
-            _controls(),
+            _controls(context),
             if (!entity.available) ...[
               const SizedBox(height: 12),
               const Chip(
@@ -796,7 +768,7 @@ class _EntityCard extends StatelessWidget {
     );
   }
 
-  Widget _controls() {
+  Widget _controls(BuildContext context) {
     switch (entity.domain) {
       case 'light':
       case 'switch':
@@ -818,7 +790,7 @@ class _EntityCard extends StatelessWidget {
           children: [
             OutlinedButton(
               key: Key('smart-home-cover-open-${entity.entityId}'),
-              style: _compactOutlinedButtonStyle(),
+              style: MavraButtonStyle.compactOutlined(context: context),
               onPressed: canControl && onCallEntityService != null
                   ? () => onCallEntityService!(entity, 'open_cover')
                   : null,
@@ -826,7 +798,7 @@ class _EntityCard extends StatelessWidget {
             ),
             OutlinedButton(
               key: Key('smart-home-cover-stop-${entity.entityId}'),
-              style: _compactOutlinedButtonStyle(),
+              style: MavraButtonStyle.compactOutlined(context: context),
               onPressed: canControl && onCallEntityService != null
                   ? () => onCallEntityService!(entity, 'stop_cover')
                   : null,
@@ -834,7 +806,7 @@ class _EntityCard extends StatelessWidget {
             ),
             OutlinedButton(
               key: Key('smart-home-cover-close-${entity.entityId}'),
-              style: _compactOutlinedButtonStyle(),
+              style: MavraButtonStyle.compactOutlined(context: context),
               onPressed: canControl && onCallEntityService != null
                   ? () => onCallEntityService!(entity, 'close_cover')
                   : null,
@@ -852,7 +824,7 @@ class _EntityCard extends StatelessWidget {
       case 'script':
         return FilledButton.icon(
           key: Key('smart-home-run-${entity.entityId}'),
-          style: _compactFilledButtonStyle(),
+          style: MavraButtonStyle.compactFilled(context: context),
           onPressed: canControl && onConfirmRunEntity != null
               ? () => onConfirmRunEntity!(entity)
               : null,
@@ -918,6 +890,7 @@ class _ClimateControls extends StatelessWidget {
             initialValue: modes.contains(entity.state)
                 ? entity.state
                 : (modes.isEmpty ? null : modes.first),
+            decoration: MavraInputStyle.tableInput(context: context),
             items: [
               for (final mode in modes)
                 DropdownMenuItem(value: mode, child: Text(mode)),
@@ -942,7 +915,13 @@ class _ClimateControls extends StatelessWidget {
             initialValue: temperature?.toString() ?? '',
             enabled: enabled && onCallEntityService != null,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(suffixText: 'C'),
+            decoration: MavraInputStyle.tableInput(
+              context: context,
+              suffixIcon: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                child: Text('C', style: TextStyle(fontSize: 13)),
+              ),
+            ),
             onFieldSubmitted: (value) {
               final next = double.tryParse(value.trim());
               if (next != null && onCallEntityService != null) {

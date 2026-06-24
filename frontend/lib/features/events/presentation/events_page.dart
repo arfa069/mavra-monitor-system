@@ -3,8 +3,10 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_side_sheet.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/event_models.dart';
 
 class EventsPage extends StatefulWidget {
@@ -273,8 +275,14 @@ class _EventsContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _EventsBanner(),
-                    const SizedBox(height: 16),
+                    const MavraPageBanner(
+                      key: Key('events-banner'),
+                      eyebrow: 'System Events',
+                      title: 'Event Center',
+                      subtitle:
+                          'Unified audit, runtime, and platform event stream with realtime updates',
+                    ),
+                    const SizedBox(height: 20),
                     _EventFilterToolbar(
                       query: query,
                       eventTypeController: eventTypeController,
@@ -308,49 +316,6 @@ class _EventsContent extends StatelessWidget {
   }
 }
 
-class _EventsBanner extends StatelessWidget {
-  const _EventsBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return DecoratedBox(
-      key: const Key('events-banner'),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.54),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'System Events',
-              style: text.labelLarge?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Event Center',
-              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Unified audit, runtime, and platform event stream with realtime updates',
-              style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _EventFilterToolbar extends StatelessWidget {
   const _EventFilterToolbar({
     required this.query,
@@ -380,105 +345,340 @@ class _EventFilterToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 620) {
+          return _CompactEventFilters(
+            query: query,
+            eventTypeController: eventTypeController,
+            categoryController: categoryController,
+            severityController: severityController,
+            sourceController: sourceController,
+            keywordController: keywordController,
+            startController: startController,
+            endController: endController,
+            onFilterChanged: onFilterChanged,
+            onTextFilterChanged: onTextFilterChanged,
+            onResetFilters: onResetFilters,
+          );
+        }
+        return Wrap(
+          key: const Key('events-filter-toolbar'),
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _KindFilter(
+              query: query,
+              width: 230,
+              onFilterChanged: onFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-type-field'),
+              controller: eventTypeController,
+              label: 'Event type',
+              onChanged: onTextFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-category-field'),
+              controller: categoryController,
+              label: 'Category',
+              onChanged: onTextFilterChanged,
+            ),
+            _SeverityFilter(
+              controller: severityController,
+              width: 270,
+              onChanged: onTextFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-source-field'),
+              controller: sourceController,
+              label: 'Source',
+              onChanged: onTextFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-keyword-field'),
+              controller: keywordController,
+              label: 'Keyword',
+              width: 220,
+              onChanged: onTextFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-start-field'),
+              controller: startController,
+              label: 'Start',
+              width: 210,
+              onChanged: onTextFilterChanged,
+            ),
+            _SmallFilterField(
+              key: const Key('events-end-field'),
+              controller: endController,
+              label: 'End',
+              width: 210,
+              onChanged: onTextFilterChanged,
+            ),
+            SizedBox(
+              width: 92,
+              height: 40,
+              child: MavraFilterButton.outlined(
+                key: const Key('events-reset-filters-button'),
+                onPressed: onResetFilters,
+                icon: Icons.refresh,
+                label: 'Reset',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompactEventFilters extends StatelessWidget {
+  const _CompactEventFilters({
+    required this.query,
+    required this.eventTypeController,
+    required this.categoryController,
+    required this.severityController,
+    required this.sourceController,
+    required this.keywordController,
+    required this.startController,
+    required this.endController,
+    required this.onFilterChanged,
+    required this.onTextFilterChanged,
+    required this.onResetFilters,
+  });
+
+  final EventQuery query;
+  final TextEditingController eventTypeController;
+  final TextEditingController categoryController;
+  final TextEditingController severityController;
+  final TextEditingController sourceController;
+  final TextEditingController keywordController;
+  final TextEditingController startController;
+  final TextEditingController endController;
+  final ValueChanged<EventFilter> onFilterChanged;
+  final VoidCallback onTextFilterChanged;
+  final VoidCallback onResetFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       key: const Key('events-filter-toolbar'),
-      spacing: 12,
-      runSpacing: 10,
-      crossAxisAlignment: WrapCrossAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 230,
-          child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Kind'),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<EventFilter>(
-                key: const Key('events-kind-filter'),
-                value: query.filter,
-                isExpanded: true,
-                items: [
-                  for (final filter in EventFilter.values)
-                    DropdownMenuItem(value: filter, child: Text(filter.label)),
-                ],
-                onChanged: (filter) {
-                  if (filter != null) {
-                    onFilterChanged(filter);
-                  }
-                },
+        Row(
+          children: [
+            Expanded(
+              child: _KindFilter(
+                query: query,
+                onFilterChanged: onFilterChanged,
               ),
             ),
-          ),
-        ),
-        _SmallFilterField(
-          key: const Key('events-type-field'),
-          controller: eventTypeController,
-          label: 'Event type',
-          onChanged: onTextFilterChanged,
-        ),
-        _SmallFilterField(
-          key: const Key('events-category-field'),
-          controller: categoryController,
-          label: 'Category',
-          onChanged: onTextFilterChanged,
-        ),
-        SizedBox(
-          width: 270,
-          child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Severity'),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                key: const Key('events-severity-filter'),
-                value: severityController.text,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: '', child: Text('All severity')),
-                  DropdownMenuItem(value: 'info', child: Text('Info')),
-                  DropdownMenuItem(value: 'warning', child: Text('Warning')),
-                  DropdownMenuItem(value: 'error', child: Text('Error')),
-                ],
-                onChanged: (severity) {
-                  severityController.text = severity ?? '';
-                  onTextFilterChanged();
-                },
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SeverityFilter(
+                controller: severityController,
+                onChanged: onTextFilterChanged,
               ),
             ),
-          ),
+          ],
         ),
-        _SmallFilterField(
-          key: const Key('events-source-field'),
-          controller: sourceController,
-          label: 'Source',
-          onChanged: onTextFilterChanged,
-        ),
+        const SizedBox(height: 8),
         _SmallFilterField(
           key: const Key('events-keyword-field'),
           controller: keywordController,
           label: 'Keyword',
-          width: 220,
+          width: double.infinity,
           onChanged: onTextFilterChanged,
         ),
-        _SmallFilterField(
-          key: const Key('events-start-field'),
-          controller: startController,
-          label: 'Start',
-          width: 210,
-          onChanged: onTextFilterChanged,
-        ),
-        _SmallFilterField(
-          key: const Key('events-end-field'),
-          controller: endController,
-          label: 'End',
-          width: 210,
-          onChanged: onTextFilterChanged,
-        ),
-        OutlinedButton.icon(
-          key: const Key('events-reset-filters-button'),
-          onPressed: onResetFilters,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reset'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            SizedBox(
+              width: 130,
+              height: 40,
+              child: MavraFilterButton.outlined(
+                key: const Key('events-more-filters-button'),
+                onPressed: () => _openMoreFilters(context),
+                icon: Icons.tune,
+                label: 'More filters',
+              ),
+            ),
+            SizedBox(
+              width: 92,
+              height: 40,
+              child: MavraFilterButton.outlined(
+                key: const Key('events-reset-filters-button'),
+                onPressed: onResetFilters,
+                icon: Icons.refresh,
+                label: 'Reset',
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
+
+  void _openMoreFilters(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('More filters'),
+        content: SizedBox(
+          width: 360,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _SmallFilterField(
+                  key: const Key('events-type-field'),
+                  controller: eventTypeController,
+                  label: 'Event type',
+                  width: double.infinity,
+                  onChanged: onTextFilterChanged,
+                ),
+                const SizedBox(height: 8),
+                _SmallFilterField(
+                  key: const Key('events-category-field'),
+                  controller: categoryController,
+                  label: 'Category',
+                  width: double.infinity,
+                  onChanged: onTextFilterChanged,
+                ),
+                const SizedBox(height: 8),
+                _SmallFilterField(
+                  key: const Key('events-source-field'),
+                  controller: sourceController,
+                  label: 'Source',
+                  width: double.infinity,
+                  onChanged: onTextFilterChanged,
+                ),
+                const SizedBox(height: 8),
+                _SmallFilterField(
+                  key: const Key('events-start-field'),
+                  controller: startController,
+                  label: 'Start',
+                  width: double.infinity,
+                  onChanged: onTextFilterChanged,
+                ),
+                const SizedBox(height: 8),
+                _SmallFilterField(
+                  key: const Key('events-end-field'),
+                  controller: endController,
+                  label: 'End',
+                  width: double.infinity,
+                  onChanged: onTextFilterChanged,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              onResetFilters();
+              Navigator.of(context).pop();
+            },
+            style: MavraButtonStyle.compactText(context: context),
+            child: const Text('Reset'),
+          ),
+          FilledButton(
+            onPressed: () {
+              onTextFilterChanged();
+              Navigator.of(context).pop();
+            },
+            style: MavraButtonStyle.compactFilled(context: context),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KindFilter extends StatelessWidget {
+  const _KindFilter({
+    required this.query,
+    required this.onFilterChanged,
+    this.width,
+  });
+
+  final EventQuery query;
+  final ValueChanged<EventFilter> onFilterChanged;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 40,
+      child: DropdownButtonFormField<EventFilter>(
+        key: const Key('events-kind-filter'),
+        initialValue: query.filter,
+        isExpanded: true,
+        decoration: MavraInputStyle.filterInput(
+          context: context,
+          label: 'Kind',
+        ),
+        items: [
+          for (final filter in EventFilter.values)
+            DropdownMenuItem(value: filter, child: Text(filter.label)),
+        ],
+        onChanged: (filter) {
+          if (filter != null) {
+            onFilterChanged(filter);
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SeverityFilter extends StatelessWidget {
+  const _SeverityFilter({
+    required this.controller,
+    required this.onChanged,
+    this.width,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 40,
+      child: DropdownButtonFormField<String>(
+        key: const Key('events-severity-filter'),
+        initialValue: _severityValue(controller.text),
+        isExpanded: true,
+        decoration: MavraInputStyle.filterInput(
+          context: context,
+          label: 'Severity',
+        ),
+        items: const [
+          DropdownMenuItem(value: '', child: Text('All severity')),
+          DropdownMenuItem(value: 'info', child: Text('Info')),
+          DropdownMenuItem(value: 'warning', child: Text('Warning')),
+          DropdownMenuItem(value: 'error', child: Text('Error')),
+        ],
+        onChanged: (severity) {
+          controller.text = severity ?? '';
+          onChanged();
+        },
+      ),
+    );
+  }
+}
+
+String _severityValue(String value) {
+  return const {'', 'info', 'warning', 'error'}.contains(value) ? value : '';
 }
 
 class _SmallFilterField extends StatelessWidget {
@@ -499,9 +699,10 @@ class _SmallFilterField extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: width,
+      height: 40,
       child: TextField(
         controller: controller,
-        decoration: InputDecoration(labelText: label),
+        decoration: MavraInputStyle.filterInput(context: context, label: label),
         onChanged: (_) => onChanged(),
       ),
     );
@@ -796,14 +997,14 @@ class _EventPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.72),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        return DecoratedBox(
+          decoration: MavraTableStyle.panelDecoration(context),
+          child: Padding(padding: EdgeInsets.all(wide ? 16 : 12), child: child),
+        );
+      },
     );
   }
 }

@@ -70,6 +70,7 @@ class SecureTokenStorage implements TokenStorage {
 
 typedef RefreshRemote = Future<AuthSession?> Function();
 typedef RemoteLogout = Future<void> Function();
+typedef LocalSessionCleared = void Function();
 
 class AuthRepository {
   AuthRepository({
@@ -77,6 +78,7 @@ class AuthRepository {
     required this.policy,
     this.refreshRemote,
     this.onRemoteLogout,
+    this.onLocalSessionCleared,
   });
 
   static const accessTokenKey = 'access_token';
@@ -89,6 +91,7 @@ class AuthRepository {
   final TokenPersistencePolicy policy;
   final RefreshRemote? refreshRemote;
   final RemoteLogout? onRemoteLogout;
+  LocalSessionCleared? onLocalSessionCleared;
 
   AuthSession? _currentSession;
 
@@ -158,24 +161,29 @@ class AuthRepository {
     try {
       refreshed = await refreshRemote?.call();
     } catch (_) {
-      await logout();
+      await clearLocalSession();
       return false;
     }
     if (refreshed == null) {
-      await logout();
+      await clearLocalSession();
       return false;
     }
     await saveSession(refreshed);
     return true;
   }
 
-  Future<void> logout() async {
+  Future<void> clearLocalSession() async {
     _currentSession = null;
     await storage.delete(accessTokenKey);
     await storage.delete(refreshTokenKey);
     await storage.delete(accessExpiresAtKey);
     await storage.delete(usernameKey);
     await storage.delete(permissionsKey);
+    onLocalSessionCleared?.call();
+  }
+
+  Future<void> logout() async {
+    await clearLocalSession();
     await onRemoteLogout?.call();
   }
 }

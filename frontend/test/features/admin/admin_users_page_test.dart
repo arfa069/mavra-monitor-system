@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/theme/app_theme.dart';
@@ -56,6 +57,30 @@ void main() {
 
     expect(newUserTop, greaterThan(bannerBottom));
     expect(searchTop, greaterThan(bannerBottom));
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('admin-apply-user-filters-button')))
+          .dy,
+      tester.getTopLeft(find.byKey(const Key('admin-role-filter'))).dy,
+    );
+    expect(
+      tester
+          .getBottomLeft(
+            find.byKey(const Key('admin-apply-user-filters-button')),
+          )
+          .dy,
+      tester.getBottomLeft(find.byKey(const Key('admin-role-filter'))).dy,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('admin-create-user-button'))).dy,
+      tester.getTopLeft(find.byKey(const Key('admin-role-filter'))).dy,
+    );
+    expect(
+      tester
+          .getBottomLeft(find.byKey(const Key('admin-create-user-button')))
+          .dy,
+      tester.getBottomLeft(find.byKey(const Key('admin-role-filter'))).dy,
+    );
   });
 
   testWidgets('applies search and role filters', (tester) async {
@@ -203,6 +228,48 @@ void main() {
     );
   });
 
+  testWidgets(
+    'prevents current and last active super admin destructive actions',
+    (tester) async {
+      final repository = _FakeAdminRepository.singleSuperAdmin();
+
+      await tester.pumpWidget(
+        _host(
+          AdminUsersPage(repository: repository, currentUsername: 'default'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final toggle = tester.widget<IconButton>(
+        find.byKey(const Key('admin-toggle-user-1-button')),
+      );
+      final delete = tester.widget<IconButton>(
+        find.byKey(const Key('admin-delete-user-1-button')),
+      );
+
+      expect(toggle.onPressed, isNull);
+      expect(delete.onPressed, isNull);
+    },
+  );
+
+  testWidgets('shows friendly action failure instead of raw Dio exception', (
+    tester,
+  ) async {
+    final repository = _ToggleFailingAdminRepository();
+
+    await tester.pumpWidget(_host(AdminUsersPage(repository: repository)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('admin-toggle-user-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Action failed: Cannot disable this user'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('DioException'), findsNothing);
+  });
+
   testWidgets('groups role permissions by role tabs with one save action', (
     tester,
   ) async {
@@ -246,6 +313,79 @@ void main() {
     expect(repository.updatedRole, 'user');
     expect(repository.updatedRolePermissions, isNot(contains('config:read')));
   });
+
+  testWidgets('toggle keeps disabled users visible in the table', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _HidingDisabledAdminRepository();
+
+    await tester.pumpWidget(_host(AdminUsersPage(repository: repository)));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const Key('admin-toggle-user-1-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('admin-toggle-user-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.activeUpdates[1], isFalse);
+    expect(find.text('arfac'), findsOneWidget);
+    expect(find.text('Disabled'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('admin-toggle-user-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.activeUpdates[1], isTrue);
+    expect(find.text('arfac'), findsOneWidget);
+    expect(find.text('Active'), findsWidgets);
+  });
+
+  testWidgets(
+    'unchecked role permissions remain visible unchecked after save',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final repository = _UpdatingRoleAdminRepository();
+
+      await tester.pumpWidget(_host(AdminUsersPage(repository: repository)));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('admin-role-tab-user')));
+      await tester.tap(find.byKey(const Key('admin-role-tab-user')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('admin-role-user-config-read')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('admin-save-role-permissions-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final checkbox = tester.widget<CheckboxListTile>(
+        find.byKey(const Key('admin-role-user-config-read')),
+      );
+      expect(checkbox.value, isFalse);
+
+      await tester.pumpWidget(_host(AdminUsersPage(repository: repository)));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('admin-role-tab-user')));
+      await tester.tap(find.byKey(const Key('admin-role-tab-user')));
+      await tester.pumpAndSettle();
+
+      final reloadedCheckbox = tester.widget<CheckboxListTile>(
+        find.byKey(const Key('admin-role-user-config-read')),
+      );
+      expect(reloadedCheckbox.value, isFalse);
+    },
+  );
 
   testWidgets('keeps role permission groups compact', (tester) async {
     final repository = _FakeAdminRepository(
@@ -406,8 +546,13 @@ class _FakeAdminRepository implements AdminRepository {
         AdminRolePermission(
           role: 'admin',
           permissions: ['user:read', 'user:manage'],
+          availablePermissions: ['config:read', 'user:read', 'user:manage'],
         ),
-        AdminRolePermission(role: 'user', permissions: ['config:read']),
+        AdminRolePermission(
+          role: 'user',
+          permissions: ['config:read'],
+          availablePermissions: ['config:read', 'user:read', 'user:manage'],
+        ),
       ],
       auditLogs: const [],
       totalUsers: 2,
@@ -433,6 +578,27 @@ class _FakeAdminRepository implements AdminRepository {
       rolePermissions: [],
       auditLogs: [],
       totalUsers: 0,
+      totalAuditLogs: 0,
+      permissionsAvailable: true,
+      realtime: true,
+    ),
+  );
+
+  factory _FakeAdminRepository.singleSuperAdmin() => _FakeAdminRepository(
+    AdminSnapshot(
+      users: [
+        AdminUser(
+          id: 1,
+          username: 'default',
+          email: 'default@localhost.com',
+          role: 'super_admin',
+          active: true,
+          createdAt: DateTime.utc(2026, 4, 22, 5, 10),
+        ),
+      ],
+      rolePermissions: const [],
+      auditLogs: const [],
+      totalUsers: 1,
       totalAuditLogs: 0,
       permissionsAvailable: true,
       realtime: true,
@@ -543,6 +709,76 @@ class _FakeAdminRepository implements AdminRepository {
 
   @override
   Future<void> deleteUser(int userId) async {}
+}
+
+class _HidingDisabledAdminRepository extends _FakeAdminRepository {
+  _HidingDisabledAdminRepository()
+    : super(_FakeAdminRepository.full().snapshot);
+
+  final activeUpdates = <int, bool>{};
+
+  @override
+  Future<void> setUserActive(int userId, bool active) async {
+    activeUpdates[userId] = active;
+    snapshot = AdminSnapshot(
+      users: [
+        for (final user in snapshot.users)
+          if (user.id != userId) user,
+      ],
+      rolePermissions: snapshot.rolePermissions,
+      auditLogs: snapshot.auditLogs,
+      totalUsers: snapshot.totalUsers,
+      totalAuditLogs: snapshot.totalAuditLogs,
+      permissionsAvailable: snapshot.permissionsAvailable,
+      realtime: snapshot.realtime,
+      resourcePermissions: snapshot.resourcePermissions,
+    );
+  }
+}
+
+class _UpdatingRoleAdminRepository extends _FakeAdminRepository {
+  _UpdatingRoleAdminRepository() : super(_FakeAdminRepository.full().snapshot);
+
+  @override
+  Future<void> updateRolePermissions({
+    required String role,
+    required List<String> permissions,
+  }) async {
+    await super.updateRolePermissions(role: role, permissions: permissions);
+    snapshot = AdminSnapshot(
+      users: snapshot.users,
+      rolePermissions: [
+        for (final item in snapshot.rolePermissions)
+          if (item.role == role)
+            AdminRolePermission(role: role, permissions: permissions)
+          else
+            item,
+      ],
+      auditLogs: snapshot.auditLogs,
+      totalUsers: snapshot.totalUsers,
+      totalAuditLogs: snapshot.totalAuditLogs,
+      permissionsAvailable: snapshot.permissionsAvailable,
+      realtime: snapshot.realtime,
+      resourcePermissions: snapshot.resourcePermissions,
+    );
+  }
+}
+
+class _ToggleFailingAdminRepository extends _FakeAdminRepository {
+  _ToggleFailingAdminRepository() : super(_FakeAdminRepository.full().snapshot);
+
+  @override
+  Future<void> setUserActive(int userId, bool active) {
+    final requestOptions = RequestOptions(path: '/admin/users/$userId');
+    throw DioException(
+      requestOptions: requestOptions,
+      response: Response<Map<String, Object?>>(
+        requestOptions: requestOptions,
+        statusCode: 400,
+        data: const {'detail': 'Cannot disable this user'},
+      ),
+    );
+  }
 }
 
 class _SlowAdminRepository extends _FakeAdminRepository {

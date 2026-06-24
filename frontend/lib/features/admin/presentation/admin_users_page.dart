@@ -1,13 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/admin_models.dart';
 
 class AdminUsersPage extends StatefulWidget {
   const AdminUsersPage({
     super.key,
     required this.repository,
+    this.currentUsername,
     this.permissions = const {
       'user:read',
       'user:manage',
@@ -18,6 +22,7 @@ class AdminUsersPage extends StatefulWidget {
   });
 
   final AdminRepository repository;
+  final String? currentUsername;
   final Set<String> permissions;
 
   @override
@@ -105,7 +110,51 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Action failed: $error');
+        setState(() => _statusMessage = _friendlyActionError(error));
+      }
+    }
+  }
+
+  Future<void> _toggleUserActive(AdminUser user) async {
+    try {
+      final nextActive = !user.active;
+      await widget.repository.setUserActive(user.id, nextActive);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _statusMessage = nextActive
+            ? 'Enabled ${user.username}'
+            : 'Disabled ${user.username}';
+        _snapshot = _snapshot == null
+            ? null
+            : AdminSnapshot(
+                users: [
+                  for (final item in _snapshot!.users)
+                    if (item.id == user.id)
+                      AdminUser(
+                        id: item.id,
+                        username: item.username,
+                        email: item.email,
+                        role: item.role,
+                        active: nextActive,
+                        createdAt: item.createdAt,
+                      )
+                    else
+                      item,
+                ],
+                rolePermissions: _snapshot!.rolePermissions,
+                auditLogs: _snapshot!.auditLogs,
+                totalUsers: _snapshot!.totalUsers,
+                totalAuditLogs: _snapshot!.totalAuditLogs,
+                permissionsAvailable: _snapshot!.permissionsAvailable,
+                realtime: _snapshot!.realtime,
+                resourcePermissions: _snapshot!.resourcePermissions,
+              );
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _statusMessage = _friendlyActionError(error));
       }
     }
   }
@@ -173,16 +222,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               canDeleteUsers: _canDeleteUsers,
               canReadRbac: _canReadRbac,
               canManageRbac: _canManageRbac,
+              currentUsername: widget.currentUsername,
               onRoleChanged: (role) => setState(() => _role = role),
               onApplyFilters: _applyFilters,
               onCreateUser: () => _showUserDialog(),
               onEditUser: _showUserDialog,
-              onToggleUser: (user) => _runAction(
-                () => widget.repository.setUserActive(user.id, !user.active),
-                user.active
-                    ? 'Disabled ${user.username}'
-                    : 'Enabled ${user.username}',
-              ),
+              onToggleUser: _toggleUserActive,
               onDeleteUser: (user) => _runAction(
                 () => widget.repository.deleteUser(user.id),
                 'Deleted ${user.username}',
@@ -216,6 +261,23 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   static String? _emptyToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  static String _friendlyActionError(Object error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map) {
+        final detail = data['detail'] ?? data['message'];
+        if (detail != null) {
+          return 'Action failed: $detail';
+        }
+      }
+      final statusCode = error.response?.statusCode;
+      if (statusCode != null) {
+        return 'Action failed: request was rejected ($statusCode).';
+      }
+    }
+    return 'Action failed: $error';
   }
 }
 
@@ -257,6 +319,7 @@ class _AdminUsersContent extends StatelessWidget {
     required this.canDeleteUsers,
     required this.canReadRbac,
     required this.canManageRbac,
+    required this.currentUsername,
     required this.onRoleChanged,
     required this.onApplyFilters,
     required this.onCreateUser,
@@ -277,6 +340,7 @@ class _AdminUsersContent extends StatelessWidget {
   final bool canDeleteUsers;
   final bool canReadRbac;
   final bool canManageRbac;
+  final String? currentUsername;
   final ValueChanged<String?> onRoleChanged;
   final VoidCallback onApplyFilters;
   final VoidCallback onCreateUser;
@@ -320,6 +384,7 @@ class _AdminUsersContent extends StatelessWidget {
               canManageUsers: canManageUsers,
               canDeleteUsers: canDeleteUsers,
               canManageSuperAdmin: canManageRbac,
+              currentUsername: currentUsername,
               onEditUser: onEditUser,
               onToggleUser: onToggleUser,
               onDeleteUser: onDeleteUser,
@@ -350,32 +415,11 @@ class _UsersHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      key: const Key('admin-users-title-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: scheme.tertiaryContainer.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('System Admin', style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 4),
-          Text(
-            'User Management',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Manage user accounts, roles, and access permissions',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
+    return const MavraPageBanner(
+      key: Key('admin-users-title-banner'),
+      eyebrow: 'System Admin',
+      title: 'User Management',
+      subtitle: 'Manage user accounts, roles, and access permissions',
     );
   }
 }
@@ -402,27 +446,33 @@ class _UsersToolbar extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(
           width: 260,
+          height: 40,
           child: TextField(
             key: const Key('admin-user-search-field'),
             controller: searchController,
-            decoration: const InputDecoration(
-              labelText: 'Search username or email',
-              prefixIcon: Icon(Icons.search),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Search username or email',
+              suffixIcon: const Icon(Icons.search),
             ),
             onSubmitted: (_) => onApplyFilters(),
           ),
         ),
         SizedBox(
           width: 210,
+          height: 40,
           child: DropdownButtonFormField<String>(
             key: const Key('admin-role-filter'),
             initialValue: role,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Role'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Role',
+            ),
             items: const [
               DropdownMenuItem(value: null, child: Text('All')),
               DropdownMenuItem(value: 'user', child: Text('User')),
@@ -437,23 +487,23 @@ class _UsersToolbar extends StatelessWidget {
         ),
         SizedBox(
           width: 150,
-          child: FilledButton.icon(
+          height: 40,
+          child: MavraFilterButton.filled(
             key: const Key('admin-apply-user-filters-button'),
-            style: _compactFilledButtonStyle(),
             onPressed: onApplyFilters,
-            icon: const Icon(Icons.filter_alt),
-            label: const Text('Apply filters'),
+            icon: Icons.filter_alt,
+            label: 'Apply filters',
           ),
         ),
         if (canManageUsers)
           SizedBox(
             width: 130,
-            child: FilledButton.icon(
+            height: 40,
+            child: MavraFilterButton.filled(
               key: const Key('admin-create-user-button'),
-              style: _compactFilledButtonStyle(),
               onPressed: onCreateUser,
-              icon: const Icon(Icons.person_add),
-              label: const Text('New User'),
+              icon: Icons.person_add,
+              label: 'New User',
             ),
           ),
       ],
@@ -467,6 +517,7 @@ class _UsersTable extends StatelessWidget {
     required this.canManageUsers,
     required this.canDeleteUsers,
     required this.canManageSuperAdmin,
+    required this.currentUsername,
     required this.onEditUser,
     required this.onToggleUser,
     required this.onDeleteUser,
@@ -476,46 +527,56 @@ class _UsersTable extends StatelessWidget {
   final bool canManageUsers;
   final bool canDeleteUsers;
   final bool canManageSuperAdmin;
+  final String? currentUsername;
   final ValueChanged<AdminUser> onEditUser;
   final ValueChanged<AdminUser> onToggleUser;
   final ValueChanged<AdminUser> onDeleteUser;
 
   @override
   Widget build(BuildContext context) {
-    return MavraResponsiveDataView<AdminUser>(
-      rows: users,
-      wideBreakpoint: 900,
-      columns: const [
-        DataColumn(label: Text('ID')),
-        DataColumn(label: Text('Username')),
-        DataColumn(label: Text('Email')),
-        DataColumn(label: Text('Role')),
-        DataColumn(label: Text('Status')),
-        DataColumn(label: Text('Registered')),
-        DataColumn(label: Text('Actions')),
-      ],
-      tableCells: (user) => [
-        DataCell(Text('${user.id}')),
-        DataCell(Text(user.username)),
-        DataCell(Text(user.email)),
-        DataCell(Text(_roleLabel(user.role))),
-        DataCell(_StatusChip(active: user.active)),
-        DataCell(Text(_dateLabel(user.createdAt))),
-        DataCell(
-          _UserActions(
-            user: user,
-            canManageUsers: canManageUsers,
-            canDeleteUsers: canDeleteUsers,
-            canManageSuperAdmin: canManageSuperAdmin,
-            onEditUser: onEditUser,
-            onToggleUser: onToggleUser,
-            onDeleteUser: onDeleteUser,
+    final activeSuperAdminCount = users
+        .where((user) => user.role == 'super_admin' && user.active)
+        .length;
+
+    return Container(
+      decoration: MavraTableStyle.panelDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: MavraResponsiveDataView<AdminUser>(
+        rows: users,
+        wideBreakpoint: 900,
+        columns: const [
+          DataColumn(label: Text('ID')),
+          DataColumn(label: Text('Username')),
+          DataColumn(label: Text('Email')),
+          DataColumn(label: Text('Role')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Registered')),
+          DataColumn(label: Text('Actions')),
+        ],
+        tableCells: (user) => [
+          DataCell(Text('${user.id}')),
+          DataCell(Text(user.username)),
+          DataCell(Text(user.email)),
+          DataCell(Text(_roleLabel(user.role))),
+          DataCell(_StatusChip(active: user.active)),
+          DataCell(Text(_dateLabel(user.createdAt))),
+          DataCell(
+            _UserActions(
+              user: user,
+              canManageUsers: canManageUsers,
+              canDeleteUsers: canDeleteUsers,
+              canManageSuperAdmin: canManageSuperAdmin,
+              currentUsername: currentUsername,
+              activeSuperAdminCount: activeSuperAdminCount,
+              onEditUser: onEditUser,
+              onToggleUser: onToggleUser,
+              onDeleteUser: onDeleteUser,
+            ),
           ),
-        ),
-      ],
-      mobileBuilder: (context, user) => Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: Padding(
+        ],
+        mobileBuilder: (context, user) => Container(
+          decoration: MavraTableStyle.panelDecoration(context),
+          margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -543,6 +604,8 @@ class _UsersTable extends StatelessWidget {
                 canManageUsers: canManageUsers,
                 canDeleteUsers: canDeleteUsers,
                 canManageSuperAdmin: canManageSuperAdmin,
+                currentUsername: currentUsername,
+                activeSuperAdminCount: activeSuperAdminCount,
                 onEditUser: onEditUser,
                 onToggleUser: onToggleUser,
                 onDeleteUser: onDeleteUser,
@@ -579,6 +642,8 @@ class _UserActions extends StatelessWidget {
     required this.canManageUsers,
     required this.canDeleteUsers,
     required this.canManageSuperAdmin,
+    required this.currentUsername,
+    required this.activeSuperAdminCount,
     required this.onEditUser,
     required this.onToggleUser,
     required this.onDeleteUser,
@@ -588,11 +653,41 @@ class _UserActions extends StatelessWidget {
   final bool canManageUsers;
   final bool canDeleteUsers;
   final bool canManageSuperAdmin;
+  final String? currentUsername;
+  final int activeSuperAdminCount;
   final ValueChanged<AdminUser> onEditUser;
   final ValueChanged<AdminUser> onToggleUser;
   final ValueChanged<AdminUser> onDeleteUser;
 
   bool get _canTouchRow => user.role != 'super_admin' || canManageSuperAdmin;
+  bool get _isCurrentUser =>
+      currentUsername != null && user.username == currentUsername;
+  bool get _isLastActiveSuperAdmin =>
+      user.role == 'super_admin' && user.active && activeSuperAdminCount <= 1;
+  bool get _canToggleRow =>
+      _canTouchRow && !_isCurrentUser && !_isLastActiveSuperAdmin;
+  bool get _canDeleteRow =>
+      _canTouchRow && !_isCurrentUser && !_isLastActiveSuperAdmin;
+
+  String get _toggleTooltip {
+    if (_isCurrentUser) {
+      return 'Cannot disable your current account';
+    }
+    if (_isLastActiveSuperAdmin) {
+      return 'Cannot disable the last active super admin';
+    }
+    return user.active ? 'Disable ${user.username}' : 'Enable ${user.username}';
+  }
+
+  String get _deleteTooltip {
+    if (_isCurrentUser) {
+      return 'Cannot delete your current account';
+    }
+    if (_isLastActiveSuperAdmin) {
+      return 'Cannot delete the last active super admin';
+    }
+    return 'Delete ${user.username}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -602,29 +697,34 @@ class _UserActions extends StatelessWidget {
         if (canManageUsers)
           IconButton(
             key: Key('admin-edit-user-${user.id}-button'),
-            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+            style: MavraButtonStyle.rowIconButton(context: context),
             tooltip: 'Edit ${user.username}',
             onPressed: _canTouchRow ? () => onEditUser(user) : null,
             icon: const Icon(Icons.edit_outlined),
           ),
-        if (canManageUsers)
+        if (canManageUsers) ...[
+          const SizedBox(width: 4),
           IconButton(
             key: Key('admin-toggle-user-${user.id}-button'),
-            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-            tooltip: user.active
-                ? 'Disable ${user.username}'
-                : 'Enable ${user.username}',
-            onPressed: _canTouchRow ? () => onToggleUser(user) : null,
+            style: MavraButtonStyle.rowIconButton(context: context),
+            tooltip: _toggleTooltip,
+            onPressed: _canToggleRow ? () => onToggleUser(user) : null,
             icon: Icon(user.active ? Icons.block : Icons.check_circle_outline),
           ),
-        if (canDeleteUsers)
+        ],
+        if (canDeleteUsers) ...[
+          const SizedBox(width: 4),
           IconButton(
             key: Key('admin-delete-user-${user.id}-button'),
-            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-            tooltip: 'Delete ${user.username}',
-            onPressed: _canTouchRow ? () => onDeleteUser(user) : null,
+            style: MavraButtonStyle.rowIconButton(
+              context: context,
+              isDangerous: true,
+            ),
+            tooltip: _deleteTooltip,
+            onPressed: _canDeleteRow ? () => onDeleteUser(user) : null,
             icon: const Icon(Icons.delete_outline),
           ),
+        ],
       ],
     );
   }
@@ -763,11 +863,13 @@ class _UserEditorDialogState extends State<_UserEditorDialog> {
       ),
       actions: [
         TextButton(
+          style: MavraButtonStyle.compactText(context: context),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('admin-save-user-button'),
+          style: MavraButtonStyle.compactFilled(context: context),
           onPressed: () => Navigator.of(context).pop(
             AdminUserDraft(
               username: _usernameController.text.trim(),
@@ -791,28 +893,40 @@ class _UserEditorDialogState extends State<_UserEditorDialog> {
           TextField(
             key: const Key('admin-user-username-field'),
             controller: _usernameController,
-            decoration: const InputDecoration(labelText: 'Username'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Username',
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           TextField(
             key: const Key('admin-user-email-field'),
             controller: _emailController,
-            decoration: const InputDecoration(labelText: 'Email'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Email',
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (!editing) ...[
             TextField(
               key: const Key('admin-user-password-field'),
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
+              decoration: MavraInputStyle.filterInput(
+                context: context,
+                label: 'Password',
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           ],
           DropdownButtonFormField<String>(
             key: const Key('admin-user-role-field'),
             initialValue: _role,
-            decoration: const InputDecoration(labelText: 'Role'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Role',
+            ),
             items: const [
               DropdownMenuItem(value: 'user', child: Text('User')),
               DropdownMenuItem(value: 'admin', child: Text('Admin')),
@@ -824,7 +938,7 @@ class _UserEditorDialogState extends State<_UserEditorDialog> {
             onChanged: (value) => setState(() => _role = value ?? 'user'),
           ),
           if (editing) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             SwitchListTile(
               key: const Key('admin-user-active-switch'),
               title: const Text('Active'),
@@ -909,8 +1023,9 @@ class _ResourcePermissionsEditorState
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   key: const Key('admin-grant-resource-button'),
+                  style: MavraButtonStyle.compactOutlined(context: context),
                   onPressed: _showGrantDialog,
-                  icon: const Icon(Icons.lock_open),
+                  icon: const Icon(Icons.lock_open, size: 18),
                   label: const Text('Grant Permission'),
                 ),
               ],
@@ -936,7 +1051,10 @@ class _ResourcePermissionsEditorState
               child: DropdownButtonFormField<String>(
                 initialValue: _resourceType,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Type'),
+                decoration: MavraInputStyle.filterInput(
+                  context: context,
+                  label: 'Type',
+                ),
                 items: _resourceTypeItems,
                 onChanged: (value) {
                   setState(() => _resourceType = value ?? 'product');
@@ -948,7 +1066,10 @@ class _ResourcePermissionsEditorState
               child: TextField(
                 key: const Key('admin-resource-id-edit-field'),
                 controller: _resourceIdController,
-                decoration: const InputDecoration(labelText: 'Resource ID'),
+                decoration: MavraInputStyle.filterInput(
+                  context: context,
+                  label: 'Resource ID',
+                ),
               ),
             ),
             SizedBox(
@@ -956,7 +1077,10 @@ class _ResourcePermissionsEditorState
               child: DropdownButtonFormField<String>(
                 initialValue: _permission,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Permission'),
+                decoration: MavraInputStyle.filterInput(
+                  context: context,
+                  label: 'Permission',
+                ),
                 items: _permissionItems,
                 onChanged: (value) {
                   setState(() => _permission = value ?? 'read');
@@ -965,7 +1089,7 @@ class _ResourcePermissionsEditorState
             ),
             FilledButton(
               key: Key('admin-save-resource-${permission.id}-button'),
-              style: _compactFilledButtonStyle(),
+              style: MavraButtonStyle.compactFilled(context: context),
               onPressed: () async {
                 await widget.repository.updateResourcePermission(
                   permission.id,
@@ -1002,6 +1126,7 @@ class _ResourcePermissionsEditorState
           if (widget.canManage)
             TextButton(
               key: Key('admin-edit-resource-${permission.id}-button'),
+              style: MavraButtonStyle.compactText(context: context),
               onPressed: () {
                 setState(() {
                   _editingPermissionId = permission.id;
@@ -1015,6 +1140,10 @@ class _ResourcePermissionsEditorState
           if (widget.canManage)
             TextButton(
               key: Key('admin-revoke-resource-${permission.id}-button'),
+              style: MavraButtonStyle.compactText(
+                context: context,
+                isDangerous: true,
+              ),
               onPressed: () async {
                 await widget.repository.revokeResourcePermission(permission.id);
                 if (mounted) {
@@ -1076,28 +1205,35 @@ class _GrantPermissionDialogState extends State<_GrantPermissionDialog> {
               key: const Key('admin-grant-resource-type-field'),
               initialValue: _resourceType,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Resource Type'),
+              decoration: MavraInputStyle.filterInput(
+                context: context,
+                label: 'Resource Type',
+              ),
               items: _resourceTypeItems,
               onChanged: (value) {
                 setState(() => _resourceType = value ?? 'product');
               },
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               key: const Key('admin-grant-resource-ids-field'),
               controller: _resourceIdsController,
-              decoration: const InputDecoration(
-                labelText: 'Resource ID',
+              decoration: MavraInputStyle.filterInput(
+                context: context,
+                label: 'Resource ID',
                 helperText:
                     'Separate multiple resource IDs with commas, * for all',
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               key: const Key('admin-grant-permission-field'),
               initialValue: _permission,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Permission'),
+              decoration: MavraInputStyle.filterInput(
+                context: context,
+                label: 'Permission',
+              ),
               items: const [
                 DropdownMenuItem(value: 'read', child: Text('Read')),
                 DropdownMenuItem(value: 'write', child: Text('Write')),
@@ -1111,11 +1247,13 @@ class _GrantPermissionDialogState extends State<_GrantPermissionDialog> {
       ),
       actions: [
         TextButton(
+          style: MavraButtonStyle.compactText(context: context),
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
           key: const Key('admin-confirm-grant-button'),
+          style: MavraButtonStyle.compactFilled(context: context),
           onPressed: _permission == null
               ? null
               : () {
@@ -1161,11 +1299,13 @@ class _RolePermissionsMatrix extends StatefulWidget {
 class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
   var _activeIndex = 0;
   late List<Set<String>> _drafts;
+  late Map<String, Set<String>> _permissionCatalog;
 
   @override
   void initState() {
     super.initState();
     _drafts = _draftsFrom(widget.rolePermissions);
+    _permissionCatalog = _catalogFrom(widget.rolePermissions);
   }
 
   @override
@@ -1173,6 +1313,10 @@ class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.rolePermissions != widget.rolePermissions) {
       _drafts = _draftsFrom(widget.rolePermissions);
+      _permissionCatalog = _mergeCatalog(
+        _permissionCatalog,
+        widget.rolePermissions,
+      );
       _activeIndex = _activeIndex.clamp(0, widget.rolePermissions.length - 1);
     }
   }
@@ -1183,10 +1327,11 @@ class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
       return const SizedBox.shrink();
     }
     final activeRole = widget.rolePermissions[_activeIndex];
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return Container(
+      decoration: MavraTableStyle.panelDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: Material(
+        type: MaterialType.transparency,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1215,6 +1360,9 @@ class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
                   const SizedBox(height: 12),
                   _RolePermissionGroup(
                     role: activeRole,
+                    availablePermissions:
+                        _permissionCatalog[activeRole.role] ??
+                        activeRole.permissions.toSet(),
                     permissions: _drafts[_activeIndex],
                     canEdit: widget.canEdit,
                     onChanged: (permission, checked) {
@@ -1234,7 +1382,7 @@ class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
                     const SizedBox(height: 8),
                     FilledButton(
                       key: const Key('admin-save-role-permissions-button'),
-                      style: _compactFilledButtonStyle(),
+                      style: MavraButtonStyle.compactFilled(context: context),
                       onPressed: () => widget.onSaveRole(
                         activeRole.role,
                         _drafts[_activeIndex].toList(),
@@ -1254,17 +1402,48 @@ class _RolePermissionsMatrixState extends State<_RolePermissionsMatrix> {
   static List<Set<String>> _draftsFrom(List<AdminRolePermission> roles) {
     return [for (final role in roles) role.permissions.toSet()];
   }
+
+  static Map<String, Set<String>> _catalogFrom(
+    List<AdminRolePermission> roles,
+  ) {
+    return {
+      for (final role in roles)
+        role.role:
+            (role.availablePermissions.isEmpty
+                    ? role.permissions
+                    : role.availablePermissions)
+                .toSet(),
+    };
+  }
+
+  static Map<String, Set<String>> _mergeCatalog(
+    Map<String, Set<String>> previous,
+    List<AdminRolePermission> roles,
+  ) {
+    final next = {
+      for (final entry in previous.entries) entry.key: {...entry.value},
+    };
+    for (final role in roles) {
+      final permissions = role.availablePermissions.isEmpty
+          ? role.permissions
+          : role.availablePermissions;
+      next.putIfAbsent(role.role, () => <String>{}).addAll(permissions);
+    }
+    return next;
+  }
 }
 
 class _RolePermissionGroup extends StatelessWidget {
   const _RolePermissionGroup({
     required this.role,
+    required this.availablePermissions,
     required this.permissions,
     required this.canEdit,
     required this.onChanged,
   });
 
   final AdminRolePermission role;
+  final Set<String> availablePermissions;
   final Set<String> permissions;
   final bool canEdit;
   final void Function(String permission, bool checked) onChanged;
@@ -1272,39 +1451,54 @@ class _RolePermissionGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grouped = <String, List<String>>{};
-    for (final permission in role.permissions) {
+    for (final permission in availablePermissions.toList()..sort()) {
       final group = permission.split(':').first;
       grouped.putIfAbsent(group, () => []).add(permission);
     }
-    return Wrap(
-      spacing: 10,
-      runSpacing: 8,
-      children: [
-        for (final entry in grouped.entries)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(entry.key),
-              for (final permission in entry.value)
-                SizedBox(
-                  width: 160,
-                  child: CheckboxListTile(
-                    key: Key(
-                      'admin-role-${role.role}-${_permissionKey(permission)}',
-                    ),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: Text(permission),
-                    value: permissions.contains(permission),
-                    onChanged: canEdit
-                        ? (checked) => onChanged(permission, checked == true)
-                        : null,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final groupWidth = constraints.maxWidth < 560
+            ? constraints.maxWidth
+            : 176.0;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final entry in grouped.entries)
+              SizedBox(
+                width: groupWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(entry.key),
+                    for (final permission in entry.value)
+                      CheckboxListTile(
+                        key: Key(
+                          'admin-role-${role.role}-${_permissionKey(permission)}',
+                        ),
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Tooltip(
+                          message: permission,
+                          child: Text(
+                            permission,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        value: permissions.contains(permission),
+                        onChanged: canEdit
+                            ? (checked) =>
+                                  onChanged(permission, checked == true)
+                            : null,
+                      ),
+                  ],
                 ),
-            ],
-          ),
-      ],
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1324,14 +1518,7 @@ const _permissionItems = [
   DropdownMenuItem(value: '*', child: Text('All (*)')),
 ];
 
-ButtonStyle _compactFilledButtonStyle() {
-  return FilledButton.styleFrom(
-    minimumSize: const Size(0, 36),
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    visualDensity: VisualDensity.compact,
-  );
-}
+// Button styles are defined in MavraButtonStyle
 
 String _roleLabel(String role) {
   return switch (role) {

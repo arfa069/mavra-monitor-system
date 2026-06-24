@@ -89,6 +89,50 @@ void main() {
     expect(auth.isAuthenticated, isTrue);
   });
 
+  test(
+    'expired saved native session refresh failure clears authentication',
+    () async {
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.nativeSecureStorage,
+        refreshRemote: () async => null,
+      );
+      await repository.saveSession(
+        _session(
+          username: 'expired',
+          permissions: {'schedule:read'},
+          expiresAt: DateTime.now().toUtc().subtract(
+            const Duration(minutes: 1),
+          ),
+        ),
+      );
+      final auth = AuthController(api: FakeAuthApi(), repository: repository);
+
+      await auth.restoreSession();
+
+      expect(auth.session, isNull);
+      expect(auth.isAuthenticated, isFalse);
+      expect(await repository.loadSession(), isNull);
+    },
+  );
+
+  test('auth controller follows repository session invalidation', () async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    await repository.saveSession(
+      _session(username: 'restored', permissions: {'schedule:read'}),
+    );
+    final auth = AuthController(api: FakeAuthApi(), repository: repository);
+    await auth.restoreSession();
+
+    await repository.clearLocalSession();
+
+    expect(auth.session, isNull);
+    expect(auth.isAuthenticated, isFalse);
+  });
+
   testWidgets('default app restores saved sessions before route guarding', (
     tester,
   ) async {
@@ -482,11 +526,13 @@ class _UnboundWeChatAuthApi extends FakeAuthApi {
 AuthSession _session({
   required String username,
   required Set<String> permissions,
+  DateTime? expiresAt,
 }) {
   return AuthSession(
     accessToken: 'access-$username',
     refreshToken: 'refresh-$username',
-    expiresAt: DateTime.utc(2026, 6, 16, 9),
+    expiresAt:
+        expiresAt ?? DateTime.now().toUtc().add(const Duration(hours: 1)),
     username: username,
     permissions: permissions,
   );

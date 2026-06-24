@@ -365,6 +365,37 @@ void main() {
     expect(repository.crawlLogsRefreshCount, 1);
   });
 
+  testWidgets('crawl log error details can be opened in full', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository = _FakeProductRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: ProductsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('product-tab-recent-crawl-logs')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('product-crawl-log-error-details-77-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Crawl log details'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(_longCrawlError),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('renders loading, empty, and error states', (tester) async {
     await tester.pumpWidget(
       MaterialApp(home: ProductsPage(repository: _SlowProductRepository())),
@@ -463,6 +494,14 @@ class _FakeProductRepository implements ProductRepository {
           message: 'Crawl completed',
           status: 'success',
           createdAt: DateTime.utc(2026, 6, 16, 8),
+        ),
+        ProductCrawlLog(
+          id: 77,
+          message: 'Crawl failed',
+          status: 'failed',
+          platform: 'jd',
+          errorMessage: _longCrawlError,
+          createdAt: DateTime.utc(2026, 6, 16, 9),
         ),
       ],
     ),
@@ -608,6 +647,9 @@ class _FakeProductRepository implements ProductRepository {
     crawlRequested = true;
   }
 }
+
+const _longCrawlError =
+    'opencli exited 69: ok: false error: browser connect failed after retrying profile startup';
 
 class _SlowProductRepository implements ProductRepository {
   final _completer = Completer<ProductsSnapshot>();

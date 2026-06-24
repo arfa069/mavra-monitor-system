@@ -34,10 +34,13 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
         if (constraints.maxWidth >= wideBreakpoint) {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: columnSpacing,
-              columns: columns,
-              rows: [for (final row in rows) DataRow(cells: tableCells(row))],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                columnSpacing: columnSpacing,
+                columns: columns,
+                rows: [for (final row in rows) DataRow(cells: tableCells(row))],
+              ),
             ),
           );
         }

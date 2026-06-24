@@ -155,7 +155,9 @@ class AuthController extends ChangeNotifier {
     required this.api,
     AuthSession? initialSession,
     this.repository,
-  }) : _session = initialSession;
+  }) : _session = initialSession {
+    repository?.onLocalSessionCleared = _handleLocalSessionCleared;
+  }
 
   final AuthApiClient api;
   final AuthRepository? repository;
@@ -175,20 +177,46 @@ class AuthController extends ChangeNotifier {
     return _session?.hasPermission(permission) ?? false;
   }
 
+  @override
+  void dispose() {
+    if (repository?.onLocalSessionCleared == _handleLocalSessionCleared) {
+      repository?.onLocalSessionCleared = null;
+    }
+    super.dispose();
+  }
+
+  void _handleLocalSessionCleared() {
+    if (_session == null) {
+      return;
+    }
+    _session = null;
+    notifyListeners();
+  }
+
   Future<void> restoreSession() async {
     final authRepository = repository;
     final storedSession = await authRepository?.loadSession();
-    if (storedSession == null) {
-      if (authRepository?.policy ==
-              TokenPersistencePolicy.webHttpOnlyRefreshCookie &&
-          authRepository?.refreshRemote != null &&
-          await authRepository!.refreshSession()) {
-        _session = authRepository.currentSession;
-        notifyListeners();
-      }
+    if (authRepository == null) {
       return;
     }
-    _session = storedSession;
+
+    if (storedSession != null &&
+        storedSession.expiresAt.isAfter(DateTime.now().toUtc())) {
+      _session = storedSession;
+      notifyListeners();
+      return;
+    }
+
+    final shouldTryRefresh =
+        authRepository.refreshRemote != null &&
+        (storedSession != null ||
+            authRepository.policy ==
+                TokenPersistencePolicy.webHttpOnlyRefreshCookie);
+    if (shouldTryRefresh && await authRepository.refreshSession()) {
+      _session = authRepository.currentSession;
+    } else {
+      _session = null;
+    }
     notifyListeners();
   }
 

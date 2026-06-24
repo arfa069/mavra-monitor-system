@@ -169,6 +169,24 @@ void main() {
       lessThan(220),
     );
     expect(
+      tester.getTopLeft(find.byKey(const Key('job-status-filter'))).dy,
+      tester.getTopLeft(find.byKey(const Key('job-page-size-field'))).dy,
+    );
+    expect(
+      tester.getBottomLeft(find.byKey(const Key('job-status-filter'))).dy,
+      tester.getBottomLeft(find.byKey(const Key('job-page-size-field'))).dy,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('job-apply-filters-button'))).dy,
+      tester.getTopLeft(find.byKey(const Key('job-page-size-field'))).dy,
+    );
+    expect(
+      tester
+          .getBottomLeft(find.byKey(const Key('job-apply-filters-button')))
+          .dy,
+      tester.getBottomLeft(find.byKey(const Key('job-page-size-field'))).dy,
+    );
+    expect(
       find.byWidgetPredicate((widget) => widget is MavraResponsiveDataView),
       findsOneWidget,
     );
@@ -435,7 +453,7 @@ void main() {
     expect(find.text('Boss Zhipin'), findsOneWidget);
   });
 
-  testWidgets('clears failed detail status when changing jobs tabs', (
+  testWidgets('detail fallback does not leave a failed status on tab changes', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 900);
@@ -453,13 +471,42 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('job-detail-1-button')));
     await tester.tap(find.byKey(const Key('job-detail-1-button')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Detail failed:'), findsOneWidget);
+    expect(find.textContaining('Detail failed:'), findsNothing);
+    expect(find.text('Showing list data because full details are unavailable.'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.byKey(const Key('job-tab-profiles')));
     await tester.tap(find.byKey(const Key('job-tab-profiles')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Detail failed:'), findsNothing);
+  });
+
+  testWidgets('falls back to row details when job detail loading fails', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final repository =
+        _DetailFailingJobsRepository(_FakeJobsRepository.full().snapshot);
+
+    await tester.pumpWidget(
+      MaterialApp(home: JobsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('job-detail-1-button')));
+    await tester.tap(find.byKey(const Key('job-detail-1-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Job details: Senior Flutter Engineer'), findsOneWidget);
+    expect(find.textContaining('Detail failed:'), findsNothing);
+    expect(find.text('Showing list data because full details are unavailable.'), findsOneWidget);
   });
 
   testWidgets('creates and edits a job search config from the form', (

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/files/file_service.dart';
 import '../../../core/platform/platform_capabilities.dart';
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/blog_models.dart';
 
 class BlogPage extends StatefulWidget {
@@ -500,28 +502,14 @@ class _BlogContent extends StatelessWidget {
             const SizedBox(height: 8),
             Text(statusMessage!),
           ],
-          if (canWrite) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 140,
-                child: FilledButton.icon(
-                  key: const Key('blog-new-post-button'),
-                  style: _compactFilledButtonStyle(),
-                  onPressed: onNewPost,
-                  icon: const Icon(Icons.add),
-                  label: const Text('New post'),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 16),
           _BlogFilters(
             keywordController: filterKeywordController,
             status: filterStatus,
             onStatusChanged: onFilterStatusChanged,
             onApplyFilters: onApplyFilters,
+            canWrite: canWrite,
+            onNewPost: onNewPost,
           ),
           const SizedBox(height: 16),
           if (snapshot.isEmpty)
@@ -543,44 +531,12 @@ class _BlogHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Public writing',
-            style: Theme.of(context).textTheme.labelMedium,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Blog Studio',
-            style: Theme.of(context).textTheme.headlineSmall,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
+    return const MavraPageBanner(
+      eyebrow: 'Public writing',
+      title: 'Blog Studio',
+      subtitle: 'Manage and publish blog posts',
     );
   }
-}
-
-ButtonStyle _compactFilledButtonStyle() {
-  return FilledButton.styleFrom(
-    minimumSize: const Size(0, 36),
-    padding: const EdgeInsets.symmetric(horizontal: 14),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    visualDensity: VisualDensity.compact,
-  );
 }
 
 class _BlogFilters extends StatelessWidget {
@@ -589,38 +545,49 @@ class _BlogFilters extends StatelessWidget {
     required this.status,
     required this.onStatusChanged,
     required this.onApplyFilters,
+    required this.canWrite,
+    required this.onNewPost,
   });
 
   final TextEditingController keywordController;
   final String? status;
   final ValueChanged<String?> onStatusChanged;
   final VoidCallback onApplyFilters;
+  final bool canWrite;
+  final VoidCallback onNewPost;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(
           width: 260,
+          height: 40,
           child: TextField(
             key: const Key('blog-search-field'),
             controller: keywordController,
-            decoration: const InputDecoration(
-              labelText: 'Search posts',
-              prefixIcon: Icon(Icons.search),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Search posts',
+              suffixIcon: const Icon(Icons.search),
             ),
             onSubmitted: (_) => onApplyFilters(),
           ),
         ),
         SizedBox(
           width: 220,
+          height: 40,
           child: DropdownButtonFormField<String>(
             key: const Key('blog-status-filter'),
             initialValue: status,
-            decoration: const InputDecoration(labelText: 'Status'),
+            isExpanded: true,
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Status',
+            ),
             items: const [
               DropdownMenuItem(value: null, child: Text('All')),
               DropdownMenuItem(value: 'draft', child: Text('Draft')),
@@ -633,14 +600,25 @@ class _BlogFilters extends StatelessWidget {
         ),
         SizedBox(
           width: 154,
-          child: FilledButton.icon(
+          height: 40,
+          child: MavraFilterButton.filled(
             key: const Key('blog-apply-filters-button'),
-            style: _compactFilledButtonStyle(),
             onPressed: onApplyFilters,
-            icon: const Icon(Icons.filter_alt),
-            label: const Text('Apply filters'),
+            icon: Icons.filter_alt,
+            label: 'Apply filters',
           ),
         ),
+        if (canWrite)
+          SizedBox(
+            width: 140,
+            height: 40,
+            child: MavraFilterButton.filled(
+              key: const Key('blog-new-post-button'),
+              onPressed: onNewPost,
+              icon: Icons.add,
+              label: 'New post',
+            ),
+          ),
       ],
     );
   }
@@ -748,8 +726,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-title-field'),
                         controller: titleController,
                         enabled: canWrite,
-                        decoration: InputDecoration(
-                          labelText: 'Title',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Title',
                           errorText: titleError,
                         ),
                       ),
@@ -759,6 +738,7 @@ class _BlogEditor extends StatelessWidget {
                       child: DropdownButtonFormField<String>(
                         key: const Key('blog-status-field'),
                         initialValue: status,
+                        isExpanded: true,
                         items: [
                           for (final item in _blogStatuses)
                             DropdownMenuItem(
@@ -767,7 +747,10 @@ class _BlogEditor extends StatelessWidget {
                             ),
                         ],
                         onChanged: canWrite ? onStatusChanged : null,
-                        decoration: const InputDecoration(labelText: 'Status'),
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Status',
+                        ),
                       ),
                     ),
                   ],
@@ -783,9 +766,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-slug-field'),
                         controller: slugController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'Slug',
-                          hintText: 'auto-generated-from-title',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Slug',
                         ),
                       ),
                     ),
@@ -795,9 +778,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-published-at-field'),
                         controller: publishedAtController,
                         enabled: canWrite,
-                        decoration: InputDecoration(
-                          labelText: 'Publish time',
-                          helperText: 'ISO-8601 timestamp',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Publish time',
                           errorText: publishedAtError,
                         ),
                       ),
@@ -809,7 +792,11 @@ class _BlogEditor extends StatelessWidget {
                   key: const Key('blog-excerpt-field'),
                   controller: excerptController,
                   enabled: canWrite,
-                  decoration: const InputDecoration(labelText: 'Excerpt'),
+                  decoration: MavraInputStyle.filterInput(
+                    context: context,
+                    label: 'Excerpt',
+                    isMultiline: true,
+                  ),
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
@@ -854,9 +841,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-cover-url-field'),
                         controller: coverUrlController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'Cover image',
-                          hintText: '/blog-media/cover.webp',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Cover image',
                         ),
                       ),
                     ),
@@ -865,8 +852,9 @@ class _BlogEditor extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: TextButton.icon(
                         key: const Key('blog-cover-upload-button'),
+                        style: MavraButtonStyle.compactText(context: context),
                         onPressed: canWrite ? onUploadMedia : null,
-                        icon: const Icon(Icons.upload_file),
+                        icon: const Icon(Icons.upload_file, size: 18),
                         label: const Text('Upload media'),
                       ),
                     ),
@@ -894,8 +882,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-seo-title-field'),
                         controller: seoTitleController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'SEO title',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'SEO title',
                         ),
                       ),
                     ),
@@ -905,8 +894,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-seo-description-field'),
                         controller: seoDescriptionController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'SEO description',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'SEO description',
                         ),
                       ),
                     ),
@@ -923,8 +913,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-canonical-url-field'),
                         controller: canonicalUrlController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'Canonical URL',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Canonical URL',
                         ),
                       ),
                     ),
@@ -934,8 +925,9 @@ class _BlogEditor extends StatelessWidget {
                         key: const Key('blog-og-image-field'),
                         controller: ogImageUrlController,
                         enabled: canWrite,
-                        decoration: const InputDecoration(
-                          labelText: 'Open Graph image',
+                        decoration: MavraInputStyle.filterInput(
+                          context: context,
+                          label: 'Open Graph image',
                         ),
                       ),
                     ),
@@ -945,18 +937,40 @@ class _BlogEditor extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(onPressed: onClose, child: const Text('Cancel')),
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: canWrite ? onSavePost : null,
-              icon: const Icon(Icons.save),
-              label: const Text('Save post'),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(top: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
-          ],
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TextButton(
+                style: MavraButtonStyle.compactText(context: context),
+                onPressed: onClose,
+                child: const Text('Cancel'),
+              ),
+              SizedBox(
+                width: 160,
+                child: FilledButton.icon(
+                  key: const Key('blog-save-post-button'),
+                  style: MavraButtonStyle.compactFilled(context: context),
+                  onPressed: canWrite ? onSavePost : null,
+                  icon: const Icon(Icons.save, size: 18),
+                  label: const Text('Save post'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -989,7 +1003,11 @@ class _TaxonomyPickerField extends StatelessWidget {
         TextField(
           controller: controller,
           enabled: enabled,
-          decoration: InputDecoration(labelText: label, helperText: helperText),
+          decoration: MavraInputStyle.filterInput(
+            context: context,
+            label: label,
+            helperText: helperText,
+          ),
         ),
         if (options.isNotEmpty) ...[
           const SizedBox(height: 6),
@@ -1150,53 +1168,67 @@ class _PostsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MavraResponsiveDataView<BlogPostItem>(
-      rows: posts,
-      wideBreakpoint: 900,
-      columns: const [
-        DataColumn(label: Text('Title')),
-        DataColumn(label: Text('Status')),
-        DataColumn(label: Text('Taxonomy')),
-        DataColumn(label: Text('Published')),
-        DataColumn(label: Text('Actions')),
-      ],
-      tableCells: (post) => [
-        DataCell(
-          KeyedSubtree(
-            key: Key('blog-post-row-${post.id}'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [Text(post.title), Text('/${post.slug}')],
+    return Container(
+      decoration: MavraTableStyle.panelDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: MavraResponsiveDataView<BlogPostItem>(
+        rows: posts,
+        wideBreakpoint: 900,
+        columns: const [
+          DataColumn(label: Text('Title')),
+          DataColumn(label: Text('Status')),
+          DataColumn(label: Text('Taxonomy')),
+          DataColumn(label: Text('Published')),
+          DataColumn(label: Text('Actions')),
+        ],
+        tableCells: (post) => [
+          DataCell(
+            KeyedSubtree(
+              key: Key('blog-post-row-${post.id}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [Text(post.title), Text('/${post.slug}')],
+              ),
             ),
           ),
-        ),
-        DataCell(_StatusChip(status: post.status)),
-        DataCell(_TaxonomyCell(post: post)),
-        DataCell(Text(_publishedDate(post.publishedAt))),
-        DataCell(
-          _PostActions(post: post, canWrite: canWrite, onEditPost: onEditPost),
-        ),
-      ],
-      mobileBuilder: (context, post) => Card(
-        key: Key('blog-post-row-${post.id}'),
-        margin: const EdgeInsets.only(bottom: 8),
-        child: ListTile(
-          title: Text(post.title),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('/${post.slug}'),
-              _StatusChip(status: post.status),
-              Text(_publishedDate(post.publishedAt)),
-              if (post.categoryName != null) Text(post.categoryName!),
-              for (final tag in post.tagNames) Text(tag),
-            ],
+          DataCell(_StatusChip(status: post.status)),
+          DataCell(_TaxonomyCell(post: post)),
+          DataCell(Text(_publishedDate(post.publishedAt))),
+          DataCell(
+            _PostActions(
+              post: post,
+              canWrite: canWrite,
+              onEditPost: onEditPost,
+            ),
           ),
-          trailing: _PostActions(
-            post: post,
-            canWrite: canWrite,
-            onEditPost: onEditPost,
+        ],
+        mobileBuilder: (context, post) => Container(
+          key: Key('blog-post-row-${post.id}'),
+          decoration: MavraTableStyle.panelDecoration(context),
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(post.title),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('/${post.slug}'),
+                  _StatusChip(status: post.status),
+                  Text(_publishedDate(post.publishedAt)),
+                  if (post.categoryName != null) Text(post.categoryName!),
+                  for (final tag in post.tagNames) Text(tag),
+                ],
+              ),
+              trailing: _PostActions(
+                post: post,
+                canWrite: canWrite,
+                onEditPost: onEditPost,
+              ),
+            ),
           ),
         ),
       ),
@@ -1272,8 +1304,9 @@ class _PostActions extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return TextButton.icon(
+      style: MavraButtonStyle.compactText(context: context),
       onPressed: () => onEditPost(post),
-      icon: const Icon(Icons.edit_outlined),
+      icon: const Icon(Icons.edit_outlined, size: 18),
       label: const Text('Edit'),
     );
   }

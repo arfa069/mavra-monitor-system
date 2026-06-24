@@ -31,6 +31,38 @@ void main() {
     expect(find.text('Mobile list row'), findsNothing);
   });
 
+  testWidgets('wide data table fills the available panel width', (tester) async {
+    tester.view.physicalSize = const Size(1000, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 800,
+            child: MavraResponsiveDataView<int>(
+              rows: const [1],
+              columns: const [
+                DataColumn(label: Text('Name')),
+              ],
+              tableCells: (row) => const [
+                DataCell(Text('Short')),
+              ],
+              mobileBuilder: (context, row) => const ListTile(
+                title: Text('Mobile list row'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final tableWidth = tester.getSize(find.byType(DataTable)).width;
+    expect(tableWidth, greaterThanOrEqualTo(800));
+  });
+
   testWidgets('uses mobile rows on narrow screens', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;

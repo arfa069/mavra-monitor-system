@@ -160,6 +160,7 @@ GoRouter createMavraRouter({
               AdminUsersPage(
                 repository: adminRepository,
                 permissions: _adminPermissions(authController),
+                currentUsername: authController.session?.username,
               ),
             ),
           ),

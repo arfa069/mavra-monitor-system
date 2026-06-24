@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_side_sheet.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/job_models.dart';
 
 class JobsPage extends StatefulWidget {
@@ -278,16 +280,34 @@ class _JobsPageState extends State<JobsPage> {
   Future<void> _changeJobPage(int page) => _loadJobPage(page: page);
 
   Future<void> _showJobDetails(JobItem job) async {
+    late final JobDetail detail;
+    var usedFallback = false;
     try {
-      final detail = await widget.repository.loadJobDetail(job.id);
-      if (!mounted) {
-        return;
-      }
+      detail = await widget.repository.loadJobDetail(job.id);
+    } catch (_) {
+      detail = JobDetail(
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        salary: job.salary,
+        location: job.location,
+        status: job.status,
+        updatedAt: job.updatedAt,
+      );
+      usedFallback = true;
+    }
+    if (!mounted) {
+      return;
+    }
+    try {
       await MavraSideSheet.show<void>(
         context,
         title: 'Job details: ${detail.title}',
         child: _JobDetailPanel(
           detail: detail,
+          fallbackMessage: usedFallback
+              ? 'Showing list data because full details are unavailable.'
+              : null,
           onRequestMatchAnalysis: _canRunCrawl
               ? () {
                   _requestMatchAnalysis(job);
@@ -906,13 +926,13 @@ class _JobsContent extends StatelessWidget {
   final ValueChanged<CrawlProfileItem> onTestProfile;
   final ValueChanged<String> onExportBackup;
 
-  Widget _buildActiveTab() => switch (activeTab) {
-    _JobWorkbenchTab.jobsList => _buildJobsListTab(),
-    _JobWorkbenchTab.configs => _buildSearchConfigTab(),
-    _JobWorkbenchTab.profiles => _buildProfilesTab(),
-    _JobWorkbenchTab.resumes => _buildResumesTab(),
-    _JobWorkbenchTab.matches => _buildMatchesTab(),
-    _JobWorkbenchTab.logs => _buildLogsTab(),
+  Widget _buildActiveTab(BuildContext context) => switch (activeTab) {
+    _JobWorkbenchTab.jobsList => _buildJobsListTab(context),
+    _JobWorkbenchTab.configs => _buildSearchConfigTab(context),
+    _JobWorkbenchTab.profiles => _buildProfilesTab(context),
+    _JobWorkbenchTab.resumes => _buildResumesTab(context),
+    _JobWorkbenchTab.matches => _buildMatchesTab(context),
+    _JobWorkbenchTab.logs => _buildLogsTab(context),
   };
 
   JobPageState _resolvedJobPageState() =>
@@ -924,7 +944,7 @@ class _JobsContent extends StatelessWidget {
         total: snapshot.jobs.length,
       );
 
-  Widget _buildJobsListTab() {
+  Widget _buildJobsListTab(BuildContext context) {
     final pageState = _resolvedJobPageState();
     final jobs = pageState.items;
 
@@ -932,8 +952,9 @@ class _JobsContent extends StatelessWidget {
       title: 'Jobs List',
       trailing: TextButton.icon(
         key: const Key('job-crawl-all-button'),
+        style: MavraButtonStyle.compactText(context: context),
         onPressed: canRunCrawl ? () => onRequestCrawlAll() : null,
-        icon: const Icon(Icons.play_arrow),
+        icon: const Icon(Icons.play_arrow, size: 18),
         label: const Text('Crawl All'),
       ),
       child: Column(
@@ -962,7 +983,7 @@ class _JobsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchConfigTab() {
+  Widget _buildSearchConfigTab(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -974,8 +995,9 @@ class _JobsContent extends StatelessWidget {
             width: 160,
             child: FilledButton.icon(
               key: const Key('job-new-config-button'),
+              style: MavraButtonStyle.compactFilled(context: context),
               onPressed: onNewConfig,
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add, size: 18),
               label: const Text('Add Config'),
             ),
           ),
@@ -1002,7 +1024,7 @@ class _JobsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildProfilesTab() {
+  Widget _buildProfilesTab(BuildContext context) {
     return _WorkbenchPanel(
       title: 'Crawler Profiles',
       trailing: Wrap(
@@ -1010,16 +1032,18 @@ class _JobsContent extends StatelessWidget {
         runSpacing: 8,
         children: [
           TextButton.icon(
+            style: MavraButtonStyle.compactText(context: context),
             onPressed: canImportExportBackups ? onImportBackup : null,
-            icon: const Icon(Icons.archive),
+            icon: const Icon(Icons.archive, size: 18),
             label: const Text('Import backup'),
           ),
           SizedBox(
             width: 172,
             child: FilledButton.icon(
               key: const Key('job-profile-create-button'),
+              style: MavraButtonStyle.compactFilled(context: context),
               onPressed: onCreateProfile,
-              icon: const Icon(Icons.person_add),
+              icon: const Icon(Icons.person_add, size: 18),
               label: const Text('Create profile'),
             ),
           ),
@@ -1046,7 +1070,7 @@ class _JobsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildResumesTab() {
+  Widget _buildResumesTab(BuildContext context) {
     return _WorkbenchPanel(
       title: 'Resume Management',
       trailing: Wrap(
@@ -1054,16 +1078,18 @@ class _JobsContent extends StatelessWidget {
         runSpacing: 8,
         children: [
           TextButton.icon(
+            style: MavraButtonStyle.compactText(context: context),
             onPressed: onUploadResume,
-            icon: const Icon(Icons.picture_as_pdf),
+            icon: const Icon(Icons.picture_as_pdf, size: 18),
             label: const Text('Upload resume'),
           ),
           SizedBox(
             width: 172,
             child: FilledButton.icon(
               key: const Key('job-resume-create-button'),
+              style: MavraButtonStyle.compactFilled(context: context),
               onPressed: onCreateResume,
-              icon: const Icon(Icons.note_add),
+              icon: const Icon(Icons.note_add, size: 18),
               label: const Text('Create resume'),
             ),
           ),
@@ -1092,26 +1118,45 @@ class _JobsContent extends StatelessWidget {
                           IconButton(
                             key: Key('job-resume-select-${resume.id}-button'),
                             tooltip: 'Select ${resume.fileName}',
+                            style: MavraButtonStyle.rowIconButton(
+                              context: context,
+                            ),
                             onPressed: () => onSelectResume(resume),
-                            icon: const Icon(Icons.check_circle_outline),
+                            icon: const Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                            ),
                           ),
                           IconButton(
                             key: Key('job-resume-view-${resume.id}-button'),
                             tooltip: 'View ${resume.fileName}',
+                            style: MavraButtonStyle.rowIconButton(
+                              context: context,
+                            ),
                             onPressed: () => onViewResume(resume),
-                            icon: const Icon(Icons.visibility_outlined),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 18,
+                            ),
                           ),
                           IconButton(
                             key: Key('job-resume-edit-${resume.id}-button'),
                             tooltip: 'Edit ${resume.fileName}',
+                            style: MavraButtonStyle.rowIconButton(
+                              context: context,
+                            ),
                             onPressed: () => onEditResume(resume),
-                            icon: const Icon(Icons.edit),
+                            icon: const Icon(Icons.edit, size: 18),
                           ),
                           IconButton(
                             key: Key('job-resume-delete-${resume.id}-button'),
                             tooltip: 'Delete ${resume.fileName}',
+                            style: MavraButtonStyle.rowIconButton(
+                              context: context,
+                              isDangerous: true,
+                            ),
                             onPressed: () => onDeleteResume(resume),
-                            icon: const Icon(Icons.delete_outline),
+                            icon: const Icon(Icons.delete_outline, size: 18),
                           ),
                         ],
                       ),
@@ -1122,7 +1167,7 @@ class _JobsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildMatchesTab() {
+  Widget _buildMatchesTab(BuildContext context) {
     return _WorkbenchPanel(
       title: 'Analysis Results',
       child: Column(
@@ -1141,7 +1186,7 @@ class _JobsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildLogsTab() {
+  Widget _buildLogsTab(BuildContext context) {
     final configNames = {
       for (final config in snapshot.configs) config.id: config.name,
     };
@@ -1159,7 +1204,7 @@ class _JobsContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _PageIntro(
+          const MavraPageBanner(
             eyebrow: 'Job Search',
             title: 'Job Management',
             subtitle:
@@ -1172,47 +1217,8 @@ class _JobsContent extends StatelessWidget {
             Text(statusMessage!),
           ],
           const SizedBox(height: 16),
-          _buildActiveTab(),
+          _buildActiveTab(context),
         ],
-      ),
-    );
-  }
-}
-
-class _PageIntro extends StatelessWidget {
-  const _PageIntro({
-    required this.eyebrow,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String eyebrow;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(24),
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.36,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(eyebrow, style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Text(title, style: theme.textTheme.headlineMedium),
-            const SizedBox(height: 4),
-            Text(subtitle, style: theme.textTheme.bodyMedium),
-          ],
-        ),
       ),
     );
   }
@@ -1236,55 +1242,64 @@ class _WorkbenchPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final titleWidget = Text(
-                  title,
-                  key: titleKey,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                  style: theme.textTheme.titleMedium,
-                );
-                final trailingWidget = trailing;
-                if (trailingWidget == null) {
-                  return titleWidget;
-                }
-                if (constraints.maxWidth < 560) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      titleWidget,
-                      const SizedBox(height: 8),
-                      trailingWidget,
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(child: titleWidget),
-                    const SizedBox(width: 12),
-                    trailingWidget,
-                  ],
-                );
-              },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        return DecoratedBox(
+          decoration: MavraTableStyle.panelDecoration(context),
+          child: Padding(
+            padding: EdgeInsets.all(wide ? 16 : 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final titleWidget = Text(
+                      title,
+                      key: titleKey,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: theme.textTheme.titleMedium,
+                    );
+                    final trailingWidget = trailing;
+                    if (trailingWidget == null) {
+                      return titleWidget;
+                    }
+                    if (constraints.maxWidth < 560) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          titleWidget,
+                          const SizedBox(height: 8),
+                          trailingWidget,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(child: titleWidget),
+                        const SizedBox(width: 12),
+                        trailingWidget,
+                      ],
+                    );
+                  },
+                ),
+                Divider(
+                  key: dividerKey,
+                  height: 24,
+                  thickness: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.7,
+                  ),
+                ),
+                child,
+              ],
             ),
-            Divider(key: dividerKey, height: 22),
-            child,
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -1434,12 +1449,17 @@ class _JobTabStrip extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (final tab in _tabs)
-          ChoiceChip(
-            key: Key(tab.key),
-            avatar: Icon(tab.icon, size: 16),
-            label: Text(tab.label),
-            selected: activeTab == tab,
-            onSelected: (_) => onChanged(tab),
+          SizedBox(
+            height: 40,
+            child: ChoiceChip(
+              key: Key(tab.key),
+              avatar: Icon(tab.icon, size: 16),
+              label: Text(tab.label),
+              selected: activeTab == tab,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              showCheckmark: false,
+              onSelected: (_) => onChanged(tab),
+            ),
           ),
       ],
     );
@@ -1568,11 +1588,15 @@ class _MatchToolbar extends StatelessWidget {
       children: [
         SizedBox(
           width: 220,
+          height: 40,
           child: DropdownButtonFormField<int?>(
             key: const Key('job-match-resume-filter'),
             initialValue: selectedResumeId,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Select Resume'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Select Resume',
+            ),
             items: [
               const DropdownMenuItem<int?>(
                 value: null,
@@ -1589,11 +1613,15 @@ class _MatchToolbar extends StatelessWidget {
         ),
         SizedBox(
           width: 220,
+          height: 40,
           child: DropdownButtonFormField<String>(
             key: const Key('job-match-recommendation-filter'),
             initialValue: 'all',
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Recommendation'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Recommendation',
+            ),
             items: const [
               DropdownMenuItem(value: 'all', child: Text('Recommendation')),
               DropdownMenuItem(value: 'strong', child: Text('强烈推荐')),
@@ -1605,8 +1633,9 @@ class _MatchToolbar extends StatelessWidget {
         ),
         FilledButton.icon(
           key: const Key('job-reanalyze-button'),
+          style: MavraButtonStyle.compactFilled(context: context),
           onPressed: resumes.isEmpty ? null : () {},
-          icon: const Icon(Icons.psychology),
+          icon: const Icon(Icons.psychology, size: 18),
           label: const Text('Re-analyze'),
         ),
       ],
@@ -1638,42 +1667,54 @@ class _JobFilters extends StatelessWidget {
       children: [
         SizedBox(
           width: 280,
+          height: 40,
           child: TextField(
             key: const Key('job-keyword-filter'),
             controller: keywordController,
-            decoration: const InputDecoration(
-              labelText: 'Keyword',
-              prefixIcon: Icon(Icons.search),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Keyword',
+              suffixIcon: const Icon(Icons.search, size: 18),
             ),
           ),
         ),
         SizedBox(
           width: 120,
+          height: 40,
           child: TextField(
             key: const Key('job-page-size-field'),
             controller: pageSizeController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Page size'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Page size',
+            ),
           ),
         ),
-        SegmentedButton<String>(
-          key: const Key('job-status-filter'),
-          segments: const [
-            ButtonSegment(value: 'all', label: Text('All')),
-            ButtonSegment(value: 'active', label: Text('Active')),
-            ButtonSegment(value: 'inactive', label: Text('Inactive')),
-          ],
-          selected: {statusFilter},
-          onSelectionChanged: (selection) =>
-              onStatusFilterChanged(selection.first),
+        SizedBox(
+          height: 40,
+          child: SegmentedButton<String>(
+            key: const Key('job-status-filter'),
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: 'all', label: Text('All')),
+              ButtonSegment(value: 'active', label: Text('Active')),
+              ButtonSegment(value: 'inactive', label: Text('Inactive')),
+            ],
+            selected: {statusFilter},
+            onSelectionChanged: (selection) =>
+                onStatusFilterChanged(selection.first),
+            style: MavraButtonStyle.filterSegmented(),
+          ),
         ),
         SizedBox(
           width: 128,
-          child: FilledButton.icon(
+          height: 40,
+          child: MavraFilterButton.filled(
             key: const Key('job-apply-filters-button'),
             onPressed: onApplyFilters,
-            icon: const Icon(Icons.filter_alt),
-            label: const Text('Apply'),
+            icon: Icons.filter_alt,
+            label: 'Apply',
           ),
         ),
       ],
@@ -1765,17 +1806,18 @@ class _JobsTable extends StatelessWidget {
     return MavraResponsiveDataView<_IndexedJobRow>(
       rows: rows,
       wideBreakpoint: 960,
+      columnSpacing: 8,
       columns: const [
-        DataColumn(label: _TableHeader('ID', width: 80)),
-        DataColumn(label: _TableHeader('Platform', width: 88)),
-        DataColumn(label: _TableHeader('Match', width: 112)),
-        DataColumn(label: _TableHeader('Job Title', width: 240)),
-        DataColumn(label: _TableHeader('Company', width: 260)),
-        DataColumn(label: _TableHeader('Salary', width: 120)),
-        DataColumn(label: _TableHeader('Location', width: 150)),
-        DataColumn(label: _TableHeader('Status', width: 96)),
-        DataColumn(label: _TableHeader('Last Updated', width: 160)),
-        DataColumn(label: _TableHeader('Actions', width: 72)),
+        DataColumn(label: _TableHeader('ID', width: 32)),
+        DataColumn(label: _TableHeader('Platform', width: 56)),
+        DataColumn(label: _TableHeader('Match', width: 72)),
+        DataColumn(label: _TableHeader('Job Title', width: 180)),
+        DataColumn(label: _TableHeader('Company', width: 180)),
+        DataColumn(label: _TableHeader('Salary', width: 80)),
+        DataColumn(label: _TableHeader('Location', width: 84)),
+        DataColumn(label: _TableHeader('Status', width: 60)),
+        DataColumn(label: _TableHeader('Last Updated', width: 88)),
+        DataColumn(label: _TableHeader('Actions', width: 48)),
       ],
       tableCells: (row) {
         final job = row.job;
@@ -1784,27 +1826,28 @@ class _JobsTable extends StatelessWidget {
             _TableTextCell(
               key: Key('job-id-cell-${job.id}'),
               text: '${row.number}',
-              width: 80,
+              width: 32,
             ),
           ),
-          DataCell(_TableTextCell(text: job.platform, width: 88)),
+          DataCell(_TableTextCell(text: job.platform, width: 56)),
           DataCell(
-            _TableTextCell(text: job.matchRecommendation ?? '-', width: 112),
+            _TableTextCell(text: job.matchRecommendation ?? '-', width: 72),
           ),
-          DataCell(_TableTextCell(text: job.title, width: 260)),
-          DataCell(_TableTextCell(text: job.company, width: 260)),
-          DataCell(_TableTextCell(text: job.salary ?? '-', width: 120)),
-          DataCell(_TableTextCell(text: job.location, width: 150)),
-          DataCell(_TableTextCell(text: job.status, width: 96)),
-          DataCell(_TableTextCell(text: job.updatedAt ?? '-', width: 160)),
+          DataCell(_TableTextCell(text: job.title, width: 180)),
+          DataCell(_TableTextCell(text: job.company, width: 180)),
+          DataCell(_TableTextCell(text: job.salary ?? '-', width: 80)),
+          DataCell(_TableTextCell(text: job.location, width: 84)),
+          DataCell(_TableTextCell(text: job.status, width: 60)),
+          DataCell(_TableTextCell(text: job.updatedAt ?? '-', width: 88)),
           DataCell(
             SizedBox(
-              width: 72,
+              width: 48,
               child: IconButton(
                 key: Key('job-detail-${job.id}-button'),
                 tooltip: 'View ${job.title}',
+                style: MavraButtonStyle.rowIconButton(context: context),
                 onPressed: () => onShowDetails(job),
-                icon: const Icon(Icons.open_in_new),
+                icon: const Icon(Icons.open_in_new, size: 18),
               ),
             ),
           ),
@@ -1876,10 +1919,12 @@ class _TableTextCell extends StatelessWidget {
 class _JobDetailPanel extends StatelessWidget {
   const _JobDetailPanel({
     required this.detail,
+    this.fallbackMessage,
     required this.onRequestMatchAnalysis,
   });
 
   final JobDetail detail;
+  final String? fallbackMessage;
   final VoidCallback? onRequestMatchAnalysis;
 
   @override
@@ -1887,6 +1932,10 @@ class _JobDetailPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (fallbackMessage != null) ...[
+          Text(fallbackMessage!),
+          const SizedBox(height: 12),
+        ],
         Text(detail.company, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         Wrap(

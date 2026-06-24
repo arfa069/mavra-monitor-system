@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/admin_models.dart';
 
 class AdminAuditLogsPage extends StatefulWidget {
@@ -194,26 +196,11 @@ class _AuditHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      key: const Key('admin-audit-logs-title-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.18),
-        border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('System Admin', style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 6),
-          Text('Audit Logs', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 4),
-          const Text('View system operation audit records'),
-        ],
-      ),
+    return const MavraPageBanner(
+      key: Key('admin-audit-logs-title-banner'),
+      eyebrow: 'System Admin',
+      title: 'Audit Logs',
+      subtitle: 'View system operation audit records',
     );
   }
 }
@@ -225,33 +212,36 @@ class _AuditLogTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MavraResponsiveDataView<AdminAuditLog>(
-      rows: logs,
-      wideBreakpoint: 720,
-      columnSpacing: 24,
-      columns: const [
-        DataColumn(label: Text('ID')),
-        DataColumn(label: Text('Action')),
-        DataColumn(label: Text('Actor ID')),
-        DataColumn(label: Text('Target Type')),
-        DataColumn(label: Text('Target ID')),
-        DataColumn(label: Text('Details')),
-        DataColumn(label: Text('IP Address')),
-        DataColumn(label: Text('Time')),
-      ],
-      tableCells: (log) => [
-        DataCell(Text('${log.id}')),
-        DataCell(_ActionChip(log: log)),
-        DataCell(Text(_actorLabel(log.actorUserId))),
-        DataCell(Text(log.targetType ?? '-')),
-        DataCell(Text(log.targetId?.toString() ?? '-')),
-        DataCell(_DetailsText(details: log.details)),
-        DataCell(Text(log.ipAddress ?? '-')),
-        DataCell(Text(_dateLabel(log.createdAt))),
-      ],
-      mobileBuilder: (context, log) => Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: Padding(
+    return Container(
+      decoration: MavraTableStyle.panelDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: MavraResponsiveDataView<AdminAuditLog>(
+        rows: logs,
+        wideBreakpoint: 720,
+        columnSpacing: 24,
+        columns: const [
+          DataColumn(label: Text('ID')),
+          DataColumn(label: Text('Action')),
+          DataColumn(label: Text('Actor ID')),
+          DataColumn(label: Text('Target Type')),
+          DataColumn(label: Text('Target ID')),
+          DataColumn(label: Text('Details')),
+          DataColumn(label: Text('IP Address')),
+          DataColumn(label: Text('Time')),
+        ],
+        tableCells: (log) => [
+          DataCell(Text('${log.id}')),
+          DataCell(_ActionChip(log: log)),
+          DataCell(Text(_actorLabel(log.actorUserId))),
+          DataCell(Text(log.targetType ?? '-')),
+          DataCell(Text(log.targetId?.toString() ?? '-')),
+          DataCell(_DetailsText(details: log.details)),
+          DataCell(Text(log.ipAddress ?? '-')),
+          DataCell(Text(_dateLabel(log.createdAt))),
+        ],
+        mobileBuilder: (context, log) => Container(
+          decoration: MavraTableStyle.panelDecoration(context),
+          margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +284,7 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _actionColor(log.action);
+    final color = _actionColor(context, log.action);
     return Chip(
       key: Key('admin-audit-action-chip-${log.id}'),
       label: Text(_actionLabel(log.action)),
@@ -360,7 +350,7 @@ class _AuditPager extends StatelessWidget {
             key: const Key('admin-audit-page-size-field'),
             initialValue: pageSize,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Rows'),
+            decoration: MavraInputStyle.filterInput(context: context, label: 'Rows'),
             items: const [
               DropdownMenuItem(value: 20, child: Text('20 / page')),
               DropdownMenuItem(value: 50, child: Text('50 / page')),
@@ -404,22 +394,21 @@ String _dateLabel(DateTime value) {
 
 String _actionLabel(String action) => _actionLabels[action] ?? action;
 
-Color _actionColor(String action) {
+Color _actionColor(BuildContext context, String action) {
+  final scheme = Theme.of(context).colorScheme;
   switch (_actionColors[action]) {
     case 'green':
-      return Colors.green;
+      return const Color(0xFF7E976B);
     case 'blue':
-      return Colors.blue;
+      return const Color(0xFF7AA2A4);
     case 'red':
-      return Colors.red;
+      return scheme.error;
     case 'cyan':
-      return Colors.cyan;
+      return const Color(0xFF7AA2A4);
     case 'orange':
-      return Colors.orange;
-    case 'purple':
-      return Colors.purple;
+      return const Color(0xFFD89A57);
     default:
-      return Colors.grey;
+      return scheme.outline;
   }
 }
 
@@ -449,7 +438,7 @@ const _actionColors = {
   'user.register': 'cyan',
   'user.password_change': 'orange',
   'user.wechat_bind': 'cyan',
-  'auth.login': 'purple',
+  'auth.login': 'green',
   'auth.logout': 'default',
   'product.update': 'blue',
   'product.delete': 'red',

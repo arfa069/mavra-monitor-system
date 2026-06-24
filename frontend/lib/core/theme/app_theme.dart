@@ -49,6 +49,22 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
+      dataTableTheme: DataTableThemeData(
+        headingRowHeight: 44,
+        dataRowMinHeight: 48,
+        dataRowMaxHeight: 48,
+        headingTextStyle: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurface,
+        ),
+        dataTextStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: scheme.onSurface,
+        ),
+        dividerThickness: 1,
+      ),
     );
   }
 }

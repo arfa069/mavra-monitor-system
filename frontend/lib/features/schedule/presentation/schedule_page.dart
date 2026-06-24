@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/adaptive_scaffold.dart';
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/schedule_models.dart';
 
 enum _ScheduleWorkbenchTab { productTimers, jobTimers, settings }
@@ -487,11 +489,8 @@ class _SchedulePageState extends State<SchedulePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Schedule Configuration',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
+          const _ScheduleHeader(),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -552,9 +551,9 @@ class _SchedulePageState extends State<SchedulePage> {
       title: 'Product Crawl Schedule Config',
       trailing: FilledButton.icon(
         key: const Key('schedule-add-product-button'),
-        style: _headerButtonStyle(),
+        style: MavraButtonStyle.compactFilled(context: context),
         onPressed: canConfigure ? _showAddProductDialog : null,
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Product Timer'),
       ),
       child: MavraResponsiveDataView<ProductSchedule>(
@@ -580,10 +579,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 key: Key('schedule-product-cron-${schedule.platform}-field'),
                 controller: _productCronController(schedule),
                 enabled: canConfigure,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                decoration: MavraInputStyle.tableInput(context: context),
               ),
             ),
           ),
@@ -594,35 +590,33 @@ class _SchedulePageState extends State<SchedulePage> {
               children: [
                 OutlinedButton.icon(
                   key: Key('schedule-product-save-${schedule.platform}-button'),
-                  style: _compactButtonStyle(),
+                  style: MavraButtonStyle.compactOutlined(context: context),
                   onPressed: canConfigure
                       ? () => _saveProductCron(schedule)
                       : null,
                   icon: const Icon(Icons.save, size: 18),
                   label: const Text('Save'),
                 ),
+                const SizedBox(width: 4),
                 IconButton(
                   key: Key(
                     'schedule-product-generate-${schedule.platform}-button',
                   ),
                   tooltip: 'Generate cron',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: _compactIconConstraints(),
+                  style: MavraButtonStyle.rowIconButton(context: context),
                   onPressed: canConfigure
                       ? () =>
                             _showCronGenerator(_productCronController(schedule))
                       : null,
                   icon: const Icon(Icons.auto_awesome),
                 ),
+                const SizedBox(width: 4),
                 IconButton(
                   key: Key(
                     'schedule-product-delete-${schedule.platform}-button',
                   ),
                   tooltip: 'Delete ${schedule.platform}',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: _compactIconConstraints(),
+                  style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
                   onPressed: canConfigure
                       ? () => _deleteProductSchedule(schedule)
                       : null,
@@ -698,10 +692,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 key: Key('schedule-job-cron-${schedule.configId}-field'),
                 controller: _jobCronController(schedule),
                 enabled: canConfigure,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: OutlineInputBorder(),
-                ),
+                decoration: MavraInputStyle.tableInput(context: context),
               ),
             ),
           ),
@@ -712,17 +703,16 @@ class _SchedulePageState extends State<SchedulePage> {
               children: [
                 OutlinedButton.icon(
                   key: Key('schedule-job-save-${schedule.configId}-button'),
-                  style: _compactButtonStyle(),
+                  style: MavraButtonStyle.compactOutlined(context: context),
                   onPressed: canConfigure ? () => _saveJobCron(schedule) : null,
                   icon: const Icon(Icons.save, size: 18),
                   label: const Text('Save'),
                 ),
+                const SizedBox(width: 4),
                 IconButton(
                   key: Key('schedule-job-generate-${schedule.configId}-button'),
                   tooltip: 'Generate cron',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: _compactIconConstraints(),
+                  style: MavraButtonStyle.rowIconButton(context: context),
                   onPressed: canConfigure
                       ? () => _showCronGenerator(_jobCronController(schedule))
                       : null,
@@ -792,20 +782,21 @@ class _SchedulePageState extends State<SchedulePage> {
             controller: _retentionController,
             enabled: canConfigure,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Data Retention Days'),
+            decoration: MavraInputStyle.filterInput(context: context, label: 'Data Retention Days'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           TextField(
             key: const Key('schedule-webhook-url-field'),
             controller: _webhookController,
             enabled: canConfigure,
-            decoration: const InputDecoration(labelText: 'Feishu Webhook URL'),
+            decoration: MavraInputStyle.filterInput(context: context, label: 'Feishu Webhook URL'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           FilledButton.icon(
             key: const Key('schedule-save-settings-button'),
+            style: MavraButtonStyle.compactFilled(context: context),
             onPressed: canConfigure ? _saveSettings : null,
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.save, size: 18),
             label: const Text('Save settings'),
           ),
         ],
@@ -870,6 +861,20 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 }
 
+class _ScheduleHeader extends StatelessWidget {
+  const _ScheduleHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MavraPageBanner(
+      key: Key('schedule-title-banner'),
+      eyebrow: 'Automation',
+      title: 'Schedule Configuration',
+      subtitle: 'Configure automated product and job timers',
+    );
+  }
+}
+
 class _ScheduleTabStrip extends StatelessWidget {
   const _ScheduleTabStrip({required this.activeTab, required this.onChanged});
 
@@ -894,6 +899,7 @@ class _ScheduleTabStrip extends StatelessWidget {
             avatar: Icon(tab.icon, size: 16),
             label: Text(tab.label),
             selected: activeTab == tab,
+            showCheckmark: false,
             onSelected: (_) => onChanged(tab),
           ),
       ],
@@ -914,29 +920,27 @@ class _SchedulePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+    return Container(
+      decoration: MavraTableStyle.panelDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                ?trailing,
-              ],
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+              ),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
@@ -993,23 +997,6 @@ String _platformLabel(String platform) => switch (platform) {
   'amazon' => 'Amazon',
   _ => platform,
 };
-
-ButtonStyle _compactButtonStyle() {
-  return OutlinedButton.styleFrom(
-    minimumSize: const Size(68, 36),
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    visualDensity: VisualDensity.compact,
-  );
-}
-
-BoxConstraints _compactIconConstraints() {
-  return const BoxConstraints.tightFor(width: 36, height: 36);
-}
-
-ButtonStyle _headerButtonStyle() {
-  return FilledButton.styleFrom(minimumSize: const Size(0, 44));
-}
 
 String _cronLabel(String cronExpression) {
   return cronExpression.trim().isEmpty ? 'Disabled' : cronExpression;

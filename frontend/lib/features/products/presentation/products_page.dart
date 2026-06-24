@@ -10,7 +10,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_confirm.dart';
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
+import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/product_models.dart';
 
 typedef ProductUrlOpener = FutureOr<void> Function(String url);
@@ -698,14 +700,19 @@ class _ProductsContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _ProductPageIntro(),
+          const MavraPageBanner(
+            eyebrow: 'Prices',
+            title: 'Product Management',
+            subtitle:
+                'Track Taobao, JD, and Amazon products, schedule crawls, and review price movement.',
+          ),
           if (statusMessage != null) ...[
             const SizedBox(height: 12),
             Text(statusMessage!),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           _ProductSectionTabs(activeTab: activeTab, onTabChanged: onTabChanged),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 1100;
@@ -744,8 +751,8 @@ class _ProductsContent extends StatelessWidget {
                 actions: OutlinedButton.icon(
                   key: const Key('product-crawl-logs-refresh-button'),
                   onPressed: onRefreshCrawlLogs,
-                  style: _compactOutlinedButtonStyle(),
-                  icon: const Icon(Icons.refresh),
+                  style: MavraButtonStyle.compactOutlined(context: context),
+                  icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Refresh'),
                 ),
                 children: [
@@ -807,21 +814,7 @@ String _platformLabel(String value) {
   };
 }
 
-ButtonStyle _compactOutlinedButtonStyle() {
-  return OutlinedButton.styleFrom(
-    minimumSize: const Size(0, 36),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  );
-}
 
-ButtonStyle _compactFilledButtonStyle() {
-  return FilledButton.styleFrom(
-    minimumSize: const Size(0, 36),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  );
-}
 
 class _ProductSectionTabs extends StatelessWidget {
   const _ProductSectionTabs({
@@ -834,64 +827,35 @@ class _ProductSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor),
-        ),
-      ),
-      child: Wrap(
-        spacing: 28,
-        children: [
-          _tabButton(
-            context,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        SizedBox(
+          height: 40,
+          child: ChoiceChip(
             key: const Key('product-tab-products'),
-            tab: _ProductWorkbenchTab.products,
-            label: 'Products',
+            avatar: const Icon(Icons.inventory_2_outlined, size: 16),
+            label: const Text('Products'),
+            selected: activeTab == _ProductWorkbenchTab.products,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            showCheckmark: false,
+            onSelected: (_) => onTabChanged(_ProductWorkbenchTab.products),
           ),
-          _tabButton(
-            context,
+        ),
+        SizedBox(
+          height: 40,
+          child: ChoiceChip(
             key: const Key('product-tab-recent-crawl-logs'),
-            tab: _ProductWorkbenchTab.recentCrawlLogs,
-            label: 'Recent Crawl Logs',
+            avatar: const Icon(Icons.receipt_long_outlined, size: 16),
+            label: const Text('Recent Crawl Logs'),
+            selected: activeTab == _ProductWorkbenchTab.recentCrawlLogs,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            showCheckmark: false,
+            onSelected: (_) => onTabChanged(_ProductWorkbenchTab.recentCrawlLogs),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tabButton(
-    BuildContext context, {
-    required Key key,
-    required _ProductWorkbenchTab tab,
-    required String label,
-  }) {
-    final color = Theme.of(context).colorScheme;
-    final selected = activeTab == tab;
-    final labelWidget = Padding(
-      padding: EdgeInsets.only(bottom: selected ? 8 : 0),
-      child: Text(label),
-    );
-
-    return TextButton(
-      key: key,
-      onPressed: () => onTabChanged(tab),
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.only(bottom: selected ? 10 : 18),
-        shape: const RoundedRectangleBorder(),
-        foregroundColor: selected ? color.onSurface : color.onSurfaceVariant,
-      ),
-      child: selected
-          ? DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: color.primary, width: 2),
-                ),
-              ),
-              child: labelWidget,
-            )
-          : labelWidget,
+        ),
+      ],
     );
   }
 }
@@ -928,8 +892,8 @@ class _ScheduleConfigPanel extends StatelessWidget {
       actions: OutlinedButton.icon(
         key: const Key('product-schedule-add-button'),
         onPressed: onOpenSchedule,
-        style: _compactOutlinedButtonStyle(),
-        icon: const Icon(Icons.add),
+        style: MavraButtonStyle.compactOutlined(context: context),
+        icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Schedule'),
       ),
       children: [
@@ -1005,51 +969,23 @@ class _ScheduleActions extends StatelessWidget {
         IconButton(
           key: Key('product-cron-${row.platform}-edit-button'),
           tooltip: 'Edit ${row.platform} schedule',
+          style: MavraButtonStyle.rowIconButton(context: context),
           onPressed: onOpenSchedule,
-          icon: const Icon(Icons.edit_calendar),
+          icon: const Icon(Icons.edit_calendar, size: 18),
         ),
         IconButton(
           key: Key('product-cron-${row.platform}-delete-button'),
           tooltip: 'Delete ${row.platform} schedule',
+          style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
           onPressed: row.configured ? () => onDeleteProductCron(row) : null,
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline, size: 18),
         ),
       ],
     );
   }
 }
 
-class _ProductPageIntro extends StatelessWidget {
-  const _ProductPageIntro();
 
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Prices', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Text(
-              'Product Management',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Track Taobao, JD, and Amazon products, schedule crawls, and review price movement.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _ProductsPanel extends StatelessWidget {
   const _ProductsPanel({
@@ -1109,8 +1045,8 @@ class _ProductsPanel extends StatelessWidget {
           ? OutlinedButton.icon(
               key: const Key('product-crawl-now-button'),
               onPressed: onRequestCrawlNow,
-              style: _compactOutlinedButtonStyle(),
-              icon: const Icon(Icons.travel_explore),
+              style: MavraButtonStyle.compactOutlined(context: context),
+              icon: const Icon(Icons.travel_explore, size: 18),
               label: const Text('Crawl Now'),
             )
           : null,
@@ -1194,8 +1130,8 @@ class _ProductFilters extends StatelessWidget {
         OutlinedButton.icon(
           key: const Key('product-import-open-button'),
           onPressed: onImportProducts,
-          style: _compactOutlinedButtonStyle(),
-          icon: const Icon(Icons.upload_file),
+          style: MavraButtonStyle.compactOutlined(context: context),
+          icon: const Icon(Icons.upload_file, size: 18),
           label: const Text('Batch Import'),
         ),
         KeyedSubtree(
@@ -1203,16 +1139,16 @@ class _ProductFilters extends StatelessWidget {
           child: OutlinedButton.icon(
             key: const Key('product-batch-delete-button'),
             onPressed: selectedCount == 0 ? null : onBatchDeleteProducts,
-            style: _compactOutlinedButtonStyle(),
-            icon: const Icon(Icons.delete_outline),
+            style: MavraButtonStyle.compactOutlined(context: context, isDangerous: true),
+            icon: const Icon(Icons.delete_outline, size: 18),
             label: const Text('Batch Delete'),
           ),
         ),
         FilledButton.icon(
           key: const Key('product-add-button'),
           onPressed: onNewProduct,
-          style: _compactFilledButtonStyle(),
-          icon: const Icon(Icons.add),
+          style: MavraButtonStyle.compactFilled(context: context),
+          icon: const Icon(Icons.add, size: 18),
           label: const Text('Add Product'),
         ),
       ],
@@ -1226,60 +1162,53 @@ class _ProductFilters extends StatelessWidget {
       children: [
         SizedBox(
           width: 280,
+          height: 48,
           child: TextField(
             key: const Key('product-search-field'),
             controller: searchController,
             textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: 'Search title or URL',
-              prefixIcon: const Icon(Icons.search),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Search title or URL',
               suffixIcon: IconButton(
                 key: const Key('product-clear-search-button'),
                 tooltip: 'Clear search',
+                style: MavraButtonStyle.rowIconButton(context: context),
                 onPressed: onClearSearch,
-                icon: const Icon(Icons.clear),
+                icon: const Icon(Icons.clear, size: 18),
               ),
             ),
           ),
         ),
         SizedBox(
           width: 230,
+          height: 48,
           child: DropdownButtonFormField<String?>(
             key: const Key('product-platform-filter'),
             initialValue: platformValue,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Platform'),
+            decoration: MavraInputStyle.filterInput(context: context, label: 'Platform'),
             items: const [
               DropdownMenuItem(value: null, child: Text('All Platforms')),
               DropdownMenuItem(value: 'taobao', child: Text('Taobao')),
               DropdownMenuItem(value: 'jd', child: Text('JD')),
               DropdownMenuItem(value: 'amazon', child: Text('Amazon')),
             ],
-            selectedItemBuilder: (context) => const [
-              Text('All', overflow: TextOverflow.ellipsis),
-              Text('Taobao', overflow: TextOverflow.ellipsis),
-              Text('JD', overflow: TextOverflow.ellipsis),
-              Text('Amazon', overflow: TextOverflow.ellipsis),
-            ],
             onChanged: onPlatformFilterChanged,
           ),
         ),
         SizedBox(
           width: 220,
+          height: 48,
           child: DropdownButtonFormField<String>(
             key: const Key('product-active-filter'),
             initialValue: activeFilter,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Status'),
+            decoration: MavraInputStyle.filterInput(context: context, label: 'Status'),
             items: const [
               DropdownMenuItem(value: 'all', child: Text('All Statuses')),
               DropdownMenuItem(value: 'active', child: Text('Active')),
               DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-            ],
-            selectedItemBuilder: (context) => const [
-              Text('All', overflow: TextOverflow.ellipsis),
-              Text('Active', overflow: TextOverflow.ellipsis),
-              Text('Inactive', overflow: TextOverflow.ellipsis),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -1347,10 +1276,16 @@ class _ProductPaginationControls extends StatelessWidget {
         ),
         SizedBox(
           width: 96,
+          height: 48,
           child: DropdownButtonFormField<int>(
             key: const Key('product-page-size-field'),
             initialValue: _normalizedPageSize(pageSize),
-            decoration: const InputDecoration(labelText: 'Page size'),
+            isExpanded: true,
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Page size',
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            ),
             items: const [
               DropdownMenuItem(value: 15, child: Text('15')),
               DropdownMenuItem(value: 20, child: Text('20')),
@@ -1831,26 +1766,30 @@ class _ProductActionButtons extends StatelessWidget {
           IconButton(
             key: Key('product-open-${product.id}-button'),
             tooltip: 'Open ${product.title}',
+            style: MavraButtonStyle.rowIconButton(context: context),
             onPressed: () => onOpen(product),
-            icon: const Icon(Icons.open_in_new),
+            icon: const Icon(Icons.open_in_new, size: 18),
           ),
           IconButton(
             key: Key('product-trend-${product.id}-button'),
             tooltip: 'Trend',
+            style: MavraButtonStyle.rowIconButton(context: context),
             onPressed: () => onShowTrend(product),
-            icon: const Icon(Icons.timeline),
+            icon: const Icon(Icons.timeline, size: 18),
           ),
           IconButton(
             key: Key('product-edit-${product.id}-button'),
             tooltip: 'Edit ${product.title}',
+            style: MavraButtonStyle.rowIconButton(context: context),
             onPressed: () => onEdit(product),
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit, size: 18),
           ),
           IconButton(
             key: Key('product-delete-${product.id}-button'),
             tooltip: 'Delete',
+            style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
             onPressed: () => onDelete(product.id),
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(Icons.delete_outline, size: 18),
           ),
         ],
       );
@@ -1862,26 +1801,30 @@ class _ProductActionButtons extends StatelessWidget {
       children: [
         TextButton.icon(
           key: Key('product-open-${product.id}-button'),
+          style: MavraButtonStyle.compactText(context: context),
           onPressed: () => onOpen(product),
-          icon: const Icon(Icons.open_in_new),
+          icon: const Icon(Icons.open_in_new, size: 18),
           label: const Text('Open'),
         ),
         TextButton.icon(
           key: Key('product-trend-${product.id}-button'),
+          style: MavraButtonStyle.compactText(context: context),
           onPressed: () => onShowTrend(product),
-          icon: const Icon(Icons.timeline),
+          icon: const Icon(Icons.timeline, size: 18),
           label: const Text('Trend'),
         ),
         TextButton.icon(
           key: Key('product-edit-${product.id}-button'),
+          style: MavraButtonStyle.compactText(context: context),
           onPressed: () => onEdit(product),
-          icon: const Icon(Icons.edit),
+          icon: const Icon(Icons.edit, size: 18),
           label: Text('Edit ${product.title}'),
         ),
         TextButton.icon(
           key: Key('product-delete-${product.id}-button'),
+          style: MavraButtonStyle.compactText(context: context, isDangerous: true),
           onPressed: () => onDelete(product.id),
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline, size: 18),
           label: const Text('Delete'),
         ),
       ],
@@ -1913,28 +1856,112 @@ class _ProductCrawlLogsTable extends StatelessWidget {
         DataCell(Text(_crawlStatusLabel(log.status))),
         DataCell(Text(log.price ?? '-')),
         DataCell(
-          SizedBox(
-            width: 280,
-            child: Text(
-              log.errorMessage ?? log.message,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          _CrawlLogErrorCell(log: log),
         ),
       ],
-      mobileBuilder: (context, log) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.receipt_long),
-        title: Text(
-          '${_platformLabel(log.platform ?? '-')} - ${log.price ?? '-'}',
+      mobileBuilder: (context, log) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.receipt_long),
+              title: Text(
+                '${_platformLabel(log.platform ?? '-')} - ${log.price ?? '-'}',
+              ),
+              subtitle: Text(
+                '${_crawlStatusLabel(log.status)} - ${_shortDateTime(log.createdAt)}\n${log.errorMessage ?? log.message}',
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+              isThreeLine: true,
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: Key(
+                  'product-crawl-log-error-details-${_crawlLogKey(log)}-button',
+                ),
+                style: MavraButtonStyle.compactText(context: context),
+                onPressed: () => _showCrawlLogDetails(context, log),
+                icon: const Icon(Icons.notes, size: 18),
+                label: const Text('Details'),
+              ),
+            ),
+          ],
         ),
-        subtitle: Text(
-          '${_crawlStatusLabel(log.status)} - ${_shortDateTime(log.createdAt)}\n${log.errorMessage ?? log.message}',
-        ),
-        isThreeLine: true,
       ),
     );
   }
+}
+
+class _CrawlLogErrorCell extends StatelessWidget {
+  const _CrawlLogErrorCell({required this.log});
+
+  final ProductCrawlLog log;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = log.errorMessage ?? log.message;
+    return SizedBox(
+      width: 420,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(
+            child: Tooltip(
+              message: details,
+              child: Text(
+                details,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            key: Key(
+              'product-crawl-log-error-details-${_crawlLogKey(log)}-button',
+            ),
+            tooltip: 'View full crawl log details',
+            style: MavraButtonStyle.rowIconButton(context: context),
+            onPressed: () => _showCrawlLogDetails(context, log),
+            icon: const Icon(Icons.notes, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _crawlLogKey(ProductCrawlLog log) =>
+    (log.id ?? log.createdAt.millisecondsSinceEpoch).toString();
+
+Future<void> _showCrawlLogDetails(
+  BuildContext context,
+  ProductCrawlLog log,
+) {
+  final details = log.errorMessage ?? log.message;
+  return showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Crawl log details'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: SelectableText(details),
+        ),
+      ),
+      actions: [
+        TextButton(
+          style: MavraButtonStyle.compactText(context: context),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _PriceTrendDialog extends StatefulWidget {
@@ -2252,35 +2279,40 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final action = actions;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 8, bottom: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+    final theme = Theme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        return DecoratedBox(
+          decoration: MavraTableStyle.panelDecoration(context),
+          child: Padding(
+            padding: EdgeInsets.all(wide ? 16 : 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    ?action,
+                  ],
                 ),
-                ?action,
+                Divider(
+                  height: 24,
+                  thickness: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+                ),
+                if (children.isEmpty) Text(emptyText) else ...children,
               ],
             ),
-            const Divider(height: 20),
-            if (children.isEmpty) Text(emptyText) else ...children,
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

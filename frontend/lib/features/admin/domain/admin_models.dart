@@ -17,10 +17,15 @@ class AdminUser {
 }
 
 class AdminRolePermission {
-  const AdminRolePermission({required this.role, required this.permissions});
+  const AdminRolePermission({
+    required this.role,
+    required this.permissions,
+    this.availablePermissions = const [],
+  });
 
   final String role;
   final List<String> permissions;
+  final List<String> availablePermissions;
 }
 
 class ResourcePermissionItem {

@@ -45,6 +45,16 @@ void main() {
       find.byKey(const Key('events-reset-filters-button')),
       findsOneWidget,
     );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('events-reset-filters-button'))).dy,
+      tester.getTopLeft(find.byKey(const Key('events-end-field'))).dy,
+    );
+    expect(
+      tester
+          .getBottomLeft(find.byKey(const Key('events-reset-filters-button')))
+          .dy,
+      tester.getBottomLeft(find.byKey(const Key('events-end-field'))).dy,
+    );
 
     for (final label in const [
       'Kind',
