@@ -93,6 +93,35 @@ void main() {
     expect(find.byKey(const Key('blog-og-image-field')), findsOneWidget);
   });
 
+  testWidgets('editor inputs use hint labels instead of floating labels', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: BlogPage(repository: _FakeBlogRepository.full())),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    final titleField = tester.widget<TextField>(
+      find.byKey(const Key('blog-title-field')),
+    );
+    final bodyField = tester.widget<TextField>(
+      find.byKey(const Key('blog-body-field')),
+    );
+    final statusField = tester.widget<DropdownButtonFormField<String>>(
+      find.byKey(const Key('blog-status-field')),
+    );
+
+    expect(titleField.decoration?.labelText, isNull);
+    expect(titleField.decoration?.hintText, 'Title');
+    expect(statusField.decoration.labelText, isNull);
+    expect(statusField.decoration.hintText, 'Status');
+    expect(bodyField.decoration?.labelText, isNull);
+    expect(bodyField.decoration?.hintText, 'Blog post body');
+  });
+
   testWidgets('keeps header and filter buttons compact under app theme', (
     tester,
   ) async {

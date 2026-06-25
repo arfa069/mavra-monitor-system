@@ -709,6 +709,7 @@ class _BlogEditor extends StatelessWidget {
                           context: context,
                           label: 'Title',
                           errorText: titleError,
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -729,6 +730,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'Status',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -748,6 +750,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'Slug',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -761,6 +764,7 @@ class _BlogEditor extends StatelessWidget {
                           context: context,
                           label: 'Publish time',
                           errorText: publishedAtError,
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -775,6 +779,7 @@ class _BlogEditor extends StatelessWidget {
                     context: context,
                     label: 'Excerpt',
                     isMultiline: true,
+                    labelAsHint: true,
                   ),
                   maxLines: 2,
                 ),
@@ -823,6 +828,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'Cover image',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -864,6 +870,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'SEO title',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -876,6 +883,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'SEO description',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -895,6 +903,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'Canonical URL',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -907,6 +916,7 @@ class _BlogEditor extends StatelessWidget {
                         decoration: MavraInputStyle.filterInput(
                           context: context,
                           label: 'Open Graph image',
+                          labelAsHint: true,
                         ),
                       ),
                     ),
@@ -986,6 +996,7 @@ class _TaxonomyPickerField extends StatelessWidget {
             context: context,
             label: label,
             helperText: helperText,
+            labelAsHint: true,
           ),
         ),
         if (options.isNotEmpty) ...[
@@ -1093,7 +1104,7 @@ class _BlogBodyEditor extends StatelessWidget {
                 controller: bodyController,
                 enabled: canWrite,
                 decoration: InputDecoration(
-                  labelText: 'Blog post body',
+                  hintText: 'Blog post body',
                   errorText: bodyError,
                   alignLabelWithHint: true,
                   border: InputBorder.none,

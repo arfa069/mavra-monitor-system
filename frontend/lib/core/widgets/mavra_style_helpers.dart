@@ -228,13 +228,17 @@ class MavraInputStyle {
     String? errorText,
     String? helperText,
     bool isMultiline = false,
+    bool labelAsHint = false,
     EdgeInsetsGeometry? contentPadding,
   }) {
     final colors = Theme.of(context).colorScheme;
     return InputDecoration(
-      labelText: label,
+      labelText: labelAsHint ? null : label,
+      hintText: labelAsHint ? label : null,
       alignLabelWithHint: true,
-      floatingLabelBehavior: FloatingLabelBehavior.auto,
+      floatingLabelBehavior: labelAsHint
+          ? FloatingLabelBehavior.never
+          : FloatingLabelBehavior.auto,
       contentPadding:
           contentPadding ??
           const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
