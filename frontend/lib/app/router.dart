@@ -47,6 +47,8 @@ GoRouter createMavraRouter({
   required SettingsRepository settingsRepository,
   required SmartHomeRepository smartHomeRepository,
   String? initialLocation,
+  ThemeMode themeMode = ThemeMode.light,
+  ValueChanged<ThemeMode>? onThemeModeChanged,
 }) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -87,8 +89,12 @@ GoRouter createMavraRouter({
       ),
       GoRoute(path: '/analytics', redirect: (context, state) => '/dashboard'),
       ShellRoute(
-        builder: (context, state, child) =>
-            MavraShell(authController: authController, child: child),
+        builder: (context, state, child) => MavraShell(
+          authController: authController,
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+          child: child,
+        ),
         routes: [
           GoRoute(
             path: '/today',

@@ -1,6 +1,7 @@
 # Flutter Design System
 
-Status: approved baseline for the Flutter replacement.
+Status: historical Flutter replacement baseline. The current design-system
+source of truth is `doc/DESIGN.md`.
 
 Source references:
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/files/file_service.dart';
 import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/platform/platform_capabilities.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
@@ -515,6 +516,7 @@ class _BlogHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MavraPageBanner(
+      accentColor: AppTheme.brandBlue200,
       eyebrow: 'Public writing',
       title: 'Blog Studio',
       subtitle: 'Manage and publish blog posts',

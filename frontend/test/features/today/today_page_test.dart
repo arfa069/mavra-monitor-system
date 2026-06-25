@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/features/today/domain/today_models.dart';
 import 'package:mavra_frontend/features/today/presentation/today_page.dart';
 
@@ -88,10 +89,81 @@ void main() {
     );
 
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('今天很安静，Mavra 会继续帮你看着。'), 400);
+    await tester.scrollUntilVisible(find.text('没有需要你立刻处理的事。'), 400);
 
     expect(find.text('今天很安静，Mavra 会继续帮你看着。'), findsOneWidget);
     expect(find.text('没有需要你立刻处理的事。'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable), const Offset(0, -900));
+    await tester.pumpAndSettle();
     expect(find.text('安静运行'), findsWidgets);
+  });
+
+  testWidgets('summary uses adapted flat card chrome', (tester) async {
+    await tester.pumpWidget(
+      _buildTodayHarness(
+        repository: _FakeTodayRepository(snapshot: _quietSnapshot()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('today-summary-card')),
+      400,
+    );
+
+    final summary = tester.widget<DecoratedBox>(
+      find.byKey(const Key('today-summary-card')),
+    );
+    final decoration = summary.decoration as BoxDecoration;
+
+    expect(decoration.borderRadius, BorderRadius.circular(16));
+    expect(decoration.boxShadow, isNull);
+  });
+
+  testWidgets('renders the MiniMax-style showcase hero and product matrix', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildTodayHarness(
+        repository: _FakeTodayRepository(snapshot: _attentionSnapshot()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('today-showcase-hero')), findsOneWidget);
+    expect(find.byKey(const Key('today-product-matrix')), findsOneWidget);
+    expect(find.text('Mavra Monitor System'), findsOneWidget);
+    expect(find.text('Price Monitor'), findsOneWidget);
+    expect(find.text('Job Radar'), findsOneWidget);
+    expect(find.text('Smart Home'), findsOneWidget);
+  });
+
+  testWidgets('uses a light hero surface on the default light theme', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildTodayHarness(
+        repository: _FakeTodayRepository(snapshot: _attentionSnapshot()),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final hero = tester.widget<DecoratedBox>(
+      find.byKey(const Key('today-showcase-hero')),
+    );
+    final decoration = hero.decoration as BoxDecoration;
+
+    expect(decoration.color, AppTheme.surface);
+    expect(decoration.border, isNotNull);
   });
 
   testWidgets('shows loading copy while the brief is being prepared', (
@@ -119,8 +191,10 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-
     expect(find.text('今天的简报没有完全同步，稍后会再试。'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('今天很安静，Mavra 会继续帮你看着。'), 400);
+
     expect(find.text('今天很安静，Mavra 会继续帮你看着。'), findsOneWidget);
   });
 
@@ -131,6 +205,9 @@ void main() {
       ),
     );
 
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('查看'), 400);
+    await tester.ensureVisible(find.text('查看'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('查看'));
     await tester.pumpAndSettle();
@@ -163,7 +240,7 @@ Widget _buildTodayHarness({required TodayRepository repository}) {
     ],
   );
 
-  return MaterialApp.router(routerConfig: router);
+  return MaterialApp.router(theme: AppTheme.light, routerConfig: router);
 }
 
 TodaySnapshot _attentionSnapshot() {

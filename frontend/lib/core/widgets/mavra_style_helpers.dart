@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class MavraButtonStyle {
   static ButtonStyle compactFilled({
     required BuildContext context,
@@ -13,7 +15,9 @@ class MavraButtonStyle {
       minimumSize: const Size(40, 40),
       fixedSize: const Size.fromHeight(40),
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+      ),
       textStyle: theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w600,
         fontSize: 13,
@@ -35,7 +39,9 @@ class MavraButtonStyle {
       minimumSize: const Size(40, 40),
       fixedSize: const Size.fromHeight(40),
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+      ),
       textStyle: theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w600,
         fontSize: 13,
@@ -54,7 +60,9 @@ class MavraButtonStyle {
       minimumSize: const Size(40, 40),
       fixedSize: const Size.fromHeight(40),
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+      ),
       textStyle: theme.textTheme.labelMedium?.copyWith(
         fontWeight: FontWeight.w600,
         fontSize: 13,
@@ -91,6 +99,9 @@ class MavraButtonStyle {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.standard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+      ),
     );
   }
 
@@ -105,7 +116,7 @@ class MavraButtonStyle {
       fixedSize: const Size(36, 36),
       padding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
         side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
     );
@@ -153,7 +164,7 @@ class MavraFilterButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
           child: Container(
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -164,7 +175,7 @@ class MavraFilterButton extends StatelessWidget {
                   : enabled
                   ? background
                   : colors.onSurface.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
               border: Border.all(
                 color: enabled ? borderColor : colors.outlineVariant,
               ),
@@ -243,7 +254,7 @@ class MavraInputStyle {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: colors.primary, width: 2),
+        borderSide: const BorderSide(color: AppTheme.focusBlue, width: 2),
       ),
       suffixIcon: suffixIcon,
     );
@@ -268,9 +279,37 @@ class MavraInputStyle {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: colors.primary, width: 2),
+        borderSide: const BorderSide(color: AppTheme.focusBlue, width: 2),
       ),
       suffixIcon: suffixIcon,
+    );
+  }
+}
+
+class MavraTabChipStyle {
+  static Color selectedColor(BuildContext context) {
+    return Theme.of(context).colorScheme.primary;
+  }
+
+  static Color backgroundColor(BuildContext context) {
+    return Theme.of(context).colorScheme.surface;
+  }
+
+  static BorderSide side(BuildContext context) {
+    return BorderSide(color: Theme.of(context).colorScheme.outlineVariant);
+  }
+
+  static Color iconColor(BuildContext context, bool selected) {
+    final colors = Theme.of(context).colorScheme;
+    return selected ? colors.onPrimary : colors.onSurfaceVariant;
+  }
+
+  static TextStyle? labelStyle(BuildContext context, bool selected) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return theme.textTheme.labelMedium?.copyWith(
+      color: selected ? colors.onPrimary : colors.onSurface,
+      fontWeight: FontWeight.w600,
     );
   }
 }
@@ -280,7 +319,7 @@ class MavraTableStyle {
     final colors = Theme.of(context).colorScheme;
     return BoxDecoration(
       color: colors.surface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: colors.outlineVariant),
     );
   }

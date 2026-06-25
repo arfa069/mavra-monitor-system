@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/features/events/domain/event_models.dart';
 import 'package:mavra_frontend/features/events/presentation/events_page.dart';
 
@@ -33,6 +34,13 @@ void main() {
     expect(find.text('Alerts'), findsNothing);
     expect(find.text('Analytics'), findsNothing);
 
+    final surface = tester.widget<DecoratedBox>(
+      find.byKey(const Key('mavra-page-banner-surface')),
+    );
+    final decoration = surface.decoration as BoxDecoration;
+    expect(decoration.color, AppTheme.brandMagenta);
+    expect(find.text('Mavra Intelligence Layer'), findsNothing);
+
     final bannerBottom = tester
         .getBottomLeft(find.byKey(const Key('events-banner')))
         .dy;
@@ -46,7 +54,9 @@ void main() {
       findsOneWidget,
     );
     expect(
-      tester.getTopLeft(find.byKey(const Key('events-reset-filters-button'))).dy,
+      tester
+          .getTopLeft(find.byKey(const Key('events-reset-filters-button')))
+          .dy,
       tester.getTopLeft(find.byKey(const Key('events-end-field'))).dy,
     );
     expect(
@@ -73,6 +83,9 @@ void main() {
     expect(find.text('INFO'), findsOneWidget);
     expect(find.text('Total 1 events'), findsOneWidget);
     expect(find.text('Page 1 of 1'), findsOneWidget);
+    final detailsButton = find.byKey(const Key('event-detail-evt-1-button'));
+    expect(tester.getTopLeft(detailsButton).dx, greaterThanOrEqualTo(0));
+    expect(tester.getTopRight(detailsButton).dx, lessThanOrEqualTo(1280));
   });
 
   testWidgets('applies filters, page size, pagination, and reset', (
@@ -167,6 +180,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(
+      find.byKey(const Key('event-detail-evt-1-button')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('event-detail-evt-1-button')));
     await tester.pumpAndSettle();
 

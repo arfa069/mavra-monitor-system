@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/theme/app_theme.dart';
 import '../features/auth/domain/auth_models.dart';
 
 class MavraShell extends StatelessWidget {
   const MavraShell({
     super.key,
     required this.authController,
+    this.themeMode = ThemeMode.light,
+    this.onThemeModeChanged,
     required this.child,
   });
 
   final AuthController authController;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
   final Widget child;
 
   @override
@@ -24,12 +29,17 @@ class MavraShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 720;
+        final colors = Theme.of(context).colorScheme;
         return Scaffold(
           appBar: compact
               ? AppBar(
                   title: const Text('Mavra'),
                   actions: [
-                    _ShellUserMenu(authController: authController),
+                    _ShellUserMenu(
+                      authController: authController,
+                      themeMode: themeMode,
+                      onThemeModeChanged: onThemeModeChanged,
+                    ),
                   ],
                 )
               : null,
@@ -61,14 +71,27 @@ class MavraShell extends StatelessWidget {
                     SizedBox(
                       width: 200,
                       child: Material(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        key: const Key('app-shell-brand-rail'),
+                        color: AppTheme.primary,
                         child: Column(
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                20,
+                                16,
+                                12,
+                              ),
                               child: Align(
                                 alignment: Alignment.centerLeft,
-                                child: Text('Mavra'),
+                                child: Text(
+                                  'Mavra',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: AppTheme.onPrimary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
                               ),
                             ),
                             Expanded(
@@ -90,18 +113,24 @@ class MavraShell extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const Divider(height: 1),
+                            Divider(
+                              height: 1,
+                              color: AppTheme.onPrimary.withValues(alpha: 0.18),
+                            ),
                             Padding(
                               padding: const EdgeInsets.all(8),
                               child: _ShellUserMenu(
                                 authController: authController,
+                                themeMode: themeMode,
+                                onThemeModeChanged: onThemeModeChanged,
+                                onDarkRail: true,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const VerticalDivider(width: 1),
+                    VerticalDivider(width: 1, color: colors.outlineVariant),
                     Expanded(child: child),
                   ],
                 ),
@@ -124,17 +153,13 @@ class MavraShell extends StatelessWidget {
       ),
       const _ShellDestination(
         route: '/events',
-        label: 'Activity',
+        label: 'Event',
         icon: Icons.event_note,
       ),
-      const _ShellDestination(
-        route: '/jobs',
-        label: 'Jobs',
-        icon: Icons.work,
-      ),
+      const _ShellDestination(route: '/jobs', label: 'Jobs', icon: Icons.work),
       const _ShellDestination(
         route: '/products',
-        label: 'Prices',
+        label: 'Products',
         icon: Icons.inventory_2,
       ),
       const _ShellDestination(
@@ -193,21 +218,39 @@ class _ShellNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedColor = selected ? AppTheme.primary : AppTheme.onPrimary;
+    final baseColor = selected
+        ? AppTheme.onPrimary
+        : AppTheme.onPrimary.withValues(alpha: 0.72);
     return ListTile(
       dense: true,
       selected: selected,
       leading: Icon(destination.icon),
       title: Text(destination.label),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      textColor: baseColor,
+      iconColor: baseColor,
+      selectedColor: selectedColor,
+      selectedTileColor: AppTheme.onPrimary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+      ),
       onTap: onTap,
     );
   }
 }
 
 class _ShellUserMenu extends StatelessWidget {
-  const _ShellUserMenu({required this.authController});
+  const _ShellUserMenu({
+    required this.authController,
+    required this.themeMode,
+    this.onThemeModeChanged,
+    this.onDarkRail = false,
+  });
 
   final AuthController authController;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final bool onDarkRail;
 
   @override
   Widget build(BuildContext context) {
@@ -219,6 +262,13 @@ class _ShellUserMenu extends StatelessWidget {
           child: const Text('Profile'),
           onPressed: () => context.go('/profile'),
         ),
+        if (onThemeModeChanged != null)
+          MenuItemButton(
+            key: const Key('app-shell-theme-toggle'),
+            leadingIcon: Icon(_themeToggleIcon(themeMode)),
+            child: Text(_themeToggleLabel(themeMode)),
+            onPressed: () => onThemeModeChanged!(_nextThemeMode(themeMode)),
+          ),
         MenuItemButton(
           key: const Key('app-shell-user-settings'),
           leadingIcon: const Icon(Icons.settings),
@@ -253,6 +303,14 @@ class _ShellUserMenu extends StatelessWidget {
         return IconButton(
           key: const Key('app-shell-user-menu'),
           tooltip: 'User menu',
+          style: IconButton.styleFrom(
+            foregroundColor: onDarkRail ? AppTheme.onPrimary : null,
+            side: BorderSide(
+              color: onDarkRail
+                  ? AppTheme.onPrimary.withValues(alpha: 0.22)
+                  : Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
           icon: const Icon(Icons.account_circle),
           onPressed: () {
             if (controller.isOpen) {
@@ -265,6 +323,20 @@ class _ShellUserMenu extends StatelessWidget {
       },
     );
   }
+}
+
+ThemeMode _nextThemeMode(ThemeMode mode) {
+  return mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+}
+
+IconData _themeToggleIcon(ThemeMode mode) {
+  return mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode;
+}
+
+String _themeToggleLabel(ThemeMode mode) {
+  return mode == ThemeMode.dark
+      ? 'Switch to Light theme'
+      : 'Switch to Dark theme';
 }
 
 class _ShellDestination {

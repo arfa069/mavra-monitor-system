@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/files/file_service.dart';
 import '../../../core/notifications/mavra_notifier.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_confirm.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
@@ -429,30 +430,6 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
-  Future<void> _deleteProductCron(ProductCronConfig cron) async {
-    final confirmed = await mavraConfirm(
-      context,
-      title: 'Delete platform cron',
-      message: 'Delete ${cron.platform} cron schedule?',
-      confirmKey: Key('product-cron-${cron.platform}-delete-confirm-button'),
-      confirmLabel: 'Delete',
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await widget.repository.deleteProductSchedule(cron.platform);
-      if (mounted) {
-        MavraNotifier.success('Deleted ${cron.platform} cron');
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() => _error = error);
-      }
-    }
-  }
-
   void _toggleProductSelection(int productId, bool selected) {
     setState(() {
       if (selected) {
@@ -557,8 +534,6 @@ class _ProductsPageState extends State<ProductsPage> {
                   onShowTrend: _showPriceTrend,
                   onTabChanged: (tab) => setState(() => _activeTab = tab),
                   onRefreshCrawlLogs: _refreshCrawlLogs,
-                  onOpenSchedule: () => context.go('/schedule'),
-                  onDeleteProductCron: _deleteProductCron,
                 );
               },
             ),
@@ -648,8 +623,6 @@ class _ProductsContent extends StatelessWidget {
     required this.onShowTrend,
     required this.onTabChanged,
     required this.onRefreshCrawlLogs,
-    required this.onOpenSchedule,
-    required this.onDeleteProductCron,
   });
 
   final ProductsSnapshot snapshot;
@@ -677,8 +650,6 @@ class _ProductsContent extends StatelessWidget {
   final ValueChanged<ProductItem> onShowTrend;
   final ValueChanged<_ProductWorkbenchTab> onTabChanged;
   final Future<void> Function() onRefreshCrawlLogs;
-  final VoidCallback onOpenSchedule;
-  final ValueChanged<ProductCronConfig> onDeleteProductCron;
 
   @override
   Widget build(BuildContext context) {
@@ -696,6 +667,7 @@ class _ProductsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const MavraPageBanner(
+            accentColor: AppTheme.brandBlueDeep,
             eyebrow: 'Prices',
             title: 'Product Management',
             subtitle:
@@ -706,7 +678,6 @@ class _ProductsContent extends StatelessWidget {
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 1100;
               final productsPanel = _ProductsPanel(
                 products: products,
                 pageState: pageState,
@@ -731,11 +702,6 @@ class _ProductsContent extends StatelessWidget {
                 onOpenProduct: onOpenProduct,
                 onShowTrend: onShowTrend,
               );
-              final sidePanel = _ScheduleConfigPanel(
-                cronConfigs: snapshot.cronConfigs,
-                onOpenSchedule: onOpenSchedule,
-                onDeleteProductCron: onDeleteProductCron,
-              );
               final logsPanel = _Section(
                 title: 'Recent Crawl Logs',
                 emptyText: 'No crawl records',
@@ -756,24 +722,7 @@ class _ProductsContent extends StatelessWidget {
                 return logsPanel;
               }
 
-              if (!wide) {
-                return Column(
-                  children: [
-                    productsPanel,
-                    const SizedBox(height: 16),
-                    sidePanel,
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 7, child: Column(children: [productsPanel])),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 3, child: sidePanel),
-                ],
-              );
+              return productsPanel;
             },
           ),
         ],
@@ -816,6 +765,9 @@ class _ProductSectionTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final productsSelected = activeTab == _ProductWorkbenchTab.products;
+    final logsSelected = activeTab == _ProductWorkbenchTab.recentCrawlLogs;
+
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -824,9 +776,17 @@ class _ProductSectionTabs extends StatelessWidget {
           height: 40,
           child: ChoiceChip(
             key: const Key('product-tab-products'),
-            avatar: const Icon(Icons.inventory_2_outlined, size: 16),
+            avatar: Icon(
+              Icons.inventory_2_outlined,
+              size: 16,
+              color: MavraTabChipStyle.iconColor(context, productsSelected),
+            ),
             label: const Text('Products'),
-            selected: activeTab == _ProductWorkbenchTab.products,
+            labelStyle: MavraTabChipStyle.labelStyle(context, productsSelected),
+            selected: productsSelected,
+            selectedColor: MavraTabChipStyle.selectedColor(context),
+            backgroundColor: MavraTabChipStyle.backgroundColor(context),
+            side: MavraTabChipStyle.side(context),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             showCheckmark: false,
             onSelected: (_) => onTabChanged(_ProductWorkbenchTab.products),
@@ -836,142 +796,22 @@ class _ProductSectionTabs extends StatelessWidget {
           height: 40,
           child: ChoiceChip(
             key: const Key('product-tab-recent-crawl-logs'),
-            avatar: const Icon(Icons.receipt_long_outlined, size: 16),
+            avatar: Icon(
+              Icons.receipt_long_outlined,
+              size: 16,
+              color: MavraTabChipStyle.iconColor(context, logsSelected),
+            ),
             label: const Text('Recent Crawl Logs'),
-            selected: activeTab == _ProductWorkbenchTab.recentCrawlLogs,
+            labelStyle: MavraTabChipStyle.labelStyle(context, logsSelected),
+            selected: logsSelected,
+            selectedColor: MavraTabChipStyle.selectedColor(context),
+            backgroundColor: MavraTabChipStyle.backgroundColor(context),
+            side: MavraTabChipStyle.side(context),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             showCheckmark: false,
             onSelected: (_) =>
                 onTabChanged(_ProductWorkbenchTab.recentCrawlLogs),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ScheduleConfigPanel extends StatelessWidget {
-  const _ScheduleConfigPanel({
-    required this.cronConfigs,
-    required this.onOpenSchedule,
-    required this.onDeleteProductCron,
-  });
-
-  final List<ProductCronConfig> cronConfigs;
-  final VoidCallback onOpenSchedule;
-  final ValueChanged<ProductCronConfig> onDeleteProductCron;
-
-  @override
-  Widget build(BuildContext context) {
-    final configsByPlatform = {
-      for (final config in cronConfigs) config.platform: config,
-    };
-    final rows = [
-      for (final platform in _productPlatforms)
-        configsByPlatform[platform] ??
-            ProductCronConfig(
-              platform: platform,
-              cron: 'Unset',
-              configured: false,
-            ),
-    ];
-
-    return _Section(
-      title: 'Schedule Config',
-      emptyText: 'No schedule config yet',
-      actions: OutlinedButton.icon(
-        key: const Key('product-schedule-add-button'),
-        onPressed: onOpenSchedule,
-        style: MavraButtonStyle.compactOutlined(context: context),
-        icon: const Icon(Icons.add, size: 18),
-        label: const Text('Add Schedule'),
-      ),
-      children: [
-        Text(
-          'Product Crawl Schedule Config',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 12),
-        MavraResponsiveDataView<ProductCronConfig>(
-          rows: rows,
-          wideBreakpoint: 520,
-          columns: const [
-            DataColumn(label: Text('Platform')),
-            DataColumn(label: Text('Cron Expression')),
-            DataColumn(label: Text('Timezone')),
-            DataColumn(label: Text('Actions')),
-          ],
-          tableCells: (row) => [
-            DataCell(Text(_platformLabel(row.platform))),
-            DataCell(
-              row.configured
-                  ? Text(row.cron)
-                  : const Chip(label: Text('Unset')),
-            ),
-            DataCell(Text(row.timezone)),
-            DataCell(
-              _ScheduleActions(
-                row: row,
-                onOpenSchedule: onOpenSchedule,
-                onDeleteProductCron: onDeleteProductCron,
-              ),
-            ),
-          ],
-          mobileBuilder: (context, row) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(_platformLabel(row.platform)),
-            subtitle: Text(
-              row.configured ? '${row.cron} - ${row.timezone}' : 'Unset',
-            ),
-            trailing: _ScheduleActions(
-              row: row,
-              onOpenSchedule: onOpenSchedule,
-              onDeleteProductCron: onDeleteProductCron,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Schedule controls when to crawl products automatically.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-class _ScheduleActions extends StatelessWidget {
-  const _ScheduleActions({
-    required this.row,
-    required this.onOpenSchedule,
-    required this.onDeleteProductCron,
-  });
-
-  final ProductCronConfig row;
-  final VoidCallback onOpenSchedule;
-  final ValueChanged<ProductCronConfig> onDeleteProductCron;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 4,
-      children: [
-        IconButton(
-          key: Key('product-cron-${row.platform}-edit-button'),
-          tooltip: 'Edit ${row.platform} schedule',
-          style: MavraButtonStyle.rowIconButton(context: context),
-          onPressed: onOpenSchedule,
-          icon: const Icon(Icons.edit_calendar, size: 18),
-        ),
-        IconButton(
-          key: Key('product-cron-${row.platform}-delete-button'),
-          tooltip: 'Delete ${row.platform} schedule',
-          style: MavraButtonStyle.rowIconButton(
-            context: context,
-            isDangerous: true,
-          ),
-          onPressed: row.configured ? () => onDeleteProductCron(row) : null,
-          icon: const Icon(Icons.delete_outline, size: 18),
         ),
       ],
     );

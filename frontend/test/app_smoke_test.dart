@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/app/mavra_app.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
@@ -19,6 +20,28 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
     expect(find.text('Mavra watches quietly'), findsOneWidget);
     expect(MavraNotifier.scaffoldMessengerKey.currentState, isNotNull);
+  });
+
+  testWidgets('defaults to light theme even when the platform is dark', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+    await tester.pumpWidget(
+      MavraApp(
+        authRepository: AuthRepository(
+          storage: InMemoryTokenStorage(),
+          policy: TokenPersistencePolicy.nativeSecureStorage,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      Theme.of(tester.element(find.text('Login'))).brightness,
+      Brightness.light,
+    );
   });
 
   testWidgets('skips local restore for web cookie token policy', (

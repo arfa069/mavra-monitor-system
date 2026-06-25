@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/notifications/mavra_notifier.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
@@ -873,6 +874,7 @@ class _ScheduleHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MavraPageBanner(
       key: Key('schedule-title-banner'),
+      accentColor: AppTheme.brandBlue700,
       eyebrow: 'Automation',
       title: 'Schedule Configuration',
       subtitle: 'Configure automated product and job timers',
@@ -899,13 +901,26 @@ class _ScheduleTabStrip extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (final tab in _tabs)
-          ChoiceChip(
-            key: Key(tab.key),
-            avatar: Icon(tab.icon, size: 16),
-            label: Text(tab.label),
-            selected: activeTab == tab,
-            showCheckmark: false,
-            onSelected: (_) => onChanged(tab),
+          Builder(
+            builder: (context) {
+              final selected = activeTab == tab;
+              return ChoiceChip(
+                key: Key(tab.key),
+                avatar: Icon(
+                  tab.icon,
+                  size: 16,
+                  color: MavraTabChipStyle.iconColor(context, selected),
+                ),
+                label: Text(tab.label),
+                labelStyle: MavraTabChipStyle.labelStyle(context, selected),
+                selected: selected,
+                selectedColor: MavraTabChipStyle.selectedColor(context),
+                backgroundColor: MavraTabChipStyle.backgroundColor(context),
+                side: MavraTabChipStyle.side(context),
+                showCheckmark: false,
+                onSelected: (_) => onChanged(tab),
+              );
+            },
           ),
       ],
     );

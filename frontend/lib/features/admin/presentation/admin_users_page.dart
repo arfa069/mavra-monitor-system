@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/notifications/mavra_notifier.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
@@ -411,6 +412,7 @@ class _UsersHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MavraPageBanner(
       key: Key('admin-users-title-banner'),
+      accentColor: AppTheme.brandPurple,
       eyebrow: 'System Admin',
       title: 'User Management',
       subtitle: 'Manage user accounts, roles, and access permissions',

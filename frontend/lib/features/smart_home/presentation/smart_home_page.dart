@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/notifications/mavra_notifier.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/smart_home_models.dart';
@@ -547,6 +548,7 @@ class _SmartHomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MavraPageBanner(
       key: Key('smart-home-title-banner'),
+      accentColor: AppTheme.brandCyan,
       eyebrow: 'Smart Home',
       title: 'Smart Home',
       subtitle: 'Home Assistant devices and scenes',

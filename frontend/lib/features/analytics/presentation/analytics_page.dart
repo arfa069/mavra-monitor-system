@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_chart.dart';
+import '../../../core/widgets/mavra_page_banner.dart';
 import '../domain/analytics_models.dart';
 
 const _realtimeWarning = '连接断开，正在重连...';
@@ -291,39 +293,13 @@ class _DashboardBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return DecoratedBox(
-      key: const Key('dashboard-banner'),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.56),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Analytics',
-              style: text.labelLarge?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '数据分析',
-              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '监控系统运行状态、价格走势统计与候选人匹配度分析',
-              style: text.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ],
-        ),
+    return const KeyedSubtree(
+      key: Key('dashboard-banner'),
+      child: MavraPageBanner(
+        accentColor: AppTheme.brandCoral,
+        eyebrow: 'Analytics',
+        title: '数据分析',
+        subtitle: '监控系统运行状态、价格走势统计与候选人匹配度分析',
       ),
     );
   }
@@ -687,9 +663,9 @@ class _DashboardPanel extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.72),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.7)),
-        borderRadius: BorderRadius.circular(14),
+        color: colors.surface,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(padding: const EdgeInsets.all(16), child: child),
     );

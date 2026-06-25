@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mavra_frontend/app/app_shell.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/features/auth/domain/auth_models.dart';
 import 'package:mavra_frontend/visual_qa/visual_qa_app.dart';
 
@@ -33,6 +34,11 @@ void main() {
         reason: '$route should be visible in the authenticated app shell',
       );
     }
+
+    expect(find.text('Event'), findsOneWidget);
+    expect(find.text('Products'), findsOneWidget);
+    expect(find.text('Activity'), findsNothing);
+    expect(find.text('Prices'), findsNothing);
   });
 
   testWidgets('analytics alias lands on the dashboard shell destination', (
@@ -59,6 +65,67 @@ void main() {
       ),
     );
     expect(dashboardTile.selected, isTrue);
+  });
+
+  testWidgets('desktop shell uses a MiniMax-style dark brand rail', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      _buildShellHarness(
+        initialLocation: '/today',
+        permissions: const {'config:read'},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rail = tester.widget<Material>(
+      find.byKey(const Key('app-shell-brand-rail')),
+    );
+    expect(rail.color, AppTheme.primary);
+  });
+
+  testWidgets('user menu toggles between light and dark themes', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(buildVisualQaApp(initialLocation: '/today'));
+    await tester.pumpAndSettle();
+
+    expect(
+      Theme.of(tester.element(find.text('Mavra Monitor System'))).brightness,
+      Brightness.light,
+    );
+
+    await tester.tap(find.byKey(const Key('app-shell-user-menu')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('app-shell-theme-toggle')), findsOneWidget);
+    expect(find.text('Switch to Dark theme'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('app-shell-theme-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(
+      Theme.of(tester.element(find.text('Mavra Monitor System'))).brightness,
+      Brightness.dark,
+    );
+
+    await tester.tap(find.byKey(const Key('app-shell-user-menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Switch to Light theme'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('app-shell-theme-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(
+      Theme.of(tester.element(find.text('Mavra Monitor System'))).brightness,
+      Brightness.light,
+    );
   });
 
   testWidgets('dashboard route renders the restored analytics page', (

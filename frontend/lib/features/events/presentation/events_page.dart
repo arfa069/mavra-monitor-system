@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_side_sheet.dart';
@@ -277,6 +278,7 @@ class _EventsContent extends StatelessWidget {
                   children: [
                     const MavraPageBanner(
                       key: Key('events-banner'),
+                      accentColor: AppTheme.brandMagenta,
                       eyebrow: 'System Events',
                       title: 'Event Center',
                       subtitle:
@@ -762,13 +764,13 @@ class _EventBody extends StatelessWidget {
               DataColumn(label: Text('Time')),
               DataColumn(label: Text('Action')),
             ],
-            columnSpacing: 28,
+            columnSpacing: 12,
             tableCells: (item) => [
               DataCell(_KindPill(kind: item.kind)),
               DataCell(Text(item.eventType)),
               DataCell(
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
+                  constraints: const BoxConstraints(maxWidth: 300),
                   child: Text(item.message, overflow: TextOverflow.ellipsis),
                 ),
               ),
@@ -776,10 +778,12 @@ class _EventBody extends StatelessWidget {
               DataCell(Text(item.source)),
               DataCell(Text(_formatDateTime(item.occurredAt))),
               DataCell(
-                TextButton(
+                IconButton(
                   key: Key('event-detail-${item.id}-button'),
+                  tooltip: 'Details',
+                  style: MavraButtonStyle.rowIconButton(context: context),
                   onPressed: () => _showEventDetails(context, item),
-                  child: const Text('Details'),
+                  icon: const Icon(Icons.notes, size: 18),
                 ),
               ),
             ],

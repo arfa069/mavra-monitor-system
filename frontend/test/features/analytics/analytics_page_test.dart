@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_chart.dart';
 import 'package:mavra_frontend/features/analytics/domain/analytics_models.dart';
 import 'package:mavra_frontend/features/analytics/presentation/analytics_page.dart';
@@ -34,6 +35,12 @@ void main() {
 
     final banner = find.byKey(const Key('dashboard-banner'));
     expect(banner, findsOneWidget);
+    final surface = tester.widget<DecoratedBox>(
+      find.byKey(const Key('mavra-page-banner-surface')),
+    );
+    final decoration = surface.decoration as BoxDecoration;
+    expect(decoration.color, AppTheme.brandCoral);
+    expect(find.text('Mavra Intelligence Layer'), findsNothing);
     expect(
       find.descendant(of: banner, matching: find.text('30天')),
       findsNothing,
@@ -176,7 +183,7 @@ void main() {
     loading.complete(_overview(userTrends: const [], recentAlerts: const []));
     await tester.pumpAndSettle();
 
-    expect(find.text('暂无数据'), findsWidgets);
+    expect(find.text('暂无数据', skipOffstage: false), findsWidgets);
     expect(find.text('暂无告警'), findsNothing);
 
     final repository = _FakeAnalyticsRepository(overview: _overview());

@@ -45,6 +45,9 @@ dependency_overrides:
 flutter:
   uses-material-design: true
   fonts:
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans.ttf
     - family: Roboto
       fonts:
         - asset: assets/fonts/Roboto-Regular.ttf

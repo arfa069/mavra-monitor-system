@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
@@ -198,6 +199,7 @@ class _AuditHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MavraPageBanner(
       key: Key('admin-audit-logs-title-banner'),
+      accentColor: AppTheme.brandCoral,
       eyebrow: 'System Admin',
       title: 'Audit Logs',
       subtitle: 'View system operation audit records',
@@ -350,7 +352,10 @@ class _AuditPager extends StatelessWidget {
             key: const Key('admin-audit-page-size-field'),
             initialValue: pageSize,
             isExpanded: true,
-            decoration: MavraInputStyle.filterInput(context: context, label: 'Rows'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Rows',
+            ),
             items: const [
               DropdownMenuItem(value: 20, child: Text('20 / page')),
               DropdownMenuItem(value: 50, child: Text('50 / page')),
@@ -398,15 +403,15 @@ Color _actionColor(BuildContext context, String action) {
   final scheme = Theme.of(context).colorScheme;
   switch (_actionColors[action]) {
     case 'green':
-      return const Color(0xFF7E976B);
+      return AppTheme.successText;
     case 'blue':
-      return const Color(0xFF7AA2A4);
+      return AppTheme.focusBlue;
     case 'red':
       return scheme.error;
     case 'cyan':
-      return const Color(0xFF7AA2A4);
+      return AppTheme.home;
     case 'orange':
-      return const Color(0xFFD89A57);
+      return AppTheme.warning;
     default:
       return scheme.outline;
   }

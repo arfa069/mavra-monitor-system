@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/schedule/domain/schedule_models.dart';
 import 'package:mavra_frontend/features/schedule/presentation/schedule_page.dart';
@@ -13,7 +14,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _host(SchedulePage(repository: _FakeScheduleRepository.full())),
+      _host(
+        SchedulePage(repository: _FakeScheduleRepository.full()),
+        theme: AppTheme.light,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -26,6 +30,10 @@ void main() {
     );
     expect(find.byKey(const Key('schedule-tab-job-timers')), findsOneWidget);
     expect(find.byKey(const Key('schedule-tab-settings')), findsOneWidget);
+    _expectSelectedTabContrast(
+      tester,
+      const Key('schedule-tab-product-timers'),
+    );
     expect(find.text('Product Timers'), findsWidgets);
     expect(find.text('Job Timers'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
@@ -336,11 +344,20 @@ void main() {
   });
 }
 
-Widget _host(Widget child) {
+Widget _host(Widget child, {ThemeData? theme}) {
   return MaterialApp(
+    theme: theme,
     scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
     home: child,
   );
+}
+
+void _expectSelectedTabContrast(WidgetTester tester, Key key) {
+  final chip = tester.widget<ChoiceChip>(find.byKey(key));
+  final icon = chip.avatar as Icon;
+
+  expect(chip.labelStyle?.color, AppTheme.onPrimary);
+  expect(icon.color, AppTheme.onPrimary);
 }
 
 class _FakeScheduleRepository implements ScheduleRepository {

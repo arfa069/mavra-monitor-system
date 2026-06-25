@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
 import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/jobs/domain/job_models.dart';
 import 'package:mavra_frontend/features/jobs/presentation/jobs_page.dart';
@@ -13,7 +14,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: JobsPage(repository: _FakeJobsRepository.full())),
+      MaterialApp(
+        theme: AppTheme.light,
+        home: JobsPage(repository: _FakeJobsRepository.full()),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -30,6 +34,7 @@ void main() {
     expect(find.byKey(const Key('job-tab-resumes')), findsOneWidget);
     expect(find.byKey(const Key('job-tab-matches')), findsOneWidget);
     expect(find.byKey(const Key('job-tab-logs')), findsOneWidget);
+    _expectSelectedTabContrast(tester, const Key('job-tab-jobs-list'));
     expect(find.text('Job Search Config'), findsNothing);
     expect(find.text('Senior Flutter Engineer'), findsOneWidget);
     expect(find.text('Mavra Labs'), findsOneWidget);
@@ -607,6 +612,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.importedBackupName, 'profiles.zip');
     expect(find.text('Imported profiles.zip'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(
       find.byKey(const Key('job-profile-edit-menu-boss-main-button')),
@@ -692,6 +699,14 @@ void main() {
       expect(match.onPressed, isNull);
     },
   );
+}
+
+void _expectSelectedTabContrast(WidgetTester tester, Key key) {
+  final chip = tester.widget<ChoiceChip>(find.byKey(key));
+  final icon = chip.avatar as Icon;
+
+  expect(chip.labelStyle?.color, AppTheme.onPrimary);
+  expect(icon.color, AppTheme.onPrimary);
 }
 
 class _FakeJobsRepository implements JobsRepository {

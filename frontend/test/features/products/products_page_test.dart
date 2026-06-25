@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
 import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
+import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_chart.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/products/domain/product_models.dart';
@@ -16,6 +17,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light,
         home: ProductsPage(repository: _FakeProductRepository.full()),
       ),
     );
@@ -29,13 +31,11 @@ void main() {
       find.byKey(const Key('product-tab-recent-crawl-logs')),
       findsOneWidget,
     );
+    _expectSelectedTabContrast(tester, const Key('product-tab-products'));
     expect(find.text('Crawl Logs'), findsNothing);
-    expect(find.text('Schedule Config'), findsOneWidget);
-    expect(find.text('Product Crawl Schedule Config'), findsOneWidget);
-    expect(find.text('0 9 * * *'), findsOneWidget);
-    expect(find.text('Taobao'), findsWidgets);
-    expect(find.text('JD'), findsWidgets);
-    expect(find.text('Amazon'), findsWidgets);
+    expect(find.text('Schedule Config'), findsNothing);
+    expect(find.text('Product Crawl Schedule Config'), findsNothing);
+    expect(find.text('0 9 * * *'), findsNothing);
     expect(find.text('Crawl completed'), findsNothing);
 
     await tester.tap(find.byKey(const Key('product-tab-recent-crawl-logs')));
@@ -161,6 +161,10 @@ void main() {
     expect(find.text('Taobao rice cooker'), findsNothing);
     expect(find.text('JD office chair'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('product-clear-search-button')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('product-clear-search-button')));
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
@@ -312,25 +316,14 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(
-      find.byKey(const Key('product-cron-taobao-edit-button')),
-    );
     expect(
       find.byKey(const Key('product-cron-taobao-edit-button')),
-      findsOneWidget,
+      findsNothing,
     );
-
-    await tester.ensureVisible(
+    expect(
       find.byKey(const Key('product-cron-jd-delete-button')),
+      findsNothing,
     );
-    await tester.tap(find.byKey(const Key('product-cron-jd-delete-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('product-cron-jd-delete-confirm-button')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(repository.deletedCronPlatform, 'jd');
   });
 
   testWidgets('renders React-style crawl logs table and refresh action', (
@@ -433,6 +426,14 @@ void main() {
 
     expect(find.byKey(const Key('product-crawl-now-button')), findsNothing);
   });
+}
+
+void _expectSelectedTabContrast(WidgetTester tester, Key key) {
+  final chip = tester.widget<ChoiceChip>(find.byKey(key));
+  final icon = chip.avatar as Icon;
+
+  expect(chip.labelStyle?.color, AppTheme.onPrimary);
+  expect(icon.color, AppTheme.onPrimary);
 }
 
 class _FakeProductRepository implements ProductRepository {

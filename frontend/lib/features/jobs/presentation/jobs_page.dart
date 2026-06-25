@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/files/file_service.dart';
 import '../../../core/notifications/mavra_notifier.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
@@ -1195,6 +1196,7 @@ class _JobsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const MavraPageBanner(
+            accentColor: AppTheme.brandBlue,
             eyebrow: 'Job Search',
             title: 'Job Management',
             subtitle:
@@ -1435,17 +1437,30 @@ class _JobTabStrip extends StatelessWidget {
       runSpacing: 8,
       children: [
         for (final tab in _tabs)
-          SizedBox(
-            height: 40,
-            child: ChoiceChip(
-              key: Key(tab.key),
-              avatar: Icon(tab.icon, size: 16),
-              label: Text(tab.label),
-              selected: activeTab == tab,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              showCheckmark: false,
-              onSelected: (_) => onChanged(tab),
-            ),
+          Builder(
+            builder: (context) {
+              final selected = activeTab == tab;
+              return SizedBox(
+                height: 40,
+                child: ChoiceChip(
+                  key: Key(tab.key),
+                  avatar: Icon(
+                    tab.icon,
+                    size: 16,
+                    color: MavraTabChipStyle.iconColor(context, selected),
+                  ),
+                  label: Text(tab.label),
+                  labelStyle: MavraTabChipStyle.labelStyle(context, selected),
+                  selected: selected,
+                  selectedColor: MavraTabChipStyle.selectedColor(context),
+                  backgroundColor: MavraTabChipStyle.backgroundColor(context),
+                  side: MavraTabChipStyle.side(context),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  showCheckmark: false,
+                  onSelected: (_) => onChanged(tab),
+                ),
+              );
+            },
           ),
       ],
     );

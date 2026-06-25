@@ -80,6 +80,7 @@ class _MavraAppState extends State<MavraApp> {
   AuthRepository? _ownedAuthRepository;
   generated.MavraApi? _ownedApiClient;
   Future<void>? _defaultRestoreFuture;
+  ThemeMode _themeMode = ThemeMode.light;
 
   @override
   void initState() {
@@ -145,6 +146,8 @@ class _MavraAppState extends State<MavraApp> {
       smartHomeRepository:
           widget.smartHomeRepository ?? _defaultSmartHomeRepository(),
       initialLocation: widget.initialLocation,
+      themeMode: _themeMode,
+      onThemeModeChanged: _setThemeMode,
     );
 
     return MaterialApp.router(
@@ -153,8 +156,16 @@ class _MavraAppState extends State<MavraApp> {
       scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
       routerConfig: router,
     );
+  }
+
+  void _setThemeMode(ThemeMode mode) {
+    if (_themeMode == mode) {
+      return;
+    }
+    setState(() => _themeMode = mode);
   }
 
   Widget _buildRestoringApp() {
