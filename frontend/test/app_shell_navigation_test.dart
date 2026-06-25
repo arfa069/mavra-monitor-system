@@ -137,8 +137,8 @@ void main() {
     await tester.pumpWidget(buildVisualQaApp(initialLocation: '/dashboard'));
     await tester.pumpAndSettle();
 
-    expect(find.text('数据分析'), findsOneWidget);
-    expect(find.text('监控系统运行状态、价格走势统计与候选人匹配度分析'), findsOneWidget);
+    expect(find.text('Analytics'), findsWidgets);
+    expect(find.text('Monitor system status, price trends, and candidate matching'), findsOneWidget);
     expect(find.byKey(const Key('dashboard-range-toolbar')), findsOneWidget);
     expect(find.byKey(const Key('app-shell-nav-/analytics')), findsNothing);
   });

@@ -26,9 +26,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Analytics'), findsOneWidget);
-    expect(find.text('数据分析'), findsOneWidget);
-    expect(find.text('监控系统运行状态、价格走势统计与候选人匹配度分析'), findsOneWidget);
+    expect(find.text('Analytics'), findsNWidgets(2));
+    expect(find.text('Monitor system status, price trends, and candidate matching'), findsOneWidget);
     expect(find.text('Today'), findsNothing);
     expect(find.text('Events'), findsNothing);
     expect(find.text('Alerts'), findsNothing);
@@ -42,28 +41,28 @@ void main() {
     expect(decoration.color, AppTheme.brandCoral);
     expect(find.text('Mavra Intelligence Layer'), findsNothing);
     expect(
-      find.descendant(of: banner, matching: find.text('30天')),
+      find.descendant(of: banner, matching: find.text('30 Days')),
       findsNothing,
     );
     expect(find.byKey(const Key('dashboard-range-toolbar')), findsOneWidget);
     expect(repository.loadCalls.single, (days: 30, includeAdmin: true));
 
     for (final label in const [
-      '监控商品数',
-      '今日降价',
-      '新职位数',
-      '匹配分析',
-      '今日爬取',
-      '各平台商品分布',
-      '价格趋势',
-      '价格变化率趋势',
-      '各平台职位分布',
-      '新增职位趋势',
-      '职位匹配趋势',
-      '系统运营',
-      '总用户数',
-      '成功率',
-      '最近告警',
+      'Monitored Products',
+      'Price Drops Today',
+      'New Jobs Today',
+      'Matches Analyzed',
+      'Scrapes Today',
+      'Product Distribution by Platform',
+      'Price Trends',
+      'Price Change Rate Trends',
+      'Job Distribution by Platform',
+      'New Job Trends',
+      'Job Match Trends',
+      'System Operations',
+      'Total Users',
+      'Success Rate',
+      'Recent Alerts',
     ]) {
       expect(find.text(label, skipOffstage: false), findsWidgets);
     }
@@ -72,7 +71,7 @@ void main() {
       find.text('Taobao rice cooker dropped 12%', skipOffstage: false),
       findsOneWidget,
     );
-    expect(find.text('降价', skipOffstage: false), findsOneWidget);
+    expect(find.text('Price Drop', skipOffstage: false), findsOneWidget);
     expect(find.text('taobao', skipOffstage: false), findsWidgets);
     expect(find.byType(MavraTrendChart), findsWidgets);
     expect(find.byType(MavraBarChart), findsWidgets);
@@ -91,9 +90,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('系统运营'), findsNothing);
-      expect(find.text('最近告警'), findsNothing);
-      expect(find.text('各平台商品分布', skipOffstage: false), findsOneWidget);
+      expect(find.text('System Operations'), findsNothing);
+      expect(find.text('Recent Alerts'), findsNothing);
+      expect(find.text('Product Distribution by Platform', skipOffstage: false), findsOneWidget);
     },
   );
 
@@ -110,7 +109,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('7天'));
+    await tester.tap(find.text('7 Days'));
     await tester.pumpAndSettle();
 
     expect(repository.loadCalls, [
@@ -160,7 +159,7 @@ void main() {
 
     expect(find.text('88'), findsOneWidget);
     expect(find.text('91.0%'), findsOneWidget);
-    expect(find.text('价格趋势', skipOffstage: false), findsOneWidget);
+    expect(find.text('Price Trends', skipOffstage: false), findsOneWidget);
     expect(
       find.text('Taobao rice cooker dropped 12%', skipOffstage: false),
       findsOneWidget,
@@ -179,12 +178,12 @@ void main() {
       ),
     );
 
-    expect(find.text('正在加载数据分析...'), findsOneWidget);
+    expect(find.text('Loading analytics...'), findsOneWidget);
     loading.complete(_overview(userTrends: const [], recentAlerts: const []));
     await tester.pumpAndSettle();
 
-    expect(find.text('暂无数据', skipOffstage: false), findsWidgets);
-    expect(find.text('暂无告警'), findsNothing);
+    expect(find.text('No data available', skipOffstage: false), findsWidgets);
+    expect(find.text('No active alerts'), findsNothing);
 
     final repository = _FakeAnalyticsRepository(overview: _overview());
     await tester.pumpWidget(
@@ -200,7 +199,7 @@ void main() {
 
     repository.failRealtime();
     await tester.pumpAndSettle();
-    expect(find.text('连接断开，正在重连...'), findsOneWidget);
+    expect(find.text('Connection lost, reconnecting...'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -323,7 +322,7 @@ AnalyticsOverview _overviewFixture() => _overview();
 List<AnalyticsTrendSection> _userTrends() => const [
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformProducts,
-    title: '各平台商品分布',
+    title: 'Product Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
     series: [
       TrendSeries(
@@ -337,7 +336,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.price,
-    title: '价格趋势',
+    title: 'Price Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -351,7 +350,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.priceChange,
-    title: '价格变化率趋势',
+    title: 'Price Change Rate Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -362,7 +361,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformJobs,
-    title: '各平台职位分布',
+    title: 'Job Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
     series: [
       TrendSeries(
@@ -373,7 +372,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.jobs,
-    title: '新增职位趋势',
+    title: 'New Job Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -384,7 +383,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.jobMatches,
-    title: '职位匹配趋势',
+    title: 'Job Match Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -398,7 +397,7 @@ List<AnalyticsTrendSection> _userTrends() => const [
 List<AnalyticsTrendSection> _systemTrends() => const [
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformSuccess,
-    title: '平台成功率对比',
+    title: 'Platform Success Rate Comparison',
     chartKind: AnalyticsChartKind.bar,
     series: [
       TrendSeries(
@@ -409,7 +408,7 @@ List<AnalyticsTrendSection> _systemTrends() => const [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.crawlFailures,
-    title: '爬取失败趋势',
+    title: 'Crawl Failure Trends',
     chartKind: AnalyticsChartKind.bar,
     series: [
       TrendSeries(

@@ -189,37 +189,37 @@ const _userTrendSpecs = [
   _TrendSpec(
     type: AnalyticsTrendType.platformProducts,
     apiType: 'platform_products',
-    title: '各平台商品分布',
+    title: 'Product Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.price,
     apiType: 'price',
-    title: '价格趋势',
+    title: 'Price Trends',
     chartKind: AnalyticsChartKind.line,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.priceChange,
     apiType: 'price_change',
-    title: '价格变化率趋势',
+    title: 'Price Change Rate Trends',
     chartKind: AnalyticsChartKind.line,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.platformJobs,
     apiType: 'platform_jobs',
-    title: '各平台职位分布',
+    title: 'Job Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.jobs,
     apiType: 'jobs',
-    title: '新增职位趋势',
+    title: 'New Job Trends',
     chartKind: AnalyticsChartKind.line,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.jobMatches,
     apiType: 'job_matches',
-    title: '职位匹配趋势',
+    title: 'Job Match Trends',
     chartKind: AnalyticsChartKind.line,
   ),
 ];
@@ -228,13 +228,13 @@ const _systemTrendSpecs = [
   _TrendSpec(
     type: AnalyticsTrendType.platformSuccess,
     apiType: 'platform_success',
-    title: '平台成功率对比',
+    title: 'Platform Success Rate Comparison',
     chartKind: AnalyticsChartKind.bar,
   ),
   _TrendSpec(
     type: AnalyticsTrendType.crawlFailures,
     apiType: 'crawl_failures',
-    title: '爬取失败趋势',
+    title: 'Crawl Failure Trends',
     chartKind: AnalyticsChartKind.bar,
   ),
 ];

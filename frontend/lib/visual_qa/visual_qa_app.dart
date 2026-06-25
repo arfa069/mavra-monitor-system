@@ -296,7 +296,7 @@ class _VisualAnalyticsRepository implements AnalyticsRepository {
 const _visualUserTrends = [
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformProducts,
-    title: '各平台商品分布',
+    title: 'Product Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
     series: [
       TrendSeries(
@@ -311,7 +311,7 @@ const _visualUserTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.price,
-    title: '价格趋势',
+    title: 'Price Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -327,7 +327,7 @@ const _visualUserTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.priceChange,
-    title: '价格变化率趋势',
+    title: 'Price Change Rate Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -343,7 +343,7 @@ const _visualUserTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformJobs,
-    title: '各平台职位分布',
+    title: 'Job Distribution by Platform',
     chartKind: AnalyticsChartKind.pie,
     series: [
       TrendSeries(
@@ -358,7 +358,7 @@ const _visualUserTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.jobs,
-    title: '新增职位趋势',
+    title: 'New Job Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -374,7 +374,7 @@ const _visualUserTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.jobMatches,
-    title: '职位匹配趋势',
+    title: 'Job Match Trends',
     chartKind: AnalyticsChartKind.line,
     series: [
       TrendSeries(
@@ -393,7 +393,7 @@ const _visualUserTrends = [
 const _visualSystemTrends = [
   AnalyticsTrendSection(
     type: AnalyticsTrendType.platformSuccess,
-    title: '平台成功率对比',
+    title: 'Platform Success Rate Comparison',
     chartKind: AnalyticsChartKind.bar,
     series: [
       TrendSeries(
@@ -408,7 +408,7 @@ const _visualSystemTrends = [
   ),
   AnalyticsTrendSection(
     type: AnalyticsTrendType.crawlFailures,
-    title: '爬取失败趋势',
+    title: 'Crawl Failure Trends',
     chartKind: AnalyticsChartKind.bar,
     series: [
       TrendSeries(

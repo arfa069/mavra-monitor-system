@@ -22,9 +22,9 @@ void main() {
     await tester.pumpWidget(buildVisualQaApp(initialLocation: '/dashboard'));
     await tester.pumpAndSettle();
 
-    expect(find.text('数据分析'), findsOneWidget);
-    expect(find.text('监控商品数'), findsWidgets);
-    expect(find.text('系统运营'), findsWidgets);
+    expect(find.text('Analytics'), findsWidgets);
+    expect(find.text('Monitored Products'), findsWidgets);
+    expect(find.text('System Operations'), findsWidgets);
   });
 
   testWidgets('visual QA harness renders events fixture', (tester) async {

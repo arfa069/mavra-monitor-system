@@ -7,7 +7,7 @@ import '../../../core/widgets/mavra_chart.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../domain/analytics_models.dart';
 
-const _realtimeWarning = '连接断开，正在重连...';
+const _realtimeWarning = 'Connection lost, reconnecting...';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({
@@ -148,7 +148,7 @@ class _AnalyticsLoading extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('正在加载数据分析...'),
+          Text('Loading analytics...'),
         ],
       ),
     );
@@ -298,8 +298,8 @@ class _DashboardBanner extends StatelessWidget {
       child: MavraPageBanner(
         accentColor: AppTheme.brandCoral,
         eyebrow: 'Analytics',
-        title: '数据分析',
-        subtitle: '监控系统运行状态、价格走势统计与候选人匹配度分析',
+        title: 'Analytics',
+        subtitle: 'Monitor system status, price trends, and candidate matching',
       ),
     );
   }
@@ -327,9 +327,9 @@ class _RangeToolbar extends StatelessWidget {
       children: [
         SegmentedButton<int>(
           segments: const [
-            ButtonSegment(value: 7, label: Text('7天')),
-            ButtonSegment(value: 30, label: Text('30天')),
-            ButtonSegment(value: 90, label: Text('90天')),
+            ButtonSegment(value: 7, label: Text('7 Days')),
+            ButtonSegment(value: 30, label: Text('30 Days')),
+            ButtonSegment(value: 90, label: Text('90 Days')),
           ],
           selected: {selectedDays},
           onSelectionChanged: (selection) => onDaysChanged(selection.single),
@@ -362,11 +362,11 @@ class _UserKpis extends StatelessWidget {
   Widget build(BuildContext context) {
     return _KpiWrap(
       cards: [
-        _KpiData(label: '监控商品数', value: '${kpi.totalProducts}'),
-        _KpiData(label: '今日降价', value: '${kpi.priceDropsToday}', alert: true),
-        _KpiData(label: '新职位数', value: '${kpi.newJobsToday}'),
-        _KpiData(label: '匹配分析', value: '${kpi.matchCount}'),
-        _KpiData(label: '今日爬取', value: '${kpi.crawlCountToday}'),
+        _KpiData(label: 'Monitored Products', value: '${kpi.totalProducts}'),
+        _KpiData(label: 'Price Drops Today', value: '${kpi.priceDropsToday}', alert: true),
+        _KpiData(label: 'New Jobs Today', value: '${kpi.newJobsToday}'),
+        _KpiData(label: 'Matches Analyzed', value: '${kpi.matchCount}'),
+        _KpiData(label: 'Scrapes Today', value: '${kpi.crawlCountToday}'),
       ],
     );
   }
@@ -381,17 +381,17 @@ class _SystemKpis extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kpi == null) {
       return const _DashboardPanel(
-        child: SizedBox(height: 76, child: Center(child: Text('暂无数据'))),
+        child: SizedBox(height: 76, child: Center(child: Text('No data available'))),
       );
     }
     return _KpiWrap(
       cards: [
-        _KpiData(label: '总用户数', value: '${kpi!.totalUsers}'),
-        _KpiData(label: '今日爬取', value: '${kpi!.totalCrawls}'),
-        _KpiData(label: '成功率', value: _percent(kpi!.successRate)),
-        _KpiData(label: '活跃告警', value: '${kpi!.activeAlerts}', alert: true),
-        _KpiData(label: '磁盘使用', value: _percent(kpi!.diskUsage)),
-        _KpiData(label: '内存使用', value: _percent(kpi!.memoryUsage)),
+        _KpiData(label: 'Total Users', value: '${kpi!.totalUsers}'),
+        _KpiData(label: 'Scrapes Today', value: '${kpi!.totalCrawls}'),
+        _KpiData(label: 'Success Rate', value: _percent(kpi!.successRate)),
+        _KpiData(label: 'Active Alerts', value: '${kpi!.activeAlerts}', alert: true),
+        _KpiData(label: 'Disk Usage', value: _percent(kpi!.diskUsage)),
+        _KpiData(label: 'Memory Usage', value: _percent(kpi!.memoryUsage)),
       ],
     );
   }
@@ -467,7 +467,7 @@ class _TrendGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (sections.isEmpty) {
       return const _DashboardPanel(
-        child: SizedBox(height: 180, child: Center(child: Text('暂无数据'))),
+        child: SizedBox(height: 180, child: Center(child: Text('No data available'))),
       );
     }
     return LayoutBuilder(
@@ -511,7 +511,7 @@ class _TrendSection extends StatelessWidget {
                     section.title,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const Expanded(child: Center(child: Text('暂无数据'))),
+                  const Expanded(child: Center(child: Text('No data available'))),
                 ],
               ),
             )
@@ -531,7 +531,7 @@ class _SystemAnalytics extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('系统运营', style: Theme.of(context).textTheme.titleLarge),
+        Text('System Operations', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         _SystemKpis(kpi: overview.systemKpi),
         const SizedBox(height: 16),
@@ -554,12 +554,12 @@ class _RecentAlertsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('最近告警', style: Theme.of(context).textTheme.titleLarge),
+          Text('Recent Alerts', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           if (alerts.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: Text('暂无告警')),
+              child: Center(child: Text('No active alerts')),
             )
           else
             for (var index = 0; index < alerts.length; index++) ...[
@@ -729,7 +729,7 @@ String _percent(num ratio) {
 
 String _alertTypeLabel(String alertType) {
   return switch (alertType) {
-    'price_drop' => '降价',
+    'price_drop' => 'Price Drop',
     _ => alertType,
   };
 }
