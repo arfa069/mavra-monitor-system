@@ -38,14 +38,12 @@ uv run --extra dev uvicorn app.main:app --host 0.0.0.0 --port 8000
 # 4. Start the frontend in another terminal
 cd ../frontend
 flutter pub get
-flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
 > **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Run uvicorn through the backend uv environment as shown above.
 >
-> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts backend `8000`, serves the Flutter Web build on `3000`, starts crawler worker, and starts the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first. Run `cd frontend; flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1` before the default static mode, or pass `-FlutterDev` to run the Flutter dev server. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
->
-> When comparing the Flutter replacement against the legacy frontend, keep the legacy frontend on `3000` and run Flutter manually on `3001`: `flutter run -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://localhost:8000/api/v1`.
+> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts the backend on `8000`, the Flutter main app via `web-server` on `3000`, the crawler worker, and the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first, then open the Flutter app at `http://127.0.0.1:3000` in the Codex in-app browser. Use `-ChromeDev` for Flutter DevTools/Inspector, `-StaticFrontend` to serve `frontend/build/web` after `flutter build web`, or `-FlutterDev` as the compatibility alias for the default web-server mode. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
 
 ## Configuration
 
@@ -318,14 +316,17 @@ uv run --extra dev coverage report
 # Start frontend
 cd ../frontend
 flutter pub get
-flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+
+# Chrome mode when Flutter Inspector is needed
+flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 # Build frontend release artifacts
 flutter build web --dart-define=API_BASE_URL=/api/v1
 flutter build windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 # Local static Web smoke after build
-npx --yes serve -s build/web -l tcp://127.0.0.1:3001
+npx --yes serve -s build/web -l tcp://127.0.0.1:3002
 ```
 
 普通 HTTP 请求使用 `frontend/lib/core/api/generated/` 中的 Dart generated

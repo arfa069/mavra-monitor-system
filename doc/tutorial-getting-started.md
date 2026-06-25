@@ -69,23 +69,27 @@ powershell.exe -Command "cd backend; uv run --extra dev alembic upgrade head"
 ## Step 5：启动服务
 
 ```powershell
-powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1' -NoBlogFrontend"
+powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1'"
 ```
 
-`start_server.ps1` 默认使用 `backend/.venv/Scripts/python.exe`，会做四件事：
+`start_server.ps1` 默认使用 `backend/.venv/Scripts/python.exe`，会清理
+3000 / 3001 / 8000 端口和旧 crawler worker，然后启动四个服务：
 
-1. 杀掉占用 3000 / 8000 端口的旧进程
-2. 启动后端（uvicorn，无 `--reload`，因为 Windows 上 Playwright 子进程会崩）
-3. 启动爬虫 worker（`python -m app.workers.crawler --kind all`，使用后端虚拟环境）
-4. 启动前端（Flutter Web，端口 3000）
+1. 后端（uvicorn，无 `--reload`，因为 Windows 上 Playwright 子进程会崩）
+2. Flutter 主前端（`web-server`，端口 3000）
+3. 爬虫 worker（`python -m app.workers.crawler --kind all`，使用后端虚拟环境）
+4. Next.js 公共博客（端口 3001）
 
-> 如果你在同一台机器上保留旧前端做对比，把旧前端放在 `3000`，Flutter 手动运行在 `3001`：
-> `powershell.exe -Command "cd frontend; flutter run -d chrome --web-port 3001 --dart-define=API_BASE_URL=http://localhost:8000/api/v1"`
+Codex 内建浏览器直接打开 `http://127.0.0.1:3000` 即可截图和 QA。
+需要 Flutter Inspector 时使用：
+`powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1' -ChromeDev"`。
+如果本次不需要公共博客，可以加 `-NoBlogFrontend`。
 
 验证：
 
-- 前端 <http://localhost:3000> 打开应看到登录页
-- 后端健康检查：<http://localhost:8000/health> 返回 `{"status":"ok"}`
+- 前端 <http://127.0.0.1:3000> 打开应看到登录页
+- 公共博客 <http://127.0.0.1:3001/blog> 打开应看到博客页面
+- 后端健康检查：<http://127.0.0.1:8000/health> 返回 `{"status":"ok"}`
 
 ## Step 6：注册并登录
 

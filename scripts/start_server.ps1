@@ -2,6 +2,8 @@ param(
     [switch]$BackendOnly,
     [switch]$NoCrawlerWorker,
     [switch]$NoBlogFrontend,
+    [switch]$ChromeDev,
+    [switch]$StaticFrontend,
     [switch]$FlutterDev,
     [string]$PythonExe = "",
     [int]$CrawlerConcurrency = 3
@@ -40,7 +42,8 @@ function Get-PortUsage {
 }
 
 function Close-ServiceWindows {
-    $keywords = @("uvicorn", "flutter", "http.server", "npm", "next", "node", "python", "crawler")
+    param([string[]]$Keywords)
+
     $toClose = @()
 
     $procs = Get-CimInstance Win32_Process | Where-Object {
@@ -50,7 +53,7 @@ function Close-ServiceWindows {
     foreach ($proc in $procs) {
         $cmdLine = $proc.CommandLine
         $matched = $false
-        foreach ($kw in $keywords) {
+        foreach ($kw in $Keywords) {
             if ($cmdLine -match $kw) {
                 $matched = $true
                 break
@@ -75,8 +78,12 @@ function Close-ServiceWindows {
 }
 
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "  Price Monitor Launcher" -ForegroundColor Green
+Write-Host "  Mavra Flutter Launcher" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
+
+if ($StaticFrontend -and ($ChromeDev -or $FlutterDev)) {
+    throw "Choose one frontend mode: default web-server, -ChromeDev, or -StaticFrontend."
+}
 
 if ([string]::IsNullOrWhiteSpace($PythonExe)) {
     $PythonExe = $defaultPythonExe
@@ -95,8 +102,8 @@ if (-not (Test-Path -LiteralPath $backendLogDir)) {
 }
 
 $frontendIndex = Join-Path $frontendBuildDir "index.html"
-if (-not $BackendOnly -and -not $FlutterDev -and -not (Test-Path -LiteralPath $frontendIndex)) {
-    throw "Flutter Web build not found: $frontendIndex. Run 'cd frontend; flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1' first, or pass -FlutterDev."
+if (-not $BackendOnly -and $StaticFrontend -and -not (Test-Path -LiteralPath $frontendIndex)) {
+    throw "Flutter Web build not found: $frontendIndex. Run 'cd frontend; flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1' first, or omit -StaticFrontend."
 }
 
 Write-Host ""
@@ -104,21 +111,34 @@ Write-Host "[Check] Scanning port usage..." -ForegroundColor Cyan
 
 $portIssues = @()
 
-$frontendPort = Get-PortUsage -Port 3000
-if ($frontendPort) {
-    $portIssues += [PSCustomObject]@{
-        Port = 3000
-        Service = "Frontend"
-        Info = $frontendPort
+$managedWindowKeywords = @("uvicorn")
+
+if (-not $BackendOnly) {
+    $managedWindowKeywords += "flutter"
+    if ($StaticFrontend) {
+        $managedWindowKeywords += "http.server"
+    }
+
+    $frontendPort = Get-PortUsage -Port 3000
+    if ($frontendPort) {
+        $portIssues += [PSCustomObject]@{
+            Port = 3000
+            Service = "Frontend"
+            Info = $frontendPort
+        }
     }
 }
 
-$blogPort = Get-PortUsage -Port 3001
-if ($blogPort -and -not $NoBlogFrontend -and -not $BackendOnly) {
-    $portIssues += [PSCustomObject]@{
-        Port = 3001
-        Service = "Blog Frontend"
-        Info = $blogPort
+if (-not $NoBlogFrontend -and -not $BackendOnly) {
+    $managedWindowKeywords += @("npm", "next", "node")
+
+    $blogPort = Get-PortUsage -Port 3001
+    if ($blogPort) {
+        $portIssues += [PSCustomObject]@{
+            Port = 3001
+            Service = "Blog Frontend"
+            Info = $blogPort
+        }
     }
 }
 
@@ -131,9 +151,12 @@ if ($backendPort) {
     }
 }
 
-# 检查已有 Crawler Worker 进程
-$workerProcs = Get-CimInstance Win32_Process | Where-Object {
-    $_.Name -match "python" -and $_.CommandLine -match "app\.workers\.crawler"
+$workerProcs = @()
+if (-not $NoCrawlerWorker -and -not $BackendOnly) {
+    $managedWindowKeywords += "app\.workers\.crawler"
+    $workerProcs = Get-CimInstance Win32_Process | Where-Object {
+        $_.Name -match "python" -and $_.CommandLine -match "app\.workers\.crawler"
+    }
 }
 
 if ($portIssues -or $workerProcs) {
@@ -142,7 +165,7 @@ if ($portIssues -or $workerProcs) {
     Write-Host "  Processes in use - closing windows" -ForegroundColor Yellow
     Write-Host "========================================" -ForegroundColor Yellow
 
-    Close-ServiceWindows
+    Close-ServiceWindows -Keywords $managedWindowKeywords
 
     foreach ($issue in $portIssues) {
         foreach ($p in $issue.Info) {
@@ -163,12 +186,16 @@ if ($portIssues -or $workerProcs) {
     Start-Sleep -Milliseconds 500
 }
 
-Write-Host "  [OK] Port 3000 (Frontend): Free" -ForegroundColor Green
+if (-not $BackendOnly) {
+    Write-Host "  [OK] Port 3000 (Frontend): Free" -ForegroundColor Green
+}
 if (-not $NoBlogFrontend -and -not $BackendOnly) {
     Write-Host "  [OK] Port 3001 (Blog):     Free" -ForegroundColor Green
 }
 Write-Host "  [OK] Port 8000 (Backend):  Free" -ForegroundColor Green
-Write-Host "  [OK] Crawler Worker:        Free" -ForegroundColor Green
+if (-not $NoCrawlerWorker -and -not $BackendOnly) {
+    Write-Host "  [OK] Crawler Worker:        Free" -ForegroundColor Green
+}
 
 Write-Host ""
 Write-Host "[Backend] Starting..." -ForegroundColor Cyan
@@ -177,7 +204,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd
 Write-Host "[Backend] http://localhost:8000" -ForegroundColor Cyan
 Write-Host "[Backend] Python: $PythonExe" -ForegroundColor DarkGray
 
-if (-not $NoCrawlerWorker) {
+if (-not $NoCrawlerWorker -and -not $BackendOnly) {
     Write-Host ""
     Write-Host "[Crawler Worker] Starting..." -ForegroundColor Cyan
     $workerCmd = "Set-Location `"$backendDir`"; Start-Transcript -Path `"$workerLog`" -Append | Out-Null; & `"$PythonExe`" -m app.workers.crawler --kind all --concurrency $CrawlerConcurrency; Stop-Transcript | Out-Null"
@@ -190,26 +217,34 @@ if (-not $BackendOnly) {
     Write-Host ""
     Write-Host "[Frontend] Starting..." -ForegroundColor Magenta
     if ($FlutterDev) {
-        $frontendCmd = "Set-Location `"$frontendDir`"; flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1"
-        Write-Host "[Frontend] Flutter dev server requested with -FlutterDev" -ForegroundColor DarkGray
+        Write-Host "[Frontend] -FlutterDev is kept as a compatibility alias. Default web-server is recommended; use -ChromeDev for Flutter Inspector." -ForegroundColor DarkGray
     }
-    else {
+
+    if ($StaticFrontend) {
         $frontendCmd = "Set-Location `"$frontendDir`"; & `"$PythonExe`" -m http.server 3000 --bind 127.0.0.1 --directory `"$frontendBuildDir`""
         Write-Host "[Frontend] Serving Flutter Web build from $frontendBuildDir" -ForegroundColor DarkGray
     }
+    elseif ($ChromeDev) {
+        $frontendCmd = "Set-Location `"$frontendDir`"; flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1"
+        Write-Host "[Frontend] Flutter Chrome debug mode requested with -ChromeDev" -ForegroundColor DarkGray
+    }
+    else {
+        $frontendCmd = "Set-Location `"$frontendDir`"; flutter run -d web-server --web-hostname 127.0.0.1 --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1"
+        Write-Host "[Frontend] Flutter web-server on 127.0.0.1:3000" -ForegroundColor DarkGray
+    }
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCmd
-    Write-Host "[Frontend] http://localhost:3000" -ForegroundColor Magenta
+    Write-Host "[Frontend] http://127.0.0.1:3000" -ForegroundColor Magenta
 
     if (-not $NoBlogFrontend -and (Test-Path $blogFrontendDir)) {
         Write-Host ""
         Write-Host "[Blog] Starting..." -ForegroundColor Yellow
         $blogCmd = "Set-Location `"$blogFrontendDir`"; npm run dev -- --port 3001"
         Start-Process powershell -ArgumentList "-NoExit", "-Command", $blogCmd
-        Write-Host "[Blog] http://localhost:3001/blog" -ForegroundColor Yellow
+        Write-Host "[Blog] http://127.0.0.1:3001/blog" -ForegroundColor Yellow
     }
 
     Write-Host ""
-    Write-Host "Tip: Use -BackendOnly for backend only, -FlutterDev for Flutter dev server, -NoCrawlerWorker to skip worker, -NoBlogFrontend to skip the public blog, -CrawlerConcurrency N to override worker concurrency" -ForegroundColor DarkGray
+    Write-Host "Tip: default frontend uses Flutter web-server. Use -ChromeDev for Flutter DevTools/Inspector, -StaticFrontend to serve frontend/build/web, -NoCrawlerWorker to skip worker, -NoBlogFrontend to skip the public blog, or -BackendOnly for backend only." -ForegroundColor DarkGray
 }
 
 Write-Host ""

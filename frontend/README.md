@@ -29,8 +29,11 @@ flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 Run the Web app in development:
 
 ```powershell
-flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
+
+Use `flutter run -d chrome --web-port 3000 --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1`
+only when Flutter DevTools or Inspector needs a Chrome debug session.
 
 Run desktop smoke tests when the platform toolchain is available:
 
@@ -65,20 +68,29 @@ adapters own low-level transport details.
 
 ## Local Full Stack
 
-The repository launcher serves a built Flutter Web app by default:
+The repository launcher starts backend, Flutter web-server, crawler worker, and
+the Next.js public blog by default:
 
 ```powershell
-cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
-flutter build web --dart-define=API_BASE_URL=http://localhost:8000/api/v1
-cd ..
+cd C:/Users/arfac/Documents/mavra-monitor-system
 ./scripts/start_server.ps1
 ```
 
-Use Flutter's dev server explicitly:
+Use Chrome mode when Flutter Inspector is needed:
 
 ```powershell
-./scripts/start_server.ps1 -FlutterDev
+./scripts/start_server.ps1 -ChromeDev
 ```
 
+Use static web assets only after a build:
+
+```powershell
+cd frontend
+flutter build web --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
+cd ..
+./scripts/start_server.ps1 -StaticFrontend
+```
+
+`-FlutterDev` remains as a compatibility alias for the default web-server mode.
 Use `-NoCrawlerWorker`, `-NoBlogFrontend`, or `-BackendOnly` to avoid local
 services that are not needed for a focused frontend check.
