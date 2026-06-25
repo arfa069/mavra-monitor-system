@@ -4,6 +4,7 @@ import 'package:mavra_api/mavra_api.dart' as generated;
 import '../core/api/authenticated_mavra_api.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/config/app_config.dart';
+import '../core/notifications/mavra_notifier.dart';
 import '../core/platform/platform_capabilities.dart';
 import '../core/theme/app_theme.dart';
 import '../features/alerts/data/alerts_api.dart';
@@ -149,6 +150,7 @@ class _MavraAppState extends State<MavraApp> {
     return MaterialApp.router(
       title: 'Mavra',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       routerConfig: router,

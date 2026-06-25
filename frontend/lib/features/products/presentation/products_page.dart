@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/files/file_service.dart';
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_confirm.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
@@ -42,7 +43,6 @@ class _ProductsPageState extends State<ProductsPage> {
   ProductsSnapshot? _snapshot;
   ProductPageState? _page;
   Object? _error;
-  String? _statusMessage;
   int? _editingProductId;
   int? _editingAlertId;
   bool _productActive = true;
@@ -232,9 +232,7 @@ class _ProductsPageState extends State<ProductsPage> {
         return;
       }
       Navigator.of(context).pop();
-      setState(() {
-        _statusMessage = 'Saved ${draft.title}';
-      });
+      MavraNotifier.success('Saved ${draft.title}');
       _load();
     } catch (error) {
       if (mounted) {
@@ -292,8 +290,8 @@ class _ProductsPageState extends State<ProductsPage> {
       setState(() {
         _page = page;
         _selectedProductIds.clear();
-        _statusMessage = 'Loaded ${page.total} products';
       });
+      MavraNotifier.info('Loaded ${page.total} products');
     } catch (error) {
       if (mounted) {
         setState(() => _error = error);
@@ -324,7 +322,7 @@ class _ProductsPageState extends State<ProductsPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = 'Imported ${rows.length} products');
+      MavraNotifier.success('Imported ${rows.length} products');
       _load();
     } catch (error) {
       if (mounted) {
@@ -351,9 +349,9 @@ class _ProductsPageState extends State<ProductsPage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Deleted product #$productId';
         _selectedProductIds.remove(productId);
       });
+      MavraNotifier.success('Deleted product #$productId');
       _load();
     } catch (error) {
       if (mounted) {
@@ -365,7 +363,7 @@ class _ProductsPageState extends State<ProductsPage> {
   Future<void> _batchDeleteProducts() async {
     final ids = _selectedProductIds.toList()..sort();
     if (ids.isEmpty) {
-      setState(() => _statusMessage = 'Select products to delete');
+      MavraNotifier.warning('Select products to delete');
       return;
     }
 
@@ -386,9 +384,9 @@ class _ProductsPageState extends State<ProductsPage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Deleted ${ids.length} products';
         _selectedProductIds.clear();
       });
+      MavraNotifier.success('Deleted ${ids.length} products');
       _load();
     } catch (error) {
       if (mounted) {
@@ -403,11 +401,11 @@ class _ProductsPageState extends State<ProductsPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = 'Crawl task requested');
+      MavraNotifier.success('Crawl task requested');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Crawl request failed');
+        MavraNotifier.error('Crawl request failed');
       }
     }
   }
@@ -422,11 +420,11 @@ class _ProductsPageState extends State<ProductsPage> {
         _snapshot = (_snapshot ?? const ProductsSnapshot.empty()).copyWith(
           crawlLogs: logs,
         );
-        _statusMessage = 'Loaded ${logs.length} crawl logs';
       });
+      MavraNotifier.info('Loaded ${logs.length} crawl logs');
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Crawl logs unavailable');
+        MavraNotifier.error('Crawl logs unavailable');
       }
     }
   }
@@ -446,7 +444,7 @@ class _ProductsPageState extends State<ProductsPage> {
     try {
       await widget.repository.deleteProductSchedule(cron.platform);
       if (mounted) {
-        setState(() => _statusMessage = 'Deleted ${cron.platform} cron');
+        MavraNotifier.success('Deleted ${cron.platform} cron');
       }
     } catch (error) {
       if (mounted) {
@@ -484,7 +482,7 @@ class _ProductsPageState extends State<ProductsPage> {
       await opener(product.url);
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Could not open ${product.title}');
+        MavraNotifier.error('Could not open ${product.title}');
       }
     }
   }
@@ -536,7 +534,6 @@ class _ProductsPageState extends State<ProductsPage> {
                 return _ProductsContent(
                   snapshot: _snapshot ?? const ProductsSnapshot.empty(),
                   page: _page,
-                  statusMessage: _statusMessage,
                   canRequestCrawlNow: _canRequestCrawlNow,
                   activeTab: _activeTab,
                   searchController: _searchController,
@@ -628,7 +625,6 @@ class _ProductsContent extends StatelessWidget {
   const _ProductsContent({
     required this.snapshot,
     required this.page,
-    required this.statusMessage,
     required this.canRequestCrawlNow,
     required this.activeTab,
     required this.searchController,
@@ -658,7 +654,6 @@ class _ProductsContent extends StatelessWidget {
 
   final ProductsSnapshot snapshot;
   final ProductPageState? page;
-  final String? statusMessage;
   final bool canRequestCrawlNow;
   final _ProductWorkbenchTab activeTab;
   final TextEditingController searchController;
@@ -706,10 +701,6 @@ class _ProductsContent extends StatelessWidget {
             subtitle:
                 'Track Taobao, JD, and Amazon products, schedule crawls, and review price movement.',
           ),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(statusMessage!),
-          ],
           const SizedBox(height: 20),
           _ProductSectionTabs(activeTab: activeTab, onTabChanged: onTabChanged),
           const SizedBox(height: 20),
@@ -814,8 +805,6 @@ String _platformLabel(String value) {
   };
 }
 
-
-
 class _ProductSectionTabs extends StatelessWidget {
   const _ProductSectionTabs({
     required this.activeTab,
@@ -852,7 +841,8 @@ class _ProductSectionTabs extends StatelessWidget {
             selected: activeTab == _ProductWorkbenchTab.recentCrawlLogs,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             showCheckmark: false,
-            onSelected: (_) => onTabChanged(_ProductWorkbenchTab.recentCrawlLogs),
+            onSelected: (_) =>
+                onTabChanged(_ProductWorkbenchTab.recentCrawlLogs),
           ),
         ),
       ],
@@ -976,7 +966,10 @@ class _ScheduleActions extends StatelessWidget {
         IconButton(
           key: Key('product-cron-${row.platform}-delete-button'),
           tooltip: 'Delete ${row.platform} schedule',
-          style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
+          style: MavraButtonStyle.rowIconButton(
+            context: context,
+            isDangerous: true,
+          ),
           onPressed: row.configured ? () => onDeleteProductCron(row) : null,
           icon: const Icon(Icons.delete_outline, size: 18),
         ),
@@ -984,8 +977,6 @@ class _ScheduleActions extends StatelessWidget {
     );
   }
 }
-
-
 
 class _ProductsPanel extends StatelessWidget {
   const _ProductsPanel({
@@ -1139,7 +1130,10 @@ class _ProductFilters extends StatelessWidget {
           child: OutlinedButton.icon(
             key: const Key('product-batch-delete-button'),
             onPressed: selectedCount == 0 ? null : onBatchDeleteProducts,
-            style: MavraButtonStyle.compactOutlined(context: context, isDangerous: true),
+            style: MavraButtonStyle.compactOutlined(
+              context: context,
+              isDangerous: true,
+            ),
             icon: const Icon(Icons.delete_outline, size: 18),
             label: const Text('Batch Delete'),
           ),
@@ -1187,7 +1181,10 @@ class _ProductFilters extends StatelessWidget {
             key: const Key('product-platform-filter'),
             initialValue: platformValue,
             isExpanded: true,
-            decoration: MavraInputStyle.filterInput(context: context, label: 'Platform'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Platform',
+            ),
             items: const [
               DropdownMenuItem(value: null, child: Text('All Platforms')),
               DropdownMenuItem(value: 'taobao', child: Text('Taobao')),
@@ -1204,7 +1201,10 @@ class _ProductFilters extends StatelessWidget {
             key: const Key('product-active-filter'),
             initialValue: activeFilter,
             isExpanded: true,
-            decoration: MavraInputStyle.filterInput(context: context, label: 'Status'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Status',
+            ),
             items: const [
               DropdownMenuItem(value: 'all', child: Text('All Statuses')),
               DropdownMenuItem(value: 'active', child: Text('Active')),
@@ -1284,7 +1284,10 @@ class _ProductPaginationControls extends StatelessWidget {
             decoration: MavraInputStyle.filterInput(
               context: context,
               label: 'Page size',
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 8,
+              ),
             ),
             items: const [
               DropdownMenuItem(value: 15, child: Text('15')),
@@ -1787,7 +1790,10 @@ class _ProductActionButtons extends StatelessWidget {
           IconButton(
             key: Key('product-delete-${product.id}-button'),
             tooltip: 'Delete',
-            style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
+            style: MavraButtonStyle.rowIconButton(
+              context: context,
+              isDangerous: true,
+            ),
             onPressed: () => onDelete(product.id),
             icon: const Icon(Icons.delete_outline, size: 18),
           ),
@@ -1822,7 +1828,10 @@ class _ProductActionButtons extends StatelessWidget {
         ),
         TextButton.icon(
           key: Key('product-delete-${product.id}-button'),
-          style: MavraButtonStyle.compactText(context: context, isDangerous: true),
+          style: MavraButtonStyle.compactText(
+            context: context,
+            isDangerous: true,
+          ),
           onPressed: () => onDelete(product.id),
           icon: const Icon(Icons.delete_outline, size: 18),
           label: const Text('Delete'),
@@ -1855,9 +1864,7 @@ class _ProductCrawlLogsTable extends StatelessWidget {
         DataCell(Text(_platformLabel(log.platform ?? '-'))),
         DataCell(Text(_crawlStatusLabel(log.status))),
         DataCell(Text(log.price ?? '-')),
-        DataCell(
-          _CrawlLogErrorCell(log: log),
-        ),
+        DataCell(_CrawlLogErrorCell(log: log)),
       ],
       mobileBuilder: (context, log) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1938,10 +1945,7 @@ class _CrawlLogErrorCell extends StatelessWidget {
 String _crawlLogKey(ProductCrawlLog log) =>
     (log.id ?? log.createdAt.millisecondsSinceEpoch).toString();
 
-Future<void> _showCrawlLogDetails(
-  BuildContext context,
-  ProductCrawlLog log,
-) {
+Future<void> _showCrawlLogDetails(BuildContext context, ProductCrawlLog log) {
   final details = log.errorMessage ?? log.message;
   return showDialog<void>(
     context: context,
@@ -1949,9 +1953,7 @@ Future<void> _showCrawlLogDetails(
       title: const Text('Crawl log details'),
       content: SizedBox(
         width: 560,
-        child: SingleChildScrollView(
-          child: SelectableText(details),
-        ),
+        child: SingleChildScrollView(child: SelectableText(details)),
       ),
       actions: [
         TextButton(
@@ -2294,10 +2296,7 @@ class _Section extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleMedium,
-                      ),
+                      child: Text(title, style: theme.textTheme.titleMedium),
                     ),
                     ?action,
                   ],
@@ -2305,7 +2304,9 @@ class _Section extends StatelessWidget {
                 Divider(
                   height: 24,
                   thickness: 1,
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.7,
+                  ),
                 ),
                 if (children.isEmpty) Text(emptyText) else ...children,
               ],

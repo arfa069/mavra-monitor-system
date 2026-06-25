@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/widgets/mavra_chart.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/products/domain/product_models.dart';
@@ -105,6 +106,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
         home: ProductsPage(repository: repository, urlOpener: openedUrls.add),
       ),
     );
@@ -143,6 +145,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
         home: ProductsPage(repository: repository, urlOpener: openedUrls.add),
       ),
     );

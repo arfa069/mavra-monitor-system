@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/jobs/domain/job_models.dart';
 import 'package:mavra_frontend/features/jobs/presentation/jobs_page.dart';
@@ -61,7 +62,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        MaterialApp(home: JobsPage(repository: repository)),
+        MaterialApp(
+          scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+          home: JobsPage(repository: repository),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -472,7 +476,10 @@ void main() {
     await tester.tap(find.byKey(const Key('job-detail-1-button')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Detail failed:'), findsNothing);
-    expect(find.text('Showing list data because full details are unavailable.'), findsOneWidget);
+    expect(
+      find.text('Showing list data because full details are unavailable.'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
@@ -492,8 +499,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final repository =
-        _DetailFailingJobsRepository(_FakeJobsRepository.full().snapshot);
+    final repository = _DetailFailingJobsRepository(
+      _FakeJobsRepository.full().snapshot,
+    );
 
     await tester.pumpWidget(
       MaterialApp(home: JobsPage(repository: repository)),
@@ -506,7 +514,10 @@ void main() {
 
     expect(find.text('Job details: Senior Flutter Engineer'), findsOneWidget);
     expect(find.textContaining('Detail failed:'), findsNothing);
-    expect(find.text('Showing list data because full details are unavailable.'), findsOneWidget);
+    expect(
+      find.text('Showing list data because full details are unavailable.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('creates and edits a job search config from the form', (
@@ -575,6 +586,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
         home: JobsPage(repository: repository, fileService: fileService),
       ),
     );

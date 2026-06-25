@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/notifications/mavra_notifier.dart';
 import '../domain/auth_models.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -15,10 +16,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<AccountOverview>? _overviewFuture;
   AccountOverview? _overview;
   Object? _loadError;
-  String? _statusMessage;
   String? _profileError;
   String? _passwordError;
-  String? _passwordStatus;
   bool _savingProfile = false;
   bool _changingPassword = false;
 
@@ -77,14 +76,12 @@ class _ProfilePageState extends State<ProfilePage> {
     if (username.length < 3) {
       setState(() {
         _profileError = 'Username must be at least 3 characters';
-        _statusMessage = null;
       });
       return;
     }
     if (!email.contains('@')) {
       setState(() {
         _profileError = 'Email must be valid';
-        _statusMessage = null;
       });
       return;
     }
@@ -92,7 +89,6 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _savingProfile = true;
       _profileError = null;
-      _statusMessage = null;
     });
     try {
       final profile = await widget.authController.updateProfile(
@@ -109,8 +105,8 @@ class _ProfilePageState extends State<ProfilePage> {
           loginHistory: current?.loginHistory ?? const [],
         );
         _applyProfile(profile);
-        _statusMessage = 'Profile updated successfully';
       });
+      MavraNotifier.success('Profile updated successfully');
     } catch (error) {
       if (mounted) {
         setState(() => _profileError = 'Profile update failed.');
@@ -128,16 +124,12 @@ class _ProfilePageState extends State<ProfilePage> {
     if (currentPassword.isEmpty || newPassword.isEmpty) {
       setState(() {
         _passwordError = 'Current and new password are required';
-        _passwordStatus = null;
-        _statusMessage = null;
       });
       return;
     }
     if (newPassword.length < 8) {
       setState(() {
         _passwordError = 'New password must be at least 8 characters';
-        _passwordStatus = null;
-        _statusMessage = null;
       });
       return;
     }
@@ -145,8 +137,6 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       _changingPassword = true;
       _passwordError = null;
-      _passwordStatus = null;
-      _statusMessage = null;
     });
     try {
       await widget.authController.changePassword(
@@ -161,9 +151,8 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _currentPasswordController.clear();
         _newPasswordController.clear();
-        _passwordStatus = 'Password changed successfully';
-        _statusMessage = 'Password changed successfully';
       });
+      MavraNotifier.success('Password changed successfully');
     } catch (error) {
       if (mounted) {
         setState(() => _passwordError = 'Password change failed.');
@@ -201,10 +190,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Personal Info',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              if (_statusMessage != null) ...[
-                const SizedBox(height: 8),
-                Text(_statusMessage!),
-              ],
               const SizedBox(height: 16),
               _AccountSummary(profile: overview.profile),
               const SizedBox(height: 16),
@@ -220,7 +205,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 currentPasswordController: _currentPasswordController,
                 newPasswordController: _newPasswordController,
                 errorText: _passwordError,
-                statusText: _passwordStatus,
                 isSaving: _changingPassword,
                 onSave: _changePassword,
               ),
@@ -254,7 +238,10 @@ class _AccountSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Account Info', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Account Info',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             Text(profile.username),
             const SizedBox(height: 8),
@@ -352,7 +339,6 @@ class _PasswordSection extends StatelessWidget {
     required this.currentPasswordController,
     required this.newPasswordController,
     required this.errorText,
-    required this.statusText,
     required this.isSaving,
     required this.onSave,
   });
@@ -360,7 +346,6 @@ class _PasswordSection extends StatelessWidget {
   final TextEditingController currentPasswordController;
   final TextEditingController newPasswordController;
   final String? errorText;
-  final String? statusText;
   final bool isSaving;
   final VoidCallback onSave;
 
@@ -399,7 +384,9 @@ class _PasswordSection extends StatelessWidget {
                     key: const Key('profile-new-password-field'),
                     controller: newPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(labelText: 'New Password'),
+                    decoration: const InputDecoration(
+                      labelText: 'New Password',
+                    ),
                   ),
                 ),
                 FilledButton.icon(
@@ -418,10 +405,6 @@ class _PasswordSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text('Use at least 8 characters for the new password.'),
-            if (statusText != null) ...[
-              const SizedBox(height: 8),
-              Text(statusText!),
-            ],
             if (errorText != null) ...[
               const SizedBox(height: 8),
               Text(errorText!, style: TextStyle(color: Colors.red.shade700)),

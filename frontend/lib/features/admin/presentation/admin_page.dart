@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../domain/admin_models.dart';
@@ -28,7 +29,6 @@ class _AdminPageState extends State<AdminPage> {
   Future<AdminSnapshot>? _adminFuture;
   AdminSnapshot? _snapshot;
   Object? _error;
-  String? _statusMessage;
   int _userPage = 1;
   int _auditPage = 1;
   final _searchController = TextEditingController();
@@ -123,11 +123,11 @@ class _AdminPageState extends State<AdminPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = successMessage);
+      MavraNotifier.success(successMessage);
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Action failed: $error');
+        MavraNotifier.error('Action failed: $error');
       }
     }
   }
@@ -262,7 +262,6 @@ class _AdminPageState extends State<AdminPage> {
                   snapshot: _snapshot ?? const AdminSnapshot.empty(),
                   canManageUsers: _canManageUsers,
                   canReadRbac: _canReadRbac,
-                  statusMessage: _statusMessage,
                   searchController: _searchController,
                   roleController: _roleController,
                   auditActionController: _auditActionController,
@@ -346,7 +345,6 @@ class _AdminContent extends StatelessWidget {
     required this.snapshot,
     required this.canManageUsers,
     required this.canReadRbac,
-    required this.statusMessage,
     required this.searchController,
     required this.roleController,
     required this.auditActionController,
@@ -367,7 +365,6 @@ class _AdminContent extends StatelessWidget {
   final AdminSnapshot snapshot;
   final bool canManageUsers;
   final bool canReadRbac;
-  final String? statusMessage;
   final TextEditingController searchController;
   final TextEditingController roleController;
   final TextEditingController auditActionController;
@@ -467,10 +464,6 @@ class _AdminContent extends StatelessWidget {
               ),
             ],
           ),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
-          ],
           if (!snapshot.realtime) ...[
             const SizedBox(height: 8),
             const Text('管理数据不是实时状态。'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../domain/settings_models.dart';
@@ -28,7 +29,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<SettingsSnapshot>? _settingsFuture;
   SettingsSnapshot? _snapshot;
   Object? _error;
-  String? _statusMessage;
   String? _retentionError;
   String _themeMode = 'system';
   String _motionSpeed = 'normal';
@@ -99,7 +99,6 @@ class _SettingsPageState extends State<SettingsPage> {
         parsedRetention > 3650) {
       setState(() {
         _retentionError = 'Retention must be between 1 and 3650 days';
-        _statusMessage = null;
       });
       return;
     }
@@ -119,14 +118,14 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _snapshot = snapshot;
         _retentionError = null;
-        _statusMessage = 'Saved settings';
         _themeMode = _knownTheme(snapshot.themeMode);
         _motionSpeed = _knownMotionSpeed(snapshot.motionSpeed);
         _applySnapshot(snapshot);
       });
+      MavraNotifier.success('Saved settings');
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Settings save failed.');
+        MavraNotifier.error('Settings save failed.');
       }
     }
   }
@@ -185,7 +184,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   retentionController: _retentionController,
                   feishuController: _feishuController,
                   retentionError: _retentionError,
-                  statusMessage: _statusMessage,
                   themeMode: _themeMode,
                   motionSpeed: _motionSpeed,
                   onSaveSettings: _saveSettings,
@@ -246,7 +244,6 @@ class _SettingsContent extends StatelessWidget {
     required this.retentionController,
     required this.feishuController,
     required this.retentionError,
-    required this.statusMessage,
     required this.themeMode,
     required this.motionSpeed,
     required this.onSaveSettings,
@@ -262,7 +259,6 @@ class _SettingsContent extends StatelessWidget {
   final TextEditingController retentionController;
   final TextEditingController feishuController;
   final String? retentionError;
-  final String? statusMessage;
   final String themeMode;
   final String motionSpeed;
   final Future<void> Function() onSaveSettings;
@@ -277,10 +273,6 @@ class _SettingsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
-          ],
           const SizedBox(height: 16),
           if (canReadConfig) ...[
             if (snapshot.isEmpty)

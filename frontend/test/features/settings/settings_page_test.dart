@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/config/app_config.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/platform/platform_capabilities.dart';
 import 'package:mavra_frontend/features/settings/domain/settings_models.dart';
 import 'package:mavra_frontend/features/settings/presentation/settings_page.dart';
@@ -12,8 +13,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SettingsPage(
+      _host(
+        SettingsPage(
           repository: _FakeSettingsRepository.full(),
           config: const AppConfig(apiBaseUrl: 'https://api.example/api/v1'),
           capabilities: _windowsCapabilities(),
@@ -36,9 +37,7 @@ void main() {
   testWidgets('validates and saves config updates', (tester) async {
     final repository = _FakeSettingsRepository.full();
 
-    await tester.pumpWidget(
-      MaterialApp(home: SettingsPage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SettingsPage(repository: repository)));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -78,9 +77,7 @@ void main() {
   ) async {
     final repository = _FakeSettingsRepository.full();
 
-    await tester.pumpWidget(
-      MaterialApp(home: SettingsPage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SettingsPage(repository: repository)));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Dark'));
@@ -90,15 +87,18 @@ void main() {
     expect(repository.savedDrafts, isEmpty);
   });
 
-  testWidgets('saves page transition speed with config updates', (tester) async {
+  testWidgets('saves page transition speed with config updates', (
+    tester,
+  ) async {
     final repository = _FakeSettingsRepository.full();
 
-    await tester.pumpWidget(
-      MaterialApp(home: SettingsPage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SettingsPage(repository: repository)));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('settings-motion-speed-field')), findsOneWidget);
+    expect(
+      find.byKey(const Key('settings-motion-speed-field')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Slow'));
     await tester.pumpAndSettle();
 
@@ -109,29 +109,32 @@ void main() {
     expect(find.text('Motion speed preference: slow'), findsOneWidget);
   });
 
-  testWidgets('renders loading, empty, and error states', (
-    tester,
-  ) async {
+  testWidgets('renders loading, empty, and error states', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: SettingsPage(repository: _SlowSettingsRepository())),
+      _host(SettingsPage(repository: _SlowSettingsRepository())),
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('正在加载设置...'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: SettingsPage(repository: _FakeSettingsRepository.empty()),
-      ),
+      _host(SettingsPage(repository: _FakeSettingsRepository.empty())),
     );
     await tester.pumpAndSettle();
     expect(find.text('还没有可配置的偏好。'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(home: SettingsPage(repository: _FailingSettingsRepository())),
+      _host(SettingsPage(repository: _FailingSettingsRepository())),
     );
     await tester.pumpAndSettle();
     expect(find.text('设置加载失败。'), findsOneWidget);
   });
+}
+
+Widget _host(Widget child) {
+  return MaterialApp(
+    scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+    home: child,
+  );
 }
 
 class _FakeSettingsRepository implements SettingsRepository {

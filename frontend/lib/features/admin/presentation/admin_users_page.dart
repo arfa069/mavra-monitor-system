@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
@@ -33,7 +34,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   Future<AdminSnapshot>? _future;
   AdminSnapshot? _snapshot;
   Object? _error;
-  String? _statusMessage;
   int _page = 1;
   final _searchController = TextEditingController();
   String? _role;
@@ -106,11 +106,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = successMessage);
+      MavraNotifier.success(successMessage);
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = _friendlyActionError(error));
+        MavraNotifier.error(_friendlyActionError(error));
       }
     }
   }
@@ -122,10 +122,11 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       if (!mounted) {
         return;
       }
+      final message = nextActive
+          ? 'Enabled ${user.username}'
+          : 'Disabled ${user.username}';
+      MavraNotifier.success(message);
       setState(() {
-        _statusMessage = nextActive
-            ? 'Enabled ${user.username}'
-            : 'Disabled ${user.username}';
         _snapshot = _snapshot == null
             ? null
             : AdminSnapshot(
@@ -154,7 +155,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       });
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = _friendlyActionError(error));
+        MavraNotifier.error(_friendlyActionError(error));
       }
     }
   }
@@ -215,7 +216,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             return _AdminUsersContent(
               snapshot: _snapshot ?? const AdminSnapshot.empty(),
               page: _page,
-              statusMessage: _statusMessage,
               searchController: _searchController,
               role: _role,
               canManageUsers: _canManageUsers,
@@ -312,7 +312,6 @@ class _AdminUsersContent extends StatelessWidget {
   const _AdminUsersContent({
     required this.snapshot,
     required this.page,
-    required this.statusMessage,
     required this.searchController,
     required this.role,
     required this.canManageUsers,
@@ -333,7 +332,6 @@ class _AdminUsersContent extends StatelessWidget {
 
   final AdminSnapshot snapshot;
   final int page;
-  final String? statusMessage;
   final TextEditingController searchController;
   final String? role;
   final bool canManageUsers;
@@ -367,10 +365,6 @@ class _AdminUsersContent extends StatelessWidget {
             onApplyFilters: onApplyFilters,
             onCreateUser: onCreateUser,
           ),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
-          ],
           if (!snapshot.permissionsAvailable) ...[
             const SizedBox(height: 8),
             const Text('部分权限信息暂时不可用。'),

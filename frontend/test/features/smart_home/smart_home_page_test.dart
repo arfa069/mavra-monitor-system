@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/features/smart_home/domain/smart_home_models.dart';
 import 'package:mavra_frontend/features/smart_home/presentation/smart_home_page.dart';
 import 'package:mavra_frontend/visual_qa/visual_qa_app.dart';
@@ -13,7 +14,10 @@ void main() {
     final repository = _FakeSmartHomeRepository.full();
 
     await tester.pumpWidget(
-      MaterialApp(home: SmartHomePage(repository: repository)),
+      MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+        home: SmartHomePage(repository: repository),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -87,7 +91,10 @@ void main() {
     final repository = _FakeSmartHomeRepository.full();
 
     await tester.pumpWidget(
-      MaterialApp(home: SmartHomePage(repository: repository)),
+      MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+        home: SmartHomePage(repository: repository),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -106,13 +113,15 @@ void main() {
       'new-secret-token',
     );
     await tester.tap(find.byKey(const Key('smart-home-test-config-button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(repository.testedConfig?.baseUrl, 'https://ha-new.local');
     expect(find.text('Home Assistant reachable'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('smart-home-save-config-button')));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
     expect(repository.savedConfig?.baseUrl, 'https://ha-new.local');
     expect(repository.savedConfig?.token, 'new-secret-token');

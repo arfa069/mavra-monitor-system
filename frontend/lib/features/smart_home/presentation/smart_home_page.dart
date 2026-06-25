@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_style_helpers.dart';
 import '../domain/smart_home_models.dart';
@@ -23,7 +24,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
   SmartHomeSnapshot? _snapshot;
   List<SmartHomeEntityItem> _entities = const [];
   Object? _error;
-  String? _statusMessage;
   bool _refreshing = false;
   StreamSubscription<List<SmartHomeEntityItem>>? _entitySubscription;
 
@@ -110,7 +110,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
     var enabled = config?.enabled ?? true;
     var testing = false;
     var saving = false;
-    String? dialogMessage;
 
     await showDialog<void>(
       context: context,
@@ -127,21 +126,16 @@ class _SmartHomePageState extends State<SmartHomePage> {
             }
 
             Future<void> testConfig() async {
-              setDialogState(() {
-                testing = true;
-                dialogMessage = null;
-              });
+              setDialogState(() => testing = true);
               try {
                 final result = await widget.repository.testConfig(draft());
                 if (!context.mounted) {
                   return;
                 }
-                setDialogState(() => dialogMessage = result.message);
+                MavraNotifier.success(result.message);
               } catch (_) {
                 if (context.mounted) {
-                  setDialogState(
-                    () => dialogMessage = 'Failed to test smart home config',
-                  );
+                  MavraNotifier.error('Failed to test smart home config');
                 }
               } finally {
                 if (context.mounted) {
@@ -151,23 +145,18 @@ class _SmartHomePageState extends State<SmartHomePage> {
             }
 
             Future<void> saveConfig() async {
-              setDialogState(() {
-                saving = true;
-                dialogMessage = null;
-              });
+              setDialogState(() => saving = true);
               try {
                 await widget.repository.saveConfig(draft());
                 if (!mounted || !dialogContext.mounted) {
                   return;
                 }
-                setState(() => _statusMessage = 'Smart home config saved');
+                MavraNotifier.success('Smart home config saved');
                 Navigator.of(dialogContext).pop();
                 _load();
               } catch (_) {
                 if (dialogContext.mounted) {
-                  setDialogState(
-                    () => dialogMessage = 'Failed to save smart home config',
-                  );
+                  MavraNotifier.error('Failed to save smart home config');
                 }
               } finally {
                 if (dialogContext.mounted) {
@@ -217,14 +206,12 @@ class _SmartHomePageState extends State<SmartHomePage> {
                       ),
                       OutlinedButton(
                         key: const Key('smart-home-test-config-button'),
-                        style: MavraButtonStyle.compactOutlined(context: context),
+                        style: MavraButtonStyle.compactOutlined(
+                          context: context,
+                        ),
                         onPressed: testing ? null : testConfig,
                         child: Text(testing ? 'Testing...' : 'Test Connection'),
                       ),
-                      if (dialogMessage != null) ...[
-                        const SizedBox(height: 12),
-                        Text(dialogMessage!),
-                      ],
                     ],
                   ),
                 ),
@@ -265,7 +252,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
       );
       if (mounted) {
         setState(() {
-          _statusMessage = result.message;
           _entities = [
             for (final current in _entities)
               current.entityId == entity.entityId
@@ -273,10 +259,11 @@ class _SmartHomePageState extends State<SmartHomePage> {
                   : current,
           ];
         });
+        MavraNotifier.success(result.message);
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _statusMessage = 'Command failed');
+        MavraNotifier.error('Command failed');
       }
     }
   }
@@ -362,7 +349,6 @@ class _SmartHomePageState extends State<SmartHomePage> {
                 loadError: _error == null
                     ? null
                     : 'Failed to load smart home entities',
-                statusMessage: _statusMessage,
                 onRefresh: _load,
                 onConfigure: _canConfigure ? _openConfigDialog : null,
                 onCallEntityService: _canControl ? _callEntityService : null,
@@ -384,7 +370,6 @@ class _SmartHomeContent extends StatelessWidget {
     required this.canControl,
     required this.loading,
     required this.loadError,
-    required this.statusMessage,
     required this.onRefresh,
     required this.onConfigure,
     required this.onCallEntityService,
@@ -397,7 +382,6 @@ class _SmartHomeContent extends StatelessWidget {
   final bool canControl;
   final bool loading;
   final String? loadError;
-  final String? statusMessage;
   final VoidCallback onRefresh;
   final VoidCallback? onConfigure;
   final Future<void> Function(
@@ -426,10 +410,6 @@ class _SmartHomeContent extends StatelessWidget {
           const SizedBox(height: 24),
           if (loadError != null) ...[
             _MessageCard(message: loadError!, error: true),
-            const SizedBox(height: 16),
-          ],
-          if (statusMessage != null) ...[
-            _MessageCard(message: statusMessage!, error: false),
             const SizedBox(height: 16),
           ],
           if (!canControl) ...[

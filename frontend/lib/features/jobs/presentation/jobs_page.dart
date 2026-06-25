@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/files/file_service.dart';
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
@@ -31,7 +32,6 @@ class _JobsPageState extends State<JobsPage> {
   JobsSnapshot? _snapshot;
   JobPageState? _jobPage;
   Object? _error;
-  String? _statusMessage;
   int? _editingConfigId;
   int? _selectedResumeId;
   _JobWorkbenchTab _activeTab = _JobWorkbenchTab.jobsList;
@@ -239,13 +239,11 @@ class _JobsPageState extends State<JobsPage> {
       if (!mounted) {
         return;
       }
-      setState(() {
-        _statusMessage = 'Saved ${draft.name}';
-      });
+      MavraNotifier.success('Saved ${draft.name}');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Save failed: $error');
+        MavraNotifier.error('Save failed: $error');
       }
     }
   }
@@ -266,11 +264,11 @@ class _JobsPageState extends State<JobsPage> {
       }
       setState(() {
         _jobPage = page;
-        _statusMessage = 'Loaded ${page.total} jobs';
       });
+      MavraNotifier.info('Loaded ${page.total} jobs');
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Filter failed: $error');
+        MavraNotifier.error('Filter failed: $error');
       }
     }
   }
@@ -318,7 +316,7 @@ class _JobsPageState extends State<JobsPage> {
       );
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Detail failed: $error');
+        MavraNotifier.error('Detail failed: $error');
       }
     }
   }
@@ -333,13 +331,13 @@ class _JobsPageState extends State<JobsPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = successMessage);
+      MavraNotifier.success(successMessage);
       if (reload) {
         _load();
       }
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Action failed: $error');
+        MavraNotifier.error('Action failed: $error');
       }
     }
   }
@@ -370,7 +368,7 @@ class _JobsPageState extends State<JobsPage> {
   Future<void> _requestMatchAnalysis(JobItem job) async {
     final resumes = _snapshot?.resumes ?? const <ResumeItem>[];
     if (resumes.isEmpty) {
-      setState(() => _statusMessage = 'Add a resume before match analysis');
+      MavraNotifier.warning('Add a resume before match analysis');
       return;
     }
     final resume = resumes.firstWhere(
@@ -394,11 +392,11 @@ class _JobsPageState extends State<JobsPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = 'Uploaded ${file.name}');
+      MavraNotifier.success('Uploaded ${file.name}');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Upload failed: $error');
+        MavraNotifier.error('Upload failed: $error');
       }
     }
   }
@@ -542,11 +540,11 @@ class _JobsPageState extends State<JobsPage> {
       if (!mounted) {
         return;
       }
-      setState(() => _statusMessage = 'Imported ${file.name}');
+      MavraNotifier.success('Imported ${file.name}');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Import failed: $error');
+        MavraNotifier.error('Import failed: $error');
       }
     }
   }
@@ -592,7 +590,7 @@ class _JobsPageState extends State<JobsPage> {
     final profileKey = _profileKeyController.text.trim();
     final platform = _profilePlatformController.text.trim();
     if (profileKey.isEmpty || platform.isEmpty) {
-      setState(() => _statusMessage = 'Profile key and platform are required');
+      MavraNotifier.warning('Profile key and platform are required');
       return;
     }
     await _runAction(
@@ -715,11 +713,11 @@ class _JobsPageState extends State<JobsPage> {
         bytes: backup.bytes,
       );
       if (mounted) {
-        setState(() => _statusMessage = 'Exported ${backup.fileName}');
+        MavraNotifier.success('Exported ${backup.fileName}');
       }
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Export failed: $error');
+        MavraNotifier.error('Export failed: $error');
       }
     }
   }
@@ -761,7 +759,6 @@ class _JobsPageState extends State<JobsPage> {
                 return _JobsContent(
                   snapshot: _snapshot ?? const JobsSnapshot.empty(),
                   jobPage: _jobPage,
-                  statusMessage: _statusMessage,
                   canRunCrawl: _canRunCrawl,
                   canImportExportBackups: _canImportExportBackups,
                   selectedResumeId: _selectedResumeId,
@@ -769,12 +766,7 @@ class _JobsPageState extends State<JobsPage> {
                   jobPageSizeController: _jobPageSizeController,
                   jobStatusFilter: _jobStatusFilter,
                   activeTab: _activeTab,
-                  onTabChanged: (tab) => setState(() {
-                    _activeTab = tab;
-                    if (_statusMessage?.startsWith('Detail failed:') ?? false) {
-                      _statusMessage = null;
-                    }
-                  }),
+                  onTabChanged: (tab) => setState(() => _activeTab = tab),
                   onJobStatusFilterChanged: (value) =>
                       setState(() => _jobStatusFilter = value),
                   onApplyJobFilters: _applyJobFilters,
@@ -848,7 +840,6 @@ class _JobsContent extends StatelessWidget {
   const _JobsContent({
     required this.snapshot,
     required this.jobPage,
-    required this.statusMessage,
     required this.canRunCrawl,
     required this.canImportExportBackups,
     required this.selectedResumeId,
@@ -888,7 +879,6 @@ class _JobsContent extends StatelessWidget {
 
   final JobsSnapshot snapshot;
   final JobPageState? jobPage;
-  final String? statusMessage;
   final bool canRunCrawl;
   final bool canImportExportBackups;
   final int? selectedResumeId;
@@ -1212,10 +1202,6 @@ class _JobsContent extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _JobTabStrip(activeTab: activeTab, onChanged: onTabChanged),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(statusMessage!),
-          ],
           const SizedBox(height: 16),
           _buildActiveTab(context),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/widgets/adaptive_scaffold.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
@@ -43,7 +44,6 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<ScheduleSnapshot>? _scheduleFuture;
   ScheduleSnapshot? _snapshot;
   Object? _error;
-  String? _statusMessage;
   String? _validationMessage;
   _ScheduleWorkbenchTab _activeTab = _ScheduleWorkbenchTab.productTimers;
   String? _addProductPlatform;
@@ -180,13 +180,13 @@ class _SchedulePageState extends State<SchedulePage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Saved ${schedule.platform} schedule';
         _validationMessage = null;
       });
+      MavraNotifier.success('Saved ${schedule.platform} schedule');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Save failed: $error');
+        MavraNotifier.error('Save failed: $error');
       }
     }
   }
@@ -198,13 +198,13 @@ class _SchedulePageState extends State<SchedulePage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Deleted ${schedule.platform} schedule';
         _validationMessage = null;
       });
+      MavraNotifier.success('Deleted ${schedule.platform} schedule');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Delete failed: $error');
+        MavraNotifier.error('Delete failed: $error');
       }
     }
   }
@@ -225,13 +225,13 @@ class _SchedulePageState extends State<SchedulePage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Saved ${schedule.name} schedule';
         _validationMessage = null;
       });
+      MavraNotifier.success('Saved ${schedule.name} schedule');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Save failed: $error');
+        MavraNotifier.error('Save failed: $error');
       }
     }
   }
@@ -255,13 +255,13 @@ class _SchedulePageState extends State<SchedulePage> {
         return;
       }
       setState(() {
-        _statusMessage = 'Saved schedule settings';
         _validationMessage = null;
       });
+      MavraNotifier.success('Saved schedule settings');
       _load();
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Save failed: $error');
+        MavraNotifier.error('Save failed: $error');
       }
     }
   }
@@ -341,9 +341,9 @@ class _SchedulePageState extends State<SchedulePage> {
                       }
                       Navigator.of(context, rootNavigator: true).pop();
                       setState(() {
-                        _statusMessage = 'Added $platform schedule';
                         _validationMessage = null;
                       });
+                      MavraNotifier.success('Added $platform schedule');
                       _load();
                     }
                   : null,
@@ -510,10 +510,6 @@ class _SchedulePageState extends State<SchedulePage> {
             const SizedBox(height: 8),
             const Text('没有权限修改自动规则。'),
           ],
-          if (_statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(_statusMessage!),
-          ],
           if (_validationMessage != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -616,7 +612,10 @@ class _SchedulePageState extends State<SchedulePage> {
                     'schedule-product-delete-${schedule.platform}-button',
                   ),
                   tooltip: 'Delete ${schedule.platform}',
-                  style: MavraButtonStyle.rowIconButton(context: context, isDangerous: true),
+                  style: MavraButtonStyle.rowIconButton(
+                    context: context,
+                    isDangerous: true,
+                  ),
                   onPressed: canConfigure
                       ? () => _deleteProductSchedule(schedule)
                       : null,
@@ -782,14 +781,20 @@ class _SchedulePageState extends State<SchedulePage> {
             controller: _retentionController,
             enabled: canConfigure,
             keyboardType: TextInputType.number,
-            decoration: MavraInputStyle.filterInput(context: context, label: 'Data Retention Days'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Data Retention Days',
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
             key: const Key('schedule-webhook-url-field'),
             controller: _webhookController,
             enabled: canConfigure,
-            decoration: MavraInputStyle.filterInput(context: context, label: 'Feishu Webhook URL'),
+            decoration: MavraInputStyle.filterInput(
+              context: context,
+              label: 'Feishu Webhook URL',
+            ),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(

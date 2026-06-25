@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/files/file_service.dart';
+import '../../../core/notifications/mavra_notifier.dart';
 import '../../../core/platform/platform_capabilities.dart';
 import '../../../core/widgets/mavra_page_banner.dart';
 import '../../../core/widgets/mavra_responsive_data_view.dart';
@@ -27,9 +28,7 @@ class _BlogPageState extends State<BlogPage> {
   Future<BlogSnapshot>? _blogFuture;
   BlogSnapshot? _snapshot;
   Object? _error;
-  String? _statusMessage;
   int? _editingPostId;
-  bool _editorDialogOpen = false;
   String _status = 'draft';
   String? _filterStatus;
   String? _titleError;
@@ -123,20 +122,20 @@ class _BlogPageState extends State<BlogPage> {
 
   Future<void> _editPost(BlogPostItem post) async {
     setState(() {
-      _statusMessage = 'Loading ${post.title}...';
       _clearErrors();
     });
+    MavraNotifier.info('Loading ${post.title}...');
     try {
       final draft = await widget.repository.loadPostDraft(post.id);
       if (!mounted) {
         return;
       }
       _fillEditor(draft, postId: post.id);
-      setState(() => _statusMessage = null);
+      MavraNotifier.clear();
       await _showEditorDialog(title: 'Edit blog post');
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Blog post load failed.');
+        MavraNotifier.error('Blog post load failed.');
       }
     }
   }
@@ -166,81 +165,73 @@ class _BlogPageState extends State<BlogPage> {
   }
 
   Future<void> _showEditorDialog({required String title}) async {
-    setState(() => _editorDialogOpen = true);
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => Dialog(
-            key: const Key('blog-editor-dialog'),
-            insetPadding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 980,
-                maxHeight: MediaQuery.sizeOf(context).height - 32,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _BlogEditor(
-                  title: title,
-                  canWrite: _canWrite,
-                  status: _status,
-                  categories: _snapshot?.categories ?? const [],
-                  tags: _snapshot?.tags ?? const [],
-                  titleController: _titleController,
-                  slugController: _slugController,
-                  excerptController: _excerptController,
-                  bodyController: _bodyController,
-                  categoryController: _categoryController,
-                  tagsController: _tagsController,
-                  coverUrlController: _coverUrlController,
-                  publishedAtController: _publishedAtController,
-                  seoTitleController: _seoTitleController,
-                  seoDescriptionController: _seoDescriptionController,
-                  canonicalUrlController: _canonicalUrlController,
-                  ogImageUrlController: _ogImageUrlController,
-                  titleError: _titleError,
-                  bodyError: _bodyError,
-                  publishedAtError: _publishedAtError,
-                  statusMessage: _statusMessage,
-                  onClose: () => Navigator.of(dialogContext).pop(),
-                  onSavePost: () async {
-                    final saved = await _savePost();
-                    setDialogState(() {});
-                    if (saved && dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop();
-                    }
-                  },
-                  onUploadMedia: () async {
-                    await _uploadMedia();
-                    setDialogState(() {});
-                  },
-                  onStatusChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => _status = value);
-                    }
-                  },
-                  onApplyBodyCommand: (command) {
-                    _applyBodyCommand(command);
-                    setDialogState(() {});
-                  },
-                  onUseCategory: (category) {
-                    setDialogState(() => _categoryController.text = category);
-                  },
-                  onUseTag: (tag) {
-                    setDialogState(() => _addTag(tag));
-                  },
-                ),
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          key: const Key('blog-editor-dialog'),
+          insetPadding: const EdgeInsets.all(16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 980,
+              maxHeight: MediaQuery.sizeOf(context).height - 32,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _BlogEditor(
+                title: title,
+                canWrite: _canWrite,
+                status: _status,
+                categories: _snapshot?.categories ?? const [],
+                tags: _snapshot?.tags ?? const [],
+                titleController: _titleController,
+                slugController: _slugController,
+                excerptController: _excerptController,
+                bodyController: _bodyController,
+                categoryController: _categoryController,
+                tagsController: _tagsController,
+                coverUrlController: _coverUrlController,
+                publishedAtController: _publishedAtController,
+                seoTitleController: _seoTitleController,
+                seoDescriptionController: _seoDescriptionController,
+                canonicalUrlController: _canonicalUrlController,
+                ogImageUrlController: _ogImageUrlController,
+                titleError: _titleError,
+                bodyError: _bodyError,
+                publishedAtError: _publishedAtError,
+                onClose: () => Navigator.of(dialogContext).pop(),
+                onSavePost: () async {
+                  final saved = await _savePost();
+                  setDialogState(() {});
+                  if (saved && dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                },
+                onUploadMedia: () async {
+                  await _uploadMedia();
+                  setDialogState(() {});
+                },
+                onStatusChanged: (value) {
+                  if (value != null) {
+                    setDialogState(() => _status = value);
+                  }
+                },
+                onApplyBodyCommand: (command) {
+                  _applyBodyCommand(command);
+                  setDialogState(() {});
+                },
+                onUseCategory: (category) {
+                  setDialogState(() => _categoryController.text = category);
+                },
+                onUseTag: (tag) {
+                  setDialogState(() => _addTag(tag));
+                },
               ),
             ),
           ),
         ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _editorDialogOpen = false);
-      }
-    }
+      ),
+    );
   }
 
   Future<bool> _savePost() async {
@@ -253,7 +244,6 @@ class _BlogPageState extends State<BlogPage> {
       _publishedAtError = _status == 'scheduled' && publishedAt == null
           ? 'Scheduled posts need a publish time'
           : null;
-      _statusMessage = null;
     });
     if (_titleError != null ||
         _bodyError != null ||
@@ -284,12 +274,12 @@ class _BlogPageState extends State<BlogPage> {
       if (!mounted) {
         return false;
       }
-      setState(() => _statusMessage = 'Saved ${draft.title}');
+      MavraNotifier.success('Saved ${draft.title}');
       _load();
       return true;
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Blog post save failed.');
+        MavraNotifier.error('Blog post save failed.');
       }
       return false;
     }
@@ -297,7 +287,7 @@ class _BlogPageState extends State<BlogPage> {
 
   Future<void> _uploadMedia() async {
     if (!_fileService.canPickFiles) {
-      setState(() => _statusMessage = 'Media picking is unavailable.');
+      MavraNotifier.warning('Media picking is unavailable.');
       return;
     }
     try {
@@ -311,11 +301,11 @@ class _BlogPageState extends State<BlogPage> {
       }
       setState(() {
         _coverUrlController.text = media.publicUrl;
-        _statusMessage = 'Uploaded ${media.fileName}';
       });
+      MavraNotifier.success('Uploaded ${media.fileName}');
     } catch (error) {
       if (mounted) {
-        setState(() => _statusMessage = 'Media upload failed.');
+        MavraNotifier.error('Media upload failed.');
       }
     }
   }
@@ -403,7 +393,6 @@ class _BlogPageState extends State<BlogPage> {
               return _BlogContent(
                 snapshot: _snapshot ?? const BlogSnapshot.empty(),
                 canWrite: _canWrite,
-                statusMessage: _editorDialogOpen ? null : _statusMessage,
                 filterKeywordController: _filterKeywordController,
                 filterStatus: _filterStatus,
                 onNewPost: _newPost,
@@ -472,7 +461,6 @@ class _BlogContent extends StatelessWidget {
   const _BlogContent({
     required this.snapshot,
     required this.canWrite,
-    required this.statusMessage,
     required this.filterKeywordController,
     required this.filterStatus,
     required this.onNewPost,
@@ -483,7 +471,6 @@ class _BlogContent extends StatelessWidget {
 
   final BlogSnapshot snapshot;
   final bool canWrite;
-  final String? statusMessage;
   final TextEditingController filterKeywordController;
   final String? filterStatus;
   final VoidCallback onNewPost;
@@ -498,10 +485,6 @@ class _BlogContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _BlogHeader(),
-          if (statusMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(statusMessage!),
-          ],
           const SizedBox(height: 16),
           _BlogFilters(
             keywordController: filterKeywordController,
@@ -646,7 +629,6 @@ class _BlogEditor extends StatelessWidget {
     required this.titleError,
     required this.bodyError,
     required this.publishedAtError,
-    required this.statusMessage,
     required this.onClose,
     required this.onSavePost,
     required this.onUploadMedia,
@@ -676,7 +658,6 @@ class _BlogEditor extends StatelessWidget {
   final String? titleError;
   final String? bodyError;
   final String? publishedAtError;
-  final String? statusMessage;
   final VoidCallback onClose;
   final Future<void> Function() onSavePost;
   final Future<void> Function() onUploadMedia;
@@ -705,10 +686,6 @@ class _BlogEditor extends StatelessWidget {
             ),
           ],
         ),
-        if (statusMessage != null) ...[
-          const SizedBox(height: 8),
-          Text(statusMessage!),
-        ],
         const SizedBox(height: 16),
         Flexible(
           child: SingleChildScrollView(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/files/file_service.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/blog/domain/blog_models.dart';
@@ -132,9 +133,9 @@ void main() {
       tester.getBottomLeft(find.byKey(const Key('blog-new-post-button'))).dy,
       tester.getBottomLeft(find.byKey(const Key('blog-status-filter'))).dy,
     );
-    final newPostTop = tester.getTopLeft(
-      find.byKey(const Key('blog-new-post-button')),
-    ).dy;
+    final newPostTop = tester
+        .getTopLeft(find.byKey(const Key('blog-new-post-button')))
+        .dy;
     final titleBottom = tester.getBottomLeft(find.text('Blog Studio')).dy;
 
     expect(newPostSize.width, lessThan(180));
@@ -293,9 +294,12 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: BlogPage(
-          repository: repository,
-          fileService: const _FakeFileService(),
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+        home: Scaffold(
+          body: BlogPage(
+            repository: repository,
+            fileService: const _FakeFileService(),
+          ),
         ),
       ),
     );

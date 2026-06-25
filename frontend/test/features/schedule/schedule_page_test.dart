@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/schedule/domain/schedule_models.dart';
 import 'package:mavra_frontend/features/schedule/presentation/schedule_page.dart';
@@ -12,9 +13,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(repository: _FakeScheduleRepository.full()),
-      ),
+      _host(SchedulePage(repository: _FakeScheduleRepository.full())),
     );
     await tester.pumpAndSettle();
 
@@ -66,9 +65,7 @@ void main() {
 
   testWidgets('switches between job timers and settings tabs', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(repository: _FakeScheduleRepository.full()),
-      ),
+      _host(SchedulePage(repository: _FakeScheduleRepository.full())),
     );
     await tester.pumpAndSettle();
 
@@ -104,9 +101,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SchedulePage(repository: repository)));
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -157,9 +152,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SchedulePage(repository: repository)));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('schedule-tab-job-timers')));
     await tester.pumpAndSettle();
@@ -190,9 +183,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(repository: _FakeScheduleRepository.full()),
-      ),
+      _host(SchedulePage(repository: _FakeScheduleRepository.full())),
     );
     await tester.pumpAndSettle();
 
@@ -252,9 +243,7 @@ void main() {
   ) async {
     final repository = _FakeScheduleRepository.full();
 
-    await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: repository)),
-    );
+    await tester.pumpWidget(_host(SchedulePage(repository: repository)));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('schedule-tab-settings')));
     await tester.pumpAndSettle();
@@ -284,29 +273,25 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: _SlowScheduleRepository())),
+      _host(SchedulePage(repository: _SlowScheduleRepository())),
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('正在加载自动规则...'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(repository: _FakeScheduleRepository.empty()),
-      ),
+      _host(SchedulePage(repository: _FakeScheduleRepository.empty())),
     );
     await tester.pumpAndSettle();
     expect(find.text('No product schedule configs'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(home: SchedulePage(repository: _FailingScheduleRepository())),
+      _host(SchedulePage(repository: _FailingScheduleRepository())),
     );
     await tester.pumpAndSettle();
     expect(find.text('规则加载失败。'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(repository: _FakeScheduleRepository.readOnly()),
-      ),
+      _host(SchedulePage(repository: _FakeScheduleRepository.readOnly())),
     );
     await tester.pumpAndSettle();
     expect(find.text('没有权限修改自动规则。'), findsOneWidget);
@@ -328,8 +313,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: SchedulePage(
+      _host(
+        SchedulePage(
           repository: _FakeScheduleRepository.full(),
           permissions: const {},
         ),
@@ -349,6 +334,13 @@ void main() {
     );
     expect(saveSettings.onPressed, isNull);
   });
+}
+
+Widget _host(Widget child) {
+  return MaterialApp(
+    scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+    home: child,
+  );
 }
 
 class _FakeScheduleRepository implements ScheduleRepository {

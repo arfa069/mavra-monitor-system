@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/app/mavra_app.dart';
 import 'package:mavra_frontend/core/auth/auth_repository.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 
 void main() {
   testWidgets('renders the unauthenticated login shell', (tester) async {
@@ -17,6 +18,7 @@ void main() {
     expect(find.text('Mavra'), findsOneWidget);
     expect(find.text('Login'), findsOneWidget);
     expect(find.text('Mavra watches quietly'), findsOneWidget);
+    expect(MavraNotifier.scaffoldMessengerKey.currentState, isNotNull);
   });
 
   testWidgets('skips local restore for web cookie token policy', (

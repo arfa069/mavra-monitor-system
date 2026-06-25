@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mavra_frontend/core/notifications/mavra_notifier.dart';
 import 'package:mavra_frontend/core/theme/app_theme.dart';
 import 'package:mavra_frontend/core/widgets/mavra_responsive_data_view.dart';
 import 'package:mavra_frontend/features/admin/domain/admin_models.dart';
@@ -337,6 +338,15 @@ void main() {
     expect(repository.activeUpdates[1], isFalse);
     expect(find.text('arfac'), findsOneWidget);
     expect(find.text('Disabled'), findsOneWidget);
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('Disabled arfac'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SingleChildScrollView),
+        matching: find.text('Disabled arfac'),
+      ),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const Key('admin-toggle-user-1-button')));
     await tester.pumpAndSettle();
@@ -514,8 +524,9 @@ void main() {
 
 Widget _host(Widget child) {
   return MaterialApp(
+    scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
     theme: AppTheme.dark,
-    home: Material(child: child),
+    home: Scaffold(body: Material(child: child)),
   );
 }
 
