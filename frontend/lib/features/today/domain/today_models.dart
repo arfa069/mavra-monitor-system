@@ -135,27 +135,27 @@ class TodaySnapshot {
 
   factory TodaySnapshot.quiet({String? warningMessage}) {
     return TodaySnapshot(
-      headline: '今天很安静，Mavra 会继续帮你看着。',
-      subhead: '价格、职位和家里设备都没有需要你立刻处理的变化。',
+      headline: 'All quiet today. Mavra is keeping watch.',
+      subhead: 'Prices, jobs, and home devices have no changes requiring immediate action.',
       quietScore: 92,
       attentionItems: const [],
       moduleStatuses: const [
         TodayModuleStatus(
-          label: '价格看守',
+          label: 'Price Monitor',
           state: TodayStatusState.quiet,
-          summary: '价格还没有到你设的目标。',
+          summary: 'Prices have not reached your target yet.',
           route: '/products',
         ),
         TodayModuleStatus(
-          label: '职位雷达',
+          label: 'Job Radar',
           state: TodayStatusState.quiet,
-          summary: '今天没有新的高匹配职位。',
+          summary: 'No new high-match jobs today.',
           route: '/jobs',
         ),
         TodayModuleStatus(
-          label: '家里设备',
+          label: 'Smart Home',
           state: TodayStatusState.quiet,
-          summary: '家里设备都在安静运行。',
+          summary: 'Smart Home devices are running quietly.',
           route: '/smart-home',
         ),
       ],
@@ -183,10 +183,10 @@ TodaySnapshot buildTodaySnapshot(
   final count = attentionItems.length;
 
   return TodaySnapshot(
-    headline: count == 0 ? '今天很安静，Mavra 会继续帮你看着。' : '今天只提醒 $count 件事。',
+    headline: count == 0 ? 'All quiet today. Mavra is keeping watch.' : 'Only $count things today.',
     subhead: count == 0
-        ? '价格、职位和家里设备都没有需要你立刻处理的变化。'
-        : '其他事情都在安静运行，你可以先看最值得注意的变化。',
+        ? 'Prices, jobs, and home devices have no changes requiring immediate action.'
+        : 'Everything else is running quietly. Focus on the most notable changes.',
     quietScore: _quietScore(source),
     attentionItems: attentionItems,
     moduleStatuses: [
@@ -201,18 +201,18 @@ TodaySnapshot buildTodaySnapshot(
 TodayModuleStatus _buildPriceStatus(TodaySourceData source) {
   if (source.kpi.priceDropsToday > 0) {
     return TodayModuleStatus(
-      label: '价格看守',
+      label: 'Price Monitor',
       state: TodayStatusState.attention,
-      summary: '${source.kpi.priceDropsToday} 个商品到了值得看的价位。',
+      summary: '${source.kpi.priceDropsToday} items dropped to target prices.',
       route: '/products',
     );
   }
   return TodayModuleStatus(
-    label: '价格看守',
+    label: 'Price Monitor',
     state: source.kpi.totalProducts > 0
         ? TodayStatusState.quiet
         : TodayStatusState.inactive,
-    summary: source.kpi.totalProducts > 0 ? '价格还没有到你设的目标。' : '还没有添加关注商品。',
+    summary: source.kpi.totalProducts > 0 ? 'Prices have not reached your target yet.' : 'No monitored products added yet.',
     route: '/products',
   );
 }
@@ -220,17 +220,17 @@ TodayModuleStatus _buildPriceStatus(TodaySourceData source) {
 TodayModuleStatus _buildJobStatus(TodaySourceData source) {
   if (source.kpi.matchCount > 0 || source.kpi.newJobsToday > 0) {
     return TodayModuleStatus(
-      label: '职位雷达',
+      label: 'Job Radar',
       state: TodayStatusState.attention,
       summary:
-          '${_maxInt(source.kpi.matchCount, source.kpi.newJobsToday)} 个职位值得看看。',
+          '${_maxInt(source.kpi.matchCount, source.kpi.newJobsToday)} jobs worth looking at.',
       route: '/jobs',
     );
   }
   return const TodayModuleStatus(
-    label: '职位雷达',
+    label: 'Job Radar',
     state: TodayStatusState.quiet,
-    summary: '今天没有新的高匹配职位。',
+    summary: 'No new high-match jobs today.',
     route: '/jobs',
   );
 }
@@ -238,24 +238,24 @@ TodayModuleStatus _buildJobStatus(TodaySourceData source) {
 TodayModuleStatus _buildHomeStatus(TodaySourceData source) {
   if (!source.home.configured) {
     return const TodayModuleStatus(
-      label: '家里设备',
+      label: 'Smart Home',
       state: TodayStatusState.inactive,
-      summary: '还没有连接 Home Assistant。',
+      summary: 'Home Assistant is not connected yet.',
       route: '/smart-home',
     );
   }
   if (!source.home.connected || source.home.unavailableCount > 0) {
     return TodayModuleStatus(
-      label: '家里设备',
+      label: 'Smart Home',
       state: TodayStatusState.attention,
-      summary: '${source.home.unavailableCount} 个设备需要看一下。',
+      summary: '${source.home.unavailableCount} devices require attention.',
       route: '/smart-home',
     );
   }
   return const TodayModuleStatus(
-    label: '家里设备',
+    label: 'Smart Home',
     state: TodayStatusState.quiet,
-    summary: '家里设备都在安静运行。',
+    summary: 'Smart Home devices are running quietly.',
     route: '/smart-home',
   );
 }
@@ -268,11 +268,11 @@ List<TodayAttentionItem> _buildAttentionItems(TodaySourceData source) {
       TodayAttentionItem(
         id: 'price-drop',
         kind: TodayAttentionKind.price,
-        timeLabel: '今天',
-        title: '${_firstProductName(source.products)} 到了心理价位',
-        description: '价格低于你设定的提醒条件，适合今天决定要不要买。',
+        timeLabel: 'Today',
+        title: '${_firstProductName(source.products)} reached target price',
+        description: 'Price is below your alert threshold. A good time to decide on buying.',
         metric: '-${source.kpi.priceDropsToday}',
-        actionLabel: '查看',
+        actionLabel: 'View',
         route: '/products',
       ),
     );
@@ -284,15 +284,15 @@ List<TodayAttentionItem> _buildAttentionItems(TodaySourceData source) {
       TodayAttentionItem(
         id: 'job-match',
         kind: TodayAttentionKind.job,
-        timeLabel: '稍后',
-        title: '${_firstJobName(source.jobMatches)} 值得晚点打开',
+        timeLabel: 'Later',
+        title: '${_firstJobName(source.jobMatches)} worth opening later',
         description: topMatch == null
-            ? '薪资、地点或匹配度接近你的设定。'
+            ? 'Salary, location, or match score are close to your target.'
             : _jobDescription(topMatch),
         metric: topMatch == null
             ? '${source.kpi.matchCount}'
             : '${topMatch.score.round()}',
-        actionLabel: '收藏',
+        actionLabel: 'Save',
         route: '/jobs',
       ),
     );
@@ -304,11 +304,11 @@ List<TodayAttentionItem> _buildAttentionItems(TodaySourceData source) {
       TodayAttentionItem(
         id: 'home-attention',
         kind: TodayAttentionKind.home,
-        timeLabel: '早晨',
-        title: '家里连接需要看一下',
-        description: 'Home Assistant 状态不是完全正常，建议确认连接和设备状态。',
+        timeLabel: 'Morning',
+        title: 'Home connection needs attention',
+        description: 'Home Assistant is not fully online. Please check connection and device statuses.',
         metric: '${source.home.unavailableCount}',
-        actionLabel: '看家里',
+        actionLabel: 'View Home',
         route: '/smart-home',
       ),
     );
@@ -327,17 +327,17 @@ int _quietScore(TodaySourceData source) {
 }
 
 String _firstProductName(List<TodayProductSignal> products) {
-  return products.isEmpty ? '一个关注商品' : products.first.title ?? '一个关注商品';
+  return products.isEmpty ? 'A monitored product' : products.first.title ?? 'A monitored product';
 }
 
 String _firstJobName(List<TodayJobSignal> matches) {
-  return matches.isEmpty ? '一个职位' : matches.first.title ?? '一个职位';
+  return matches.isEmpty ? 'A job' : matches.first.title ?? 'A job';
 }
 
 String _jobDescription(TodayJobSignal match) {
   final company = match.company;
   if (company == null || company.isEmpty) {
-    return '薪资、地点或匹配度接近你的设定。';
+    return 'Salary, location, or match score are close to your target.';
   }
   final location = match.location;
   if (location == null || location.isEmpty) {

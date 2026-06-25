@@ -41,20 +41,20 @@ void main() {
       ),
     );
 
-    expect(snapshot.headline, '今天只提醒 3 件事。');
-    expect(snapshot.subhead, '其他事情都在安静运行，你可以先看最值得注意的变化。');
+    expect(snapshot.headline, 'Only 3 things today.');
+    expect(snapshot.subhead, 'Everything else is running quietly. Focus on the most notable changes.');
     expect(snapshot.quietScore, 30);
     expect(snapshot.attentionItems.map((item) => item.kind), [
       TodayAttentionKind.price,
       TodayAttentionKind.job,
       TodayAttentionKind.home,
     ]);
-    expect(snapshot.attentionItems.first.title, '米家电饭煲 到了心理价位');
+    expect(snapshot.attentionItems.first.title, '米家电饭煲 reached target price');
     expect(snapshot.attentionItems[1].description, 'Mavra Labs · 上海');
     expect(snapshot.moduleStatuses.map((status) => status.label), [
-      '价格看守',
-      '职位雷达',
-      '家里设备',
+      'Price Monitor',
+      'Job Radar',
+      'Smart Home',
     ]);
     expect(snapshot.moduleStatuses.last.state, TodayStatusState.attention);
   });
@@ -80,7 +80,7 @@ void main() {
       ),
     );
 
-    expect(snapshot.headline, '今天很安静，Mavra 会继续帮你看着。');
+    expect(snapshot.headline, 'All quiet today. Mavra is keeping watch.');
     expect(snapshot.attentionItems, isEmpty);
     expect(
       snapshot.moduleStatuses.map((status) => status.state),
@@ -102,8 +102,8 @@ void main() {
 
     final snapshot = await repository.loadToday();
 
-    expect(snapshot.headline, '今天只提醒 3 件事。');
-    expect(snapshot.attentionItems.first.title, '米家电饭煲 到了心理价位');
+    expect(snapshot.headline, 'Only 3 things today.');
+    expect(snapshot.attentionItems.first.title, '米家电饭煲 reached target price');
 
     final productsRequest = requests.singleWhere(
       (request) => request.path == '/api/v1/products',
@@ -136,14 +136,14 @@ void main() {
 
       final snapshot = await repository.loadToday();
 
-      expect(snapshot.warningMessage, '今天的简报没有完全同步，稍后会再试。');
-      expect(snapshot.headline, '今天只提醒 3 件事。');
+      expect(snapshot.warningMessage, "Today's briefing is not fully synced; will retry shortly.");
+      expect(snapshot.headline, 'Only 3 things today.');
       expect(snapshot.attentionItems.map((item) => item.kind), [
         TodayAttentionKind.price,
         TodayAttentionKind.job,
         TodayAttentionKind.home,
       ]);
-      expect(snapshot.attentionItems.first.title, '一个关注商品 到了心理价位');
+      expect(snapshot.attentionItems.first.title, 'A monitored product reached target price');
     },
   );
 }

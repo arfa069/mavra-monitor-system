@@ -3,7 +3,7 @@ import 'package:mavra_api/mavra_api.dart' as generated;
 import '../../../core/config/app_config.dart';
 import '../domain/today_models.dart';
 
-const _partialWarning = '今天的简报没有完全同步，稍后会再试。';
+const _partialWarning = "Today's briefing is not fully synced; will retry shortly.";
 
 class GeneratedTodayRepository implements TodayRepository {
   GeneratedTodayRepository({

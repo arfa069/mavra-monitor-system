@@ -22,16 +22,16 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('今天'), findsWidgets);
+    expect(find.text('Today'), findsWidgets);
     expect(find.text('Quiet score 64'), findsOneWidget);
-    expect(find.text('今天只提醒 2 件事。'), findsOneWidget);
-    expect(find.text('其他事情都在安静运行，你可以先看最值得注意的变化。'), findsOneWidget);
-    expect(find.text('值得看'), findsOneWidget);
-    expect(find.text('米家电饭煲 到了心理价位'), findsOneWidget);
-    expect(find.text('查看'), findsOneWidget);
-    expect(find.text('今天的状态'), findsOneWidget);
-    expect(find.text('价格看守'), findsOneWidget);
-    expect(find.text('需要看看'), findsOneWidget);
+    expect(find.text('Only 2 things today.'), findsOneWidget);
+    expect(find.text('Everything else is running quietly. Focus on the most notable changes.'), findsOneWidget);
+    expect(find.text('Worth a Look'), findsOneWidget);
+    expect(find.text('米家电饭煲 reached target price'), findsOneWidget);
+    expect(find.text('View'), findsOneWidget);
+    expect(find.text('Status Today'), findsOneWidget);
+    expect(find.text('Price Monitor'), findsNWidgets(2));
+    expect(find.text('Needs attention'), findsOneWidget);
   });
 
   testWidgets('does not render the old nested Today navigation scaffold', (
@@ -89,14 +89,14 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('今天很安静，Mavra 会继续帮你看着。'), 400);
-    await tester.scrollUntilVisible(find.text('没有需要你立刻处理的事。'), 400);
+    await tester.scrollUntilVisible(find.text('All quiet today. Mavra is keeping watch.'), 400);
+    await tester.scrollUntilVisible(find.text('Nothing requires your immediate attention.'), 400);
 
-    expect(find.text('今天很安静，Mavra 会继续帮你看着。'), findsOneWidget);
-    expect(find.text('没有需要你立刻处理的事。'), findsOneWidget);
+    expect(find.text('All quiet today. Mavra is keeping watch.'), findsOneWidget);
+    expect(find.text('Nothing requires your immediate attention.'), findsOneWidget);
     await tester.drag(find.byType(Scrollable), const Offset(0, -900));
     await tester.pumpAndSettle();
-    expect(find.text('安静运行'), findsWidgets);
+    expect(find.text('Running quietly'), findsWidgets);
   });
 
   testWidgets('summary uses adapted flat card chrome', (tester) async {
@@ -138,9 +138,9 @@ void main() {
     expect(find.byKey(const Key('today-showcase-hero')), findsOneWidget);
     expect(find.byKey(const Key('today-product-matrix')), findsOneWidget);
     expect(find.text('Mavra Monitor System'), findsOneWidget);
-    expect(find.text('Price Monitor'), findsOneWidget);
-    expect(find.text('Job Radar'), findsOneWidget);
-    expect(find.text('Smart Home'), findsOneWidget);
+    expect(find.text('Price Monitor'), findsNWidgets(2));
+    expect(find.text('Job Radar'), findsNWidgets(2));
+    expect(find.text('Smart Home'), findsNWidgets(2));
   });
 
   testWidgets('uses a light hero surface on the default light theme', (
@@ -178,7 +178,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('正在整理今天的节奏...'), findsOneWidget);
+    expect(find.text("Gathering today's rhythm..."), findsOneWidget);
 
     completer.complete(_quietSnapshot());
   });
@@ -191,11 +191,11 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    expect(find.text('今天的简报没有完全同步，稍后会再试。'), findsOneWidget);
+    expect(find.text("Today's briefing is not fully synced; will retry shortly."), findsOneWidget);
 
-    await tester.scrollUntilVisible(find.text('今天很安静，Mavra 会继续帮你看着。'), 400);
+    await tester.scrollUntilVisible(find.text('All quiet today. Mavra is keeping watch.'), 400);
 
-    expect(find.text('今天很安静，Mavra 会继续帮你看着。'), findsOneWidget);
+    expect(find.text('All quiet today. Mavra is keeping watch.'), findsOneWidget);
   });
 
   testWidgets('navigates when an attention action is tapped', (tester) async {
@@ -206,10 +206,10 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('查看'), 400);
-    await tester.ensureVisible(find.text('查看'));
+    await tester.scrollUntilVisible(find.text('View'), 400);
+    await tester.ensureVisible(find.text('View'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看'));
+    await tester.tap(find.text('View'));
     await tester.pumpAndSettle();
 
     expect(find.text('Products page'), findsOneWidget);
@@ -245,48 +245,48 @@ Widget _buildTodayHarness({required TodayRepository repository}) {
 
 TodaySnapshot _attentionSnapshot() {
   return const TodaySnapshot(
-    headline: '今天只提醒 2 件事。',
-    subhead: '其他事情都在安静运行，你可以先看最值得注意的变化。',
+    headline: 'Only 2 things today.',
+    subhead: 'Everything else is running quietly. Focus on the most notable changes.',
     quietScore: 64,
     attentionItems: [
       TodayAttentionItem(
         id: 'price-drop',
         kind: TodayAttentionKind.price,
-        timeLabel: '今天',
-        title: '米家电饭煲 到了心理价位',
-        description: '价格低于你设定的提醒条件，适合今天决定要不要买。',
+        timeLabel: 'Today',
+        title: '米家电饭煲 reached target price',
+        description: 'Price is below your alert threshold. A good time to decide on buying.',
         metric: '-2',
-        actionLabel: '查看',
+        actionLabel: 'View',
         route: '/products',
       ),
       TodayAttentionItem(
         id: 'job-match',
         kind: TodayAttentionKind.job,
-        timeLabel: '稍后',
-        title: 'Flutter 工程师 值得晚点打开',
+        timeLabel: 'Later',
+        title: 'Flutter 工程师 worth opening later',
         description: 'Mavra Labs · 上海',
         metric: '92',
-        actionLabel: '收藏',
+        actionLabel: 'Save',
         route: '/jobs',
       ),
     ],
     moduleStatuses: [
       TodayModuleStatus(
-        label: '价格看守',
+        label: 'Price Monitor',
         state: TodayStatusState.attention,
-        summary: '2 个商品到了值得看的价位。',
+        summary: '2 items dropped to target prices.',
         route: '/products',
       ),
       TodayModuleStatus(
-        label: '职位雷达',
+        label: 'Job Radar',
         state: TodayStatusState.quiet,
-        summary: '今天没有新的高匹配职位。',
+        summary: 'No new high-match jobs today.',
         route: '/jobs',
       ),
       TodayModuleStatus(
-        label: '家里设备',
+        label: 'Smart Home',
         state: TodayStatusState.quiet,
-        summary: '家里设备都在安静运行。',
+        summary: 'Smart Home devices are running quietly.',
         route: '/smart-home',
       ),
     ],

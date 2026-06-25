@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/today_models.dart';
 
-const _loadWarning = '今天的简报没有完全同步，稍后会再试。';
+const _loadWarning = "Today's briefing is not fully synced; will retry shortly.";
 
 class TodayPage extends StatefulWidget {
   const TodayPage({super.key, required this.repository});
@@ -57,7 +57,7 @@ class _TodayLoading extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('正在整理今天的节奏...'),
+          Text("Gathering today's rhythm..."),
         ],
       ),
     );
@@ -347,21 +347,21 @@ class _TodayProductMatrix extends StatelessWidget {
     final cards = [
       _ShowcaseCardData(
         title: 'Price Monitor',
-        summary: _summaryFor('价格看守', statuses),
+        summary: _summaryFor('Price Monitor', statuses),
         route: '/products',
         color: AppTheme.brandCoral,
         icon: Icons.trending_down_rounded,
       ),
       _ShowcaseCardData(
         title: 'Job Radar',
-        summary: _summaryFor('职位雷达', statuses),
+        summary: _summaryFor('Job Radar', statuses),
         route: '/jobs',
         color: AppTheme.brandPurple,
         icon: Icons.work_rounded,
       ),
       _ShowcaseCardData(
         title: 'Smart Home',
-        summary: _summaryFor('家里设备', statuses),
+        summary: _summaryFor('Smart Home', statuses),
         route: '/smart-home',
         color: AppTheme.brandBlue,
         icon: Icons.home_rounded,
@@ -487,7 +487,7 @@ class _DailySummary extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '今天',
+                    'Today',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
@@ -562,7 +562,7 @@ class _AttentionQueue extends StatelessWidget {
       return const _TodayCard(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('没有需要你立刻处理的事。'),
+          child: Text('Nothing requires your immediate attention.'),
         ),
       );
     }
@@ -572,7 +572,7 @@ class _AttentionQueue extends StatelessWidget {
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: Text('值得看', style: Theme.of(context).textTheme.titleLarge),
+          child: Text('Worth a Look', style: Theme.of(context).textTheme.titleLarge),
         ),
         const SizedBox(height: 12),
         for (var index = 0; index < items.length; index++) ...[
@@ -711,7 +711,7 @@ class _QuietStatusPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('今天的状态', style: Theme.of(context).textTheme.titleLarge),
+          Text('Status Today', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           for (var index = 0; index < statuses.length; index++) ...[
             _StatusRow(status: statuses[index]),
@@ -828,9 +828,9 @@ class _TodayCard extends StatelessWidget {
 
 String _statusText(TodayStatusState status) {
   return switch (status) {
-    TodayStatusState.attention => '需要看看',
-    TodayStatusState.inactive => '未启用',
-    TodayStatusState.quiet => '安静运行',
+    TodayStatusState.attention => 'Needs attention',
+    TodayStatusState.inactive => 'Inactive',
+    TodayStatusState.quiet => 'Running quietly',
   };
 }
 
