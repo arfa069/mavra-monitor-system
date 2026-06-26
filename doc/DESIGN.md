@@ -71,7 +71,9 @@ scale type continuously with viewport width.
 
 `/today` is the strongest MiniMax-style surface: light hero, oversized brand
 headline, and a three-card product matrix for Price Monitor, Job Radar, and
-Smart Home. Products, Jobs, Smart Home, Events, Schedule, Admin, and Analytics
+Smart Home. The `/today` and `/dashboard` (Analytics) pages are fully translated to
+English to align with the MiniMax stark design aesthetic and maintain clean presentation.
+Products, Jobs, Smart Home, Events, Schedule, Admin, and Analytics
 use the shared Brand & Accent banner at the top, then return to scannable
 tools.
 

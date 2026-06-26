@@ -114,7 +114,7 @@ GoRoute(
 
 `AuthController` 继承自 `ChangeNotifier`，是全局认证的单一真相来源：
 - 维护 `isAuthenticated`、`currentUser` (包含 username, role, permissions) 等关键变量。
-- **启动恢复 (Session Restore)**：Web 端由浏览器自动携带 HttpOnly Cookie，并在需要时通过 refresh Cookie 恢复会话；原生 Windows/Android/iOS 端从平台安全存储读取会话，先校验本地过期时间，过期则调用 `POST /api/v1/auth/refresh` 轮换令牌。refresh 失败或本地会话无效时会清空本地状态并触发路由回到 `/login`。
+- **启动恢复 (Session Restore)**：Web 端由浏览器自动携带 HttpOnly Cookie，并在需要时通过 refresh Cookie 恢复会话；原生 Windows/Android/iOS 端从平台安全存储读取会话，先校验本地过期时间，过期则调用 `POST /api/v1/auth/refresh` 轮换令牌。refresh 失败或本地会话无效时会通过调用 `authRepository.logout()` 清除本地会话状态，并触发路由回到 `/login`。
 - **权限判定**：暴露 `hasPermission`、`hasAnyPermission` 等方法，在 UI 层级控制各种操作性按钮（如 "Crawl Now"、"Save"）的启用与禁用状态。
 
 ### 4.2 业务数据流动模式
@@ -141,7 +141,7 @@ GoRoute(
 2. **401 无感刷新 (Auto-Refresh)**：当响应返回 401 且不是登录接口时，Dio 响应拦截器将拦截当前请求，首先静默调用 `POST /api/v1/auth/refresh`。
    - 刷新成功：自动保存最新的 Token 或更新 Cookie，并使用原始配置重新发起此前失败的网络请求，对用户端完全透明。
    - 刷新期间的并发 401 请求：会自动进入待重试队列 (`failedQueue`)，刷新完成后统一重试，避免多次重复请求刷新接口。
-   - 刷新失败：清除本地会话，重定向到 `/login`。
+   - 刷新失败：调用 `authRepository.logout()` 清除本地会话状态，并重定向到 `/login`。
 
 ## 6. 响应式布局设计 (MavraShell)
 
