@@ -54,6 +54,7 @@ class MavraApiClient {
 
     final refreshed = await _refreshOnce();
     if (!refreshed) {
+      await authRepository.logout();
       handler.next(error);
       return;
     }
