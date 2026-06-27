@@ -42,6 +42,7 @@
 ### 运维 / 部署
 
 - [reference-config](reference-config.md) — 完整环境变量
+- [deployment-progress](deployment-progress.md) — 当前部署进度记录
 - [howto-deploy-worker](howto-deploy-worker.md) — 独立 worker 进程
 - [howto-debug-crawl](howto-debug-crawl.md) — 排查爬虫失败
 

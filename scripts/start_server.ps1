@@ -77,6 +77,63 @@ function Close-ServiceWindows {
     }
 }
 
+function Test-PythonImports {
+    param([string]$PythonExe)
+
+    & $PythonExe -c "import sqlalchemy, uvicorn" *> $null
+    return $LASTEXITCODE -eq 0
+}
+
+function Ensure-BackendPython {
+    param(
+        [string]$PythonExe,
+        [string]$DefaultPythonExe,
+        [string]$BackendDir
+    )
+
+    $usesDefaultPython = [string]::IsNullOrWhiteSpace($PythonExe) -or ($PythonExe -eq $DefaultPythonExe)
+    if ([string]::IsNullOrWhiteSpace($PythonExe)) {
+        $PythonExe = $DefaultPythonExe
+    }
+
+    $pythonExists = Test-Path -LiteralPath $PythonExe
+    $pythonReady = $pythonExists -and (Test-PythonImports -PythonExe $PythonExe)
+
+    if (-not $pythonReady) {
+        if (-not $usesDefaultPython) {
+            throw "Python executable is missing backend dependencies: $PythonExe. Run 'cd backend; uv sync --extra dev' or pass -PythonExe pointing to a prepared venv."
+        }
+
+        $uvCommand = Get-Command uv -ErrorAction SilentlyContinue
+        if (-not $uvCommand) {
+            throw "Python executable not found or missing backend dependencies: $PythonExe. 'uv' was not found, so run 'cd backend; uv sync --extra dev' manually first."
+        }
+
+        Write-Host "[Backend] Syncing backend environment with uv..." -ForegroundColor Cyan
+        Push-Location $BackendDir
+        try {
+            & $uvCommand.Source sync --extra dev
+            if ($LASTEXITCODE -ne 0) {
+                throw "uv sync --extra dev failed."
+            }
+        }
+        finally {
+            Pop-Location
+        }
+
+        if (-not (Test-Path -LiteralPath $DefaultPythonExe)) {
+            throw "Backend Python executable still not found after uv sync: $DefaultPythonExe"
+        }
+        if (-not (Test-PythonImports -PythonExe $DefaultPythonExe)) {
+            throw "Backend virtual environment is still missing sqlalchemy or uvicorn after uv sync."
+        }
+
+        $PythonExe = $DefaultPythonExe
+    }
+
+    return $PythonExe
+}
+
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Mavra Flutter Launcher" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
@@ -89,9 +146,7 @@ if ([string]::IsNullOrWhiteSpace($PythonExe)) {
     $PythonExe = $defaultPythonExe
 }
 
-if (-not (Test-Path -LiteralPath $PythonExe)) {
-    throw "Python executable not found: $PythonExe. Run 'cd backend; uv sync --extra dev' first, or pass -PythonExe explicitly."
-}
+$PythonExe = Ensure-BackendPython -PythonExe $PythonExe -DefaultPythonExe $defaultPythonExe -BackendDir $backendDir
 
 if ($CrawlerConcurrency -lt 1) {
     throw "CrawlerConcurrency must be >= 1"
