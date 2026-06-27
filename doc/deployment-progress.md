@@ -53,6 +53,28 @@ Nginx 配置文件位于：
 
 这一步替换了原先的 `python -m http.server 3000` 静态托管，所以现在登录 POST 不会再命中静态文件服务器。
 
+## 手机一键启动
+
+手机上的常用启动方式已经整理成脚本：
+
+```bash
+cd ~/apps/mavra-monitor-system
+bash scripts/start_termux_stack.sh
+```
+
+这个脚本会：
+
+- 用 `tmux` 启动 Redis
+- 用 `tmux` 启动 PostgreSQL
+- 用 `tmux` 启动后端 `uvicorn`
+- 用 `tmux` 启动 Next.js 博客
+- 校验并重载 Nginx
+
+说明：
+
+- Flutter 主前端不是独立常驻进程，它是静态构建产物，由 Nginx 直接提供。
+- 如果 Flutter 或博客的构建产物缺失，脚本会提前报错并提示先在 Windows 上重新构建。
+
 ### Next.js 公共博客
 
 构建命令（Windows）：
