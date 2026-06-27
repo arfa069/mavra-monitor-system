@@ -7,6 +7,7 @@
 
 后端已经在手机服务器上跑起来，并且通过健康检查验证成功。
 Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，并能通过浏览器正常打开。
+Flutter 主前端已切回 hash 路由，避免在 Termux 静态托管下刷新深层路径时出现 404。
 
 ## 前端构建与运行
 
@@ -71,6 +72,7 @@ tmux new-session -d -s mavra-blog 'cd /data/data/com.termux/files/home/apps/mavr
    - `GET /health`
 8. 补齐前端构建与运行命令，并修复博客静态资源加载路径：
    - Flutter Web 使用 `flutter build web --dart-define=API_BASE_URL=/api/v1`
+   - Flutter Web 回退到默认 hash 路由，刷新时不再依赖服务器回退规则
    - 博客使用 `npm run build` 后在 `standalone` 目录运行 `node .next/standalone/server.js`
    - 博客静态资源需要同步到 `.next/standalone/.next/static`
 
@@ -81,7 +83,7 @@ tmux new-session -d -s mavra-blog 'cd /data/data/com.termux/files/home/apps/mavr
 - PostgreSQL 和 Redis 连接正常
 - 当前后端服务已在远端常驻运行
 - Flutter Web 构建产物已上传到手机服务器
-- 前端静态站点可通过 `http://192.168.1.13:3000` 访问
+- 前端静态站点可通过 `http://192.168.1.13:3000` 访问，刷新 `/#/today` 等深层路由不会再出现 404
 - 后端已放行 `http://192.168.1.13:3000` 的 CORS 来源
 - Next.js 博客已在手机服务器上构建并启动
 - 博客可通过 `http://192.168.1.13:3001/blog` 访问
