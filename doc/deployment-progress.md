@@ -36,6 +36,23 @@ Nginx 配置文件位于：
 
 当前这份配置让 3000 端口直接提供 Flutter Web 静态文件，并把 `/api/v1/` 反代到 `127.0.0.1:8000`，所以登录请求会到真正的后端，而不是打到静态文件服务器。
 
+## Nginx 接管
+
+手机服务器上的 Nginx 已经从默认配置切到统一入口模式，配置文件位于：
+
+```text
+/data/data/com.termux/files/usr/etc/nginx/nginx.conf
+```
+
+当前部署方式是：
+
+- `3000` 作为公网入口
+- `/` 提供 Flutter Web
+- `/api/v1/` 反代到后端 `127.0.0.1:8000`
+- `/blog`、`/_next`、`/blog-media`、`/robots.txt`、`/sitemap.xml` 反代到博客服务链路
+
+这一步替换了原先的 `python -m http.server 3000` 静态托管，所以现在登录 POST 不会再命中静态文件服务器。
+
 ### Next.js 公共博客
 
 构建命令（Windows）：
