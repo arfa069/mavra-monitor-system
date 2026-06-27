@@ -8,6 +8,51 @@
 后端已经在手机服务器上跑起来，并且通过健康检查验证成功。
 Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，并能通过浏览器正常打开。
 
+## 前端构建与运行
+
+### Flutter 主前端
+
+构建命令（Windows）：
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
+flutter build web --dart-define=API_BASE_URL=/api/v1
+```
+
+运行命令（Termux，建议放进 `tmux` 常驻）：
+
+```bash
+tmux new-session -d -s mavra-frontend 'cd /data/data/com.termux/files/home/apps/mavra-monitor-system/frontend/build/web && python -m http.server 3000 --bind 0.0.0.0'
+```
+
+### Next.js 公共博客
+
+构建命令（Windows）：
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system/blog-frontend
+npm ci
+$env:BLOG_PUBLIC_BASE_URL="http://192.168.1.13:3001"
+$env:BLOG_API_BASE_URL="http://127.0.0.1:8000/api/v1"
+$env:BLOG_BACKEND_ORIGIN="http://127.0.0.1:8000"
+$env:NEXT_PUBLIC_BLOG_BASE_URL="http://192.168.1.13:3001"
+npm run build
+```
+
+运行命令（Termux，建议放进 `tmux` 常驻）：
+
+```bash
+cd /data/data/com.termux/files/home/apps/mavra-monitor-system/blog-frontend
+cp -r .next/static .next/standalone/.next/
+if [ -d public ]; then cp -r public .next/standalone/; fi
+tmux new-session -d -s mavra-blog 'cd /data/data/com.termux/files/home/apps/mavra-monitor-system/blog-frontend/.next/standalone && env NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3001 BLOG_PUBLIC_BASE_URL=http://192.168.1.13:3001 BLOG_API_BASE_URL=http://127.0.0.1:8000/api/v1 BLOG_BACKEND_ORIGIN=http://127.0.0.1:8000 NEXT_PUBLIC_BLOG_BASE_URL=http://192.168.1.13:3001 node server.js'
+```
+
+说明：
+
+- 博客刚开始只跑通了 HTML，`/_next/static/...` 一度返回 404。
+- 现已把 `.next/static` 补进 `standalone` 运行目录，所以样式和脚本都能正常加载。
+
 ## 已完成的事情
 
 1. 通过 SSH 连上手机服务器：
@@ -24,6 +69,10 @@ Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，
    - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
 7. 用健康检查验证：
    - `GET /health`
+8. 补齐前端构建与运行命令，并修复博客静态资源加载路径：
+   - Flutter Web 使用 `flutter build web --dart-define=API_BASE_URL=/api/v1`
+   - 博客使用 `npm run build` 后在 `standalone` 目录运行 `node .next/standalone/server.js`
+   - 博客静态资源需要同步到 `.next/standalone/.next/static`
 
 ## 结果
 
@@ -37,6 +86,7 @@ Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，
 - Next.js 博客已在手机服务器上构建并启动
 - 博客可通过 `http://192.168.1.13:3001/blog` 访问
 - 后端已放行 `http://192.168.1.13:3001` 的 CORS 来源
+- 博客的 CSS 和 JS 静态资源现在可以正常加载，不再出现 `/_next/static` 404
 
 ## 说明
 
