@@ -404,7 +404,7 @@ class TestCrawlTaskRunnerIntegration:
             AsyncMock(return_value=[SimpleNamespace(id=99, platform="jd")]),
         )
         monkeypatch.setattr(
-            "app.domains.crawling.service.crawl_one_opencli",
+            "app.domains.crawling.service.crawl_one_product",
             AsyncMock(side_effect=ValueError("network error")),
         )
 

@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     crawler_headless: bool = True
     product_crawl_concurrency: int = Field(default=1, ge=1)
+    product_crawl_engine: str = "opencli"
+    firecrawl_api_url: str = "https://api.firecrawl.dev"
+    firecrawl_api_key: str = ""
+    firecrawl_timeout_seconds: float = 60.0
+    firecrawl_wait_for_ms: int = 2000
+    firecrawl_profile_name: str = ""
 
     # Auth cookie settings
     auth_access_cookie_name: str = "pm_access_token"

@@ -95,7 +95,7 @@ class CrawlTaskRunner:
         async def crawl_task(product) -> dict:
             async with sem:
                 try:
-                    return await crawling_service.crawl_one_opencli(
+                    return await crawling_service.crawl_one_product(
                         product_id=product.id, platform=product.platform
                     )
                 except Exception as exc:

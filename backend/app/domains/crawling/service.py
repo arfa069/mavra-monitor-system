@@ -154,6 +154,52 @@ async def crawl_one_opencli(
         return {"status": "error", "product_id": product_id, "reason": "crawl failed"}
 
 
+async def crawl_one_firecrawl(
+    *,
+    product_id: int,
+    platform: str,
+) -> dict:
+    """Crawl a single product via Firecrawl Cloud."""
+    try:
+        async with AsyncSessionLocal() as db:
+            product = await repository.get_product(db, product_id=product_id)
+            if not product or not product.active:
+                return {"status": "skipped", "product_id": product_id}
+
+            from app.platforms.firecrawl_product import crawl_product_via_firecrawl
+
+            firecrawl_result = await crawl_product_via_firecrawl(product.url, platform)
+            if firecrawl_result.success and firecrawl_result.price:
+                result_data = {
+                    "success": True,
+                    "price": firecrawl_result.price,
+                    "currency": firecrawl_result.currency,
+                    "title": firecrawl_result.title or "",
+                }
+            else:
+                result_data = {
+                    "success": False,
+                    "error": firecrawl_result.error or "Firecrawl failed",
+                }
+
+            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
+    except Exception:
+        logger.exception("crawl_one_firecrawl failed for product %s", product_id)
+        return {"status": "error", "product_id": product_id, "reason": "crawl failed"}
+
+
+async def crawl_one_product(
+    *,
+    product_id: int,
+    platform: str,
+) -> dict:
+    """Crawl a single product using the configured product engine."""
+    engine = settings.product_crawl_engine.lower().strip()
+    if engine == "firecrawl":
+        return await crawl_one_firecrawl(product_id=product_id, platform=platform)
+    return await crawl_one_opencli(product_id=product_id, platform=platform)
+
+
 async def crawl_one(product_id: int) -> dict:
     """Core crawl logic, run in the same event loop as the caller.
 

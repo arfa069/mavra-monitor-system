@@ -110,7 +110,7 @@ async def test_runner_executes_product_task(monkeypatch):
         AsyncMock(return_value=[SimpleNamespace(id=10, platform="jd"), SimpleNamespace(id=11, platform="jd")]),
     )
     monkeypatch.setattr(
-        "app.domains.crawling.service.crawl_one_opencli",
+        "app.domains.crawling.service.crawl_one_product",
         AsyncMock(side_effect=[
             {"status": "success", "product_id": 10},
             {"status": "error", "product_id": 11, "error": "blocked"},
@@ -137,7 +137,7 @@ async def test_runner_limits_product_concurrency_to_three(monkeypatch):
         AsyncMock(return_value=[SimpleNamespace(id=i, platform="jd") for i in range(6)]),
     )
     monkeypatch.setattr(
-        "app.domains.crawling.service.crawl_one_opencli",
+        "app.domains.crawling.service.crawl_one_product",
         AsyncMock(side_effect=lambda **kw: {"status": "success", "product_id": kw["product_id"]}),
     )
 
@@ -170,7 +170,7 @@ async def test_runner_reports_product_progress(monkeypatch):
         fake_get_active_products,
     )
     monkeypatch.setattr(
-        "app.domains.crawling.service.crawl_one_opencli",
+        "app.domains.crawling.service.crawl_one_product",
         AsyncMock(return_value={"status": "success", "product_id": 1}),
     )
 
@@ -200,7 +200,7 @@ async def test_runner_product_concurrency_behaviors(monkeypatch):
     )
 
     crawl_mock = AsyncMock(side_effect=lambda **kw: {"status": "success", "product_id": kw["product_id"]})
-    monkeypatch.setattr("app.domains.crawling.service.crawl_one_opencli", crawl_mock)
+    monkeypatch.setattr("app.domains.crawling.service.crawl_one_product", crawl_mock)
 
     task = create_task("manual", user_id=1, entity_type="crawl_task")
     result = await CrawlTaskRunner().run_all_products(task)
@@ -217,7 +217,7 @@ async def test_runner_product_concurrency_behaviors(monkeypatch):
         {"status": "success", "product_id": 2},
         {"status": "error", "product_id": 3, "reason": "blocked"},
     ])
-    monkeypatch.setattr("app.domains.crawling.service.crawl_one_opencli", crawl_mock_partial)
+    monkeypatch.setattr("app.domains.crawling.service.crawl_one_product", crawl_mock_partial)
 
     task2 = create_task("manual", user_id=1, entity_type="crawl_task")
     result2 = await CrawlTaskRunner().run_all_products(task2)
@@ -227,7 +227,7 @@ async def test_runner_product_concurrency_behaviors(monkeypatch):
 
     # 3. Test All Failure
     crawl_mock_failed = AsyncMock(side_effect=Exception("network_down"))
-    monkeypatch.setattr("app.domains.crawling.service.crawl_one_opencli", crawl_mock_failed)
+    monkeypatch.setattr("app.domains.crawling.service.crawl_one_product", crawl_mock_failed)
 
     task3 = create_task("manual", user_id=1, entity_type="crawl_task")
     result3 = await CrawlTaskRunner().run_all_products(task3)
