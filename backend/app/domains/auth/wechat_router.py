@@ -18,7 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.audit import log_audit_from_request
-from app.core.auth_cookies import set_auth_cookies, set_web_refresh_cookie
+from app.core.auth_cookies import (
+    refresh_cookie_max_age,
+    set_auth_cookies,
+    set_web_refresh_cookie,
+)
 from app.core.permissions import get_role_permissions
 from app.core.redis_client import get_redis
 from app.core.security import (
@@ -26,10 +30,10 @@ from app.core.security import (
     create_access_token_sid,
     create_csrf_token,
     create_refresh_token,
-    create_session,
     get_access_token_expires_in_seconds,
     get_password_hash,
     parse_device,
+    replace_user_session,
 )
 from app.database import get_db
 from app.domains.auth import service as auth_service
@@ -178,7 +182,7 @@ async def _create_wechat_auth_session(
     device = parse_device(request.headers.get("user-agent", ""))
     ip_address = request.client.host if request.client else ""
 
-    session = await create_session(
+    session = await replace_user_session(
         user_id=user.id,
         refresh_token=refresh_token,
         device=device,
@@ -194,7 +198,16 @@ async def _create_wechat_auth_session(
     )
     csrf_token = create_csrf_token()
 
-    set_auth_cookies(response, access_token, refresh_token, csrf_token)
+    set_auth_cookies(
+        response,
+        access_token,
+        refresh_token,
+        csrf_token,
+        refresh_max_age=refresh_cookie_max_age(
+            getattr(session, "refresh_expires_at", None),
+            getattr(session, "last_active_at", None),
+        ),
+    )
 
     permissions = await get_role_permissions(db, user.role)
     return UserResponse(
@@ -220,7 +233,7 @@ async def _create_wechat_token_session(
     device = parse_device(request.headers.get("user-agent", ""))
     ip_address = request.client.host if request.client else ""
 
-    session = await create_session(
+    session = await replace_user_session(
         user_id=user.id,
         refresh_token=refresh_token,
         device=device,
@@ -235,7 +248,14 @@ async def _create_wechat_token_session(
         session_id=session.id,
     )
     if client_kind == LoginClientKind.web:
-        set_web_refresh_cookie(response, refresh_token)
+        set_web_refresh_cookie(
+            response,
+            refresh_token,
+            max_age=refresh_cookie_max_age(
+                getattr(session, "refresh_expires_at", None),
+                getattr(session, "last_active_at", None),
+            ),
+        )
 
     permissions = await get_role_permissions(db, user.role)
     return AuthSessionResponse(

@@ -1,11 +1,11 @@
-# 认证授权设计：Cookie-first / JWT / CSRF / RBAC / ACL
+# 认证授权设计：Token-first Web / JWT / CSRF / RBAC / ACL
 
 > 解释**为什么**这套认证是这种形状，以及它换来 / 牺牲了什么。
 > 适用：所有要改认证或加权限的人。
 
 ## 一句话
 
-> 我们用 **Cookie-first + 短 access JWT + 长 refresh + RBAC + 资源 ACL + 审计**这套「政府级」组合，是因为这系统要管**多用户 + 真实凭证（HA token）+ 受限资源（爬虫 profile）**。
+> 我们用 **短 access JWT + 1 小时空闲会话 + HttpOnly refresh + RBAC + 资源 ACL + 审计**这套「政府级」组合，是因为这系统要管**多用户 + 真实凭证（HA token）+ 受限资源（爬虫 profile）**。
 
 ## 为什么不只用一个角色判断
 
@@ -26,25 +26,25 @@
 
 `admin` 角色自动带 `user:read` / `user:manage` / `config:read` / `config:write` / `smart_home:*`；但**不带** `product:*` —— admin 不应该能替人改商品。
 
-## Cookie-first vs Bearer
+## Token-first Web vs Bearer
 
 |              | Cookie                            | Bearer                       |
 | ------------ | --------------------------------- | ---------------------------- |
-| 前端         | `withCredentials: true` 自动带    | 手动存 localStorage / memory |
+| 前端         | HttpOnly refresh cookie 自动带    | access token 存内存并手动发  |
 | CSRF 风险    | **有**（必须配 CSRF token）       | 无（同源策略兜底）           |
 | XSS 偷 token | 偷不到（HttpOnly）                | 偷得到                       |
 | 跨域         | CORS preflight + credentials 复杂 | 简单                         |
 | 脚本友好     | 需要 cookie jar                   | 简单 `Authorization` 头      |
 
-我们选 Cookie-first 是因为：
+现在 Web 登录是 token-first：
 
-1. 系统有**前端 UI**（Flutter UI），登录一次一直用，refresh 走 cookie 不打扰用户
-2. 真实凭证（HA token）必须**前端永远拿不到**，所以即便选 Bearer 也要走 cookie 形式
-3. 跨域只在 localhost ↔ 127.0.0.1 之间，简单
+1. access token 从登录 / refresh 响应体返回，只存在前端内存，用 `Authorization: Bearer` 发业务请求。
+2. refresh token 只放 `pm_refresh_token` HttpOnly Cookie，前端读不到，用于启动恢复和 401 静默刷新。
+3. Native 客户端拿 access + refresh 两个响应体 token，refresh token 存平台安全存储。
 
 代价：
 
-- CSRF 防护是必做的（`X-CSRF-Token` 头）
+- 纯 Cookie 旧路径的不安全方法仍要 CSRF；Bearer 请求跳过 CSRF
 - 跨域部署更复杂（`CORS_ALLOW_CREDENTIALS=true` + 显式 origins）
 - 浏览器禁了 third-party cookie 后某些场景登不上
 
@@ -59,16 +59,35 @@
 
 选 15 分钟是因为**多用户 + 强凭证**这个场景，泄露窗口必须小。15 分钟在 UI 上「无感」（后台静默 refresh），但攻击者拿到 access token 只能用 15 分钟。
 
+## 会话空闲 1 小时
+
+会话有效期同时受两条规则约束：
+
+```text
+空闲过期: last_active_at + 1 小时
+绝对上限: refresh_expires_at，登录成功后固定 14 天
+实际过期: 两者更早的那个时间
+```
+
+refresh 成功会轮换 refresh token 并刷新 `last_active_at`；其他受保护接口鉴权成功也会刷新 `last_active_at`，并在请求带有 Web refresh Cookie 时续写该 Cookie 的 1 小时 `Max-Age`。如果用户页面、其他标签页、Native 客户端都没有任何受保护请求，1 小时后服务端拒绝 access / refresh，Web refresh 失败后会清本地 session 并回到 `/login`。
+
 ## Refresh Token Rotation
 
 ```text
 登录:   服务端生成 refresh token，存 SHA-256 哈希到 DB
+        新登录会删除该用户旧 session，只保留当前这一个
 刷新:   POST /api/v1/auth/refresh
         校验哈希匹配 → 撤销旧 token → 生成新 token → 写新哈希
-        客户端 Set-Cookie 拿新的三类 cookie
+        Web 客户端 Set-Cookie 拿新的 refresh cookie
 ```
 
-**Rotation 意味着**：refresh token 一旦被攻击者用过，原 token 立刻失效。`/api/v1/auth/refresh` 端点会同时把**所有 session**里相同指纹的 token 也撤销（防并发滥用）。
+**Rotation 意味着**：refresh token 一旦被使用，原 token 立刻失效。`refresh_expires_at` 固定在登录成功时计算，后续 refresh 会刷新 1 小时空闲窗口，但不延长最终 14 天有效期。
+
+## 单账号单会话
+
+同一账号只保留一个活跃 session。密码登录、微信 exchange 登录、微信绑定后登录、微信注册后登录都会先锁定用户行，再删除该用户旧 session，最后创建新 session。
+
+失败登录、账号锁定、软删除用户、密码错误不会删除旧 session。旧设备上的 access token 即使 JWT 还没到 `exp`，也会因为 session 行已被删除或过期而在下一次请求收到 401。
 
 **为什么不存 refresh token 明文**
 
@@ -84,7 +103,7 @@ Cookie 自动带 → 跨站请求会带 → 攻击者可以在别的网站用 `<
 - token 存在**非 HttpOnly** cookie（前端能读）
 - 后端比较 cookie 值与头值
 
-`POST /api/v1/auth/refresh` 例外（不要求 CSRF），因为它只依赖 `pm_refresh_token`（HttpOnly，攻击者读不到）。
+`POST /api/v1/auth/refresh` 例外（不要求 CSRF），因为它只依赖 `pm_refresh_token`（HttpOnly，攻击者读不到），并对 Cookie refresh 请求做可信 Origin 校验。
 
 ## RBAC 表设计
 

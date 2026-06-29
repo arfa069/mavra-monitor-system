@@ -10,15 +10,17 @@ Modules have been split into:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.core.auth_cookies import extend_web_refresh_cookie, refresh_cookie_max_age
 from app.core.login_lockout import (  # noqa: F401  # re-exported for compatibility
     LOCKOUT_DURATION_SECONDS,
     MAX_LOGIN_ATTEMPTS,
@@ -34,6 +36,7 @@ from app.core.passwords import (  # noqa: F401  # re-exported for compatibility
     verify_password,
 )
 from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
+    active_session_filters,
     create_session,
     create_session_with_token,
     delete_other_sessions,
@@ -42,9 +45,11 @@ from app.core.sessions import (  # noqa: F401  # re-exported for compatibility
     get_session_by_refresh_token,
     get_session_by_token,
     get_user_sessions,
+    replace_user_session,
     rotate_session_refresh_token,
     stage_delete_other_sessions,
     stage_delete_user_sessions,
+    touch_session_activity,
 )
 from app.core.tokens import (  # noqa: F401  # re-exported for compatibility
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -70,9 +75,29 @@ logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+def _extend_refresh_cookie_if_present(
+    request: Request,
+    response: Response | None,
+    *,
+    refresh_expires_at: datetime | None,
+    last_active_at: datetime,
+) -> None:
+    if response is None:
+        return
+    refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
+    if not refresh_token:
+        return
+    extend_web_refresh_cookie(
+        response,
+        refresh_token,
+        max_age=refresh_cookie_max_age(refresh_expires_at, last_active_at),
+    )
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    response: Response = None,
 ) -> User:
     """Unified auth dependency: strict Bearer first, then cookie fallback.
 
@@ -120,6 +145,7 @@ async def get_current_user(
     except (ValueError, TypeError):
         raise credentials_exception
 
+    now = datetime.now(UTC)
     result = await db.execute(
         select(User)
         .join(Session, Session.user_id == User.id)
@@ -128,6 +154,7 @@ async def get_current_user(
             User.deleted_at.is_(None),
             Session.id == sid_int,
             Session.user_id == user_id_int,
+            *active_session_filters(Session, now),
         )
     )
     user = result.scalar_one_or_none()
@@ -138,12 +165,26 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    touched_at = datetime.now(UTC)
+    refresh_expires_at = await touch_session_activity(
+        sid_int,
+        user_id_int,
+        db,
+        touched_at=touched_at,
+    )
+    _extend_refresh_cookie_if_present(
+        request,
+        response,
+        refresh_expires_at=refresh_expires_at,
+        last_active_at=touched_at,
+    )
     return user
 
 
 async def get_current_user_cookie(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    response: Response = None,
 ) -> User:
     """Dependency: authenticate via ``pm_access_token`` cookie.
 
@@ -214,6 +255,7 @@ async def get_current_user_cookie(
     from app.models.session import Session
 
     # Single query validates both user existence and session validity
+    now = datetime.now(UTC)
     result = await db.execute(
         select(User)
         .join(Session, Session.user_id == User.id)
@@ -221,6 +263,7 @@ async def get_current_user_cookie(
             User.id == user_id_int,
             User.deleted_at.is_(None),
             Session.id == sid_int,
+            *active_session_filters(Session, now),
         )
     )
     user = result.scalar_one_or_none()
@@ -230,6 +273,19 @@ async def get_current_user_cookie(
             detail="认证失败：会话已失效或已在其他地方退出",
         )
 
+    touched_at = datetime.now(UTC)
+    refresh_expires_at = await touch_session_activity(
+        sid_int,
+        user_id_int,
+        db,
+        touched_at=touched_at,
+    )
+    _extend_refresh_cookie_if_present(
+        request,
+        response,
+        refresh_expires_at=refresh_expires_at,
+        last_active_at=touched_at,
+    )
     return user
 
 

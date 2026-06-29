@@ -729,12 +729,15 @@ class TestLogout:
 
         mock_session_result = MagicMock()
         mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+        touch_result = MagicMock()
 
         # get_current_user_cookie: (1) JOIN query for user + session
-        # logout: (2) get_session_by_refresh_token
+        # touch_session_activity: (2) UPDATE last_active_at
+        # logout: (3) get_session_by_refresh_token
         mock_db.execute = AsyncMock(side_effect=[
             mock_user_result,     # 1. get_current_user_cookie: JOIN query
-            mock_session_result,  # 2. get_session_by_refresh_token
+            touch_result,         # 2. touch_session_activity
+            mock_session_result,  # 3. get_session_by_refresh_token
         ])
 
         async def _override_get_db():

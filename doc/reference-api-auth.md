@@ -7,13 +7,14 @@
 | 项            | 值                                                                        |
 | ------------- | ------------------------------------------------------------------------- |
 | 路由前缀      | `/api/v1`（业务）、`/auth/*`（无前缀，迁移期兼容）                        |
-| 认证方式      | Cookie-first，HttpOnly；脚本可用 `Authorization: Bearer <access_token>`   |
-| 不安全方法    | `POST` / `PATCH` / `PUT` / `DELETE` 必须带 `X-CSRF-Token` 头              |
-| Access JWT    | 15 分钟，HS256，存于 `pm_access_token`                                    |
-| Refresh Token | 14 天，opaque token，DB 存 `users_sessions.refresh_token_hash`（SHA-256） |
+| 认证方式      | Web token-first：access token 响应体/内存 Bearer，refresh token HttpOnly Cookie；脚本可用 `Authorization: Bearer <access_token>` |
+| 不安全方法    | Cookie-backed `POST` / `PATCH` / `PUT` / `DELETE` 必须带 `X-CSRF-Token`；Bearer 请求跳过 CSRF |
+| Access JWT    | 15 分钟，HS256，响应体返回；Web 前端只存内存                              |
+| Refresh Token | opaque token，DB 存 `users_sessions.refresh_token_hash`（SHA-256）；refresh 轮换并刷新空闲窗口 |
+| 会话生命周期  | 空闲 1 小时滑动过期；登录后固定 14 天绝对上限；实际过期取两者更早时间       |
 | 强密码        | ≥10 位、含大小写数字特殊字符（同步用于注册 / 改密 / 微信绑定）            |
 | 登录锁定      | 5 次失败 → 锁 15 分钟（Redis 计数）                                       |
-| 会话上限      | 每用户 5 个活跃 session                                                   |
+| 会话上限      | 每用户 1 个活跃 session；新登录踢掉旧登录                                 |
 | 软删除        | `users.deleted_at IS NOT NULL` → 拒绝所有 `get_current_user`              |
 
 ---
@@ -53,40 +54,51 @@
 
 ```json
 {
-  "id": 1,
-  "username": "bob",
-  "email": "bob@example.com",
-  "role": "user",
-  "permissions": ["product:read", "product:write", ...],
-  "is_active": true
+  "access_token": "<jwt>",
+  "refresh_token": null,
+  "token_type": "bearer",
+  "expires_in": 900,
+  "user": {
+    "id": 1,
+    "username": "bob",
+    "email": "bob@example.com",
+    "role": "user",
+    "permissions": ["product:read", "product:write"],
+    "is_active": true,
+    "created_at": "2026-06-29T00:00:00Z"
+  }
 }
 ```
 
-副作用（`Set-Cookie` 头）：
+Web 副作用（`Set-Cookie` 头）：
 
 | Cookie             | HttpOnly | SameSite | 寿命  | 用途                    |
 | ------------------ | -------- | -------- | ----- | ----------------------- |
-| `pm_access_token`  | ✅       | Lax      | 15min | JWT                     |
-| `pm_refresh_token` | ✅       | Lax      | 14d   | Opaque，DB 存哈希       |
-| `pm_csrf_token`    | ❌       | Lax      | 14d   | 必须原样回 X-CSRF-Token |
+| `pm_refresh_token` | ✅       | Lax      | `min(剩余空闲窗口, 剩余14d)` | Opaque，DB 存哈希 |
+| `pm_access_token`  | ✅       | Lax      | 0     | 清理旧 Cookie 模式遗留值 |
+| `pm_csrf_token`    | ❌       | Lax      | 0     | 清理旧 Cookie 模式遗留值 |
+
+`client_kind=native` 时响应体会返回 `refresh_token`，且不设置认证 Cookie。
+
+成功登录会删除该用户旧 session，只保留当前 session。失败登录、锁定、软删除用户、密码错误不会删除旧 session。
 
 ### `POST /api/v1/auth/refresh`
 
 **权限**：依赖 `pm_refresh_token` Cookie
 
-**响应**（200）：新的 User JSON + **轮换后的** 三 Cookie。
+**响应**（200）：新的 `AuthSessionResponse`。Web 响应体返回新 access token，`pm_refresh_token` Cookie 写入轮换后的 refresh token，`Max-Age` 使用当前 session 的剩余空闲窗口和 14 天绝对上限中的较小值。
 
-**注意**：refresh 后旧 refresh token **立即失效**（rotated）。
+**注意**：refresh 后旧 refresh token **立即失效**（rotated），并刷新 `last_active_at` 以续期 1 小时空闲窗口，但不会延长登录时确定的 14 天最终到期时间。可信 Origin 的 Web refresh 如果 token 无效、空闲过期或绝对过期，会返回 401 并清理认证 Cookie。
 
 ### `POST /api/v1/auth/logout`
 
 **权限**：已登录 + CSRF
 
-清三类 Cookie + DB 软删 session。
+清 refresh Cookie 和旧 Cookie 模式遗留值，并删除当前 DB session。
 
 ### `GET /api/v1/auth/me`
 
-返回当前 User JSON，含完整 `permissions[]`。
+返回当前 User JSON，含完整 `permissions[]`。所有受保护接口鉴权成功都会刷新当前 session 的 `last_active_at`，用于 1 小时空闲续期；请求带有 Web refresh Cookie 时，响应也会续写该 Cookie 的 `Max-Age`。
 
 ### `PATCH /api/v1/auth/me`
 
@@ -104,7 +116,7 @@
 
 ### `GET /api/v1/auth/sessions`
 
-列出当前用户的活跃 session（5 个上限）。
+列出当前用户的活跃 session。单账号单会话模式下正常最多 1 条。
 
 ### `DELETE /api/v1/auth/sessions/{id}`
 
@@ -231,7 +243,7 @@ smart_home.config.update, smart_home.entity.control
 | 状态 | 含义                                      |
 | ---- | ----------------------------------------- |
 | 400  | 业务校验失败（密码不够强、cron 解析失败） |
-| 401  | Cookie 缺失 / 过期 / Refresh 失败         |
+| 401  | Cookie 缺失 / session 空闲过期或绝对过期 / Refresh 失败 |
 | 403  | CSRF 失败 / RBAC 不足 / 跨用户访问        |
 | 404  | 资源不存在 / 跨用户                       |
 | 409  | 状态冲突（profile lease / 唯一键冲突）    |
@@ -244,19 +256,20 @@ smart_home.config.update, smart_home.entity.control
 - string（业务错误）
 - array of `{loc, msg, type}`（Pydantic 422）
 
-前端 `formatApiError()` 在 [client.ts:57](../frontend/src/shared/api/client.ts) 处理两种。
+前端错误映射在 [`frontend/lib/core/errors/api_error.dart`](../frontend/lib/core/errors/api_error.dart) 处理两种。
 
 ---
 
 ## 401 自动刷新细节
 
-前端 `shared/api/client.ts:102-154` 实现：
+前端 `frontend/lib/core/api/authenticated_mavra_api.dart` 和
+`frontend/lib/core/api/api_client.dart` 实现：
 
-1. 拦截 401（非 login / me 端点）
-2. 标记 `_retry` 防循环
-3. 并发请求合并到 `failedQueue`，只发一次 refresh
-4. refresh 成功 → 重放队列
-5. refresh 失败 → 跳 `/login`
+1. 拦截 401（非 login / refresh / logout 端点）
+2. 标记 `mavraRetry` 防循环
+3. 并发请求合并到同一个 refresh flight，只发一次 refresh
+4. refresh 成功 → 带新 Bearer token 重放原请求
+5. refresh 失败 → 清本地 session，路由回到 `/login`
 
 后端不感知。
 

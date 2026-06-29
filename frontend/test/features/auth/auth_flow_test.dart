@@ -133,6 +133,40 @@ void main() {
     expect(auth.isAuthenticated, isFalse);
   });
 
+  testWidgets('redirects to login after an authenticated session is cleared', (
+    tester,
+  ) async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    final auth = AuthController(
+      api: FakeAuthApi(),
+      repository: repository,
+      initialSession: _session(
+        username: 'restored',
+        permissions: {'config:read'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MavraApp(
+        authController: auth,
+        settingsRepository: const _FakeSettingsRepository(),
+        todayRepository: const _FakeTodayRepository(),
+        initialLocation: '/settings',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Settings'), findsWidgets);
+
+    await repository.clearLocalSession();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mavra watches quietly'), findsOneWidget);
+    expect(find.text('Settings'), findsNothing);
+  });
+
   testWidgets('default app restores saved sessions before route guarding', (
     tester,
   ) async {

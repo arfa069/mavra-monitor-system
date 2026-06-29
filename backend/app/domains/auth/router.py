@@ -34,6 +34,7 @@ import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,6 +43,7 @@ from app.config import settings
 from app.core.audit import log_audit, log_audit_from_request
 from app.core.auth_cookies import (
     clear_auth_cookies,
+    refresh_cookie_max_age,
     set_web_refresh_cookie,
 )
 from app.core.permissions import get_role_permissions
@@ -49,7 +51,6 @@ from app.core.security import (
     clear_login_attempts,
     create_access_token_sid,
     create_refresh_token,
-    create_session,
     csrf_protect,
     decode_access_token_strict,
     delete_other_sessions,
@@ -63,6 +64,7 @@ from app.core.security import (
     is_account_locked,
     parse_device,
     record_failed_login,
+    replace_user_session,
     rotate_session_refresh_token,
     stage_delete_other_sessions,
     validate_browser_origin,
@@ -131,6 +133,15 @@ def _authenticated_session_id(request: Request) -> int | None:
     return _session_id_from_access_token(
         request.cookies.get(settings.auth_access_cookie_name)
     )
+
+
+def _cleared_auth_error_response(detail: str) -> JSONResponse:
+    response = JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": detail},
+    )
+    clear_auth_cookies(response)
+    return response
 
 
 # ── Cookie helpers (see app.core.auth_cookies for implementation) ──────────
@@ -244,7 +255,7 @@ async def login(
     device = parse_device(request.headers.get("user-agent", ""))
     ip_address = request.client.host if request.client else ""
 
-    session = await create_session(
+    session = await replace_user_session(
         user_id=user.id,
         refresh_token=refresh_token,
         device=device,
@@ -261,7 +272,14 @@ async def login(
         session_id=session.id,
     )
     if login_data.client_kind == LoginClientKind.web:
-        set_web_refresh_cookie(response, refresh_token)
+        set_web_refresh_cookie(
+            response,
+            refresh_token,
+            max_age=refresh_cookie_max_age(
+                getattr(session, "refresh_expires_at", None),
+                getattr(session, "last_active_at", None),
+            ),
+        )
 
     # ── Login log ─────────────────────────────────────────────────────────
     await auth_service.add_login_log(
@@ -330,6 +348,8 @@ async def refresh(
 
     session = await get_session_by_refresh_token(refresh_token, db)
     if session is None:
+        if uses_cookie:
+            return _cleared_auth_error_response("刷新令牌无效或已过期")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="刷新令牌无效或已过期",
@@ -344,6 +364,8 @@ async def refresh(
     )
     user = result.scalar_one_or_none()
     if user is None:
+        if uses_cookie:
+            return _cleared_auth_error_response("用户不存在或已被删除")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在或已被删除",
@@ -360,7 +382,14 @@ async def refresh(
         session_id=session.id,
     )
     if uses_cookie:
-        set_web_refresh_cookie(response, new_refresh_token)
+        set_web_refresh_cookie(
+            response,
+            new_refresh_token,
+            max_age=refresh_cookie_max_age(
+                getattr(session, "refresh_expires_at", None),
+                getattr(session, "last_active_at", None),
+            ),
+        )
 
     await db.commit()
 
@@ -619,7 +648,14 @@ async def change_password(
 
     uses_cookie = body_refresh_token is None
     if uses_cookie:
-        set_web_refresh_cookie(response, new_refresh_token)
+        set_web_refresh_cookie(
+            response,
+            new_refresh_token,
+            max_age=refresh_cookie_max_age(
+                getattr(session, "refresh_expires_at", None),
+                getattr(session, "last_active_at", None),
+            ),
+        )
 
     logger.info(f"Password changed for user: {current_user.username}")
 

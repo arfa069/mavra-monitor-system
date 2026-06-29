@@ -167,6 +167,144 @@ async def test_me_with_expired_token_returns_401(test_app):
 
 
 @pytest.mark.asyncio
+async def test_me_query_filters_expired_sessions(test_user, mock_db_session, test_app):
+    """Cookie auth should reject sessions whose refresh lifetime has ended."""
+    token = create_access_token_sid(1, test_user["username"], 42)
+
+    missing_session = MagicMock()
+    missing_session.scalar_one_or_none.return_value = None
+    mock_db_session.execute.return_value = missing_session
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/test/me",
+            cookies={"pm_access_token": token},
+        )
+
+    assert response.status_code == 401
+    statement = mock_db_session.execute.await_args.args[0]
+    assert "refresh_expires_at" in str(statement)
+
+
+@pytest.mark.asyncio
+async def test_me_query_filters_idle_expired_sessions(
+    test_user,
+    mock_db_session,
+    test_app,
+):
+    """Cookie auth should reject sessions idle beyond the configured window."""
+    token = create_access_token_sid(1, test_user["username"], 42)
+
+    missing_session = MagicMock()
+    missing_session.scalar_one_or_none.return_value = None
+    mock_db_session.execute.return_value = missing_session
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/test/me",
+            cookies={"pm_access_token": token},
+        )
+
+    assert response.status_code == 401
+    statement = mock_db_session.execute.await_args.args[0]
+    assert "last_active_at" in str(statement)
+
+
+@pytest.mark.asyncio
+async def test_me_with_valid_cookie_touches_session_activity(
+    test_user,
+    mock_db_session,
+    test_app,
+):
+    """Successful cookie auth should slide the idle timeout forward."""
+    from datetime import UTC, datetime
+
+    token = create_access_token_sid(1, test_user["username"], 42)
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.role = "user"
+    mock_user.deleted_at = None
+    mock_user.created_at = datetime.now(UTC)
+
+    mock_result_user = MagicMock()
+    mock_result_user.scalar_one_or_none.return_value = mock_user
+    touch_result = MagicMock()
+    mock_db_session.execute.side_effect = [mock_result_user, touch_result]
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/test/me",
+            cookies={"pm_access_token": token},
+        )
+
+    assert response.status_code == 200
+    touch_statement = mock_db_session.execute.await_args_list[1].args[0]
+    assert "UPDATE users_sessions" in str(touch_statement)
+    assert "last_active_at" in str(touch_statement)
+    mock_db_session.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_me_with_valid_cookie_extends_refresh_cookie_max_age(
+    test_user,
+    mock_db_session,
+    test_app,
+):
+    """Successful cookie auth should slide the Web refresh cookie forward."""
+    from datetime import UTC, datetime, timedelta
+
+    token = create_access_token_sid(1, test_user["username"], 42)
+
+    mock_user = MagicMock()
+    mock_user.id = 1
+    mock_user.username = test_user["username"]
+    mock_user.email = test_user["email"]
+    mock_user.is_active = True
+    mock_user.role = "user"
+    mock_user.deleted_at = None
+    mock_user.created_at = datetime.now(UTC)
+
+    mock_result_user = MagicMock()
+    mock_result_user.scalar_one_or_none.return_value = mock_user
+    touch_result = MagicMock()
+    touch_result.scalar_one_or_none.return_value = datetime.now(UTC) + timedelta(
+        days=3,
+    )
+    mock_db_session.execute.side_effect = [mock_result_user, touch_result]
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/test/me",
+            cookies={
+                "pm_access_token": token,
+                "pm_refresh_token": "browser-refresh-token",
+            },
+        )
+
+    assert response.status_code == 200
+    refresh_cookie = next(
+        value
+        for value in response.headers.get_list("set-cookie")
+        if value.startswith("pm_refresh_token=browser-refresh-token")
+    )
+    max_age_part = next(
+        part.strip()
+        for part in refresh_cookie.split(";")
+        if part.strip().startswith("Max-Age=")
+    )
+    max_age = int(max_age_part.removeprefix("Max-Age="))
+    assert 0 < max_age <= 60 * 60
+
+
+@pytest.mark.asyncio
 async def test_me_with_wrong_token_type_returns_401(test_app):
     """GET /test/me with token missing 'typ=access' claim returns 401."""
     from app.core.tokens import create_access_token

@@ -83,7 +83,8 @@
 | `JWT_SECRET`                  | 启动时随机生成（**生产必须显式**） | HS256 密钥                                                |
 | `JWT_ALGORITHM`               | `HS256`                            |                                                           |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `15`                               | access JWT 寿命                                           |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | `14`                               | refresh 寿命                                              |
+| `SESSION_IDLE_TIMEOUT_MINUTES` | `60`                              | session 空闲过期窗口                                      |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   | `14`                               | session 绝对上限；refresh 不延长这个上限                  |
 | `COOKIE_SECURE`               | `false`                            | 生产 `true`，开发 `false`（否则 localhost cookie 写不进） |
 | `COOKIE_SAMESITE`             | `lax`                              |                                                           |
 | `COOKIE_DOMAIN`               | 空                                 | 跨子域用                                                  |

@@ -698,13 +698,14 @@ async def test_update_me_with_valid_data_returns_200(test_user, mock_get_db):
 
     mock_none_result = MagicMock()
     mock_none_result.scalar_one_or_none.return_value = None
+    touch_result = MagicMock()
 
     mock_permissions = MagicMock()
     mock_permissions.scalars.return_value.all.return_value = []
 
-    # get_current_user_cookie now uses a single JOIN query
     mock_get_db.execute.side_effect = [
         mock_user_result,     # get_current_user_cookie: JOIN query
+        touch_result,         # touch_session_activity
         mock_none_result,     # username check — no conflict
         mock_none_result,     # email check — no conflict
         mock_permissions,     # get_role_permissions
@@ -999,8 +1000,10 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
 
     mock_session_result = MagicMock()
     mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+    touch_result = MagicMock()
 
     # get_current_user_cookie: (1) user, (2) session
+    # touch_session_activity: (2) UPDATE last_active_at
     # get_session_by_refresh_token: (3) session
     # stage_delete_other_sessions: (4) other sessions
     mock_other_sessions = MagicMock()
@@ -1010,9 +1013,10 @@ async def test_change_password_with_valid_data_returns_200(test_user, mock_get_d
 
     mock_get_db.execute.side_effect = [
         mock_user_result,     # 1. get_current_user_cookie: JOIN query
-        mock_session_result,  # 2. get_session_by_refresh_token
-        mock_other_sessions,  # 3. stage_delete_other_sessions
-        mock_permissions,     # 4. get_role_permissions
+        touch_result,         # 2. touch_session_activity
+        mock_session_result,  # 3. get_session_by_refresh_token
+        mock_other_sessions,  # 4. stage_delete_other_sessions
+        mock_permissions,     # 5. get_role_permissions
     ]
 
     transport = ASGITransport(app=app)
@@ -1090,9 +1094,11 @@ async def test_change_password_with_weak_new_password_returns_422(test_user, moc
 
     mock_session_result = MagicMock()
     mock_session_result.scalar_one_or_none.return_value = mock_session_obj
+    touch_result = MagicMock()
 
     mock_get_db.execute.side_effect = [
         mock_user_result,
+        touch_result,
         mock_session_result,
     ]
 
@@ -1155,12 +1161,14 @@ async def test_change_password_deletes_other_sessions_but_keeps_current(test_use
     mock_other_sessions_result.scalars.return_value.all.return_value = [MagicMock()]
     mock_permissions = MagicMock()
     mock_permissions.scalars.return_value.all.return_value = []
+    touch_result = MagicMock()
 
     mock_get_db.execute.side_effect = [
         mock_user_result,              # 1. get_current_user_cookie: JOIN query
-        mock_session_result,           # 2. get_session_by_refresh_token
-        mock_other_sessions_result,    # 3. stage_delete_other_sessions
-        mock_permissions,              # 4. get_role_permissions
+        touch_result,                  # 2. touch_session_activity
+        mock_session_result,           # 3. get_session_by_refresh_token
+        mock_other_sessions_result,    # 4. stage_delete_other_sessions
+        mock_permissions,              # 5. get_role_permissions
     ]
 
     transport = ASGITransport(app=app)
@@ -1219,10 +1227,12 @@ async def test_change_password_missing_current_session_returns_401(test_user, mo
     # get_session_by_refresh_token returns None
     mock_no_session = MagicMock()
     mock_no_session.scalar_one_or_none.return_value = None
+    touch_result = MagicMock()
 
     mock_get_db.execute.side_effect = [
         mock_user_result,     # 1. get_current_user_cookie: JOIN query
-        mock_no_session,      # 2. get_session_by_refresh_token → None
+        touch_result,         # 2. touch_session_activity
+        mock_no_session,      # 3. get_session_by_refresh_token → None
     ]
 
     transport = ASGITransport(app=app)

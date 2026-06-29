@@ -318,7 +318,7 @@ Access JWT payload 结构：
 }
 ```
 
-Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(48)）有效期 14 天，仅存储 SHA-256 哈希到 `users_sessions.refresh_token_hash`。
+Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(48)）仅存储 SHA-256 哈希到 `users_sessions.refresh_token_hash`。Session 空闲 1 小时过期，并保留登录后固定 14 天绝对上限。
 
 不安全方法（POST/PATCH/PUT/DELETE）需额外通过 `Depends(csrf_protect)`：
 
@@ -602,6 +602,7 @@ _shared_context: BrowserContext
 ### 9.1 认证与授权
 
 - JWT Access Token：15 分钟有效期（`access_token_expire_minutes = 15`）
+- Session 空闲过期：1 小时（`session_idle_timeout_minutes = 60`），绝对上限 14 天（`refresh_token_expire_days = 14`）
 - 密码：bcrypt 加密
 - 登录失败锁定：5 次失败后锁定 15 分钟（Redis 持久化，重启不丢失）
 

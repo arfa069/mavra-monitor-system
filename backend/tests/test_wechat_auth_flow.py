@@ -203,10 +203,11 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
         "app.domains.auth.wechat_router.httpx.AsyncClient",
         lambda: MockWeChatClient({"openid": "openid-1"}),
     )
-    create_session_spy = AsyncMock(return_value=MagicMock(id=99))
+    replace_session_spy = AsyncMock(return_value=MagicMock(id=99))
     monkeypatch.setattr(
-        "app.domains.auth.wechat_router.create_session",
-        create_session_spy,
+        wechat_router,
+        "replace_user_session",
+        replace_session_spy,
     )
     monkeypatch.setattr(
         "app.domains.auth.wechat_router.get_role_permissions",
@@ -245,7 +246,7 @@ async def test_wechat_callback_redirects_bound_user_to_frontend(
     assert "refresh_token=" not in location
     assert "temp_token=" not in location
     assert "set-cookie" not in response.headers
-    create_session_spy.assert_not_awaited()
+    replace_session_spy.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -303,9 +304,12 @@ async def test_wechat_exchange_bound_code_returns_native_session(
         "app.domains.auth.wechat_router.create_refresh_token",
         lambda: "new-wechat-refresh-token-value",
     )
+    replace_session_spy = AsyncMock(return_value=MagicMock(id=99))
     monkeypatch.setattr(
-        "app.domains.auth.wechat_router.create_session",
-        AsyncMock(return_value=MagicMock(id=99)),
+        wechat_router,
+        "replace_user_session",
+        replace_session_spy,
+        raising=False,
     )
 
     user = _wechat_user()
@@ -337,6 +341,7 @@ async def test_wechat_exchange_bound_code_returns_native_session(
     assert payload["session"]["access_token"]
     assert payload["session"]["refresh_token"] == "new-wechat-refresh-token-value"
     assert payload["session"]["user"]["username"] == "wechat-user"
+    replace_session_spy.assert_awaited_once()
 
 
 @pytest.mark.asyncio

@@ -235,6 +235,26 @@ async def test_get_session_by_refresh_token_expired(mock_db_session):
 
 
 @pytest.mark.asyncio
+async def test_get_session_by_refresh_token_filters_idle_expired_session(
+    mock_db_session,
+):
+    """Refresh lookup should reject sessions idle beyond the configured window."""
+    from app.core.sessions import get_session_by_refresh_token
+
+    raw_token = "idle-expired-refresh-token"
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db_session.execute.return_value = mock_result
+
+    result = await get_session_by_refresh_token(raw_token, mock_db_session)
+
+    assert result is None
+    statement = mock_db_session.execute.await_args.args[0]
+    assert "last_active_at" in str(statement)
+
+
+@pytest.mark.asyncio
 async def test_get_session_by_refresh_token_after_delete(mock_db_session):
     """Verify get_session_by_refresh_token returns None for deleted session."""
     from app.core.sessions import get_session_by_refresh_token
@@ -256,17 +276,18 @@ async def test_get_session_by_refresh_token_after_delete(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_rotate_session_refresh_token(mock_db_session):
-    """Verify rotate_session_refresh_token updates hash, expiry, and last_active."""
+    """Verify rotate_session_refresh_token updates hash but preserves fixed expiry."""
     from datetime import UTC
 
     from app.core.sessions import rotate_session_refresh_token
 
     old_hash = hash_token("old-refresh-token")
     new_raw = "new-refresh-token"
+    original_expiry = datetime.now(UTC) + timedelta(days=3)
 
     mock_session = MagicMock()
     mock_session.refresh_token_hash = old_hash
-    mock_session.refresh_expires_at = datetime.now(UTC) - timedelta(days=1)
+    mock_session.refresh_expires_at = original_expiry
     mock_session.last_active_at = datetime.now(UTC) - timedelta(hours=12)
 
     await rotate_session_refresh_token(mock_session, new_raw, mock_db_session)
@@ -274,14 +295,78 @@ async def test_rotate_session_refresh_token(mock_db_session):
     # Hash updated to new token's hash
     assert mock_session.refresh_token_hash == hash_token(new_raw)
     assert mock_session.refresh_token_hash != old_hash
-    # Expiry updated to future
-    assert mock_session.refresh_expires_at > datetime.now(UTC)
+    # Expiry is fixed from login time and should not slide on refresh
+    assert mock_session.refresh_expires_at == original_expiry
     # last_active_at updated
     assert mock_session.last_active_at > datetime.now(UTC) - timedelta(seconds=5)
     # No commit / delete / add called
     mock_db_session.commit.assert_not_called()
     mock_db_session.delete.assert_not_called()
     mock_db_session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_session_refresh_cookie_max_age_uses_idle_window(monkeypatch):
+    """Cookie lifetime should be capped by idle timeout, not only absolute expiry."""
+    from datetime import UTC
+
+    from app.core.auth_cookies import refresh_cookie_max_age
+    from app.core.sessions import session_idle_expires_at
+
+    monkeypatch.setattr("app.core.sessions.settings.session_idle_timeout_minutes", 60)
+    monkeypatch.setattr(
+        "app.core.auth_cookies.settings.session_idle_timeout_minutes",
+        60,
+    )
+    last_active = datetime.now(UTC) - timedelta(minutes=30)
+    absolute_expiry = datetime.now(UTC) + timedelta(days=3)
+
+    assert session_idle_expires_at(last_active) <= datetime.now(UTC) + timedelta(
+        minutes=31,
+    )
+    assert 0 < refresh_cookie_max_age(absolute_expiry, last_active) <= 30 * 60
+
+
+@pytest.mark.asyncio
+async def test_refresh_cookie_max_age_defaults_to_idle_window(monkeypatch):
+    """Missing last_active_at should fail closed to the idle timeout."""
+    from datetime import UTC
+
+    from app.core.auth_cookies import refresh_cookie_max_age
+
+    monkeypatch.setattr(
+        "app.core.auth_cookies.settings.session_idle_timeout_minutes",
+        60,
+    )
+    absolute_expiry = datetime.now(UTC) + timedelta(days=3)
+
+    assert 0 < refresh_cookie_max_age(absolute_expiry) <= 60 * 60
+
+
+@pytest.mark.asyncio
+async def test_replace_user_session_locks_user_and_deletes_old_sessions(mock_db_session):
+    """Single-login helper should lock the user and replace all old sessions."""
+    from app.core import sessions as session_helpers
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = 1
+    mock_db_session.execute.return_value = mock_result
+
+    assert hasattr(session_helpers, "replace_user_session")
+    created = await session_helpers.replace_user_session(
+        user_id=1,
+        refresh_token="new-refresh-token",
+        device="Chrome",
+        ip_address="127.0.0.1",
+        db=mock_db_session,
+    )
+
+    statements = [call.args[0] for call in mock_db_session.execute.await_args_list]
+    assert any(getattr(stmt, "_for_update_arg", None) is not None for stmt in statements)
+    assert any("DELETE FROM users_sessions" in str(stmt) for stmt in statements)
+    assert created.refresh_token_hash == hash_token("new-refresh-token")
+    mock_db_session.add.assert_called_once_with(created)
+    mock_db_session.commit.assert_not_called()
 
 
 # ── get_session_by_id tests ─────────────────────────────────────────────────

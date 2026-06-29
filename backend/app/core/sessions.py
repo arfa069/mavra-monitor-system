@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -64,6 +64,35 @@ async def create_session_with_token(
 # ── New refresh-token-based session helpers ─────────────────────────────────
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def session_idle_expires_at(last_active_at: datetime) -> datetime:
+    """Return when a session expires due to inactivity."""
+    return _as_utc(last_active_at) + timedelta(
+        minutes=settings.session_idle_timeout_minutes
+    )
+
+
+def session_effective_expires_at(
+    refresh_expires_at: datetime,
+    last_active_at: datetime,
+) -> datetime:
+    """Return the earlier of absolute refresh expiry and idle expiry."""
+    return min(_as_utc(refresh_expires_at), session_idle_expires_at(last_active_at))
+
+
+def active_session_filters(session_model, now: datetime):
+    idle_cutoff = now - timedelta(minutes=settings.session_idle_timeout_minutes)
+    return (
+        session_model.refresh_expires_at > now,
+        session_model.last_active_at > idle_cutoff,
+    )
+
+
 async def create_session(
     user_id: int,
     refresh_token: str,
@@ -85,16 +114,49 @@ async def create_session(
     refresh_hash = hash_token(refresh_token)
     await _enforce_session_limit(db, user_id)
 
+    now = datetime.now(UTC)
     session = Session(
         user_id=user_id,
         refresh_token_hash=refresh_hash,
-        refresh_expires_at=datetime.now(UTC)
-        + timedelta(days=settings.refresh_token_expire_days),
+        refresh_expires_at=now + timedelta(days=settings.refresh_token_expire_days),
+        last_active_at=now,
         device=device,
         ip_address=ip_address,
     )
     db.add(session)
     # Caller controls commit
+    return session
+
+
+async def replace_user_session(
+    user_id: int,
+    refresh_token: str,
+    device: str,
+    ip_address: str,
+    db: AsyncSession,
+):
+    """Replace all sessions for a user with one new refresh-token session.
+
+    The user row is locked so concurrent successful logins for the same user are
+    serialized; the last committed login is the only remaining active session.
+    Does NOT commit — the caller controls the transaction boundary.
+    """
+    from app.models.session import Session
+    from app.models.user import User
+
+    await db.execute(select(User.id).where(User.id == user_id).with_for_update())
+    await db.execute(delete(Session).where(Session.user_id == user_id))
+
+    now = datetime.now(UTC)
+    session = Session(
+        user_id=user_id,
+        refresh_token_hash=hash_token(refresh_token),
+        refresh_expires_at=now + timedelta(days=settings.refresh_token_expire_days),
+        last_active_at=now,
+        device=device,
+        ip_address=ip_address,
+    )
+    db.add(session)
     return session
 
 
@@ -104,17 +166,19 @@ async def get_session_by_refresh_token(
 ):
     """Look up a session by hashed refresh token.
 
-    Only returns sessions where ``refresh_expires_at`` is still in the future.
-    Returns ``None`` if the token is expired, invalid, or the session was deleted.
+    Only returns sessions where the absolute refresh lifetime and idle timeout
+    are both still valid. Returns ``None`` if the token is expired, idle,
+    invalid, or the session was deleted.
     """
     from app.core.tokens import hash_token
     from app.models.session import Session
 
     token_hash = hash_token(refresh_token)
+    now = datetime.now(UTC)
     result = await db.execute(
         select(Session).where(
             Session.refresh_token_hash == token_hash,
-            Session.refresh_expires_at > datetime.now(UTC),
+            *active_session_filters(Session, now),
         ).with_for_update()
     )
     return result.scalar_one_or_none()
@@ -127,19 +191,43 @@ async def rotate_session_refresh_token(
 ) -> None:
     """Rotate a session's refresh token in-place.
 
-    Updates ``refresh_token_hash`` to the hash of the new token, extends
-    ``refresh_expires_at`` by ``refresh_token_expire_days``, and touches
-    ``last_active_at``.
+    Updates ``refresh_token_hash`` to the hash of the new token and touches
+    ``last_active_at``. ``refresh_expires_at`` is fixed at login time and is
+    intentionally not extended by refresh.
 
     Does NOT commit — the caller controls the transaction boundary.
     """
     from app.core.tokens import hash_token
 
     session.refresh_token_hash = hash_token(new_refresh_token)
-    session.refresh_expires_at = datetime.now(UTC) + timedelta(
-        days=settings.refresh_token_expire_days
-    )
     session.last_active_at = datetime.now(UTC)
+
+
+async def touch_session_activity(
+    session_id: int,
+    user_id: int,
+    db: AsyncSession,
+    *,
+    touched_at: datetime | None = None,
+) -> datetime | None:
+    """Slide the session idle timeout forward after successful auth.
+
+    Returns the session's absolute refresh expiry when the database supports
+    ``RETURNING``.
+    """
+    from app.models.session import Session
+
+    result = await db.execute(
+        update(Session)
+        .where(
+            Session.id == session_id,
+            Session.user_id == user_id,
+        )
+        .values(last_active_at=touched_at or datetime.now(UTC))
+        .returning(Session.refresh_expires_at)
+    )
+    await db.commit()
+    return result.scalar_one_or_none()
 
 
 async def get_session_by_id(
@@ -170,8 +258,12 @@ async def get_user_sessions(user_id: int, db: AsyncSession) -> list[type]:
     """Get all active sessions for a user."""
     from app.models.session import Session
 
+    now = datetime.now(UTC)
     result = await db.execute(
-        select(Session).where(Session.user_id == user_id)
+        select(Session).where(
+            Session.user_id == user_id,
+            *active_session_filters(Session, now),
+        )
     )
     return list(result.scalars().all())
 

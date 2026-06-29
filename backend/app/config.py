@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     auth_csrf_header_name: str = "X-CSRF-Token"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 14
+    session_idle_timeout_minutes: int = 60
     auth_cookie_samesite: str = "lax"
 
     @property
