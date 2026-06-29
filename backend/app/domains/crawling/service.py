@@ -89,6 +89,40 @@ async def _persist_product_crawl_result(
     return {"status": "error", "product_id": product.id, "reason": error_msg}
 
 
+async def _get_active_product_url(product_id: int) -> str | None:
+    async with AsyncSessionLocal() as db:
+        product = await repository.get_product(db, product_id=product_id)
+        if not product or not product.active:
+            return None
+        return product.url
+
+
+async def _persist_product_crawl_result_by_id(
+    *,
+    product_id: int,
+    result_data: dict,
+) -> dict:
+    async with AsyncSessionLocal() as db:
+        product = await repository.get_product(db, product_id=product_id)
+        if not product or not product.active:
+            return {"status": "skipped", "product_id": product_id}
+        return await _persist_product_crawl_result(
+            db,
+            product=product,
+            result_data=result_data,
+        )
+
+
+async def _save_product_crawl_error(
+    *,
+    product_id: int,
+    platform: str,
+    error_msg: str,
+) -> None:
+    async with AsyncSessionLocal() as db:
+        await save_crawl_log(db, product_id, platform, "ERROR", error_message=error_msg)
+
+
 async def crawl_one_opencli(
     *,
     product_id: int,
@@ -96,59 +130,65 @@ async def crawl_one_opencli(
 ) -> dict:
     """Crawl a single product via OpenCLI (no browser session needed)."""
     try:
-        async with AsyncSessionLocal() as db:
-            product = await repository.get_product(db, product_id=product_id)
-            if not product or not product.active:
-                return {"status": "skipped", "product_id": product_id}
+        product_url = await _get_active_product_url(product_id)
+        if not product_url:
+            return {"status": "skipped", "product_id": product_id}
 
-            if platform == "jd":
-                from app.platforms.jd_opencli import crawl_jd_via_opencli
+        if platform == "jd":
+            from app.platforms.jd_opencli import crawl_jd_via_opencli
 
-                opencli_result = await crawl_jd_via_opencli(product.url)
-                if opencli_result.success and opencli_result.price:
-                    result_data = {
-                        "success": True,
-                        "price": opencli_result.price,
-                        "currency": opencli_result.currency,
-                        "title": opencli_result.title or "",
-                    }
-                elif opencli_result.success:
-                    result_data = {
-                        "success": False,
-                        "error": "JD price not found (via OpenCLI)",
-                    }
-                else:
-                    result_data = {
-                        "success": False,
-                        "error": opencli_result.error or "JD OpenCLI failed",
-                    }
-            elif platform == "taobao":
-                from app.platforms.taobao_opencli import crawl_taobao_via_opencli
-
-                opencli_result = await crawl_taobao_via_opencli(product.url)
-                if opencli_result.success and opencli_result.price:
-                    result_data = {
-                        "success": True,
-                        "price": opencli_result.price,
-                        "currency": opencli_result.currency,
-                        "title": opencli_result.title or "",
-                    }
-                elif opencli_result.success:
-                    result_data = {
-                        "success": False,
-                        "error": "Taobao price not found (via OpenCLI)",
-                    }
-                else:
-                    result_data = {
-                        "success": False,
-                        "error": opencli_result.error or "Taobao OpenCLI failed",
-                    }
+            opencli_result = await crawl_jd_via_opencli(product_url)
+            if opencli_result.success and opencli_result.price:
+                result_data = {
+                    "success": True,
+                    "price": opencli_result.price,
+                    "currency": opencli_result.currency,
+                    "title": opencli_result.title or "",
+                }
+            elif opencli_result.success:
+                result_data = {
+                    "success": False,
+                    "error": "JD price not found (via OpenCLI)",
+                }
             else:
-                error_msg = f"Unknown platform: {platform}"
-                await save_crawl_log(db, product_id, platform, "ERROR", error_message=error_msg)
-                return {"status": "error", "product_id": product_id, "reason": error_msg}
+                result_data = {
+                    "success": False,
+                    "error": opencli_result.error or "JD OpenCLI failed",
+                }
+        elif platform == "taobao":
+            from app.platforms.taobao_opencli import crawl_taobao_via_opencli
 
-            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
+            opencli_result = await crawl_taobao_via_opencli(product_url)
+            if opencli_result.success and opencli_result.price:
+                result_data = {
+                    "success": True,
+                    "price": opencli_result.price,
+                    "currency": opencli_result.currency,
+                    "title": opencli_result.title or "",
+                }
+            elif opencli_result.success:
+                result_data = {
+                    "success": False,
+                    "error": "Taobao price not found (via OpenCLI)",
+                }
+            else:
+                result_data = {
+                    "success": False,
+                    "error": opencli_result.error or "Taobao OpenCLI failed",
+                }
+        else:
+            error_msg = f"Unknown platform: {platform}"
+            await _save_product_crawl_error(
+                product_id=product_id,
+                platform=platform,
+                error_msg=error_msg,
+            )
+            return {"status": "error", "product_id": product_id, "reason": error_msg}
+
+        return await _persist_product_crawl_result_by_id(
+            product_id=product_id,
+            result_data=result_data,
+        )
     except Exception:
         logger.exception("crawl_one_opencli failed for product %s", product_id)
         return {"status": "error", "product_id": product_id, "reason": "crawl failed"}
@@ -161,28 +201,30 @@ async def crawl_one_firecrawl(
 ) -> dict:
     """Crawl a single product via Firecrawl Cloud."""
     try:
-        async with AsyncSessionLocal() as db:
-            product = await repository.get_product(db, product_id=product_id)
-            if not product or not product.active:
-                return {"status": "skipped", "product_id": product_id}
+        product_url = await _get_active_product_url(product_id)
+        if not product_url:
+            return {"status": "skipped", "product_id": product_id}
 
-            from app.platforms.firecrawl_product import crawl_product_via_firecrawl
+        from app.platforms.firecrawl_product import crawl_product_via_firecrawl
 
-            firecrawl_result = await crawl_product_via_firecrawl(product.url, platform)
-            if firecrawl_result.success and firecrawl_result.price:
-                result_data = {
-                    "success": True,
-                    "price": firecrawl_result.price,
-                    "currency": firecrawl_result.currency,
-                    "title": firecrawl_result.title or "",
-                }
-            else:
-                result_data = {
-                    "success": False,
-                    "error": firecrawl_result.error or "Firecrawl failed",
-                }
+        firecrawl_result = await crawl_product_via_firecrawl(product_url, platform)
+        if firecrawl_result.success and firecrawl_result.price:
+            result_data = {
+                "success": True,
+                "price": firecrawl_result.price,
+                "currency": firecrawl_result.currency,
+                "title": firecrawl_result.title or "",
+            }
+        else:
+            result_data = {
+                "success": False,
+                "error": firecrawl_result.error or "Firecrawl failed",
+            }
 
-            return await _persist_product_crawl_result(db, product=product, result_data=result_data)
+        return await _persist_product_crawl_result_by_id(
+            product_id=product_id,
+            result_data=result_data,
+        )
     except Exception:
         logger.exception("crawl_one_firecrawl failed for product %s", product_id)
         return {"status": "error", "product_id": product_id, "reason": "crawl failed"}

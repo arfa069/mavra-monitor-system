@@ -276,6 +276,51 @@ async def test_firecrawl_failure_logs_without_price_history(monkeypatch):
     save_crawl_log.assert_awaited_once()
 
 
+@pytest.mark.asyncio
+async def test_opencli_crawl_releases_db_session_before_external_call(monkeypatch):
+    from app.domains.crawling import service
+
+    active_sessions = 0
+
+    class FakeSession:
+        async def __aenter__(self):
+            nonlocal active_sessions
+            active_sessions += 1
+            return self
+
+        async def __aexit__(self, *_args):
+            nonlocal active_sessions
+            active_sessions -= 1
+            return None
+
+    async def fake_crawl_jd(url):
+        assert url == "https://item.jd.com/1.html"
+        assert active_sessions == 0
+        return SimpleNamespace(success=True, price="1999", currency="CNY", title="JD item")
+
+    product = SimpleNamespace(id=1, active=True, platform="jd", url="https://item.jd.com/1.html", title=None)
+    persist_result = {"status": "success", "product_id": 1, "price": 1999.0}
+    persist = AsyncMock(return_value=persist_result)
+
+    monkeypatch.setattr(service, "AsyncSessionLocal", lambda: FakeSession())
+    monkeypatch.setattr(service.repository, "get_product", AsyncMock(return_value=product))
+    monkeypatch.setattr("app.platforms.jd_opencli.crawl_jd_via_opencli", fake_crawl_jd)
+    monkeypatch.setattr(service, "_persist_product_crawl_result_by_id", persist)
+
+    result = await service.crawl_one_opencli(product_id=1, platform="jd")
+
+    assert result == persist_result
+    persist.assert_awaited_once_with(
+        product_id=1,
+        result_data={
+            "success": True,
+            "price": "1999",
+            "currency": "CNY",
+            "title": "JD item",
+        },
+    )
+
+
 @pytest.mark.parametrize(
     ("status_code", "expected"),
     [

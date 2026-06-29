@@ -77,6 +77,20 @@ CRAWLER_INLINE_EXECUTION_ENABLED=true
 
 **Profile 目录** 必须在 worker 机器上**可访问**（NFS / 共享盘 / Docker volume），不然抢同一 profile 会冲突。
 
+### 本机 worker + 手机 PostgreSQL
+
+手机服务器部署场景优先使用 SSH 隧道，不要把 PostgreSQL 直接开放到局域网：
+
+```powershell
+cd C:/Users/arfac/Documents/mavra-monitor-system
+$env:PHONE_SSH_TARGET = "<termux-user>@<phone-ip>"
+./scripts/start_phone_crawler_worker.ps1
+```
+
+这条路径只启动本机 crawler worker。不要把本机 `scripts/start_server.ps1` 连到手机生产库；它会同时启动本机 FastAPI/APScheduler 和 worker，可能和手机端重复入队或争抢任务。
+
+详细步骤见 [howto-local-crawler-phone-db](howto-local-crawler-phone-db.md)。
+
 ## 步骤 6：健康检查
 
 ```bash
