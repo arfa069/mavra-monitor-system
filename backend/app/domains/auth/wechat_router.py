@@ -13,7 +13,7 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, ResponseError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -149,10 +149,22 @@ class RedisWeChatExchangeCodeStore:
             logger.exception("Redis unavailable for WeChat exchange-code save")
             await self._fallback.save(code, entry)
 
+    @staticmethod
+    async def _consume_redis(redis_client, key: str):
+        try:
+            return await redis_client.execute_command("GETDEL", key)
+        except ResponseError as exc:
+            if "unknown command" not in str(exc).lower():
+                raise
+            raw_value = await redis_client.get(key)
+            if raw_value:
+                await redis_client.delete(key)
+            return raw_value
+
     async def consume(self, code: str) -> WeChatExchangeEntry | None:
         try:
             redis_client = await get_redis()
-            raw_value = await redis_client.execute_command("GETDEL", self._key(code))
+            raw_value = await self._consume_redis(redis_client, self._key(code))
         except RedisError:
             logger.exception("Redis unavailable for WeChat exchange-code consume")
             return await self._fallback.consume(code)

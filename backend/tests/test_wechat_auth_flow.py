@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from redis.exceptions import ResponseError
 
 from app.database import get_db
 from app.domains.auth import wechat_router
@@ -87,6 +88,42 @@ def _wechat_user() -> MagicMock:
     user.deleted_at = None
     user.created_at = datetime.now(UTC)
     return user
+
+
+@pytest.mark.asyncio
+async def test_wechat_exchange_store_falls_back_when_getdel_is_unsupported(
+    monkeypatch,
+):
+    """Redis < 6.2 lacks GETDEL; consume should use GET + DEL instead."""
+    entry = wechat_router.WeChatExchangeEntry(
+        issued_at=datetime.now(UTC),
+        status="bound",
+        openid="openid-compat",
+        next_path="/today",
+    )
+    raw_value = wechat_router.RedisWeChatExchangeCodeStore._serialize(entry)
+
+    class OldRedisClient:
+        async def execute_command(self, *args):
+            raise ResponseError("unknown command `GETDEL`")
+
+        async def get(self, key):
+            return raw_value
+
+        async def delete(self, key):
+            self.deleted_key = key
+
+    redis_client = OldRedisClient()
+    monkeypatch.setattr(
+        "app.domains.auth.wechat_router.get_redis",
+        AsyncMock(return_value=redis_client),
+    )
+
+    store = wechat_router.RedisWeChatExchangeCodeStore()
+    consumed = await store.consume("compat-code")
+
+    assert consumed == entry
+    assert redis_client.deleted_key == "wechat_exchange:compat-code"
 
 
 @pytest.mark.asyncio
