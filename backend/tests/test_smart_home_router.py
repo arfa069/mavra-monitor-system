@@ -61,7 +61,11 @@ def _mock_bearer_db(user):
     async def execute(_statement):
         return result
 
+    async def commit():
+        return None
+
     db.execute = execute
+    db.commit = commit
     return db
 
 

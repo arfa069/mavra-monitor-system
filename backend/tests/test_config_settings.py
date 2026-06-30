@@ -30,6 +30,23 @@ def test_allowed_origins_json_list():
     assert settings.allowed_origins == ["http://example.com", "http://example.org"]
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("release", False),
+        ("production", False),
+        ("debug", True),
+        ("development", True),
+    ],
+)
+def test_debug_accepts_common_mode_strings(value, expected):
+    settings = Settings(
+        jwt_secret_key="dummy-secret-key-for-test-debug-mode",
+        debug=value,
+    )
+    assert settings.debug is expected
+
+
 def test_product_crawl_concurrency_rejects_zero():
     with pytest.raises(ValueError):
         Settings(

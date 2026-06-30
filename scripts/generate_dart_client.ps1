@@ -105,6 +105,25 @@ function Normalize-DartGeneratedSources {
     }
 }
 
+function Normalize-OpenApiGeneratorMetadata {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    $IgnorePath = Join-Path $Destination ".openapi-generator-ignore"
+    $FilesPath = Join-Path $Destination ".openapi-generator/FILES"
+    if ((Test-Path $IgnorePath) -and (Test-Path $FilesPath)) {
+        $files = Get-Content $FilesPath
+        if ($files -notcontains ".openapi-generator-ignore") {
+            $files = @($files)
+            if ($files.Count -gt 1) {
+                $files = @($files[0]) + ".openapi-generator-ignore" + $files[1..($files.Count - 1)]
+            } else {
+                $files = @($files[0], ".openapi-generator-ignore")
+            }
+            Set-Content -LiteralPath $FilesPath -Value ([string]::Join("`n", $files) + "`n") -NoNewline
+        }
+    }
+}
+
 function Invoke-DartPackageBuild {
     param([Parameter(Mandatory = $true)][string]$Destination)
 
@@ -148,6 +167,7 @@ if ($Check) {
         Invoke-DartGenerator -Destination $TempRoot
         Normalize-DartPackagePubspec -Destination $TempRoot
         Normalize-DartGeneratedSources -Destination $TempRoot
+        Normalize-OpenApiGeneratorMetadata -Destination $TempRoot
         Invoke-DartPackageBuild -Destination $TempRoot
         Remove-DartPackageVolatileFiles -Destination $OutputPath
         git diff --no-index --exit-code -- $OutputPath $TempRoot
@@ -168,4 +188,5 @@ if ($Clean -and (Test-Path $OutputPath)) {
 Invoke-DartGenerator -Destination $OutputPath
 Normalize-DartPackagePubspec -Destination $OutputPath
 Normalize-DartGeneratedSources -Destination $OutputPath
+Normalize-OpenApiGeneratorMetadata -Destination $OutputPath
 Invoke-DartPackageBuild -Destination $OutputPath

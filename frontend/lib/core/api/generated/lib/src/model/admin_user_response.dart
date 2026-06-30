@@ -8,7 +8,7 @@ import 'package:built_value/serializer.dart';
 
 part 'admin_user_response.g.dart';
 
-/// Schema for user response (admin).  is_active is a compatibility projection of deleted_at (not the DB column).
+/// Schema for user response (admin).
 ///
 /// Properties:
 /// * [createdAt] 
