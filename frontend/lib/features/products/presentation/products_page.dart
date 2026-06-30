@@ -1476,6 +1476,7 @@ class _ProductWorkbenchTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return MavraResponsiveDataView<ProductItem>(
       rows: products,
+      rowKey: (product) => ValueKey('product-${product.id}'),
       wideBreakpoint: 850,
       columns: const [
         DataColumn(label: Text('Select')),
@@ -1696,6 +1697,7 @@ class _ProductCrawlLogsTable extends StatelessWidget {
     return MavraResponsiveDataView<ProductCrawlLog>(
       key: const Key('product-crawl-logs-table'),
       rows: logs,
+      rowKey: (log) => ValueKey('product-crawl-log-${_crawlLogKey(log)}'),
       wideBreakpoint: 720,
       columns: const [
         DataColumn(label: Text('Time')),

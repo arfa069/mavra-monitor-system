@@ -539,6 +539,7 @@ class _UserTable extends StatelessWidget {
     }
     return MavraResponsiveDataView<AdminUser>(
       rows: users,
+      rowKey: (user) => ValueKey('admin-user-${user.id}'),
       wideBreakpoint: 900,
       columns: const [
         DataColumn(label: Text('Action')),
@@ -742,6 +743,7 @@ class _AuditLogList extends StatelessWidget {
         const SizedBox(height: 8),
         MavraResponsiveDataView<AdminAuditLog>(
           rows: logs,
+          rowKey: (log) => ValueKey('admin-audit-${log.id}'),
           wideBreakpoint: 900,
           columns: const [
             DataColumn(label: Text('Action')),

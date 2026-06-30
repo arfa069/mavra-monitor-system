@@ -219,6 +219,7 @@ class _AuditLogTable extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: MavraResponsiveDataView<AdminAuditLog>(
         rows: logs,
+        rowKey: (log) => ValueKey('admin-audit-${log.id}'),
         wideBreakpoint: 720,
         columnSpacing: 24,
         columns: const [

@@ -1811,6 +1811,7 @@ class _JobsTable extends StatelessWidget {
 
     return MavraResponsiveDataView<_IndexedJobRow>(
       rows: rows,
+      rowKey: (row) => ValueKey('job-${row.job.id}'),
       wideBreakpoint: 960,
       columnSpacing: 8,
       columns: const [

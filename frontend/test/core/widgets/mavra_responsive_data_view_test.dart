@@ -112,4 +112,63 @@ void main() {
     expect(find.text('Nothing to review'), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
   });
+
+  testWidgets('keeps mobile row state with configured row keys', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Widget buildRows(List<int> rows) {
+      return MaterialApp(
+        home: MavraResponsiveDataView<int>(
+          rows: rows,
+          rowKey: (row) => ValueKey('row-$row'),
+          columns: const [
+            DataColumn(label: Text('Name')),
+          ],
+          tableCells: (row) => [
+            DataCell(Text('Wide row $row')),
+          ],
+          mobileBuilder: (context, row) => _StatefulMobileRow(label: '$row'),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildRows(const [1, 2]));
+
+    await tester.tap(find.text('row 2: 0'));
+    await tester.pump();
+    expect(find.text('row 2: 1'), findsOneWidget);
+
+    await tester.pumpWidget(buildRows(const [2, 1]));
+    await tester.pump();
+
+    expect(find.text('row 1: 1'), findsNothing);
+    expect(find.text('row 2: 1'), findsOneWidget);
+    expect(find.text('row 1: 0'), findsOneWidget);
+  });
+}
+
+class _StatefulMobileRow extends StatefulWidget {
+  const _StatefulMobileRow({required this.label});
+
+  final String label;
+
+  @override
+  State<_StatefulMobileRow> createState() => _StatefulMobileRowState();
+}
+
+class _StatefulMobileRowState extends State<_StatefulMobileRow> {
+  var _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text('row ${widget.label}: $_count'),
+      onTap: () => setState(() => _count += 1),
+    );
+  }
 }

@@ -1168,6 +1168,7 @@ class _PostsTable extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: MavraResponsiveDataView<BlogPostItem>(
         rows: posts,
+        rowKey: (post) => ValueKey('blog-post-${post.id}'),
         wideBreakpoint: 900,
         columns: const [
           DataColumn(label: Text('Title')),

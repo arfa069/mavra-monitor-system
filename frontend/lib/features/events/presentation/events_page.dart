@@ -768,6 +768,7 @@ class _EventBody extends StatelessWidget {
         children: [
           MavraResponsiveDataView<EventFeedItem>(
             rows: events,
+            rowKey: (item) => ValueKey('event-${item.id}'),
             columns: const [
               DataColumn(label: Text('Kind')),
               DataColumn(label: Text('Event Type')),

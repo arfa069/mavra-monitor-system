@@ -539,6 +539,7 @@ class _UsersTable extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: MavraResponsiveDataView<AdminUser>(
         rows: users,
+        rowKey: (user) => ValueKey('admin-user-${user.id}'),
         wideBreakpoint: 900,
         columns: const [
           DataColumn(label: Text('ID')),

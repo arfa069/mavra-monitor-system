@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 typedef MavraTableCells<T> = List<DataCell> Function(T row);
 typedef MavraMobileRowBuilder<T> = Widget Function(BuildContext context, T row);
+typedef MavraRowKey<T> = Key Function(T row);
 
 class MavraResponsiveDataView<T> extends StatelessWidget {
   const MavraResponsiveDataView({
@@ -13,6 +14,7 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
     this.wideBreakpoint = 760,
     this.columnSpacing,
     this.empty,
+    this.rowKey,
   });
 
   final List<T> rows;
@@ -22,6 +24,7 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
   final double wideBreakpoint;
   final double? columnSpacing;
   final Widget? empty;
+  final MavraRowKey<T>? rowKey;
 
   @override
   Widget build(BuildContext context) {
@@ -45,14 +48,31 @@ class MavraResponsiveDataView<T> extends StatelessWidget {
           );
         }
 
-        return ListView.separated(
+        final rowIndexesByKey = {
+          if (rowKey != null)
+            for (var index = 0; index < rows.length; index++)
+              rowKey!(rows[index]): index * 2,
+        };
+
+        return ListView.custom(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: rows.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) => Material(
-            type: MaterialType.transparency,
-            child: mobileBuilder(context, rows[index]),
+          childrenDelegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index.isOdd) {
+                return const Divider(height: 1);
+              }
+              final rowIndex = index ~/ 2;
+              return Material(
+                key: rowKey?.call(rows[rowIndex]),
+                type: MaterialType.transparency,
+                child: mobileBuilder(context, rows[rowIndex]),
+              );
+            },
+            childCount: rows.length * 2 - 1,
+            findChildIndexCallback: rowKey == null
+                ? null
+                : (key) => rowIndexesByKey[key],
           ),
         );
       },

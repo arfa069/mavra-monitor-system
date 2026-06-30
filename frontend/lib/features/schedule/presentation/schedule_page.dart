@@ -561,6 +561,7 @@ class _SchedulePageState extends State<SchedulePage> {
       child: MavraResponsiveDataView<ProductSchedule>(
         key: const Key('schedule-product-table'),
         rows: snapshot.productSchedules,
+        rowKey: (schedule) => ValueKey('schedule-product-${schedule.platform}'),
         wideBreakpoint: 760,
         empty: const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
@@ -677,6 +678,7 @@ class _SchedulePageState extends State<SchedulePage> {
       child: MavraResponsiveDataView<JobSchedule>(
         key: const Key('schedule-job-table'),
         rows: snapshot.jobSchedules,
+        rowKey: (schedule) => ValueKey('schedule-job-${schedule.configId}'),
         wideBreakpoint: 760,
         empty: const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
