@@ -89,6 +89,46 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pricemonitor_test
 
+      - name: Seed default test user
+        run: |
+          uv run --extra dev python - <<'PY'
+          import asyncio
+
+          from sqlalchemy import text
+
+          from app.database import engine
+
+
+          async def main() -> None:
+              async with engine.begin() as conn:
+                  await conn.execute(text("""
+                      INSERT INTO users (
+                          id, username, email, hashed_password, is_active, role,
+                          data_retention_days, created_at, updated_at
+                      )
+                      VALUES (
+                          1, 'ci-default-user', 'ci-default@example.test',
+                          'ci-placeholder-hash', true, 'user',
+                          365, NOW(), NOW()
+                      )
+                      ON CONFLICT (id) DO NOTHING
+                  """))
+                  await conn.execute(text("""
+                      SELECT setval(
+                          pg_get_serial_sequence('users', 'id'),
+                          GREATEST((SELECT COALESCE(MAX(id), 1) FROM users), 1),
+                          true
+                      )
+                  """))
+              await engine.dispose()
+
+
+          asyncio.run(main())
+          PY
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pricemonitor_test
+
       - name: Run pytest
         run: uv run --extra dev python -m pytest -v --tb=short
         working-directory: backend
