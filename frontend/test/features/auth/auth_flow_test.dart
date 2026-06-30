@@ -116,6 +116,33 @@ void main() {
     },
   );
 
+  test(
+    'expired saved native session transient refresh failure preserves authentication',
+    () async {
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.nativeSecureStorage,
+        refreshRemote: () async => throw StateError('network down'),
+      );
+      await repository.saveSession(
+        _session(
+          username: 'expired',
+          permissions: {'schedule:read'},
+          expiresAt: DateTime.now().toUtc().subtract(
+            const Duration(minutes: 1),
+          ),
+        ),
+      );
+      final auth = AuthController(api: FakeAuthApi(), repository: repository);
+
+      await auth.restoreSession();
+
+      expect(auth.session?.username, 'expired');
+      expect(auth.isAuthenticated, isTrue);
+      expect((await repository.loadSession())?.username, 'expired');
+    },
+  );
+
   test('auth controller follows repository session invalidation', () async {
     final repository = AuthRepository(
       storage: InMemoryTokenStorage(),

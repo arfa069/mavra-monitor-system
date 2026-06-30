@@ -216,6 +216,8 @@ class AuthController extends ChangeNotifier {
       final refreshResult = await authRepository.refreshSession();
       if (refreshResult == RefreshSessionResult.refreshed) {
         _session = authRepository.currentSession;
+      } else if (refreshResult == RefreshSessionResult.transientFailure) {
+        _session = storedSession ?? authRepository.currentSession;
       } else {
         _session = null;
       }
