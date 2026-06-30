@@ -33,17 +33,24 @@ abstract class RealtimeClient {
 typedef PollRealtime = Future<List<RealtimeMessage>> Function();
 
 class PollingRealtimeClient extends RealtimeClient {
-  const PollingRealtimeClient({required this.poll});
+  const PollingRealtimeClient({
+    required this.poll,
+    this.interval = const Duration(seconds: 30),
+  });
 
   final PollRealtime poll;
+  final Duration interval;
 
   Future<List<RealtimeMessage>> pollOnce() => poll();
 
   @override
   Stream<RealtimeMessage> connect(String channel) async* {
-    final messages = await poll();
-    for (final message in messages) {
-      yield message;
+    while (true) {
+      final messages = await poll();
+      for (final message in messages) {
+        yield message;
+      }
+      await Future<void>.delayed(interval);
     }
   }
 }

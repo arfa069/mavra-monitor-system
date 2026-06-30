@@ -77,6 +77,38 @@ void main() {
     expect(find.text('JD office chair'), findsOneWidget);
     expect(find.text('Taobao rice cooker'), findsOneWidget);
   });
+
+  testWidgets('ignores stale alert responses after the filter changes', (
+    tester,
+  ) async {
+    final allAlerts = Completer<List<AlertItem>>();
+    final repository = _SequencedAlertRepository(
+      responses: {
+        AlertFilter.all: allAlerts.future,
+        AlertFilter.inactive: Future.value([
+          _alert(id: 2, title: 'Amazon desk lamp', active: false),
+        ]),
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: AlertsPage(repository: repository)),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Inactive'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Amazon desk lamp'), findsOneWidget);
+
+    allAlerts.complete([
+      _alert(id: 1, title: 'Taobao rice cooker', active: true),
+    ]);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Amazon desk lamp'), findsOneWidget);
+    expect(find.text('Taobao rice cooker'), findsNothing);
+  });
 }
 
 class _FakeAlertRepository implements AlertRepository {
@@ -111,6 +143,23 @@ class _FailingAlertRepository implements AlertRepository {
   @override
   Stream<AlertItem> watchAlerts({AlertFilter filter = AlertFilter.all}) {
     return const Stream.empty();
+  }
+}
+
+class _SequencedAlertRepository implements AlertRepository {
+  _SequencedAlertRepository({required this.responses});
+
+  final Map<AlertFilter, Future<List<AlertItem>>> responses;
+  final _controller = StreamController<AlertItem>.broadcast();
+
+  @override
+  Future<List<AlertItem>> listAlerts({AlertFilter filter = AlertFilter.all}) {
+    return responses[filter] ?? Future.value(const []);
+  }
+
+  @override
+  Stream<AlertItem> watchAlerts({AlertFilter filter = AlertFilter.all}) {
+    return _controller.stream;
   }
 }
 

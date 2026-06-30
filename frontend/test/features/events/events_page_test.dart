@@ -125,23 +125,28 @@ void main() {
       find.byKey(const Key('events-type-field')),
       'profile.challenge',
     );
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.enterText(
       find.byKey(const Key('events-category-field')),
       'crawler',
     );
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.byKey(const Key('events-severity-filter')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Warning').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('events-source-field')), 'api');
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.enterText(
       find.byKey(const Key('events-keyword-field')),
       'profile',
     );
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.enterText(
       find.byKey(const Key('events-start-field')),
       '2026-06-01T00:00:00Z',
     );
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.enterText(
       find.byKey(const Key('events-end-field')),
       '2026-06-18T00:00:00Z',
@@ -170,6 +175,38 @@ void main() {
     await tester.tap(find.byKey(const Key('events-reset-filters-button')));
     await tester.pumpAndSettle();
     expect(repository.lastQuery, _matchesQuery(const EventQuery(pageSize: 50)));
+  });
+
+  testWidgets('debounces text filters before reloading events', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repository = _FakeEventRepository(items: [_fullEvent()]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: EventsPage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+    final initialQueries = repository.queries.length;
+    final initialWatches = repository.watchQueries.length;
+
+    await tester.enterText(find.byKey(const Key('events-keyword-field')), 'p');
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.enterText(find.byKey(const Key('events-keyword-field')), 'pr');
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.enterText(
+      find.byKey(const Key('events-keyword-field')),
+      'profile',
+    );
+
+    expect(repository.queries.length, initialQueries);
+    expect(repository.watchQueries.length, initialWatches);
+
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastQuery.keyword, 'profile');
+    expect(repository.queries.length, initialQueries + 1);
+    expect(repository.watchQueries.length, initialWatches + 1);
   });
 
   testWidgets('opens old React event detail drawer fields', (tester) async {

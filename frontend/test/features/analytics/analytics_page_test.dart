@@ -27,7 +27,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Analytics'), findsNWidgets(2));
-    expect(find.text('Monitor system status, price trends, and candidate matching'), findsOneWidget);
+    expect(
+      find.text('Monitor system status, price trends, and candidate matching'),
+      findsOneWidget,
+    );
     expect(find.text('Today'), findsNothing);
     expect(find.text('Events'), findsNothing);
     expect(find.text('Alerts'), findsNothing);
@@ -92,7 +95,10 @@ void main() {
 
       expect(find.text('System Operations'), findsNothing);
       expect(find.text('Recent Alerts'), findsNothing);
-      expect(find.text('Product Distribution by Platform', skipOffstage: false), findsOneWidget);
+      expect(
+        find.text('Product Distribution by Platform', skipOffstage: false),
+        findsOneWidget,
+      );
     },
   );
 
@@ -116,6 +122,76 @@ void main() {
       (days: 30, includeAdmin: true),
       (days: 7, includeAdmin: true),
     ]);
+  });
+
+  testWidgets('ignores stale analytics responses after the range changes', (
+    tester,
+  ) async {
+    final secondLoad = Completer<AnalyticsOverview>();
+    final thirdLoad = Completer<AnalyticsOverview>();
+    final repository = _SequencedAnalyticsRepository(
+      responses: {
+        30: Future.value(
+          _overview(
+            userKpi: const DashboardUserKpi(
+              totalProducts: 30,
+              priceDropsToday: 2,
+              newJobsToday: 3,
+              matchCount: 4,
+              crawlCountToday: 5,
+            ),
+          ),
+        ),
+        7: secondLoad.future,
+        90: thirdLoad.future,
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AnalyticsPage(
+          repository: repository,
+          canViewSystemAnalytics: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('7 Days'));
+    await tester.pump();
+
+    await tester.tap(find.text('90 Days'));
+    await tester.pump();
+
+    thirdLoad.complete(
+      _overview(
+        userKpi: const DashboardUserKpi(
+          totalProducts: 90,
+          priceDropsToday: 12,
+          newJobsToday: 13,
+          matchCount: 14,
+          crawlCountToday: 15,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('90'), findsWidgets);
+
+    secondLoad.complete(
+      _overview(
+        userKpi: const DashboardUserKpi(
+          totalProducts: 7,
+          priceDropsToday: 20,
+          newJobsToday: 30,
+          matchCount: 40,
+          crawlCountToday: 50,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('7'), findsNothing);
+    expect(find.text('90'), findsWidgets);
   });
 
   testWidgets('realtime KPI updates do not replace trends or alerts', (
@@ -279,18 +355,39 @@ class _FailingAnalyticsRepository implements AnalyticsRepository {
   Stream<AnalyticsKpiSnapshot> watchKpiUpdates() => const Stream.empty();
 }
 
+class _SequencedAnalyticsRepository implements AnalyticsRepository {
+  _SequencedAnalyticsRepository({required this.responses});
+
+  final Map<int, Future<AnalyticsOverview>> responses;
+  final _controller = StreamController<AnalyticsKpiSnapshot>.broadcast();
+
+  @override
+  Future<AnalyticsOverview> loadOverview({
+    int days = 30,
+    bool includeAdmin = false,
+  }) {
+    return responses[days] ?? Future.value(_overviewFixture());
+  }
+
+  @override
+  Stream<AnalyticsKpiSnapshot> watchKpiUpdates() => _controller.stream;
+}
+
 AnalyticsOverview _overview({
+  DashboardUserKpi? userKpi,
   List<AnalyticsTrendSection>? userTrends,
   List<AnalyticsRecentAlert>? recentAlerts,
 }) {
   return AnalyticsOverview(
-    userKpi: const DashboardUserKpi(
-      totalProducts: 12,
-      priceDropsToday: 2,
-      newJobsToday: 4,
-      matchCount: 5,
-      crawlCountToday: 9,
-    ),
+    userKpi:
+        userKpi ??
+        const DashboardUserKpi(
+          totalProducts: 12,
+          priceDropsToday: 2,
+          newJobsToday: 4,
+          matchCount: 5,
+          crawlCountToday: 9,
+        ),
     systemKpi: const DashboardSystemKpi(
       totalUsers: 3,
       totalCrawls: 45,

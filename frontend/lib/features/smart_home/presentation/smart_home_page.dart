@@ -26,6 +26,7 @@ class _SmartHomePageState extends State<SmartHomePage> {
   List<SmartHomeEntityItem> _entities = const [];
   Object? _error;
   bool _refreshing = false;
+  var _loadGeneration = 0;
   StreamSubscription<List<SmartHomeEntityItem>>? _entitySubscription;
 
   final _baseUrlController = TextEditingController();
@@ -67,25 +68,33 @@ class _SmartHomePageState extends State<SmartHomePage> {
   }
 
   void _subscribeToEntities() {
-    _entitySubscription = widget.repository.watchEntities().listen((entities) {
-      if (mounted) {
-        setState(() => _entities = entities);
-      }
-    });
+    _entitySubscription = widget.repository.watchEntities().listen(
+      (entities) {
+        if (mounted) {
+          setState(() => _entities = entities);
+        }
+      },
+      onError: (_, _) {
+        if (mounted) {
+          MavraNotifier.error('Smart home updates interrupted');
+        }
+      },
+    );
   }
 
   void _load() {
+    final generation = ++_loadGeneration;
     setState(() {
       _error = null;
       _refreshing = true;
-      _smartHomeFuture = _fetchSmartHome();
+      _smartHomeFuture = _fetchSmartHome(generation);
     });
   }
 
-  Future<SmartHomeSnapshot> _fetchSmartHome() async {
+  Future<SmartHomeSnapshot> _fetchSmartHome(int generation) async {
     try {
       final snapshot = await widget.repository.loadSmartHome();
-      if (mounted) {
+      if (mounted && generation == _loadGeneration) {
         setState(() {
           _snapshot = snapshot;
           _entities = snapshot.entities;
@@ -93,12 +102,12 @@ class _SmartHomePageState extends State<SmartHomePage> {
       }
       return snapshot;
     } catch (error) {
-      if (mounted) {
+      if (mounted && generation == _loadGeneration) {
         setState(() => _error = error);
       }
       rethrow;
     } finally {
-      if (mounted) {
+      if (mounted && generation == _loadGeneration) {
         setState(() => _refreshing = false);
       }
     }
@@ -252,6 +261,10 @@ class _SmartHomePageState extends State<SmartHomePage> {
         ),
       );
       if (mounted) {
+        if (!result.ok) {
+          MavraNotifier.error(result.message);
+          return;
+        }
         setState(() {
           _entities = [
             for (final current in _entities)
@@ -773,7 +786,7 @@ class _EntityCard extends StatelessWidget {
             OutlinedButton(
               key: Key('smart-home-cover-open-${entity.entityId}'),
               style: MavraButtonStyle.compactOutlined(context: context),
-              onPressed: canControl && onCallEntityService != null
+              onPressed: _canUseAvailableControl
                   ? () => onCallEntityService!(entity, 'open_cover')
                   : null,
               child: const Text('Open'),
@@ -781,7 +794,7 @@ class _EntityCard extends StatelessWidget {
             OutlinedButton(
               key: Key('smart-home-cover-stop-${entity.entityId}'),
               style: MavraButtonStyle.compactOutlined(context: context),
-              onPressed: canControl && onCallEntityService != null
+              onPressed: _canUseAvailableControl
                   ? () => onCallEntityService!(entity, 'stop_cover')
                   : null,
               child: const Text('Stop'),
@@ -789,7 +802,7 @@ class _EntityCard extends StatelessWidget {
             OutlinedButton(
               key: Key('smart-home-cover-close-${entity.entityId}'),
               style: MavraButtonStyle.compactOutlined(context: context),
-              onPressed: canControl && onCallEntityService != null
+              onPressed: _canUseAvailableControl
                   ? () => onCallEntityService!(entity, 'close_cover')
                   : null,
               child: const Text('Close'),
@@ -807,7 +820,7 @@ class _EntityCard extends StatelessWidget {
         return FilledButton.icon(
           key: Key('smart-home-run-${entity.entityId}'),
           style: MavraButtonStyle.compactFilled(context: context),
-          onPressed: canControl && onConfirmRunEntity != null
+          onPressed: entity.available && canControl && onConfirmRunEntity != null
               ? () => onConfirmRunEntity!(entity)
               : null,
           icon: const Icon(Icons.power_settings_new, size: 18),

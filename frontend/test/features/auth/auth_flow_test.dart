@@ -298,6 +298,50 @@ void main() {
     expect(await repository.loadSession(), isNull);
   });
 
+  test(
+    'update profile syncs the current session and saved repository session',
+    () async {
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.nativeSecureStorage,
+      );
+      final auth = AuthController(api: FakeAuthApi(), repository: repository);
+      await auth.login(
+        const LoginCredentials(username: 'mavra', password: 'secret-password'),
+      );
+
+      final updated = await auth.updateProfile(
+        const AccountProfileDraft(
+          username: 'updated-mavra',
+          email: 'updated@example.com',
+        ),
+      );
+
+      expect(updated.username, 'updated-mavra');
+      expect(auth.session?.username, 'updated-mavra');
+      expect((await repository.loadSession())?.username, 'updated-mavra');
+    },
+  );
+
+  test('logout clears local session even when remote logout fails', () async {
+    final repository = AuthRepository(
+      storage: InMemoryTokenStorage(),
+      policy: TokenPersistencePolicy.nativeSecureStorage,
+    );
+    final auth = AuthController(
+      api: _FailingLogoutAuthApi(),
+      repository: repository,
+    );
+    await auth.login(
+      const LoginCredentials(username: 'mavra', password: 'secret-password'),
+    );
+
+    await auth.logout();
+
+    expect(auth.session, isNull);
+    expect(await repository.loadSession(), isNull);
+  });
+
   testWidgets('shows a permission state for guarded routes', (tester) async {
     final auth = AuthController(
       api: FakeAuthApi(),
@@ -554,6 +598,13 @@ class _UnboundWeChatAuthApi extends FakeAuthApi {
       tempToken: 'temp-secret-token',
       nextPath: '/register',
     );
+  }
+}
+
+class _FailingLogoutAuthApi extends FakeAuthApi {
+  @override
+  Future<void> logout() async {
+    throw StateError('logout failed');
   }
 }
 

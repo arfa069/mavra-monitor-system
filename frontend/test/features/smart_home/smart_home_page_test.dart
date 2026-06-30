@@ -275,6 +275,110 @@ void main() {
     expect(toggle.value, isFalse);
   });
 
+  testWidgets('keeps entity state unchanged when a service call is rejected', (
+    tester,
+  ) async {
+    final repository = _FakeSmartHomeRepository.deviceGrouped()
+      ..serviceResult = const SmartHomeServiceResult(
+        ok: false,
+        message: 'Home Assistant rejected the command',
+      );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+        home: SmartHomePage(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final alarmToggle = find.byKey(
+      const Key('smart-home-toggle-switch.zhimi_fa1_alarm'),
+    );
+    await tester.ensureVisible(alarmToggle);
+    await tester.tap(alarmToggle);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    final toggle = tester.widget<Switch>(alarmToggle);
+    expect(toggle.value, isTrue);
+    expect(find.text('Home Assistant rejected the command'), findsOneWidget);
+  });
+
+  testWidgets('disables controls for unavailable entities', (tester) async {
+    final repository = _FakeSmartHomeRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SmartHomePage(repository: repository)),
+    );
+    await tester.pumpAndSettle();
+
+    final bedroomToggle = tester.widget<Switch>(
+      find.byKey(const Key('smart-home-toggle-switch.bedroom')),
+    );
+    expect(bedroomToggle.onChanged, isNull);
+
+    final unavailableRepository = _FakeSmartHomeRepository(
+      const SmartHomeSnapshot(
+        config: SmartHomeConfig(
+          baseUrl: 'https://ha.local',
+          enabled: true,
+          lastStatus: 'ok',
+          tokenConfigured: true,
+        ),
+        summary: SmartHomeSummary(
+          configured: true,
+          connected: true,
+          activeCount: 0,
+          unavailableCount: 2,
+        ),
+        entities: [
+          SmartHomeEntityItem(
+            domain: 'cover',
+            entityId: 'cover.offline',
+            name: 'Offline cover',
+            state: 'unavailable',
+            area: 'Garage',
+            available: false,
+          ),
+          SmartHomeEntityItem(
+            domain: 'scene',
+            entityId: 'scene.offline',
+            name: 'Offline scene',
+            state: 'unavailable',
+            area: null,
+            available: false,
+          ),
+        ],
+        canControl: true,
+        canConfigure: true,
+        realtimeConnected: true,
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: SmartHomePage(repository: unavailableRepository)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const Key('smart-home-cover-open-cover.offline')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('smart-home-run-scene.offline')),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
   testWidgets('hides Configure and disables controls without permission', (
     tester,
   ) async {
@@ -349,6 +453,104 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('off'), findsOneWidget);
+  });
+
+  testWidgets('ignores stale smart home loads after a newer refresh wins', (
+    tester,
+  ) async {
+    final staleRepository = _SequencedSmartHomeRepository([
+      Completer<SmartHomeSnapshot>(),
+    ]);
+    final latestRepository = _SequencedSmartHomeRepository([
+      Completer<SmartHomeSnapshot>(),
+    ]);
+
+    await tester.pumpWidget(
+      MaterialApp(home: SmartHomePage(repository: staleRepository)),
+    );
+    await tester.pump();
+
+    await tester.pumpWidget(
+      MaterialApp(home: SmartHomePage(repository: latestRepository)),
+    );
+    await tester.pump();
+
+    latestRepository.complete(
+      0,
+      const SmartHomeSnapshot(
+        config: null,
+        summary: SmartHomeSummary(
+          configured: true,
+          connected: true,
+          activeCount: 1,
+          unavailableCount: 0,
+        ),
+        entities: [
+          SmartHomeEntityItem(
+            domain: 'light',
+            entityId: 'light.latest',
+            name: 'Latest load',
+            state: 'on',
+            area: 'Lab',
+            available: true,
+          ),
+        ],
+        canControl: true,
+        canConfigure: true,
+        realtimeConnected: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    staleRepository.complete(
+      0,
+      const SmartHomeSnapshot(
+        config: null,
+        summary: SmartHomeSummary(
+          configured: true,
+          connected: true,
+          activeCount: 1,
+          unavailableCount: 0,
+        ),
+        entities: [
+          SmartHomeEntityItem(
+            domain: 'light',
+            entityId: 'light.stale',
+            name: 'Stale load',
+            state: 'on',
+            area: 'Lab',
+            available: true,
+          ),
+        ],
+        canControl: true,
+        canConfigure: true,
+        realtimeConnected: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Latest load'), findsOneWidget);
+    expect(find.text('Stale load'), findsNothing);
+  });
+
+  testWidgets('reports realtime entity stream errors without crashing', (
+    tester,
+  ) async {
+    final repository = _FakeSmartHomeRepository.full();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+        home: SmartHomePage(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    repository.emitEntityError(StateError('stream down'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('Smart home updates interrupted'), findsOneWidget);
   });
 
   testWidgets('explicit permissions override repository permission flags', (
@@ -576,6 +778,10 @@ class _FakeSmartHomeRepository implements SmartHomeRepository {
   final testedConfigs = <SmartHomeConfigDraft>[];
   final serviceCalls = <SmartHomeServiceDraft>[];
   final _controller = StreamController<List<SmartHomeEntityItem>>.broadcast();
+  SmartHomeServiceResult serviceResult = const SmartHomeServiceResult(
+    ok: true,
+    message: 'Service call queued',
+  );
 
   SmartHomeConfigDraft? get savedConfig =>
       savedConfigs.isEmpty ? null : savedConfigs.last;
@@ -591,6 +797,10 @@ class _FakeSmartHomeRepository implements SmartHomeRepository {
 
   void emitEntities(List<SmartHomeEntityItem> entities) {
     _controller.add(entities);
+  }
+
+  void emitEntityError(Object error) {
+    _controller.addError(error);
   }
 
   @override
@@ -612,10 +822,44 @@ class _FakeSmartHomeRepository implements SmartHomeRepository {
     SmartHomeServiceDraft draft,
   ) async {
     serviceCalls.add(draft);
-    return const SmartHomeServiceResult(
-      ok: true,
-      message: 'Service call queued',
-    );
+    return serviceResult;
+  }
+}
+
+class _SequencedSmartHomeRepository implements SmartHomeRepository {
+  _SequencedSmartHomeRepository(this._completers);
+
+  final List<Completer<SmartHomeSnapshot>> _completers;
+  final _controller = StreamController<List<SmartHomeEntityItem>>.broadcast();
+  var _loadCount = 0;
+
+  @override
+  Future<SmartHomeSnapshot> loadSmartHome() {
+    final completer = _completers[_loadCount];
+    _loadCount += 1;
+    return completer.future;
+  }
+
+  void complete(int index, SmartHomeSnapshot snapshot) {
+    _completers[index].complete(snapshot);
+  }
+
+  @override
+  Stream<List<SmartHomeEntityItem>> watchEntities() => _controller.stream;
+
+  @override
+  Future<void> saveConfig(SmartHomeConfigDraft draft) async {}
+
+  @override
+  Future<SmartHomeServiceResult> testConfig(SmartHomeConfigDraft draft) async {
+    return const SmartHomeServiceResult(ok: true, message: 'ok');
+  }
+
+  @override
+  Future<SmartHomeServiceResult> callService(
+    SmartHomeServiceDraft draft,
+  ) async {
+    return const SmartHomeServiceResult(ok: true, message: 'ok');
   }
 }
 

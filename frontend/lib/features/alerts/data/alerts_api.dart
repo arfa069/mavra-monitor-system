@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -8,17 +10,15 @@ class GeneratedAlertRepository implements AlertRepository {
   GeneratedAlertRepository({
     required AppConfig config,
     generated.MavraApi? client,
-    RealtimeClient? realtimeClient,
+    this.realtimeClient,
   }) : _client =
            client ??
            generated.MavraApi(
              basePathOverride: _serviceRoot(config.apiBaseUrl),
-           ),
-       _realtimeClient =
-           realtimeClient ?? PollingRealtimeClient(poll: () async => const []);
+           );
 
   final generated.MavraApi _client;
-  final RealtimeClient _realtimeClient;
+  final RealtimeClient? realtimeClient;
 
   generated.AlertsApi get _alertsApi => _client.getAlertsApi();
 
@@ -41,15 +41,27 @@ class GeneratedAlertRepository implements AlertRepository {
 
   @override
   Stream<AlertItem> watchAlerts({AlertFilter filter = AlertFilter.all}) {
-    return _realtimeClient.connect('alerts').map(_alertFromRealtime).where((
-      alert,
-    ) {
+    final client = realtimeClient;
+    if (client == null) {
+      return _pollAlerts(filter);
+    }
+    return client.connect('alerts').map(_alertFromRealtime).where((alert) {
       return switch (filter) {
         AlertFilter.all => true,
         AlertFilter.active => alert.active,
         AlertFilter.inactive => !alert.active,
       };
     });
+  }
+
+  Stream<AlertItem> _pollAlerts(AlertFilter filter) async* {
+    while (true) {
+      final alerts = await listAlerts(filter: filter);
+      for (final alert in alerts) {
+        yield alert;
+      }
+      await Future<void>.delayed(const Duration(seconds: 30));
+    }
   }
 
   AlertItem _mapAlert(generated.AlertResponse response) {

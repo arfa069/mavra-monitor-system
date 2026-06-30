@@ -16,6 +16,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<AccountOverview>? _overviewFuture;
   AccountOverview? _overview;
   Object? _loadError;
+  int _loadRequestId = 0;
   String? _profileError;
   String? _passwordError;
   bool _savingProfile = false;
@@ -50,24 +51,28 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(widget.authController.loadAccountOverview);
     setState(() {
       _overview = null;
       _loadError = null;
-      _overviewFuture = Future.sync(widget.authController.loadAccountOverview)
-        ..then((overview) {
-          if (!mounted) {
+      _overviewFuture = future;
+    });
+    future
+        .then((overview) {
+          if (!mounted || requestId != _loadRequestId) {
             return;
           }
           setState(() {
             _overview = overview;
             _applyProfile(overview.profile);
           });
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _loadError = error);
           }
         });
-    });
   }
 
   Future<void> _saveProfile() async {

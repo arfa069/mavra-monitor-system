@@ -21,6 +21,7 @@ class _AlertsPageState extends State<AlertsPage> {
   List<AlertItem> _alerts = const [];
   Object? _error;
   StreamSubscription<AlertItem>? _subscription;
+  int _loadRequestId = 0;
 
   @override
   void initState() {
@@ -35,22 +36,29 @@ class _AlertsPageState extends State<AlertsPage> {
   }
 
   void _load() {
-    _error = null;
-    _alertsFuture =
-        Future.sync(() => widget.repository.listAlerts(filter: _filter))
-          ..then((alerts) {
-            if (mounted) {
-              setState(() {
-                _alerts = alerts;
-              });
-            }
-          }).catchError((Object error) {
-            if (mounted) {
-              setState(() {
-                _error = error;
-              });
-            }
-          });
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(
+      () => widget.repository.listAlerts(filter: _filter),
+    );
+    setState(() {
+      _error = null;
+      _alertsFuture = future;
+    });
+    future
+        .then((alerts) {
+          if (mounted && requestId == _loadRequestId) {
+            setState(() {
+              _alerts = alerts;
+            });
+          }
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
+            setState(() {
+              _error = error;
+            });
+          }
+        });
     _subscription?.cancel();
     _subscription = widget.repository.watchAlerts(filter: _filter).listen((
       alert,

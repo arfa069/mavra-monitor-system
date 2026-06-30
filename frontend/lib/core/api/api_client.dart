@@ -25,7 +25,7 @@ class MavraApiClient {
   final Dio dio;
   final AuthRepository authRepository;
 
-  Future<bool>? _refreshFlight;
+  Future<RefreshSessionResult>? _refreshFlight;
 
   Future<void> _attachBearerToken(
     RequestOptions options,
@@ -54,9 +54,8 @@ class MavraApiClient {
       return;
     }
 
-    final refreshed = await _refreshOnce();
-    if (!refreshed) {
-      await authRepository.logout();
+    final refreshResult = await _refreshOnce();
+    if (refreshResult != RefreshSessionResult.refreshed) {
       handler.next(error);
       return;
     }
@@ -79,7 +78,7 @@ class MavraApiClient {
     return ApiError.fromDioException(exception);
   }
 
-  Future<bool> _refreshOnce() {
+  Future<RefreshSessionResult> _refreshOnce() {
     final existing = _refreshFlight;
     if (existing != null) {
       return existing;

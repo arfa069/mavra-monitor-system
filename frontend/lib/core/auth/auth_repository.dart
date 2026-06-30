@@ -2,6 +2,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 enum TokenPersistencePolicy { nativeSecureStorage, webHttpOnlyRefreshCookie }
 
+enum RefreshSessionResult { refreshed, rejectedOrMissing, transientFailure }
+
 class AuthSession {
   const AuthSession({
     required this.accessToken,
@@ -18,6 +20,22 @@ class AuthSession {
   final Set<String> permissions;
 
   bool hasPermission(String permission) => permissions.contains(permission);
+
+  AuthSession copyWith({
+    String? accessToken,
+    String? refreshToken,
+    DateTime? expiresAt,
+    String? username,
+    Set<String>? permissions,
+  }) {
+    return AuthSession(
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      expiresAt: expiresAt ?? this.expiresAt,
+      username: username ?? this.username,
+      permissions: permissions ?? this.permissions,
+    );
+  }
 }
 
 abstract class TokenStorage {
@@ -156,20 +174,19 @@ class AuthRepository {
     return _currentSession;
   }
 
-  Future<bool> refreshSession() async {
+  Future<RefreshSessionResult> refreshSession() async {
     AuthSession? refreshed;
     try {
       refreshed = await refreshRemote?.call();
     } catch (_) {
-      await clearLocalSession();
-      return false;
+      return RefreshSessionResult.transientFailure;
     }
     if (refreshed == null) {
       await clearLocalSession();
-      return false;
+      return RefreshSessionResult.rejectedOrMissing;
     }
     await saveSession(refreshed);
-    return true;
+    return RefreshSessionResult.refreshed;
   }
 
   Future<void> clearLocalSession() async {

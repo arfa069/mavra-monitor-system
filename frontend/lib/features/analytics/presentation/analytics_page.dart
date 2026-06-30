@@ -28,6 +28,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   AnalyticsOverview? _overview;
   Object? _error;
   StreamSubscription<AnalyticsKpiSnapshot>? _subscription;
+  int _loadRequestId = 0;
   int _days = 30;
   bool _showRealtimeWarning = false;
 
@@ -78,6 +79,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
     final future = Future<AnalyticsOverview>.sync(
       () => widget.repository.loadOverview(
         days: _days,
@@ -88,13 +90,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       _error = null;
       _overviewFuture = future
         ..then((overview) {
-          if (mounted) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() {
               _overview = overview;
             });
           }
         }).catchError((Object error) {
-          if (mounted) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() {
               _error = error;
             });
@@ -363,7 +365,11 @@ class _UserKpis extends StatelessWidget {
     return _KpiWrap(
       cards: [
         _KpiData(label: 'Monitored Products', value: '${kpi.totalProducts}'),
-        _KpiData(label: 'Price Drops Today', value: '${kpi.priceDropsToday}', alert: true),
+        _KpiData(
+          label: 'Price Drops Today',
+          value: '${kpi.priceDropsToday}',
+          alert: true,
+        ),
         _KpiData(label: 'New Jobs Today', value: '${kpi.newJobsToday}'),
         _KpiData(label: 'Matches Analyzed', value: '${kpi.matchCount}'),
         _KpiData(label: 'Scrapes Today', value: '${kpi.crawlCountToday}'),
@@ -381,7 +387,10 @@ class _SystemKpis extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kpi == null) {
       return const _DashboardPanel(
-        child: SizedBox(height: 76, child: Center(child: Text('No data available'))),
+        child: SizedBox(
+          height: 76,
+          child: Center(child: Text('No data available')),
+        ),
       );
     }
     return _KpiWrap(
@@ -389,7 +398,11 @@ class _SystemKpis extends StatelessWidget {
         _KpiData(label: 'Total Users', value: '${kpi!.totalUsers}'),
         _KpiData(label: 'Scrapes Today', value: '${kpi!.totalCrawls}'),
         _KpiData(label: 'Success Rate', value: _percent(kpi!.successRate)),
-        _KpiData(label: 'Active Alerts', value: '${kpi!.activeAlerts}', alert: true),
+        _KpiData(
+          label: 'Active Alerts',
+          value: '${kpi!.activeAlerts}',
+          alert: true,
+        ),
         _KpiData(label: 'Disk Usage', value: _percent(kpi!.diskUsage)),
         _KpiData(label: 'Memory Usage', value: _percent(kpi!.memoryUsage)),
       ],
@@ -467,7 +480,10 @@ class _TrendGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (sections.isEmpty) {
       return const _DashboardPanel(
-        child: SizedBox(height: 180, child: Center(child: Text('No data available'))),
+        child: SizedBox(
+          height: 180,
+          child: Center(child: Text('No data available')),
+        ),
       );
     }
     return LayoutBuilder(
@@ -511,7 +527,9 @@ class _TrendSection extends StatelessWidget {
                     section.title,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const Expanded(child: Center(child: Text('No data available'))),
+                  const Expanded(
+                    child: Center(child: Text('No data available')),
+                  ),
                 ],
               ),
             )
@@ -531,7 +549,10 @@ class _SystemAnalytics extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('System Operations', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          'System Operations',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         const SizedBox(height: 12),
         _SystemKpis(kpi: overview.systemKpi),
         const SizedBox(height: 16),

@@ -29,6 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<SettingsSnapshot>? _settingsFuture;
   SettingsSnapshot? _snapshot;
   Object? _error;
+  int _loadRequestId = 0;
   String? _retentionError;
   String _themeMode = 'system';
   String _motionSpeed = 'normal';
@@ -71,11 +72,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(widget.repository.loadSettings);
     setState(() {
       _error = null;
-      _settingsFuture = Future.sync(widget.repository.loadSettings)
-        ..then((snapshot) {
-          if (!mounted) {
+      _settingsFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (!mounted || requestId != _loadRequestId) {
             return;
           }
           setState(() {
@@ -84,12 +89,12 @@ class _SettingsPageState extends State<SettingsPage> {
             _motionSpeed = _knownMotionSpeed(snapshot.motionSpeed);
             _applySnapshot(snapshot);
           });
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _error = error);
           }
         });
-    });
   }
 
   Future<void> _saveSettings() async {

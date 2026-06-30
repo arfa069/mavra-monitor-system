@@ -125,6 +125,32 @@ void main() {
     await expectation;
     expect(realtimeClient.channels, ['events']);
   });
+
+  test(
+    'GeneratedEventRepository polls events when no realtime client is injected',
+    () async {
+      final requests = <RequestOptions>[];
+      final client = generated.MavraApi(basePathOverride: 'https://api.example')
+        ..dio.httpClientAdapter = _Adapter((options) {
+          requests.add(options);
+          return _jsonResponse(200, {
+            'items': [_eventJson(id: 'evt-polled')],
+            'total': 1,
+            'page': 1,
+            'page_size': 20,
+          });
+        });
+      final repository = GeneratedEventRepository(
+        config: const AppConfig(apiBaseUrl: 'https://api.example/api/v1'),
+        client: client,
+      );
+
+      final event = await repository.watchEvents().first;
+
+      expect(event.id, 'evt-polled');
+      expect(requests.single.path, '/api/v1/events');
+    },
+  );
 }
 
 Map<String, Object?> _eventJson({String id = 'evt-1'}) {

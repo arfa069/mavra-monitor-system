@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:mavra_api/mavra_api.dart' as generated;
 
 import '../../../core/config/app_config.dart';
@@ -8,17 +10,15 @@ class GeneratedAnalyticsRepository implements AnalyticsRepository {
   GeneratedAnalyticsRepository({
     required AppConfig config,
     generated.MavraApi? client,
-    RealtimeClient? realtimeClient,
+    this.realtimeClient,
   }) : _client =
            client ??
            generated.MavraApi(
              basePathOverride: _serviceRoot(config.apiBaseUrl),
-           ),
-       _realtimeClient =
-           realtimeClient ?? PollingRealtimeClient(poll: () async => const []);
+           );
 
   final generated.MavraApi _client;
-  final RealtimeClient _realtimeClient;
+  final RealtimeClient? realtimeClient;
 
   generated.DashboardApi get _dashboardApi => _client.getDashboardApi();
 
@@ -55,11 +55,28 @@ class GeneratedAnalyticsRepository implements AnalyticsRepository {
 
   @override
   Stream<AnalyticsKpiSnapshot> watchKpiUpdates() {
-    return _realtimeClient
+    final client = realtimeClient;
+    if (client == null) {
+      return _pollKpiUpdates();
+    }
+    return client
         .connect('dashboard')
         .map(_kpiFromRealtime)
         .where((snapshot) => snapshot != null)
         .cast<AnalyticsKpiSnapshot>();
+  }
+
+  Stream<AnalyticsKpiSnapshot> _pollKpiUpdates() async* {
+    while (true) {
+      final kpi = (await _dashboardApi.dashboardGetDashboardKpi()).data;
+      if (kpi != null) {
+        yield AnalyticsKpiSnapshot(
+          user: _userKpiFromGenerated(kpi.user),
+          system: _systemKpiFromGenerated(kpi.system),
+        );
+      }
+      await Future<void>.delayed(const Duration(seconds: 30));
+    }
   }
 
   Future<AnalyticsTrendSection> _loadTrend(_TrendSpec spec, int days) async {

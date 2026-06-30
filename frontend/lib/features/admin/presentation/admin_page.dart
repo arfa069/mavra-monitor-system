@@ -29,6 +29,7 @@ class _AdminPageState extends State<AdminPage> {
   Future<AdminSnapshot>? _adminFuture;
   AdminSnapshot? _snapshot;
   Object? _error;
+  int _loadRequestId = 0;
   int _userPage = 1;
   int _auditPage = 1;
   final _searchController = TextEditingController();
@@ -72,6 +73,7 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
     final filter = AdminFilter(
       search: _emptyToNull(_searchController.text),
       role: _emptyToNull(_roleController.text),
@@ -81,19 +83,22 @@ class _AdminPageState extends State<AdminPage> {
       auditPage: _auditPage,
       includeRolePermissions: _canReadRbac,
     );
+    final future = Future.sync(() => widget.repository.loadAdmin(filter));
     setState(() {
       _error = null;
-      _adminFuture = Future.sync(() => widget.repository.loadAdmin(filter))
-        ..then((snapshot) {
-          if (mounted) {
+      _adminFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _snapshot = snapshot);
           }
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _error = error);
           }
         });
-    });
   }
 
   void _applyFilters() {

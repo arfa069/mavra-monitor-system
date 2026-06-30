@@ -26,6 +26,7 @@ class _EventsPageState extends State<EventsPage> {
   List<EventFeedItem> _events = const [];
   Object? _error;
   StreamSubscription<EventFeedItem>? _subscription;
+  Timer? _filterDebounce;
   final _eventTypeController = TextEditingController();
   final _categoryController = TextEditingController();
   final _severityController = TextEditingController();
@@ -50,6 +51,7 @@ class _EventsPageState extends State<EventsPage> {
 
   @override
   void dispose() {
+    _filterDebounce?.cancel();
     _subscription?.cancel();
     _eventTypeController.dispose();
     _categoryController.dispose();
@@ -139,7 +141,17 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   void _applyFilters() {
+    _filterDebounce?.cancel();
     _loadQuery(_queryFromControllers(page: 1));
+  }
+
+  void _scheduleApplyFilters() {
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _applyFilters();
+      }
+    });
   }
 
   void _setPage(int page) {
@@ -151,6 +163,7 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   void _resetFilters() {
+    _filterDebounce?.cancel();
     _eventTypeController.clear();
     _categoryController.clear();
     _severityController.clear();
@@ -210,7 +223,7 @@ class _EventsPageState extends State<EventsPage> {
               startController: _startController,
               endController: _endController,
               onFilterChanged: _setFilter,
-              onTextFilterChanged: _applyFilters,
+              onTextFilterChanged: _scheduleApplyFilters,
               onResetFilters: _resetFilters,
               onPageChanged: _setPage,
               onPageSizeChanged: _setPageSize,

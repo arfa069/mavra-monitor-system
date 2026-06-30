@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mavra_frontend/core/platform/platform_capabilities.dart';
 import 'package:mavra_frontend/core/realtime/realtime_client.dart';
@@ -41,5 +43,35 @@ void main() {
       expect(messages.single.type, 'alert.created');
       expect(messages.single.payload, {'id': 42});
     });
+
+    test(
+      'polling client keeps polling until the subscription is cancelled',
+      () async {
+        var calls = 0;
+        final client = PollingRealtimeClient(
+          interval: const Duration(milliseconds: 1),
+          poll: () async {
+            calls += 1;
+            return [
+              RealtimeMessage(type: 'tick', payload: {'call': calls}),
+            ];
+          },
+        );
+
+        final messages = <RealtimeMessage>[];
+        late final StreamSubscription<RealtimeMessage> subscription;
+        subscription = client.connect('events').listen((message) {
+          messages.add(message);
+          if (messages.length == 2) {
+            subscription.cancel();
+          }
+        });
+
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        expect(messages, hasLength(2));
+        expect(messages.map((message) => message.payload['call']), [1, 2]);
+      },
+    );
   });
 }

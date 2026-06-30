@@ -71,13 +71,11 @@ void main() {
       expect(seenTokens, ['Bearer expired-token', 'Bearer fresh-token']);
     });
 
-    test('clears session when refresh fails', () async {
-      var cleared = false;
+    test('clears session when refresh is rejected', () async {
       final repository = AuthRepository(
         storage: InMemoryTokenStorage(),
         policy: TokenPersistencePolicy.nativeSecureStorage,
         refreshRemote: () async => null,
-        onRemoteLogout: () async => cleared = true,
       );
       await repository.saveSession(_session(accessToken: 'expired-token'));
 
@@ -98,7 +96,33 @@ void main() {
         throwsA(isA<DioException>()),
       );
       expect(repository.currentSession, isNull);
-      expect(cleared, isTrue);
+    });
+
+    test('keeps the current session when refresh fails transiently', () async {
+      final repository = AuthRepository(
+        storage: InMemoryTokenStorage(),
+        policy: TokenPersistencePolicy.nativeSecureStorage,
+        refreshRemote: () async => throw StateError('network down'),
+      );
+      await repository.saveSession(_session(accessToken: 'expired-token'));
+
+      final client =
+          MavraApiClient(
+              config: const AppConfig(apiBaseUrl: 'https://api.example/api/v1'),
+              authRepository: repository,
+            )
+            ..dio.httpClientAdapter = _Adapter(
+              (_) => _jsonResponse(401, {
+                'code': 'TOKEN_EXPIRED',
+                'message': 'Expired',
+              }),
+            );
+
+      await expectLater(
+        client.dio.get('/products'),
+        throwsA(isA<DioException>()),
+      );
+      expect(repository.currentSession?.accessToken, 'expired-token');
     });
   });
 

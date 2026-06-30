@@ -29,6 +29,7 @@ class _BlogPageState extends State<BlogPage> {
   Future<BlogSnapshot>? _blogFuture;
   BlogSnapshot? _snapshot;
   Object? _error;
+  int _loadRequestId = 0;
   int? _editingPostId;
   String _status = 'draft';
   String? _filterStatus;
@@ -97,23 +98,27 @@ class _BlogPageState extends State<BlogPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
     final filter = BlogFilter(
       keyword: _blankToNull(_filterKeywordController.text),
       status: _filterStatus,
     );
+    final future = Future.sync(() => widget.repository.loadBlog(filter));
     setState(() {
       _error = null;
-      _blogFuture = Future.sync(() => widget.repository.loadBlog(filter))
-        ..then((snapshot) {
-          if (mounted) {
+      _blogFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _snapshot = snapshot);
           }
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _error = error);
           }
         });
-    });
   }
 
   Future<void> _newPost() async {

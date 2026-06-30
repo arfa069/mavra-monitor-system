@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:built_collection/built_collection.dart';
 import 'package:built_value/json_object.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
@@ -10,17 +12,15 @@ class GeneratedEventRepository implements EventRepository {
   GeneratedEventRepository({
     required AppConfig config,
     generated.MavraApi? client,
-    RealtimeClient? realtimeClient,
+    this.realtimeClient,
   }) : _client =
            client ??
            generated.MavraApi(
              basePathOverride: _serviceRoot(config.apiBaseUrl),
-           ),
-       _realtimeClient =
-           realtimeClient ?? PollingRealtimeClient(poll: () async => const []);
+           );
 
   final generated.MavraApi _client;
-  final RealtimeClient _realtimeClient;
+  final RealtimeClient? realtimeClient;
 
   generated.EventsApi get _eventsApi => _client.getEventsApi();
 
@@ -52,10 +52,24 @@ class GeneratedEventRepository implements EventRepository {
 
   @override
   Stream<EventFeedItem> watchEvents({EventQuery query = const EventQuery()}) {
-    return _realtimeClient
+    final client = realtimeClient;
+    if (client == null) {
+      return _pollEvents(query);
+    }
+    return client
         .connect('events')
         .map(_eventFromRealtime)
         .where((item) => _matchesQuery(item, query));
+  }
+
+  Stream<EventFeedItem> _pollEvents(EventQuery query) async* {
+    while (true) {
+      final page = await listEvents(query: query);
+      for (final event in page.items) {
+        yield event;
+      }
+      await Future<void>.delayed(const Duration(seconds: 30));
+    }
   }
 
   EventFeedItem _mapEvent(generated.EventCenterItem item) {

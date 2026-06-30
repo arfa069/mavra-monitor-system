@@ -45,6 +45,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<ScheduleSnapshot>? _scheduleFuture;
   ScheduleSnapshot? _snapshot;
   Object? _error;
+  int _loadRequestId = 0;
   String? _validationMessage;
   _ScheduleWorkbenchTab _activeTab = _ScheduleWorkbenchTab.productTimers;
   String? _addProductPlatform;
@@ -98,11 +99,15 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(widget.repository.loadSchedule);
     setState(() {
       _error = null;
-      _scheduleFuture = Future.sync(widget.repository.loadSchedule)
-        ..then((snapshot) {
-          if (!mounted) {
+      _scheduleFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (!mounted || requestId != _loadRequestId) {
             return;
           }
           setState(() {
@@ -111,12 +116,12 @@ class _SchedulePageState extends State<SchedulePage> {
             _webhookController.text = snapshot.settings.feishuWebhookUrl ?? '';
             _syncCronControllers(snapshot);
           });
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _error = error);
           }
         });
-    });
   }
 
   void _syncCronControllers(ScheduleSnapshot snapshot) {

@@ -128,6 +128,28 @@ void main() {
     );
   });
 
+  testWidgets(
+    'theme changes keep the active route instead of replaying initialLocation',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(buildVisualQaApp(initialLocation: '/today'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('app-shell-nav-/events')));
+      await tester.pumpAndSettle();
+      expect(find.text('System Events'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('app-shell-user-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('app-shell-theme-toggle')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('System Events'), findsOneWidget);
+    },
+  );
+
   testWidgets('dashboard route renders the restored analytics page', (
     tester,
   ) async {
@@ -138,7 +160,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Analytics'), findsWidgets);
-    expect(find.text('Monitor system status, price trends, and candidate matching'), findsOneWidget);
+    expect(
+      find.text('Monitor system status, price trends, and candidate matching'),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('dashboard-range-toolbar')), findsOneWidget);
     expect(find.byKey(const Key('app-shell-nav-/analytics')), findsNothing);
   });

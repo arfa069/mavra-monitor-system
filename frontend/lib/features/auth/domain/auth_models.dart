@@ -212,8 +212,13 @@ class AuthController extends ChangeNotifier {
         (storedSession != null ||
             authRepository.policy ==
                 TokenPersistencePolicy.webHttpOnlyRefreshCookie);
-    if (shouldTryRefresh && await authRepository.refreshSession()) {
-      _session = authRepository.currentSession;
+    if (shouldTryRefresh) {
+      final refreshResult = await authRepository.refreshSession();
+      if (refreshResult == RefreshSessionResult.refreshed) {
+        _session = authRepository.currentSession;
+      } else {
+        _session = null;
+      }
     } else {
       _session = null;
     }
@@ -222,11 +227,7 @@ class AuthController extends ChangeNotifier {
 
   Future<void> login(LoginCredentials credentials) async {
     await _run(() async {
-      _session = await api.login(credentials);
-      final session = _session;
-      if (session != null) {
-        await repository?.saveSession(session);
-      }
+      await _saveSession(await api.login(credentials));
     });
   }
 
@@ -235,11 +236,20 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _run(() async {
-      await api.logout();
-      _session = null;
-      await repository?.logout();
-    });
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      try {
+        await api.logout();
+      } catch (error) {
+        _errorMessage = error.toString();
+      }
+      await _clearSession();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<WeChatExchangeResult> exchangeWeChatCode(String code) async {
@@ -249,17 +259,19 @@ class AuthController extends ChangeNotifier {
       _lastWeChatExchange = result;
       final exchangedSession = result.session;
       if (exchangedSession != null) {
-        _session = exchangedSession;
-        await repository?.saveSession(exchangedSession);
+        await _saveSession(exchangedSession);
       }
     });
     return result;
   }
 
   Future<AccountOverview> loadAccountOverview() async {
-    final profile = await api.fetchProfile();
-    final sessions = await api.listSessions();
-    final loginHistory = await api.listLoginHistory();
+    final profileFuture = api.fetchProfile();
+    final sessionsFuture = api.listSessions();
+    final loginHistoryFuture = api.listLoginHistory();
+    final profile = await profileFuture;
+    final sessions = await sessionsFuture;
+    final loginHistory = await loginHistoryFuture;
     return AccountOverview(
       profile: profile,
       sessions: sessions,
@@ -268,17 +280,33 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<AccountProfile> updateProfile(AccountProfileDraft draft) async {
-    return api.updateProfile(draft);
+    final profile = await api.updateProfile(draft);
+    final currentSession = _session;
+    if (currentSession != null) {
+      await _saveSession(
+        currentSession.copyWith(
+          username: profile.username,
+          permissions: profile.permissions,
+        ),
+      );
+    }
+    return profile;
   }
 
   Future<void> changePassword(PasswordChangeDraft draft) async {
     await _run(() async {
-      _session = await api.changePassword(draft);
-      final session = _session;
-      if (session != null) {
-        await repository?.saveSession(session);
-      }
+      await _saveSession(await api.changePassword(draft));
     });
+  }
+
+  Future<void> _saveSession(AuthSession session) async {
+    _session = session;
+    await repository?.saveSession(session);
+  }
+
+  Future<void> _clearSession() async {
+    _session = null;
+    await repository?.clearLocalSession();
   }
 
   Future<void> _run(Future<void> Function() action) async {

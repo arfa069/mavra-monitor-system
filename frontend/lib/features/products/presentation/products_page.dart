@@ -44,6 +44,7 @@ class _ProductsPageState extends State<ProductsPage> {
   ProductsSnapshot? _snapshot;
   ProductPageState? _page;
   Object? _error;
+  int _loadRequestId = 0;
   int? _editingProductId;
   int? _editingAlertId;
   bool _productActive = true;
@@ -96,11 +97,15 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(widget.repository.loadProducts);
     setState(() {
       _error = null;
-      _productsFuture = Future.sync(widget.repository.loadProducts)
-        ..then((snapshot) {
-          if (!mounted) {
+      _productsFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (!mounted || requestId != _loadRequestId) {
             return;
           }
           setState(() {
@@ -117,12 +122,12 @@ class _ProductsPageState extends State<ProductsPage> {
                   )
                 : snapshot.page;
           });
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() => _error = error);
           }
         });
-    });
   }
 
   void _newProduct() {

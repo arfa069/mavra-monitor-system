@@ -12,7 +12,7 @@ generated.MavraApi createAuthenticatedMavraApi({
   final client = generated.MavraApi(
     basePathOverride: serviceRootFromApiBaseUrl(config.apiBaseUrl),
   );
-  Future<bool>? refreshFlight;
+  Future<RefreshSessionResult>? refreshFlight;
 
   client.dio.interceptors.add(
     QueuedInterceptorsWrapper(
@@ -41,14 +41,14 @@ generated.MavraApi createAuthenticatedMavraApi({
         }
 
         final existing = refreshFlight;
-        final refreshed =
+        final refreshResult =
             await (existing ??
                 (refreshFlight = authRepository.refreshSession().whenComplete(
                   () {
                     refreshFlight = null;
                   },
                 )));
-        if (!refreshed) {
+        if (refreshResult != RefreshSessionResult.refreshed) {
           handler.next(error);
           return;
         }

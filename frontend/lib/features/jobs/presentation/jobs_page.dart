@@ -33,6 +33,7 @@ class _JobsPageState extends State<JobsPage> {
   JobsSnapshot? _snapshot;
   JobPageState? _jobPage;
   Object? _error;
+  int _loadRequestId = 0;
   int? _editingConfigId;
   int? _selectedResumeId;
   _JobWorkbenchTab _activeTab = _JobWorkbenchTab.jobsList;
@@ -108,11 +109,15 @@ class _JobsPageState extends State<JobsPage> {
   }
 
   void _load() {
+    final requestId = ++_loadRequestId;
+    final future = Future.sync(widget.repository.loadJobs);
     setState(() {
       _error = null;
-      _jobsFuture = Future.sync(widget.repository.loadJobs)
-        ..then((snapshot) {
-          if (mounted) {
+      _jobsFuture = future;
+    });
+    future
+        .then((snapshot) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() {
               _snapshot = snapshot;
               final fallbackPageSize =
@@ -129,14 +134,14 @@ class _JobsPageState extends State<JobsPage> {
               _jobPageSizeController.text = '${pageState.pageSize}';
             });
           }
-        }).catchError((Object error) {
-          if (mounted) {
+        })
+        .catchError((Object error) {
+          if (mounted && requestId == _loadRequestId) {
             setState(() {
               _error = error;
             });
           }
         });
-    });
   }
 
   Future<void> _newConfig() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
+import 'package:go_router/go_router.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../core/api/authenticated_mavra_api.dart';
@@ -80,6 +81,8 @@ class _MavraAppState extends State<MavraApp> {
   AuthController? _ownedAuthController;
   AuthRepository? _ownedAuthRepository;
   generated.MavraApi? _ownedApiClient;
+  GoRouter? _router;
+  String? _routerInitialLocation;
   Future<void>? _defaultRestoreFuture;
   ThemeMode _themeMode = ThemeMode.light;
 
@@ -99,10 +102,16 @@ class _MavraAppState extends State<MavraApp> {
       _disposeOwnedAuthController();
       _defaultRestoreFuture = _restoreDefaultSession();
     }
+    if (_routerInputsChanged(oldWidget)) {
+      _scheduleRouterDispose(_router);
+      _router = null;
+      _routerInitialLocation = null;
+    }
   }
 
   @override
   void dispose() {
+    _router?.dispose();
     _disposeOwnedAuthController();
     super.dispose();
   }
@@ -129,8 +138,24 @@ class _MavraAppState extends State<MavraApp> {
   }
 
   Widget _buildRouterApp() {
+    final router = _router ??= _createRouter(
+      initialLocation: _routerInitialLocation ?? widget.initialLocation,
+    );
+
+    return MaterialApp.router(
+      title: 'Mavra',
+      debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      routerConfig: router,
+    );
+  }
+
+  GoRouter _createRouter({String? initialLocation}) {
     final controller = _authController();
-    final router = createMavraRouter(
+    return createMavraRouter(
       authController: controller,
       config: widget.config,
       todayRepository: widget.todayRepository ?? _defaultTodayRepository(),
@@ -149,19 +174,9 @@ class _MavraAppState extends State<MavraApp> {
           widget.settingsRepository ?? _defaultSettingsRepository(),
       smartHomeRepository:
           widget.smartHomeRepository ?? _defaultSmartHomeRepository(),
-      initialLocation: widget.initialLocation,
+      initialLocation: initialLocation,
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
-    );
-
-    return MaterialApp.router(
-      title: 'Mavra',
-      debugShowCheckedModeBanner: false,
-      scaffoldMessengerKey: MavraNotifier.scaffoldMessengerKey,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: _themeMode,
-      routerConfig: router,
     );
   }
 
@@ -169,7 +184,42 @@ class _MavraAppState extends State<MavraApp> {
     if (_themeMode == mode) {
       return;
     }
-    setState(() => _themeMode = mode);
+    final currentLocation = _currentRouterLocation();
+    final oldRouter = _router;
+    setState(() {
+      _themeMode = mode;
+      _router = null;
+      _routerInitialLocation = currentLocation ?? widget.initialLocation;
+    });
+    _scheduleRouterDispose(oldRouter);
+  }
+
+  String? _currentRouterLocation() {
+    return _router?.routeInformationProvider.value.uri.toString();
+  }
+
+  bool _routerInputsChanged(MavraApp oldWidget) {
+    return oldWidget.authController != widget.authController ||
+        oldWidget.config != widget.config ||
+        oldWidget.todayRepository != widget.todayRepository ||
+        oldWidget.eventRepository != widget.eventRepository ||
+        oldWidget.alertRepository != widget.alertRepository ||
+        oldWidget.adminRepository != widget.adminRepository ||
+        oldWidget.analyticsRepository != widget.analyticsRepository ||
+        oldWidget.blogRepository != widget.blogRepository ||
+        oldWidget.jobsRepository != widget.jobsRepository ||
+        oldWidget.productRepository != widget.productRepository ||
+        oldWidget.scheduleRepository != widget.scheduleRepository ||
+        oldWidget.settingsRepository != widget.settingsRepository ||
+        oldWidget.smartHomeRepository != widget.smartHomeRepository ||
+        oldWidget.initialLocation != widget.initialLocation;
+  }
+
+  void _scheduleRouterDispose(GoRouter? router) {
+    if (router == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => router.dispose());
   }
 
   Widget _buildRestoringApp() {
