@@ -20,6 +20,7 @@ env:
   OPENAPI_GENERATOR_WRAPPER_VERSION: "2.38.0"
   OPENAPI_GENERATOR_VERSION: "7.23.0"
   JWT_SECRET_KEY: "ci-only-jwt-secret-key-for-contract-and-tests-2026"
+  APP_NAME: "Mavra"
 
 jobs:
   lint:
@@ -50,6 +51,20 @@ jobs:
   test:
     name: Backend tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pricemonitor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pricemonitor"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
