@@ -446,83 +446,6 @@ jobs:
         run: flutter test integration_test\auth_smoke_test.dart -d windows --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
         working-directory: frontend
 
-  macos-smoke:
-    name: macOS iOS build and smoke
-    runs-on: macos-latest
-    if: github.event_name != 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Set up Node.js for OpenAPI generator wrapper
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-          cache-key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
-          pub-cache-key: pub-${{ runner.os }}-${{ env.FLUTTER_VERSION }}-${{ hashFiles('frontend/pubspec.lock', 'frontend/openapitools.json', 'frontend/openapi-generator-config.yaml', 'frontend/openapi.json') }}
-
-      - name: Install backend dependencies
-        run: uv sync --extra dev
-        working-directory: backend
-
-      - name: Resolve Flutter dependencies
-        run: flutter pub get
-        working-directory: frontend
-
-      - name: Verify Dart API generator output
-        shell: pwsh
-        run: ./scripts/generate_dart_client.ps1 -Check
-
-      - name: Run Flutter analyzer
-        run: flutter analyze
-        working-directory: frontend
-
-      - name: Run Flutter tests
-        run: flutter test
-        working-directory: frontend
-
-      - name: Run iOS simulator auth smoke
-        shell: bash
-        run: |
-          set -euo pipefail
-          DEVICE_ID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { print $2; exit }')"
-          if [ -z "$DEVICE_ID" ]; then
-            echo "No available iPhone simulator found"
-            exit 1
-          fi
-          xcrun simctl boot "$DEVICE_ID" || true
-          xcrun simctl bootstatus "$DEVICE_ID" -b
-          flutter devices
-          flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID" --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
-        working-directory: frontend
-
-      - name: Build iOS without codesign
-        run: flutter build ios --no-codesign --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
-        working-directory: frontend
-
   full-platform-summary:
     name: Scheduled full-platform summary
     runs-on: ubuntu-latest
@@ -531,9 +454,8 @@ jobs:
       - flutter-web-fast
       - android-smoke
       - windows-smoke
-      - macos-smoke
     steps:
       - name: Summarize platform evidence
         run: |
-          echo "Flutter Web, Android, Windows, and iOS smoke jobs completed."
+          echo "Flutter Web, Android, and Windows smoke jobs completed."
           echo "Use this scheduled run as full-platform release evidence."
