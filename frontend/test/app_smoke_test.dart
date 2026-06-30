@@ -60,4 +60,38 @@ void main() {
     expect(find.text('Mavra'), findsOneWidget);
     expect(find.text('Login'), findsOneWidget);
   });
+
+  testWidgets('shows a restore failure screen when session restore fails', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MavraApp(
+        authRepository: AuthRepository(
+          storage: _ThrowingTokenStorage(),
+          policy: TokenPersistencePolicy.nativeSecureStorage,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Failed to restore your session.'), findsOneWidget);
+  });
+}
+
+class _ThrowingTokenStorage implements TokenStorage {
+  @override
+  Future<void> delete(String key) {
+    throw const FormatException('storage failure');
+  }
+
+  @override
+  Future<String?> read(String key) {
+    throw const FormatException('storage failure');
+  }
+
+  @override
+  Future<void> write(String key, String value) {
+    throw const FormatException('storage failure');
+  }
 }

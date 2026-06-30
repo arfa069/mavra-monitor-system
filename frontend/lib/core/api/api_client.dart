@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:sentry_dio/sentry_dio.dart';
 
 import '../auth/auth_repository.dart';
 import '../config/app_config.dart';
@@ -18,6 +19,7 @@ class MavraApiClient {
         onError: _handleAuthError,
       ),
     );
+    this.dio.addSentry();
   }
 
   final Dio dio;

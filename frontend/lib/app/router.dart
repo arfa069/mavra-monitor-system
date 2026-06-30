@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../features/alerts/domain/alert_models.dart';
 import '../features/alerts/presentation/alerts_page.dart';
@@ -53,6 +54,7 @@ GoRouter createMavraRouter({
   return GoRouter(
     initialLocation: initialLocation,
     refreshListenable: authController,
+    observers: [SentryNavigatorObserver()],
     redirect: (context, state) {
       final location = state.matchedLocation;
       final publicRoute =
@@ -73,15 +75,18 @@ GoRouter createMavraRouter({
       GoRoute(path: '/', redirect: (context, state) => '/today'),
       GoRoute(
         path: '/login',
+        name: 'login',
         builder: (context, state) => LoginPage(authController: authController),
       ),
       GoRoute(
         path: '/register',
+        name: 'register',
         builder: (context, state) =>
             RegisterPage(authController: authController),
       ),
       GoRoute(
         path: '/auth/wechat/callback',
+        name: 'wechat-callback',
         builder: (context, state) => WeChatCallbackPage(
           authController: authController,
           queryParameters: state.uri.queryParameters,
@@ -98,10 +103,12 @@ GoRouter createMavraRouter({
         routes: [
           GoRoute(
             path: '/today',
+            name: 'today',
             builder: (context, state) => TodayPage(repository: todayRepository),
           ),
           GoRoute(
             path: '/dashboard',
+            name: 'dashboard',
             builder: (context, state) => AnalyticsPage(
               repository: analyticsRepository,
               canViewSystemAnalytics: authController.hasPermission('user:read'),
@@ -109,16 +116,19 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/events',
+            name: 'events',
             builder: (context, state) =>
                 EventsPage(repository: eventRepository),
           ),
           GoRoute(
             path: '/alerts',
+            name: 'alerts',
             builder: (context, state) =>
                 AlertsPage(repository: alertRepository),
           ),
           GoRoute(
             path: '/jobs',
+            name: 'jobs',
             builder: (context, state) => JobsPage(
               repository: jobsRepository,
               permissions: _jobsPermissions(authController),
@@ -126,6 +136,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/products',
+            name: 'products',
             builder: (context, state) => ProductsPage(
               repository: productRepository,
               permissions: _productsPermissions(authController),
@@ -133,6 +144,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/schedule',
+            name: 'schedule',
             builder: (context, state) => SchedulePage(
               repository: scheduleRepository,
               permissions: _schedulePermissions(authController),
@@ -140,6 +152,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/smart-home',
+            name: 'smart-home',
             builder: (context, state) => SmartHomePage(
               repository: smartHomeRepository,
               permissions: _smartHomePermissions(authController),
@@ -147,11 +160,13 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/profile',
+            name: 'profile',
             builder: (context, state) =>
                 ProfilePage(authController: authController),
           ),
           GoRoute(
             path: '/settings',
+            name: 'settings',
             builder: (context, state) => SettingsPage(
               repository: settingsRepository,
               config: config,
@@ -160,6 +175,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/admin/users',
+            name: 'admin-users',
             builder: (context, state) => _permissionPage(
               authController,
               'user:read',
@@ -172,6 +188,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/admin/audit-logs',
+            name: 'admin-audit-logs',
             builder: (context, state) => _permissionPage(
               authController,
               'user:read',
@@ -183,6 +200,7 @@ GoRouter createMavraRouter({
           ),
           GoRoute(
             path: '/admin/blog',
+            name: 'admin-blog',
             builder: (context, state) => _permissionPage(
               authController,
               'blog:read_admin',

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
+import 'package:sentry_dio/sentry_dio.dart';
 
 import '../auth/auth_repository.dart';
 import '../config/app_config.dart';
@@ -67,6 +68,7 @@ generated.MavraApi createAuthenticatedMavraApi({
       },
     ),
   );
+  client.dio.addSentry();
   return client;
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mavra_api/mavra_api.dart' as generated;
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../core/api/authenticated_mavra_api.dart';
 import '../core/auth/auth_repository.dart';
@@ -116,6 +117,9 @@ class _MavraAppState extends State<MavraApp> {
           if (snapshot.connectionState != ConnectionState.done) {
             return _buildRestoringApp();
           }
+          if (snapshot.hasError) {
+            return _buildRestoreFailedApp();
+          }
           return _buildRouterApp();
         },
       );
@@ -181,6 +185,50 @@ class _MavraAppState extends State<MavraApp> {
     );
   }
 
+  Widget _buildRestoreFailedApp() {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Mavra')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 44),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to restore your session.',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'We could not recover your saved login state. You can continue to the login screen and sign in again.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _defaultRestoreFuture = null;
+                      });
+                    },
+                    child: const Text('Continue'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   AuthController _authController() {
     return widget.authController ??
         (_ownedAuthController ??= _defaultAuthController());
@@ -195,7 +243,14 @@ class _MavraAppState extends State<MavraApp> {
         repository.refreshRemote == null) {
       return null;
     }
-    return _authController().restoreSession();
+    return () async {
+      try {
+        await _authController().restoreSession();
+      } catch (error, stackTrace) {
+        await Sentry.captureException(error, stackTrace: stackTrace);
+        rethrow;
+      }
+    }();
   }
 
   void _disposeOwnedAuthController() {

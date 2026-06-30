@@ -24,6 +24,8 @@ dependencies:
     path: lib/core/api/generated
   path_provider: ^2.1.6
   fl_chart: ^1.2.0
+  sentry_flutter: ^9.22.0
+  sentry_dio: ^9.22.0
   url_launcher: ^6.3.2
 
 dev_dependencies:
