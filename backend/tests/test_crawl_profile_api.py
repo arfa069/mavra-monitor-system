@@ -361,13 +361,17 @@ async def test_open_login_session_serializes_same_profile(monkeypatch):
         def close(self):
             return None
 
-    async def fake_to_thread(func, *args, **kwargs):
+    async def fake_run_on_profile_executor(executor, func):
         await asyncio.sleep(0.01)
         return FakeContext(), FakePage()
 
     import asyncio
 
-    monkeypatch.setattr(profile_runtime_service.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        profile_runtime_service,
+        "_run_on_profile_executor",
+        fake_run_on_profile_executor,
+    )
     profile_runtime_service._sessions.pop("job-a", None)
     profile_runtime_service._profile_locks.pop("job-a", None)
     try:

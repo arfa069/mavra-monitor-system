@@ -90,11 +90,16 @@ async def test_product_crawl_now_persists_task(phase2_client, monkeypatch, clean
 
 
 @pytest.mark.asyncio
-async def test_product_status_reads_persistent_task(phase2_client):
+async def test_product_status_reads_persistent_task(
+    phase2_client,
+    cleanup_phase2_overrides,
+):
     """GET /api/v1/crawl/status/{task_id} reads from crawl_tasks."""
     await _clean_crawl_tables()
 
     async with AsyncSessionLocal() as db:
+        install_auth_and_db_overrides(db)
+
         from app.domains.crawling.task_store import create_crawl_task_record
 
         record = await create_crawl_task_record(
@@ -161,11 +166,16 @@ async def test_job_single_crawl_persists_task(phase2_client, monkeypatch, cleanu
 
 
 @pytest.mark.asyncio
-async def test_job_crawl_status_reads_persistent_task(phase2_client):
+async def test_job_crawl_status_reads_persistent_task(
+    phase2_client,
+    cleanup_phase2_overrides,
+):
     """GET /api/v1/jobs/crawl/status/{task_id} reads from crawl_tasks."""
     await _clean_crawl_tables()
 
     async with AsyncSessionLocal() as db:
+        install_auth_and_db_overrides(db)
+
         from app.domains.crawling.task_store import create_crawl_task_record
 
         record = await create_crawl_task_record(
