@@ -2,11 +2,12 @@
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from sqlalchemy import Column, MetaData, PrimaryKeyConstraint, String, Table, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+from alembic.ddl.impl import DefaultImpl
 from app.config import settings
 from app.models.base import Base
 
@@ -18,6 +19,31 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def _wide_version_table_impl(
+    self: DefaultImpl,
+    *,
+    version_table: str,
+    version_table_schema: str | None,
+    version_table_pk: bool,
+    **kw: object,
+) -> Table:
+    """Use a wider Alembic version column for date-prefixed revision IDs."""
+    table = Table(
+        version_table,
+        MetaData(),
+        Column("version_num", String(255), nullable=False),
+        schema=version_table_schema,
+    )
+    if version_table_pk:
+        table.append_constraint(
+            PrimaryKeyConstraint("version_num", name=f"{version_table}_pkc")
+        )
+    return table
+
+
+DefaultImpl.version_table_impl = _wide_version_table_impl  # type: ignore[method-assign]
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
     url = settings.database_url
@@ -26,7 +52,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        version_table_col_num_chars=255,
     )
 
     with context.begin_transaction():
@@ -37,7 +62,6 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        version_table_col_num_chars=255,
     )
 
     with context.begin_transaction():
