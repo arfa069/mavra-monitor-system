@@ -136,6 +136,7 @@ Then use `mcp__gitnexus.impact` for the target symbol with `direction: "upstream
 ## Task 0: Baseline, Safety, And Test Inventory
 
 **Files:**
+
 - Read: `docs/flutter-migration/task-17-full-react-parity-spec.md`
 - Read: `frontend/pubspec.yaml`
 - Read: `frontend/test/features/analytics/analytics_page_test.dart`
@@ -202,6 +203,7 @@ Expected: commit occurs only if the report was modified.
 ## Task 1: Shared Workbench Primitives And Chart Support
 
 **Files:**
+
 - Create: `frontend/lib/core/widgets/mavra_page.dart`
 - Create: `frontend/lib/core/widgets/mavra_responsive_data_view.dart`
 - Create: `frontend/lib/core/widgets/mavra_confirm.dart`
@@ -543,6 +545,7 @@ git commit -m "feat: add flutter parity workbench primitives"
 ## Task 2: Expand Repository Contracts To Match React Workflows
 
 **Files:**
+
 - Modify: `frontend/lib/features/products/domain/product_models.dart`
 - Modify: `frontend/lib/features/products/data/products_api.dart`
 - Modify: `frontend/lib/features/jobs/domain/job_models.dart`
@@ -643,6 +646,7 @@ git commit -m "feat: expand flutter parity repository contracts"
 ## Task 3: Analytics And Events Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/analytics/domain/analytics_models.dart`
 - Modify: `frontend/lib/features/analytics/data/analytics_api.dart`
 - Modify: `frontend/lib/features/analytics/presentation/analytics_page.dart`
@@ -733,6 +737,7 @@ git commit -m "feat: restore flutter analytics and events parity"
 ## Task 4: Products Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/products/domain/product_models.dart`
 - Modify: `frontend/lib/features/products/data/products_api.dart`
 - Modify: `frontend/lib/features/products/presentation/products_page.dart`
@@ -814,6 +819,7 @@ git commit -m "feat: restore flutter products parity"
 ## Task 5: Jobs Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/jobs/domain/job_models.dart`
 - Modify: `frontend/lib/features/jobs/data/jobs_api.dart`
 - Modify: `frontend/lib/features/jobs/presentation/jobs_page.dart`
@@ -877,6 +883,7 @@ git commit -m "feat: restore flutter jobs parity"
 ## Task 6: Schedule Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/schedule/domain/schedule_models.dart`
 - Modify: `frontend/lib/features/schedule/data/schedule_api.dart`
 - Modify: `frontend/lib/features/schedule/presentation/schedule_page.dart`
@@ -935,6 +942,7 @@ git commit -m "feat: restore flutter schedule parity"
 ## Task 7: Smart Home Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/smart_home/domain/smart_home_models.dart`
 - Modify: `frontend/lib/features/smart_home/data/smart_home_api.dart`
 - Modify: `frontend/lib/features/smart_home/presentation/smart_home_page.dart`
@@ -999,6 +1007,7 @@ git commit -m "feat: restore flutter smart home parity"
 ## Task 8: Profile And Settings Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/auth/domain/auth_models.dart`
 - Modify: `frontend/lib/features/auth/data/auth_api.dart`
 - Modify: `frontend/lib/features/auth/presentation/profile_page.dart`
@@ -1069,6 +1078,7 @@ git commit -m "feat: restore flutter profile and settings parity"
 ## Task 9: Admin Users And Audit Logs Split
 
 **Files:**
+
 - Create: `frontend/lib/features/admin/presentation/admin_users_page.dart`
 - Create: `frontend/lib/features/admin/presentation/admin_audit_logs_page.dart`
 - Modify: `frontend/lib/features/admin/presentation/admin_page.dart`
@@ -1120,6 +1130,7 @@ git commit -m "feat: split flutter admin users and audit logs parity"
 ## Task 10: Blog Studio Parity
 
 **Files:**
+
 - Modify: `frontend/lib/features/blog/domain/blog_models.dart`
 - Modify: `frontend/lib/features/blog/data/blog_api.dart`
 - Modify: `frontend/lib/features/blog/presentation/blog_page.dart`
@@ -1182,6 +1193,7 @@ git commit -m "feat: restore flutter blog studio parity"
 ## Task 11: Navigation, Permissions, Visual QA Data, And Integration Smoke
 
 **Files:**
+
 - Modify: `frontend/lib/app/app_shell.dart`
 - Modify: `frontend/lib/app/router.dart`
 - Modify: `frontend/lib/visual_qa/visual_qa_app.dart`
@@ -1231,6 +1243,7 @@ git commit -m "test: expand flutter parity navigation and smoke coverage"
 ## Task 12: Final Verification And Evidence
 
 **Files:**
+
 - Modify: `docs/flutter-migration/final-verification-report.md`
 - Modify: `docs/flutter-migration/platform-verification-matrix.md`
 - Add screenshots under the existing screenshot/evidence directory used by the project, or create `docs/flutter-migration/evidence/task-17/` if no current directory exists.

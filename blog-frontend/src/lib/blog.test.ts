@@ -28,7 +28,9 @@ describe("blog SEO helpers", () => {
     expect(jsonLd["@type"]).toBe("Article");
     expect(jsonLd.headline).toBe("First SEO title");
     expect(jsonLd.datePublished).toBe("2026-06-10T00:00:00Z");
-    expect(jsonLd.image).toEqual(["http://localhost:3001/blog-media/cover.webp"]);
+    expect(jsonLd.image).toEqual([
+      "http://localhost:3001/blog-media/cover.webp",
+    ]);
   });
 
   it("defaults the backend API base to the canonical prefix", () => {

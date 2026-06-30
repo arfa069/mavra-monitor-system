@@ -102,23 +102,24 @@ for historical comparison with the final remediation report.
 
 The full OpenAPI document must describe these operations correctly, but Orval must exclude them from the ordinary React Query client:
 
-| Path | Transport owner | Reason |
-| --- | --- | --- |
-| `/api/v1/events/stream` | EventSource adapter | SSE connection lifecycle |
-| `/api/v1/dashboard/events` | EventSource adapter | SSE connection lifecycle |
-| `/api/v1/smart-home/entities/stream` | EventSource adapter | SSE connection lifecycle |
-| `/api/v1/crawl-profiles/{profile_key}/export` | Axios blob adapter | Binary response and filename header |
-| `/api/v1/auth/wechat/callback` | Browser redirect | `302` response and auth cookies |
-| `/blog-media/{file_name}` | Browser/public asset URL | Public file delivery outside business API |
-| `/health` | Infrastructure probe | Root infrastructure path |
-| `/health/detailed` | Infrastructure probe | Root infrastructure path |
-| `/api/v1` | Service information | Not a feature API operation |
+| Path                                          | Transport owner          | Reason                                    |
+| --------------------------------------------- | ------------------------ | ----------------------------------------- |
+| `/api/v1/events/stream`                       | EventSource adapter      | SSE connection lifecycle                  |
+| `/api/v1/dashboard/events`                    | EventSource adapter      | SSE connection lifecycle                  |
+| `/api/v1/smart-home/entities/stream`          | EventSource adapter      | SSE connection lifecycle                  |
+| `/api/v1/crawl-profiles/{profile_key}/export` | Axios blob adapter       | Binary response and filename header       |
+| `/api/v1/auth/wechat/callback`                | Browser redirect         | `302` response and auth cookies           |
+| `/blog-media/{file_name}`                     | Browser/public asset URL | Public file delivery outside business API |
+| `/health`                                     | Infrastructure probe     | Root infrastructure path                  |
+| `/health/detailed`                            | Infrastructure probe     | Root infrastructure path                  |
+| `/api/v1`                                     | Service information      | Not a feature API operation               |
 
 ---
 
 ### Task 1: Add OpenAPI Contract Regression Tests
 
 **Files:**
+
 - Create: `backend/tests/test_openapi_contract.py`
 - Read: `backend/tests/test_api_v1_routes.py`
 
@@ -273,6 +274,7 @@ Do not start Task 2 if a `HIGH` or `CRITICAL` result has not been reported.
 ### Task 2: Stabilize Operation IDs and Deterministic Export
 
 **Files:**
+
 - Create: `backend/app/core/openapi.py`
 - Modify: `backend/app/main.py`
 - Modify: `scripts/export_openapi.py`
@@ -391,6 +393,7 @@ git commit -m "test(api): stabilize openapi operation ids"
 ### Task 3: Correct JSON, SSE, Binary, Redirect, and File Contracts
 
 **Files:**
+
 - Create: `backend/app/schemas/runtime_api.py`
 - Create: `backend/app/schemas/scheduling.py`
 - Modify: `backend/app/schemas/admin.py`
@@ -685,6 +688,7 @@ git commit -m "fix(api): publish typed openapi responses"
 ### Task 4: Make Orval Axios-Based, Clean, and Canonical
 
 **Files:**
+
 - Create: `frontend/orval.input.mjs`
 - Create: `frontend/tests/unit/shared/orval-input.test.ts`
 - Create: `frontend/tests/unit/shared/orval-mutator.test.ts`
@@ -760,10 +764,7 @@ Create `frontend/tests/unit/shared/orval-mutator.test.ts`:
 ```typescript
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import api from "@/shared/api/client";
-import {
-  customInstance,
-  normalizeGeneratedApiUrl,
-} from "@/shared/api/mutator";
+import { customInstance, normalizeGeneratedApiUrl } from "@/shared/api/mutator";
 
 vi.mock("@/shared/api/client", () => ({
   default: vi.fn(),
@@ -789,9 +790,9 @@ describe("Orval Axios mutator", () => {
     expect(() => normalizeGeneratedApiUrl("/health")).toThrow(
       "non-canonical URL",
     );
-    expect(() =>
-      normalizeGeneratedApiUrl("/api/v1/api/v1/products"),
-    ).toThrow("double API prefix");
+    expect(() => normalizeGeneratedApiUrl("/api/v1/api/v1/products")).toThrow(
+      "double API prefix",
+    );
   });
 
   it("merges generated and caller headers before using shared Axios", async () => {
@@ -939,6 +940,7 @@ git commit -m "fix(orval): generate through canonical axios client"
 ### Task 5: Regenerate a Clean Client and Restore the Frontend Build
 
 **Files:**
+
 - Regenerate: `frontend/openapi.json`
 - Regenerate: `frontend/src/shared/api/generated/`
 - Create: `frontend/tests/unit/shared/generated-api-contract.test.ts`
@@ -971,13 +973,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const generatedRoot = join(
-  process.cwd(),
-  "src",
-  "shared",
-  "api",
-  "generated",
-);
+const generatedRoot = join(process.cwd(), "src", "shared", "api", "generated");
 
 function generatedFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -997,7 +993,7 @@ describe("generated API tree", () => {
 
     expect(source).not.toContain("RequestInit");
     expect(source).not.toMatch(/(?:return `|["'])\/v1\//);
-    expect(source).not.toContain('return `/health');
+    expect(source).not.toContain("return `/health");
     expect(names.some((name) => name.includes("ApiV1"))).toBe(false);
     expect(names.some((name) => /^.*V1.*Params\.ts$/.test(name))).toBe(false);
   });
@@ -1055,6 +1051,7 @@ git commit -m "build(api): regenerate deterministic orval client"
 ### Task 6: Add the API Contract Drift Gate to CI
 
 **Files:**
+
 - Create: `scripts/check_api_contract.py`
 - Modify: `.github/workflows/ci.yml`
 - Modify: `frontend/package.json`
@@ -1118,42 +1115,42 @@ to `frontend/package.json`.
 Add an `api-contract` job to `.github/workflows/ci.yml`:
 
 ```yaml
-  api-contract:
-    name: API contract
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+api-contract:
+  name: API contract
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
 
-      - name: Install backend dependencies
-        run: poetry install --with dev
-        working-directory: backend
+    - name: Install backend dependencies
+      run: poetry install --with dev
+      working-directory: backend
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: "npm"
+        cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: frontend
+    - name: Install frontend dependencies
+      run: npm ci
+      working-directory: frontend
 
-      - name: Verify generated API artifacts
-        run: poetry run python ../scripts/check_api_contract.py
-        working-directory: backend
+    - name: Verify generated API artifacts
+      run: poetry run python ../scripts/check_api_contract.py
+      working-directory: backend
 
-      - name: Build generated frontend client
-        run: npm run build
-        working-directory: frontend
+    - name: Build generated frontend client
+      run: npm run build
+      working-directory: frontend
 ```
 
 - [ ] **Step 4: Run the checker locally from a clean generated state**
@@ -1181,6 +1178,7 @@ git commit -m "ci(api): reject stale generated contracts"
 ### Task 7: Migrate Config, Scheduler, Dashboard, Events, and Alerts
 
 **Files:**
+
 - Modify or delete: `frontend/src/features/settings/api/config.ts`
 - Modify: `frontend/src/features/settings/SettingsPage.tsx`
 - Modify: `frontend/src/features/settings/types.ts`
@@ -1272,6 +1270,7 @@ git commit -m "refactor(api): adopt generated read-side hooks"
 ### Task 8: Migrate Products, Product Scheduling, and Product Crawl Polling
 
 **Files:**
+
 - Modify or delete: `frontend/src/features/products/api/products.ts`
 - Modify or delete: `frontend/src/features/products/api/crawl.ts`
 - Modify: `frontend/src/features/products/hooks/useProducts.ts`
@@ -1358,6 +1357,7 @@ git commit -m "refactor(products): adopt generated api hooks"
 ### Task 9: Migrate Admin, Blog, and Authentication JSON Operations
 
 **Files:**
+
 - Modify or delete: `frontend/src/features/admin/api/admin.ts`
 - Modify: `frontend/src/features/admin/hooks/useAdmin.ts`
 - Modify: admin pages
@@ -1466,6 +1466,7 @@ git commit -m "refactor(api): adopt generated admin blog auth clients"
 ### Task 10: Migrate Smart Home and Jobs Last
 
 **Files:**
+
 - Modify ordinary JSON operations in `frontend/src/features/smart-home/`
 - Modify ordinary JSON operations in `frontend/src/features/jobs/`
 - Create: `frontend/src/features/jobs/api/profileBackupExport.ts`
@@ -1558,10 +1559,7 @@ crawl_profiles_import_profile_backup
 Keep profile export in a dedicated adapter:
 
 ```typescript
-export function exportProfileBackup(
-  profileKey: string,
-  password: string,
-) {
+export function exportProfileBackup(profileKey: string, password: string) {
   return api.post<Blob>(
     `/crawl-profiles/${encodeURIComponent(profileKey)}/export`,
     { password },
@@ -1601,6 +1599,7 @@ git commit -m "refactor(api): adopt generated jobs and smart home clients"
 ### Task 11: Enforce the Manual Transport Allowlist
 
 **Files:**
+
 - Create: `scripts/check_frontend_api_usage.py`
 - Modify: `frontend/package.json`
 - Modify: `.github/workflows/ci.yml`
@@ -1670,6 +1669,7 @@ git commit -m "ci(api): enforce generated client adoption"
 ### Task 12: Update Repository Guidance and Living Documentation
 
 **Files:**
+
 - Modify: `AGENTS.md`
 - Modify: `README.md`
 - Modify: `doc/frontend-architecture.md`
@@ -1731,6 +1731,7 @@ git commit -m "docs(api): document generated client workflow"
 ### Task 13: Final Verification, Independent Review, and Completion Report
 
 **Files:**
+
 - No planned source changes unless verification finds a defect
 - Create or update: implementation report under `docs/`
 

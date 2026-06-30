@@ -117,14 +117,14 @@
 
 ### 智能家居 (`app.domains.smart_home.router`)
 
-| 端点                                            | 权限                   |
-| ----------------------------------------------- | ---------------------- |
-| `GET /api/v1/smart-home/config`                 | `smart_home:configure` |
-| `PUT /api/v1/smart-home/config`                 | `smart_home:configure` |
-| `POST /api/v1/smart-home/config/test`           | `smart_home:configure` |
-| `GET /api/v1/smart-home/entities`               | `smart_home:read`      |
-| `POST /api/v1/smart-home/services/call`         | `smart_home:control`   |
-| `GET /api/v1/smart-home/entities/stream`        | `smart_home:read`      |
+| 端点                                     | 权限                   |
+| ---------------------------------------- | ---------------------- |
+| `GET /api/v1/smart-home/config`          | `smart_home:configure` |
+| `PUT /api/v1/smart-home/config`          | `smart_home:configure` |
+| `POST /api/v1/smart-home/config/test`    | `smart_home:configure` |
+| `GET /api/v1/smart-home/entities`        | `smart_home:read`      |
+| `POST /api/v1/smart-home/services/call`  | `smart_home:control`   |
+| `GET /api/v1/smart-home/entities/stream` | `smart_home:read`      |
 
 ### 系统 (`main.py` / `app.domains.scheduling.router`)
 

@@ -814,7 +814,15 @@ export default function WeChatAuthCallbackPage() {
     }
 
     setLoading(false);
-  }, [callbackState.next, callbackState.status, callbackState.tempToken, location.pathname, location.search, login, navigate]);
+  }, [
+    callbackState.next,
+    callbackState.status,
+    callbackState.tempToken,
+    location.pathname,
+    location.search,
+    login,
+    navigate,
+  ]);
 
   if (loading) {
     return <Spin size="large" />;
@@ -832,10 +840,7 @@ export default function WeChatAuthCallbackPage() {
   if (callbackState.status === "error" || error) {
     return (
       <Card>
-        <Alert
-          type="error"
-          message={error || "微信登录失败，请重新扫码"}
-        />
+        <Alert type="error" message={error || "微信登录失败，请重新扫码"} />
         <Button onClick={() => navigate("/login", { replace: true })}>
           返回登录页
         </Button>
@@ -860,10 +865,7 @@ const WeChatAuthCallbackPage = React.lazy(() =>
 and add a dedicated route before the public/protected groups:
 
 ```tsx
-<Route
-  path="/auth/wechat/callback"
-  element={<WeChatAuthCallbackPage />}
-/>
+<Route path="/auth/wechat/callback" element={<WeChatAuthCallbackPage />} />
 ```
 
 Update `frontend/src/features/auth/index.ts`:
@@ -926,9 +928,7 @@ it("expands the WeChat panel and renders a QR code after loading", async () => {
   renderWithApp(<LoginPage />);
 
   const user = userEvent.setup();
-  await user.click(
-    screen.getByRole("button", { name: /wechat login/i }),
-  );
+  await user.click(screen.getByRole("button", { name: /wechat login/i }));
 
   expect(await screen.findByText("Scan with WeChat")).toBeInTheDocument();
   expect(screen.getByTitle("WeChat login QR")).toBeInTheDocument();
@@ -944,13 +944,9 @@ it("shows a disabled-state message when WeChat login is unavailable", async () =
   renderWithApp(<LoginPage />);
 
   const user = userEvent.setup();
-  await user.click(
-    screen.getByRole("button", { name: /wechat login/i }),
-  );
+  await user.click(screen.getByRole("button", { name: /wechat login/i }));
 
-  expect(
-    await screen.findByText("当前环境未启用微信登录"),
-  ).toBeInTheDocument();
+  expect(await screen.findByText("当前环境未启用微信登录")).toBeInTheDocument();
 });
 ```
 
@@ -1001,7 +997,9 @@ export default function WeChatLoginPanel({ nextPath, onClose }: Props) {
       .then((response) => setQrUrl(response.data.qr_url))
       .catch((err) => {
         const message = formatApiError(err, "当前环境未启用微信登录");
-        setError(message.includes("未启用") ? "当前环境未启用微信登录" : message);
+        setError(
+          message.includes("未启用") ? "当前环境未启用微信登录" : message,
+        );
       })
       .finally(() => setLoading(false));
   }, [nextPath]);
@@ -1093,7 +1091,11 @@ export default function WeChatAccountLinkPanel({ tempToken, nextPath }: Props) {
       <Form.Item name="username" label="Username" rules={[{ required: true }]}>
         <Input />
       </Form.Item>
-      <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
+      <Form.Item
+        name="email"
+        label="Email"
+        rules={[{ required: true, type: "email" }]}
+      >
         <Input />
       </Form.Item>
       <Form.Item
@@ -1144,16 +1146,18 @@ Replace the disabled placeholder button with:
   >
     WeChat Login
   </Button>
-</div>
+</div>;
 
-{showWeChatPanel ? (
-  <div style={{ marginTop: 16 }}>
-    <WeChatLoginPanel
-      nextPath={from}
-      onClose={() => setShowWeChatPanel(false)}
-    />
-  </div>
-) : null}
+{
+  showWeChatPanel ? (
+    <div style={{ marginTop: 16 }}>
+      <WeChatLoginPanel
+        nextPath={from}
+        onClose={() => setShowWeChatPanel(false)}
+      />
+    </div>
+  ) : null;
+}
 ```
 
 - [ ] **Step 5: Run the focused frontend unit tests**
@@ -1216,7 +1220,9 @@ test("supports WeChat unbound flow by binding an existing account", async ({
     body: adminUser,
   }));
 
-  await page.goto("/auth/wechat/callback?status=unbound&next=%2Ftoday#temp_token=temp-1");
+  await page.goto(
+    "/auth/wechat/callback?status=unbound&next=%2Ftoday#temp_token=temp-1",
+  );
   await page.fill('input[name="username"]', "default");
   await page.fill('input[name="password"]', "Adminf8869!@");
   await page.click('button:has-text("绑定已有账号")');

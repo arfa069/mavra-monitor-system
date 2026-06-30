@@ -240,4 +240,3 @@ Each screenshot review checks:
 - text does not overlap at normal or 200 percent text scale;
 - empty/error/permission/offline states are visibly recoverable;
 - target platform controls do not obscure primary content.
-

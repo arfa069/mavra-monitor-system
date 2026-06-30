@@ -102,68 +102,68 @@ JD_COOKIE=...
 >
 > **路径约定**：业务 API 只使用 `/api/v1` 前缀；根路径业务别名（如 `/products`）和 `/v1` 业务别名应返回 404。`/health`、`/health/detailed` 和 `/blog-media/{file_name}` 是非业务例外。
 
-| Method           | Path                                              | Description                                        | 认证  |
-| ---------------- | ------------------------------------------------- | -------------------------------------------------- | ----- |
-| GET              | /health                                           | Health check (database + Redis + scheduler)        | 否    |
-| GET              | /api/v1/config                                    | Get current configuration                          | 是    |
-| POST             | /api/v1/config                                    | Create or update full configuration                | 是    |
-| PATCH            | /api/v1/config                                    | Partial update configuration (cron/tz/hours)       | 是    |
-| POST             | /api/v1/products                                  | Add a product to track                             | 是    |
-| GET              | /api/v1/products                                  | List products (paginated: page, size, total, etc.) | 是    |
-| GET              | /api/v1/products/{id}                             | Get product details                                | 是    |
-| GET              | /api/v1/products/{id}/history                     | Get price history                                  | 是    |
-| POST             | /api/v1/products/batch-create                     | Batch import products                              | 是    |
-| POST             | /api/v1/products/batch-delete                     | Batch delete products                              | 是    |
-| POST             | /api/v1/products/batch-update                     | Batch enable/disable products                      | 是    |
-| POST             | /api/v1/alerts                                    | Create an alert                                    | 是    |
-| GET              | /api/v1/alerts                                    | List all alerts                                    | 是    |
-| POST             | /api/v1/crawl/crawl-now                           | Crawl all active products                          | 是    |
-| GET              | /api/v1/crawl/workers                             | List crawler worker heartbeats/capabilities        | 是    |
-| GET              | /api/v1/crawl/logs                                | Get recent crawl logs                              | 是    |
-| POST             | /api/v1/crawl/cleanup                             | Delete old price history and crawl logs            | 是    |
-| GET/PUT          | /api/v1/smart-home/config                         | Get or update Home Assistant connection config     | 是    |
-| POST             | /api/v1/smart-home/config/test                    | Test Home Assistant connection                     | 是    |
-| GET              | /api/v1/smart-home/entities                       | List Home Assistant entities                       | 是    |
-| POST             | /api/v1/smart-home/services/call                  | Call a Home Assistant entity service               | 是    |
-| GET              | /api/v1/smart-home/entities/stream                | SSE stream for live Home Assistant state           | 是    |
-| GET              | /api/v1/scheduler/status                          | Scheduler status (both product and job crawl)      | 是    |
-| GET              | /api/v1/dashboard/kpi                             | User KPI and admin system KPI                      | 是    |
-| GET              | /api/v1/dashboard/events                          | Dashboard KPI SSE stream                           | 是    |
-| GET              | /api/v1/dashboard/trends                          | Dashboard chart data (`type`, `days`)              | 是    |
-| GET              | /api/v1/dashboard/alerts/recent                   | Recent alerts for admin dashboard                  | admin |
-| GET              | /api/v1/blog/posts                                | Public published blog posts                        | 否    |
-| GET              | /api/v1/blog/posts/{slug}                         | Public published blog post detail                  | 否    |
-| GET              | /api/v1/blog/categories                           | Public blog categories                             | 否    |
-| GET              | /api/v1/blog/tags                                 | Public blog tags                                   | 否    |
-| GET              | /blog-media/{file_name}                           | Public uploaded blog media                         | 否    |
-| GET/POST         | /api/v1/blog/admin/posts                          | List/Create blog posts for writers                 | admin |
-| GET/PATCH/DELETE | /api/v1/blog/admin/posts/{post_id}                | Manage draft, scheduled, published, archived posts | admin |
-| POST             | /api/v1/blog/admin/uploads                        | Upload local blog images                           | admin |
-| GET/POST/DELETE  | /api/v1/jobs/resumes                              | List/Create/Delete resumes                         | 是    |
-| PATCH            | /api/v1/jobs/resumes/{id}                         | Update a resume                                    | 是    |
-| GET              | /api/v1/jobs/match-results                        | List match results                                 | 是    |
-| POST             | /api/v1/jobs/match-results/analyze                | Analyze resume vs jobs (sync)                      | 是    |
-| POST             | /api/v1/jobs/match-results/analyze-async          | Analyze resume vs jobs (async)                     | 是    |
-| GET              | /api/v1/jobs/tasks/{task_id}                      | Poll async task status                             | 是    |
-| GET/POST         | /api/v1/jobs/configs                              | List/Create job search configs                     | 是    |
-| GET/PATCH/DELETE | /api/v1/jobs/configs/{id}                         | Manage a job search config                         | 是    |
-| GET              | /api/v1/jobs                                      | List crawled jobs (paginated)                      | 是    |
-| POST             | /api/v1/jobs/crawl-now                            | Crawl all active job configs                       | 是    |
-| POST             | /api/v1/jobs/crawl-now/{id}                       | Crawl single job config                            | 是    |
-| GET              | /api/v1/jobs/crawl/status/{task_id}               | Poll persisted job crawl task status               | 是    |
-| GET              | /api/v1/jobs/crawl/result/{task_id}               | Get completed job crawl result                     | 是    |
-| GET/POST         | /api/v1/crawl-profiles                            | List/Create crawler browser profiles               | 是    |
-| GET              | /api/v1/crawl-profiles/runtime-capabilities       | Show local browser/profile runtime support         | 是    |
-| PATCH            | /api/v1/crawl-profiles/{profile_key}              | Update profile status/platform hint/error          | 是    |
-| POST             | /api/v1/crawl-profiles/{profile_key}/rename       | Rename profile and sync config references          | 是    |
-| POST             | /api/v1/crawl-profiles/{profile_key}/copy         | Copy profile directory and metadata                | 是    |
-| DELETE           | /api/v1/crawl-profiles/{profile_key}              | Delete unused, idle profile and local directory    | 是    |
-| POST             | /api/v1/crawl-profiles/{profile_key}/release-stale | Release expired profile lease only                 | 是    |
-| POST/GET         | /api/v1/crawl-profiles/{profile_key}/login-session | Open or inspect local login browser session        | 是    |
+| Method           | Path                                                     | Description                                        | 认证  |
+| ---------------- | -------------------------------------------------------- | -------------------------------------------------- | ----- |
+| GET              | /health                                                  | Health check (database + Redis + scheduler)        | 否    |
+| GET              | /api/v1/config                                           | Get current configuration                          | 是    |
+| POST             | /api/v1/config                                           | Create or update full configuration                | 是    |
+| PATCH            | /api/v1/config                                           | Partial update configuration (cron/tz/hours)       | 是    |
+| POST             | /api/v1/products                                         | Add a product to track                             | 是    |
+| GET              | /api/v1/products                                         | List products (paginated: page, size, total, etc.) | 是    |
+| GET              | /api/v1/products/{id}                                    | Get product details                                | 是    |
+| GET              | /api/v1/products/{id}/history                            | Get price history                                  | 是    |
+| POST             | /api/v1/products/batch-create                            | Batch import products                              | 是    |
+| POST             | /api/v1/products/batch-delete                            | Batch delete products                              | 是    |
+| POST             | /api/v1/products/batch-update                            | Batch enable/disable products                      | 是    |
+| POST             | /api/v1/alerts                                           | Create an alert                                    | 是    |
+| GET              | /api/v1/alerts                                           | List all alerts                                    | 是    |
+| POST             | /api/v1/crawl/crawl-now                                  | Crawl all active products                          | 是    |
+| GET              | /api/v1/crawl/workers                                    | List crawler worker heartbeats/capabilities        | 是    |
+| GET              | /api/v1/crawl/logs                                       | Get recent crawl logs                              | 是    |
+| POST             | /api/v1/crawl/cleanup                                    | Delete old price history and crawl logs            | 是    |
+| GET/PUT          | /api/v1/smart-home/config                                | Get or update Home Assistant connection config     | 是    |
+| POST             | /api/v1/smart-home/config/test                           | Test Home Assistant connection                     | 是    |
+| GET              | /api/v1/smart-home/entities                              | List Home Assistant entities                       | 是    |
+| POST             | /api/v1/smart-home/services/call                         | Call a Home Assistant entity service               | 是    |
+| GET              | /api/v1/smart-home/entities/stream                       | SSE stream for live Home Assistant state           | 是    |
+| GET              | /api/v1/scheduler/status                                 | Scheduler status (both product and job crawl)      | 是    |
+| GET              | /api/v1/dashboard/kpi                                    | User KPI and admin system KPI                      | 是    |
+| GET              | /api/v1/dashboard/events                                 | Dashboard KPI SSE stream                           | 是    |
+| GET              | /api/v1/dashboard/trends                                 | Dashboard chart data (`type`, `days`)              | 是    |
+| GET              | /api/v1/dashboard/alerts/recent                          | Recent alerts for admin dashboard                  | admin |
+| GET              | /api/v1/blog/posts                                       | Public published blog posts                        | 否    |
+| GET              | /api/v1/blog/posts/{slug}                                | Public published blog post detail                  | 否    |
+| GET              | /api/v1/blog/categories                                  | Public blog categories                             | 否    |
+| GET              | /api/v1/blog/tags                                        | Public blog tags                                   | 否    |
+| GET              | /blog-media/{file_name}                                  | Public uploaded blog media                         | 否    |
+| GET/POST         | /api/v1/blog/admin/posts                                 | List/Create blog posts for writers                 | admin |
+| GET/PATCH/DELETE | /api/v1/blog/admin/posts/{post_id}                       | Manage draft, scheduled, published, archived posts | admin |
+| POST             | /api/v1/blog/admin/uploads                               | Upload local blog images                           | admin |
+| GET/POST/DELETE  | /api/v1/jobs/resumes                                     | List/Create/Delete resumes                         | 是    |
+| PATCH            | /api/v1/jobs/resumes/{id}                                | Update a resume                                    | 是    |
+| GET              | /api/v1/jobs/match-results                               | List match results                                 | 是    |
+| POST             | /api/v1/jobs/match-results/analyze                       | Analyze resume vs jobs (sync)                      | 是    |
+| POST             | /api/v1/jobs/match-results/analyze-async                 | Analyze resume vs jobs (async)                     | 是    |
+| GET              | /api/v1/jobs/tasks/{task_id}                             | Poll async task status                             | 是    |
+| GET/POST         | /api/v1/jobs/configs                                     | List/Create job search configs                     | 是    |
+| GET/PATCH/DELETE | /api/v1/jobs/configs/{id}                                | Manage a job search config                         | 是    |
+| GET              | /api/v1/jobs                                             | List crawled jobs (paginated)                      | 是    |
+| POST             | /api/v1/jobs/crawl-now                                   | Crawl all active job configs                       | 是    |
+| POST             | /api/v1/jobs/crawl-now/{id}                              | Crawl single job config                            | 是    |
+| GET              | /api/v1/jobs/crawl/status/{task_id}                      | Poll persisted job crawl task status               | 是    |
+| GET              | /api/v1/jobs/crawl/result/{task_id}                      | Get completed job crawl result                     | 是    |
+| GET/POST         | /api/v1/crawl-profiles                                   | List/Create crawler browser profiles               | 是    |
+| GET              | /api/v1/crawl-profiles/runtime-capabilities              | Show local browser/profile runtime support         | 是    |
+| PATCH            | /api/v1/crawl-profiles/{profile_key}                     | Update profile status/platform hint/error          | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/rename              | Rename profile and sync config references          | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/copy                | Copy profile directory and metadata                | 是    |
+| DELETE           | /api/v1/crawl-profiles/{profile_key}                     | Delete unused, idle profile and local directory    | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/release-stale       | Release expired profile lease only                 | 是    |
+| POST/GET         | /api/v1/crawl-profiles/{profile_key}/login-session       | Open or inspect local login browser session        | 是    |
 | POST             | /api/v1/crawl-profiles/{profile_key}/login-session/close | Close local login browser session                  | 是    |
-| POST             | /api/v1/crawl-profiles/{profile_key}/test         | Test profile login/runtime state                   | 是    |
-| POST             | /api/v1/crawl-profiles/{profile_key}/export       | Export encrypted profile backup                    | admin |
-| POST             | /api/v1/crawl-profiles/{profile_key}/import       | Import encrypted profile backup                    | admin |
+| POST             | /api/v1/crawl-profiles/{profile_key}/test                | Test profile login/runtime state                   | 是    |
+| POST             | /api/v1/crawl-profiles/{profile_key}/export              | Export encrypted profile backup                    | admin |
+| POST             | /api/v1/crawl-profiles/{profile_key}/import              | Import encrypted profile backup                    | admin |
 
 ## 认证 API
 
@@ -171,8 +171,8 @@ JD_COOKIE=...
 
 ### 端点
 
-| Method | Path           | Description                         | 认证                    |
-| ------ | -------------- | ----------------------------------- | ----------------------- |
+| Method | Path                  | Description                         | 认证                    |
+| ------ | --------------------- | ----------------------------------- | ----------------------- |
 | POST   | /api/v1/auth/register | 注册新用户                          | 否                      |
 | POST   | /api/v1/auth/login    | 用户登录并设置认证 Cookie           | 否                      |
 | POST   | /api/v1/auth/refresh  | 通过 refresh Cookie 轮换认证 Cookie | 否（需 refresh Cookie） |
@@ -188,11 +188,12 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 ```
 
 **请求体：**
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| username | string | 是 | 用户名（3-50字符） |
-| email | string | 是 | 邮箱地址 |
-| password | string | 是 | 密码至少 10 位，且必须包含大写、小写、数字和特殊字符 |
+
+| 字段     | 类型   | 必填 | 说明                                                 |
+| -------- | ------ | ---- | ---------------------------------------------------- |
+| username | string | 是   | 用户名（3-50字符）                                   |
+| email    | string | 是   | 邮箱地址                                             |
+| password | string | 是   | 密码至少 10 位，且必须包含大写、小写、数字和特殊字符 |
 
 **响应（201 Created）：**
 
@@ -405,14 +406,14 @@ Query parameters: `page` (default 1), `size` (default 15, max 100), `platform`, 
 
 The public blog is a separate Next.js app in `blog-frontend/`. In production, serve the Flutter Web console and route these paths through the reverse proxy:
 
-| Path | Target |
-| ---- | ------ |
-| `/blog` | Next.js blog frontend |
-| `/_next` | Next.js blog frontend static assets |
-| `/sitemap.xml` | Next.js blog frontend |
-| `/robots.txt` | Next.js blog frontend |
-| `/api` | FastAPI backend |
-| `/blog-media` | FastAPI backend local media responses |
+| Path           | Target                                |
+| -------------- | ------------------------------------- |
+| `/blog`        | Next.js blog frontend                 |
+| `/_next`       | Next.js blog frontend static assets   |
+| `/sitemap.xml` | Next.js blog frontend                 |
+| `/robots.txt`  | Next.js blog frontend                 |
+| `/api`         | FastAPI backend                       |
+| `/blog-media`  | FastAPI backend local media responses |
 
 See `ARCHITECTURE.md` for detailed architecture.
 

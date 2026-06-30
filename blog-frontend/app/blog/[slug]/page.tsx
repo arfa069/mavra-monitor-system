@@ -23,7 +23,8 @@ export async function generateMetadata({
     const post = await getPost(slug);
     const title = post.seo_title || post.title;
     const description = post.seo_description || post.excerpt || undefined;
-    const image = absoluteAssetUrl(post.og_image_url || post.cover_url) || undefined;
+    const image =
+      absoluteAssetUrl(post.og_image_url || post.cover_url) || undefined;
     return {
       title,
       description,
@@ -70,7 +71,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           ))}
         </div>
         {post.excerpt ? <p className="hero-copy">{post.excerpt}</p> : null}
-        {coverUrl ? <img className="article-cover" src={coverUrl} alt="" /> : null}
+        {coverUrl ? (
+          <img className="article-cover" src={coverUrl} alt="" />
+        ) : null}
         <div
           className="article-content"
           dangerouslySetInnerHTML={{ __html: post.content_html }}

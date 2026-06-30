@@ -4,13 +4,13 @@
 
 Verified on June 16, 2026:
 
-| Target | Status | Evidence |
-| --- | --- | --- |
-| Flutter SDK | Ready | Flutter 3.44.2 stable, Dart 3.12.2 |
-| Web | Ready | Chrome and Edge detected |
-| Windows | Ready | A clean Flutter Windows project produced a release `.exe` |
-| Android | Ready | Android SDK/AVD evidence is expected from `flutter doctor -v` and CI emulator smoke |
-| iOS | CI-only on Windows | Requires a macOS runner for simulator and build checks |
+| Target      | Status             | Evidence                                                                            |
+| ----------- | ------------------ | ----------------------------------------------------------------------------------- |
+| Flutter SDK | Ready              | Flutter 3.44.2 stable, Dart 3.12.2                                                  |
+| Web         | Ready              | Chrome and Edge detected                                                            |
+| Windows     | Ready              | A clean Flutter Windows project produced a release `.exe`                           |
+| Android     | Ready              | Android SDK/AVD evidence is expected from `flutter doctor -v` and CI emulator smoke |
+| iOS         | CI-only on Windows | Requires a macOS runner for simulator and build checks                              |
 
 ## Web
 

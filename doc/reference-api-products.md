@@ -55,9 +55,7 @@
 
 ```json
 {
-  "items": [
-    /* Product[] */
-  ],
+  "items": [/* Product[] */],
   "total": 100,
   "page": 1,
   "page_size": 15,
@@ -239,13 +237,13 @@
 
 完整路径：`/api/v1/smart-home/*`（详见 [reference-api-products](reference-api-products.md) § Smart Home 段或后续 `reference-smart-home.md`）。
 
-| 方法      | 端点                                       | 权限                   | 说明                                        |
-| --------- | ------------------------------------------ | ---------------------- | ------------------------------------------- |
-| GET / PUT | `/smart-home/config`                       | `smart_home:configure` | base_url + Fernet 加密 token                |
-| POST      | `/smart-home/config/test`                  | `smart_home:configure` | 测连通性                                    |
-| GET       | `/smart-home/entities`                     | `smart_home:read`      | 列实体                                      |
-| POST      | `/smart-home/services/call`                | `smart_home:control`   | 调 service，body `{entity_id, service, service_data}` |
-| GET       | `/smart-home/entities/stream`              | `smart_home:read`      | SSE                                         |
+| 方法      | 端点                          | 权限                   | 说明                                                  |
+| --------- | ----------------------------- | ---------------------- | ----------------------------------------------------- |
+| GET / PUT | `/smart-home/config`          | `smart_home:configure` | base_url + Fernet 加密 token                          |
+| POST      | `/smart-home/config/test`     | `smart_home:configure` | 测连通性                                              |
+| GET       | `/smart-home/entities`        | `smart_home:read`      | 列实体                                                |
+| POST      | `/smart-home/services/call`   | `smart_home:control`   | 调 service，body `{entity_id, service, service_data}` |
+| GET       | `/smart-home/entities/stream` | `smart_home:read`      | SSE                                                   |
 
 ---
 

@@ -20,24 +20,24 @@ not silently switch to dark just because the OS/browser preference is dark.
 
 ## Core Tokens
 
-| Token | Value | Use |
-| --- | --- | --- |
-| `primary` | `#0A0A0A` | Main CTA, active pill tabs |
-| `canvas` | `#FFFFFF` | Primary app surface |
-| `surfaceSoft` | `#F7F8FA` | Scaffold background, subtle bands |
-| `surfaceMuted` | `#F2F3F5` | Selected nav, quiet panels |
-| `hairline` | `#E5E7EB` | Inputs, cards, table borders |
-| `ink` | `#0A0A0A` | Primary text |
-| `steel` | `#5F5F5F` | Secondary text |
-| `focusBlue` | `#1D4ED8` | Input focus and keyboard focus |
-| `brandCoral` | `#FF5530` | Attention accents only |
-| `brandMagenta` | `#EA5EC1` | Showcase gradients and model-card energy |
-| `brandBlue` | `#1456F0` | Jobs/showcase identity |
-| `brandBlueDeep` | `#1D4ED8` | Products/showcase identity |
-| `brandBlue700` | `#17437D` | Schedule/showcase identity |
-| `brandCyan` | `#3DAEFF` | Smart-home/showcase identity |
-| `brandBlue200` | `#BFDBFE` | Light accent cards and admin/blog identity |
-| `brandPurple` | `#A855F7` | Admin/showcase identity |
+| Token           | Value     | Use                                        |
+| --------------- | --------- | ------------------------------------------ |
+| `primary`       | `#0A0A0A` | Main CTA, active pill tabs                 |
+| `canvas`        | `#FFFFFF` | Primary app surface                        |
+| `surfaceSoft`   | `#F7F8FA` | Scaffold background, subtle bands          |
+| `surfaceMuted`  | `#F2F3F5` | Selected nav, quiet panels                 |
+| `hairline`      | `#E5E7EB` | Inputs, cards, table borders               |
+| `ink`           | `#0A0A0A` | Primary text                               |
+| `steel`         | `#5F5F5F` | Secondary text                             |
+| `focusBlue`     | `#1D4ED8` | Input focus and keyboard focus             |
+| `brandCoral`    | `#FF5530` | Attention accents only                     |
+| `brandMagenta`  | `#EA5EC1` | Showcase gradients and model-card energy   |
+| `brandBlue`     | `#1456F0` | Jobs/showcase identity                     |
+| `brandBlueDeep` | `#1D4ED8` | Products/showcase identity                 |
+| `brandBlue700`  | `#17437D` | Schedule/showcase identity                 |
+| `brandCyan`     | `#3DAEFF` | Smart-home/showcase identity               |
+| `brandBlue200`  | `#BFDBFE` | Light accent cards and admin/blog identity |
+| `brandPurple`   | `#A855F7` | Admin/showcase identity                    |
 
 Semantic colors stay meaningful: price uses orange, jobs use purple, Home
 Assistant uses teal, success uses green, danger uses red.

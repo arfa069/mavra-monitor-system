@@ -28,13 +28,13 @@
 
 ## Token-first Web vs Bearer
 
-|              | Cookie                            | Bearer                       |
-| ------------ | --------------------------------- | ---------------------------- |
-| 前端         | HttpOnly refresh cookie 自动带    | access token 存内存并手动发  |
-| CSRF 风险    | **有**（必须配 CSRF token）       | 无（同源策略兜底）           |
-| XSS 偷 token | 偷不到（HttpOnly）                | 偷得到                       |
-| 跨域         | CORS preflight + credentials 复杂 | 简单                         |
-| 脚本友好     | 需要 cookie jar                   | 简单 `Authorization` 头      |
+|              | Cookie                            | Bearer                      |
+| ------------ | --------------------------------- | --------------------------- |
+| 前端         | HttpOnly refresh cookie 自动带    | access token 存内存并手动发 |
+| CSRF 风险    | **有**（必须配 CSRF token）       | 无（同源策略兜底）          |
+| XSS 偷 token | 偷不到（HttpOnly）                | 偷得到                      |
+| 跨域         | CORS preflight + credentials 复杂 | 简单                        |
+| 脚本友好     | 需要 cookie jar                   | 简单 `Authorization` 头     |
 
 现在 Web 登录是 token-first：
 

@@ -104,14 +104,14 @@ New evidence:
 
 ## Gate Summary
 
-| Gate | Status | Evidence |
-| --- | --- | --- |
-| 01 Backend pytest | Passed | `737 passed, 23 skipped, 54 warnings in 41.19s` |
-| 02 Android emulator smoke | Passed | APK build passed; Android emulator single-file integration smoke passed; release APK launch screenshot captured |
-| 03 iOS deferred | Deferred | Windows host has no macOS/Xcode/iPhone capacity; iOS is not counted as a current blocker |
-| 04 Web integration workaround | Passed with accepted exception | Web build passed; Edge release smoke and screenshot passed; `flutter test integration_test -d chrome` remains an accepted Flutter tooling exception |
-| 05 Web/Windows visual QA | Passed | Web release login screenshot, Windows release app screenshot, and existing authenticated visual QA evidence captured |
-| 06 Independent code review | Completed, findings resolved at review surface | FileService, Windows release, native repository storage, default auth restore, Web font fallback, and authenticated visual QA findings are resolved |
+| Gate                          | Status                                         | Evidence                                                                                                                                            |
+| ----------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01 Backend pytest             | Passed                                         | `737 passed, 23 skipped, 54 warnings in 41.19s`                                                                                                     |
+| 02 Android emulator smoke     | Passed                                         | APK build passed; Android emulator single-file integration smoke passed; release APK launch screenshot captured                                     |
+| 03 iOS deferred               | Deferred                                       | Windows host has no macOS/Xcode/iPhone capacity; iOS is not counted as a current blocker                                                            |
+| 04 Web integration workaround | Passed with accepted exception                 | Web build passed; Edge release smoke and screenshot passed; `flutter test integration_test -d chrome` remains an accepted Flutter tooling exception |
+| 05 Web/Windows visual QA      | Passed                                         | Web release login screenshot, Windows release app screenshot, and existing authenticated visual QA evidence captured                                |
+| 06 Independent code review    | Completed, findings resolved at review surface | FileService, Windows release, native repository storage, default auth restore, Web font fallback, and authenticated visual QA findings are resolved |
 
 ## Task 16: React Feature Parity Revalidation
 

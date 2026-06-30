@@ -1836,11 +1836,7 @@ In `frontend/src/features/jobs/types.ts`, add:
 
 ```ts
 export type CrawlProfileStatus =
-  | "available"
-  | "leased"
-  | "login_required"
-  | "cooling_down"
-  | "disabled";
+  "available" | "leased" | "login_required" | "cooling_down" | "disabled";
 
 export interface CrawlProfile {
   profile_key: string;

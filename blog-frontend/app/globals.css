@@ -21,11 +21,7 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font-family:
-    "IBM Plex Sans",
-    "Noto Sans SC",
-    Outfit,
-    "Microsoft YaHei",
-    system-ui,
+    "IBM Plex Sans", "Noto Sans SC", Outfit, "Microsoft YaHei", system-ui,
     sans-serif;
 }
 

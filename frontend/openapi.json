@@ -24,12 +24,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "AdminUserListResponse",
         "type": "object"
       },
@@ -63,13 +58,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "username",
-          "email",
-          "role",
-          "created_at"
-        ],
+        "required": ["id", "username", "email", "role", "created_at"],
         "title": "AdminUserResponse",
         "type": "object"
       },
@@ -161,9 +150,7 @@
             "title": "Threshold Percent"
           }
         },
-        "required": [
-          "product_id"
-        ],
+        "required": ["product_id"],
         "title": "AlertCreate",
         "type": "object"
       },
@@ -305,12 +292,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "AuditLogListResponse",
         "type": "object"
       },
@@ -443,11 +425,7 @@
             "$ref": "#/components/schemas/UserResponse"
           }
         },
-        "required": [
-          "access_token",
-          "expires_in",
-          "user"
-        ],
+        "required": ["access_token", "expires_in", "user"],
         "title": "AuthSessionResponse",
         "type": "object"
       },
@@ -492,9 +470,7 @@
             "title": "Url"
           }
         },
-        "required": [
-          "success"
-        ],
+        "required": ["success"],
         "title": "BatchOperationResult",
         "type": "object"
       },
@@ -524,11 +500,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "slug"
-        ],
+        "required": ["id", "name", "slug"],
         "title": "BlogCategoryResponse",
         "type": "object"
       },
@@ -723,12 +695,7 @@
           },
           "status": {
             "default": "draft",
-            "enum": [
-              "draft",
-              "scheduled",
-              "published",
-              "archived"
-            ],
+            "enum": ["draft", "scheduled", "published", "archived"],
             "title": "Status",
             "type": "string"
           },
@@ -753,9 +720,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "title"
-        ],
+        "required": ["title"],
         "title": "BlogPostCreate",
         "type": "object"
       },
@@ -836,12 +801,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "draft",
-              "scheduled",
-              "published",
-              "archived"
-            ],
+            "enum": ["draft", "scheduled", "published", "archived"],
             "title": "Status",
             "type": "string"
           },
@@ -862,13 +822,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "title",
-          "slug",
-          "status",
-          "updated_at"
-        ],
+        "required": ["id", "title", "slug", "status", "updated_at"],
         "title": "BlogPostListItem",
         "type": "object"
       },
@@ -894,12 +848,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size"
-        ],
+        "required": ["items", "total", "page", "size"],
         "title": "BlogPostListResponse",
         "type": "object"
       },
@@ -1020,12 +969,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "draft",
-              "scheduled",
-              "published",
-              "archived"
-            ],
+            "enum": ["draft", "scheduled", "published", "archived"],
             "title": "Status",
             "type": "string"
           },
@@ -1221,12 +1165,7 @@
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "draft",
-                  "scheduled",
-                  "published",
-                  "archived"
-                ],
+                "enum": ["draft", "scheduled", "published", "archived"],
                 "type": "string"
               },
               {
@@ -1295,11 +1234,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "slug"
-        ],
+        "required": ["id", "name", "slug"],
         "title": "BlogTagResponse",
         "type": "object"
       },
@@ -1311,9 +1246,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "file"
-        ],
+        "required": ["file"],
         "title": "Body_blog_upload_blog_media",
         "type": "object"
       },
@@ -1334,10 +1267,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "password",
-          "file"
-        ],
+        "required": ["password", "file"],
         "title": "Body_crawl_profiles_import_profile_backup",
         "type": "object"
       },
@@ -1478,9 +1408,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "password"
-        ],
+        "required": ["password"],
         "title": "CrawlProfileBackupExportRequest",
         "type": "object"
       },
@@ -1495,10 +1423,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "profile_key",
-          "imported"
-        ],
+        "required": ["profile_key", "imported"],
         "title": "CrawlProfileBackupImportResponse",
         "type": "object"
       },
@@ -1523,9 +1448,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "profile_key"
-        ],
+        "required": ["profile_key"],
         "title": "CrawlProfileCreate",
         "type": "object"
       },
@@ -1579,21 +1502,12 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "active",
-              "closed",
-              "failed"
-            ],
+            "enum": ["active", "closed", "failed"],
             "title": "Status",
             "type": "string"
           }
         },
-        "required": [
-          "profile_key",
-          "platform",
-          "status",
-          "start_url"
-        ],
+        "required": ["profile_key", "platform", "status", "start_url"],
         "title": "CrawlProfileLoginSessionResponse",
         "type": "object"
       },
@@ -1606,9 +1520,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "profile_key"
-        ],
+        "required": ["profile_key"],
         "title": "CrawlProfileRenameRequest",
         "type": "object"
       },
@@ -1731,10 +1643,7 @@
       "CrawlProfileRuntimeCapabilities": {
         "properties": {
           "mode": {
-            "enum": [
-              "local_gui",
-              "headless_server"
-            ],
+            "enum": ["local_gui", "headless_server"],
             "title": "Mode",
             "type": "string"
           },
@@ -1743,10 +1652,7 @@
             "type": "string"
           },
           "recommended_action": {
-            "enum": [
-              "open_login_browser",
-              "import_profile_backup"
-            ],
+            "enum": ["open_login_browser", "import_profile_backup"],
             "title": "Recommended Action",
             "type": "string"
           },
@@ -1820,21 +1726,12 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "ready",
-              "login_required",
-              "risk_blocked",
-              "error"
-            ],
+            "enum": ["ready", "login_required", "risk_blocked", "error"],
             "title": "Status",
             "type": "string"
           }
         },
-        "required": [
-          "profile_key",
-          "platform",
-          "status"
-        ],
+        "required": ["profile_key", "platform", "status"],
         "title": "CrawlProfileTestResponse",
         "type": "object"
       },
@@ -1866,11 +1763,7 @@
           "status": {
             "anyOf": [
               {
-                "enum": [
-                  "available",
-                  "login_required",
-                  "disabled"
-                ],
+                "enum": ["available", "login_required", "disabled"],
                 "type": "string"
               },
               {
@@ -1984,9 +1877,7 @@
             "$ref": "#/components/schemas/UserKPI"
           }
         },
-        "required": [
-          "user"
-        ],
+        "required": ["user"],
         "title": "DashboardKPIResponse",
         "type": "object"
       },
@@ -2028,11 +1919,7 @@
             "type": "string"
           },
           "kind": {
-            "enum": [
-              "audit",
-              "system",
-              "platform"
-            ],
+            "enum": ["audit", "system", "platform"],
             "title": "Kind",
             "type": "string"
           },
@@ -2141,12 +2028,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "EventCenterListResponse",
         "type": "object"
       },
@@ -2166,18 +2048,12 @@
       "HealthResponse": {
         "properties": {
           "status": {
-            "enum": [
-              "starting",
-              "healthy",
-              "unhealthy"
-            ],
+            "enum": ["starting", "healthy", "unhealthy"],
             "title": "Status",
             "type": "string"
           }
         },
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "title": "HealthResponse",
         "type": "object"
       },
@@ -2241,9 +2117,7 @@
             "title": "Next Run At"
           }
         },
-        "required": [
-          "config_id"
-        ],
+        "required": ["config_id"],
         "title": "JobConfigScheduleInfo",
         "type": "object"
       },
@@ -2314,12 +2188,7 @@
             "title": "Total Jobs Count"
           }
         },
-        "required": [
-          "id",
-          "search_config_id",
-          "status",
-          "scraped_at"
-        ],
+        "required": ["id", "search_config_id", "status", "scraped_at"],
         "title": "JobCrawlLogResponse",
         "type": "object"
       },
@@ -2346,12 +2215,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "JobListResponse",
         "type": "object"
       },
@@ -2469,11 +2333,7 @@
             "title": "Location"
           },
           "platform": {
-            "enum": [
-              "boss",
-              "51job",
-              "liepin"
-            ],
+            "enum": ["boss", "51job", "liepin"],
             "title": "Platform",
             "type": "string"
           },
@@ -2658,11 +2518,7 @@
           },
           "platform": {
             "default": "boss",
-            "enum": [
-              "boss",
-              "51job",
-              "liepin"
-            ],
+            "enum": ["boss", "51job", "liepin"],
             "title": "Platform",
             "type": "string"
           },
@@ -2699,10 +2555,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name",
-          "url"
-        ],
+        "required": ["name", "url"],
         "title": "JobSearchConfigCreate",
         "type": "object"
       },
@@ -2806,11 +2659,7 @@
           },
           "platform": {
             "default": "boss",
-            "enum": [
-              "boss",
-              "51job",
-              "liepin"
-            ],
+            "enum": ["boss", "51job", "liepin"],
             "title": "Platform",
             "type": "string"
           },
@@ -3005,11 +2854,7 @@
           "platform": {
             "anyOf": [
               {
-                "enum": [
-                  "boss",
-                  "51job",
-                  "liepin"
-                ],
+                "enum": ["boss", "51job", "liepin"],
                 "type": "string"
               },
               {
@@ -3068,10 +2913,7 @@
       },
       "LoginClientKind": {
         "description": "Client storage mode for token delivery.",
-        "enum": [
-          "web",
-          "native"
-        ],
+        "enum": ["web", "native"],
         "title": "LoginClientKind",
         "type": "string"
       },
@@ -3110,12 +2952,7 @@
             "title": "User Agent"
           }
         },
-        "required": [
-          "id",
-          "ip_address",
-          "user_agent",
-          "created_at"
-        ],
+        "required": ["id", "ip_address", "user_agent", "created_at"],
         "title": "LoginLogResponse",
         "type": "object"
       },
@@ -3159,9 +2996,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "resume_id"
-        ],
+        "required": ["resume_id"],
         "title": "MatchAnalyzeRequest",
         "type": "object"
       },
@@ -3187,12 +3022,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "MatchResultListResponse",
         "type": "object"
       },
@@ -3357,10 +3187,7 @@
             "title": "Reason"
           },
           "status": {
-            "enum": [
-              "pending",
-              "completed"
-            ],
+            "enum": ["pending", "completed"],
             "title": "Status",
             "type": "string"
           },
@@ -3380,11 +3207,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "status",
-          "task_id",
-          "total"
-        ],
+        "required": ["status", "task_id", "total"],
         "title": "MatchTaskQueuedResponse",
         "type": "object"
       },
@@ -3413,10 +3236,7 @@
             "title": "Refresh Token"
           }
         },
-        "required": [
-          "old_password",
-          "new_password"
-        ],
+        "required": ["old_password", "new_password"],
         "title": "PasswordChange",
         "type": "object"
       },
@@ -3439,9 +3259,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "title": "PermissionResponse",
         "type": "object"
       },
@@ -3471,13 +3289,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "product_id",
-          "price",
-          "currency",
-          "scraped_at"
-        ],
+        "required": ["id", "product_id", "price", "currency", "scraped_at"],
         "title": "PriceHistoryResponse",
         "type": "object"
       },
@@ -3493,9 +3305,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "title": "ProductBatchCreate",
         "type": "object"
       },
@@ -3532,9 +3342,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "title": "ProductBatchCreateItem",
         "type": "object"
       },
@@ -3550,9 +3358,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "ids"
-        ],
+        "required": ["ids"],
         "title": "ProductBatchDelete",
         "type": "object"
       },
@@ -3579,9 +3385,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "ids"
-        ],
+        "required": ["ids"],
         "title": "ProductBatchUpdate",
         "type": "object"
       },
@@ -3618,10 +3422,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "platform",
-          "url"
-        ],
+        "required": ["platform", "url"],
         "title": "ProductCreate",
         "type": "object"
       },
@@ -3721,9 +3522,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "platform"
-        ],
+        "required": ["platform"],
         "title": "ProductPlatformCronCreate",
         "type": "object"
       },
@@ -3890,9 +3689,7 @@
             "title": "Updated At"
           }
         },
-        "required": [
-          "platform"
-        ],
+        "required": ["platform"],
         "title": "ProductPlatformProfileBindingResponse",
         "type": "object"
       },
@@ -3906,9 +3703,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "profile_key"
-        ],
+        "required": ["profile_key"],
         "title": "ProductPlatformProfileBindingUpdate",
         "type": "object"
       },
@@ -4194,9 +3989,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "granted"
-        ],
+        "required": ["granted"],
         "title": "ResourcePermissionGrantResponse",
         "type": "object"
       },
@@ -4223,12 +4016,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "page",
-          "page_size"
-        ],
+        "required": ["items", "total", "page", "page_size"],
         "title": "ResourcePermissionListResponse",
         "type": "object"
       },
@@ -4343,10 +4131,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "roles",
-          "all_permissions"
-        ],
+        "required": ["roles", "all_permissions"],
         "title": "RolePermissionMatrixResponse",
         "type": "object"
       },
@@ -4376,10 +4161,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "role",
-          "permissions"
-        ],
+        "required": ["role", "permissions"],
         "title": "RolePermissionResponse",
         "type": "object"
       },
@@ -4411,10 +4193,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "role",
-          "permissions"
-        ],
+        "required": ["role", "permissions"],
         "title": "RolePermissionUpdateResponse",
         "type": "object"
       },
@@ -4494,9 +4273,7 @@
             "title": "Timezone"
           }
         },
-        "required": [
-          "scheduler"
-        ],
+        "required": ["scheduler"],
         "title": "SchedulerStatusResponse",
         "type": "object"
       },
@@ -4523,12 +4300,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name",
-          "status",
-          "docs",
-          "prefixes"
-        ],
+        "required": ["name", "status", "docs", "prefixes"],
         "title": "ServiceInfoResponse",
         "type": "object"
       },
@@ -4633,13 +4405,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "base_url",
-          "enabled",
-          "created_at",
-          "updated_at"
-        ],
+        "required": ["id", "base_url", "enabled", "created_at", "updated_at"],
         "title": "SmartHomeConfigResponse",
         "type": "object"
       },
@@ -4698,10 +4464,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "ok",
-          "message"
-        ],
+        "required": ["ok", "message"],
         "title": "SmartHomeConfigTestResponse",
         "type": "object"
       },
@@ -4733,9 +4496,7 @@
             "title": "Token"
           }
         },
-        "required": [
-          "base_url"
-        ],
+        "required": ["base_url"],
         "title": "SmartHomeConfigUpdate",
         "type": "object"
       },
@@ -4812,12 +4573,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "entity_id",
-          "domain",
-          "name",
-          "state"
-        ],
+        "required": ["entity_id", "domain", "name", "state"],
         "title": "SmartHomeEntity",
         "type": "object"
       },
@@ -4850,11 +4606,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "items",
-          "total",
-          "connected"
-        ],
+        "required": ["items", "total", "connected"],
         "title": "SmartHomeEntityListResponse",
         "type": "object"
       },
@@ -4878,10 +4630,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "entity_id",
-          "service"
-        ],
+        "required": ["entity_id", "service"],
         "title": "SmartHomeServiceRequest",
         "type": "object"
       },
@@ -4904,12 +4653,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "ok",
-          "entity_id",
-          "service",
-          "message"
-        ],
+        "required": ["ok", "entity_id", "service", "message"],
         "title": "SmartHomeServiceResponse",
         "type": "object"
       },
@@ -4992,10 +4736,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "status",
-          "reason"
-        ],
+        "required": ["status", "reason"],
         "title": "TaskErrorResponse",
         "type": "object"
       },
@@ -5078,13 +4819,7 @@
             "title": "Started At"
           },
           "status": {
-            "enum": [
-              "pending",
-              "running",
-              "completed",
-              "failed",
-              "error"
-            ],
+            "enum": ["pending", "running", "completed", "failed", "error"],
             "title": "Status",
             "type": "string"
           },
@@ -5114,10 +4849,7 @@
             "title": "Worker Id"
           }
         },
-        "required": [
-          "task_id",
-          "status"
-        ],
+        "required": ["task_id", "status"],
         "title": "TaskProgressResponse",
         "type": "object"
       },
@@ -5146,11 +4878,7 @@
             "title": "Reason"
           },
           "status": {
-            "enum": [
-              "pending",
-              "skipped",
-              "error"
-            ],
+            "enum": ["pending", "skipped", "error"],
             "title": "Status",
             "type": "string"
           },
@@ -5166,9 +4894,7 @@
             "title": "Task Id"
           }
         },
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "title": "TaskQueuedResponse",
         "type": "object"
       },
@@ -5190,10 +4916,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "username",
-          "password"
-        ],
+        "required": ["username", "password"],
         "title": "TokenLoginRequest",
         "type": "object"
       },
@@ -5209,10 +4932,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "label",
-          "value"
-        ],
+        "required": ["label", "value"],
         "title": "TrendDataPoint",
         "type": "object"
       },
@@ -5231,10 +4951,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "label",
-          "data"
-        ],
+        "required": ["label", "data"],
         "title": "TrendDataset",
         "type": "object"
       },
@@ -5256,10 +4973,7 @@
             "type": "array"
           }
         },
-        "required": [
-          "labels",
-          "datasets"
-        ],
+        "required": ["labels", "datasets"],
         "title": "TrendResponse",
         "type": "object"
       },
@@ -5337,10 +5051,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "username"
-        ],
+        "required": ["id", "username"],
         "title": "UserConfigResponse",
         "type": "object"
       },
@@ -5402,11 +5113,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "username",
-          "email",
-          "password"
-        ],
+        "required": ["username", "email", "password"],
         "title": "UserCreate",
         "type": "object"
       },
@@ -5467,11 +5174,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "username",
-          "email",
-          "password"
-        ],
+        "required": ["username", "email", "password"],
         "title": "UserRegister",
         "type": "object"
       },
@@ -5519,12 +5222,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "username",
-          "email",
-          "created_at"
-        ],
+        "required": ["id", "username", "email", "created_at"],
         "title": "UserResponse",
         "type": "object"
       },
@@ -5541,10 +5239,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name",
-          "resume_text"
-        ],
+        "required": ["name", "resume_text"],
         "title": "UserResumeCreate",
         "type": "object"
       },
@@ -5649,11 +5344,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError",
         "type": "object"
       },
@@ -5673,11 +5364,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "temp_token",
-          "username",
-          "password"
-        ],
+        "required": ["temp_token", "username", "password"],
         "title": "WeChatBindRequest",
         "type": "object"
       },
@@ -5694,9 +5381,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "exchange_code"
-        ],
+        "required": ["exchange_code"],
         "title": "WeChatExchangeRequest",
         "type": "object"
       },
@@ -5728,9 +5413,7 @@
             ]
           }
         },
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "title": "WeChatExchangeResponse",
         "type": "object"
       },
@@ -5746,10 +5429,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "qr_url",
-          "state"
-        ],
+        "required": ["qr_url", "state"],
         "title": "WeChatQrResponse",
         "type": "object"
       },
@@ -5780,12 +5460,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "temp_token",
-          "username",
-          "email",
-          "password"
-        ],
+        "required": ["temp_token", "username", "email", "password"],
         "title": "WeChatRegisterRequest",
         "type": "object"
       },
@@ -5807,9 +5482,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "temp_token"
-        ],
+        "required": ["temp_token"],
         "title": "WeChatUnboundResponse",
         "type": "object"
       },
@@ -5821,9 +5494,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "title": "MessageResponse",
         "type": "object"
       },
@@ -5834,9 +5505,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "title": "MessageResponse",
         "type": "object"
       }
@@ -5958,9 +5627,7 @@
           }
         },
         "summary": "List Audit Logs",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/resource-permissions": {
@@ -6050,9 +5717,7 @@
           }
         },
         "summary": "List Resource Permissions",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       },
       "post": {
         "description": "Grant one or more resource permissions to a user.",
@@ -6090,9 +5755,7 @@
           }
         },
         "summary": "Grant Resource Permission",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/resource-permissions/{permission_id}": {
@@ -6143,9 +5806,7 @@
           }
         },
         "summary": "Revoke Resource Permission",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       },
       "patch": {
         "description": "Update an existing resource permission grant (resource_type, resource_id, permission).",
@@ -6194,9 +5855,7 @@
           }
         },
         "summary": "Update Resource Permission",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/roles/permissions": {
@@ -6216,9 +5875,7 @@
           }
         },
         "summary": "Get Role Permission Matrix",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/roles/{role_name}/permissions": {
@@ -6269,9 +5926,7 @@
           }
         },
         "summary": "Update Role Permissions",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/users": {
@@ -6366,9 +6021,7 @@
           }
         },
         "summary": "List Users",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       },
       "post": {
         "description": "Create a new user (admin only).",
@@ -6406,9 +6059,7 @@
           }
         },
         "summary": "Create User",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/admin/users/{user_id}": {
@@ -6449,9 +6100,7 @@
           }
         },
         "summary": "Delete User",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       },
       "get": {
         "description": "Get a single user by ID (non-deleted only).",
@@ -6490,9 +6139,7 @@
           }
         },
         "summary": "Get User",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       },
       "patch": {
         "description": "Update a user (admin only). Includes soft delete/restore via is_active.",
@@ -6541,9 +6188,7 @@
           }
         },
         "summary": "Update User",
-        "tags": [
-          "admin"
-        ]
+        "tags": ["admin"]
       }
     },
     "/api/v1/alerts": {
@@ -6611,9 +6256,7 @@
           }
         },
         "summary": "List Alerts",
-        "tags": [
-          "alerts"
-        ]
+        "tags": ["alerts"]
       },
       "post": {
         "description": "Create a new price alert.",
@@ -6651,9 +6294,7 @@
           }
         },
         "summary": "Create Alert",
-        "tags": [
-          "alerts"
-        ]
+        "tags": ["alerts"]
       }
     },
     "/api/v1/alerts/{alert_id}": {
@@ -6694,9 +6335,7 @@
           }
         },
         "summary": "Delete Alert",
-        "tags": [
-          "alerts"
-        ]
+        "tags": ["alerts"]
       },
       "get": {
         "description": "Get alert details.",
@@ -6735,9 +6374,7 @@
           }
         },
         "summary": "Get Alert",
-        "tags": [
-          "alerts"
-        ]
+        "tags": ["alerts"]
       },
       "patch": {
         "description": "Update an alert.",
@@ -6786,9 +6423,7 @@
           }
         },
         "summary": "Update Alert",
-        "tags": [
-          "alerts"
-        ]
+        "tags": ["alerts"]
       }
     },
     "/api/v1/auth/login": {
@@ -6828,10 +6463,7 @@
           }
         },
         "summary": "Login",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/logout": {
@@ -6878,10 +6510,7 @@
           }
         },
         "summary": "Logout",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/me": {
@@ -6901,10 +6530,7 @@
           }
         },
         "summary": "Get Me",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       },
       "patch": {
         "description": "Update current user's profile (username, email).\n\nArgs:\n    update_data: Profile update data (username, email)\n    current_user: Authenticated user (from cookie)\n    db: Database session\n\nReturns:\n    UserResponse: Updated user profile\n\nRaises:\n    HTTPException 400: Username or email already exists",
@@ -6942,10 +6568,7 @@
           }
         },
         "summary": "Update Me",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/me/login-history": {
@@ -6969,9 +6592,7 @@
           }
         },
         "summary": "Get My Login History",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/v1/auth/me/password": {
@@ -7011,10 +6632,7 @@
           }
         },
         "summary": "Change Password",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/refresh": {
@@ -7061,10 +6679,7 @@
           }
         },
         "summary": "Refresh",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/register": {
@@ -7104,10 +6719,7 @@
           }
         },
         "summary": "Register",
-        "tags": [
-          "auth",
-          "auth"
-        ]
+        "tags": ["auth", "auth"]
       }
     },
     "/api/v1/auth/sessions": {
@@ -7148,9 +6760,7 @@
           }
         },
         "summary": "Delete Other Sessions Endpoint",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       },
       "get": {
         "description": "Get all active sessions for current user.",
@@ -7172,9 +6782,7 @@
           }
         },
         "summary": "List My Sessions",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/v1/auth/sessions/{session_id}": {
@@ -7215,9 +6823,7 @@
           }
         },
         "summary": "Delete A Session",
-        "tags": [
-          "auth"
-        ]
+        "tags": ["auth"]
       }
     },
     "/api/v1/auth/wechat/bind": {
@@ -7257,9 +6863,7 @@
           }
         },
         "summary": "Bind Wechat Account",
-        "tags": [
-          "wechat"
-        ]
+        "tags": ["wechat"]
       }
     },
     "/api/v1/auth/wechat/callback": {
@@ -7305,9 +6909,7 @@
           }
         },
         "summary": "Wechat Callback",
-        "tags": [
-          "wechat"
-        ]
+        "tags": ["wechat"]
       }
     },
     "/api/v1/auth/wechat/exchange": {
@@ -7347,9 +6949,7 @@
           }
         },
         "summary": "Exchange Wechat Code",
-        "tags": [
-          "wechat"
-        ]
+        "tags": ["wechat"]
       }
     },
     "/api/v1/auth/wechat/qr": {
@@ -7413,9 +7013,7 @@
           }
         },
         "summary": "Get Wechat Qr Url",
-        "tags": [
-          "wechat"
-        ]
+        "tags": ["wechat"]
       }
     },
     "/api/v1/auth/wechat/register": {
@@ -7455,9 +7053,7 @@
           }
         },
         "summary": "Register With Wechat",
-        "tags": [
-          "wechat"
-        ]
+        "tags": ["wechat"]
       }
     },
     "/api/v1/blog/admin/posts": {
@@ -7488,12 +7084,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "draft",
-                    "scheduled",
-                    "published",
-                    "archived"
-                  ],
+                  "enum": ["draft", "scheduled", "published", "archived"],
                   "type": "string"
                 },
                 {
@@ -7550,9 +7141,7 @@
           }
         },
         "summary": "List Admin Posts",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       },
       "post": {
         "operationId": "blog_create_admin_post",
@@ -7589,9 +7178,7 @@
           }
         },
         "summary": "Create Admin Post",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/admin/posts/{post_id}": {
@@ -7624,9 +7211,7 @@
           }
         },
         "summary": "Delete Admin Post",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       },
       "get": {
         "operationId": "blog_get_admin_post",
@@ -7664,9 +7249,7 @@
           }
         },
         "summary": "Get Admin Post",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       },
       "patch": {
         "operationId": "blog_update_admin_post",
@@ -7714,9 +7297,7 @@
           }
         },
         "summary": "Update Admin Post",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/admin/uploads": {
@@ -7755,9 +7336,7 @@
           }
         },
         "summary": "Upload Blog Media",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/categories": {
@@ -7780,9 +7359,7 @@
           }
         },
         "summary": "List Categories",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/posts": {
@@ -7887,9 +7464,7 @@
           }
         },
         "summary": "List Public Posts",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/posts/{slug}": {
@@ -7929,9 +7504,7 @@
           }
         },
         "summary": "Get Public Post",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/blog/tags": {
@@ -7954,9 +7527,7 @@
           }
         },
         "summary": "List Tags",
-        "tags": [
-          "blog"
-        ]
+        "tags": ["blog"]
       }
     },
     "/api/v1/config": {
@@ -7976,9 +7547,7 @@
           }
         },
         "summary": "Get Config",
-        "tags": [
-          "config"
-        ]
+        "tags": ["config"]
       },
       "patch": {
         "description": "Partial update user configuration (create if not exists).",
@@ -8016,9 +7585,7 @@
           }
         },
         "summary": "Update Config Partial",
-        "tags": [
-          "config"
-        ]
+        "tags": ["config"]
       },
       "post": {
         "description": "Create or update user configuration.",
@@ -8056,9 +7623,7 @@
           }
         },
         "summary": "Create Or Update Config",
-        "tags": [
-          "config"
-        ]
+        "tags": ["config"]
       }
     },
     "/api/v1/crawl-profiles": {
@@ -8081,9 +7646,7 @@
           }
         },
         "summary": "List Profiles",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       },
       "post": {
         "operationId": "crawl_profiles_create_profile",
@@ -8120,9 +7683,7 @@
           }
         },
         "summary": "Create Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/runtime-capabilities": {
@@ -8141,9 +7702,7 @@
           }
         },
         "summary": "Get Runtime Capabilities",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}": {
@@ -8176,9 +7735,7 @@
           }
         },
         "summary": "Delete Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       },
       "patch": {
         "operationId": "crawl_profiles_update_profile",
@@ -8226,9 +7783,7 @@
           }
         },
         "summary": "Update Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/copy": {
@@ -8268,9 +7823,7 @@
           }
         },
         "summary": "Copy Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/export": {
@@ -8329,9 +7882,7 @@
           }
         },
         "summary": "Export Profile Backup",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/import": {
@@ -8381,9 +7932,7 @@
           }
         },
         "summary": "Import Profile Backup",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/login-session": {
@@ -8423,9 +7972,7 @@
           }
         },
         "summary": "Get Login Session",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       },
       "post": {
         "operationId": "crawl_profiles_open_login_session",
@@ -8473,9 +8020,7 @@
           }
         },
         "summary": "Open Login Session",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/login-session/close": {
@@ -8515,9 +8060,7 @@
           }
         },
         "summary": "Close Login Session",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/release-stale": {
@@ -8557,9 +8100,7 @@
           }
         },
         "summary": "Release Stale Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/rename": {
@@ -8609,9 +8150,7 @@
           }
         },
         "summary": "Rename Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl-profiles/{profile_key}/test": {
@@ -8661,9 +8200,7 @@
           }
         },
         "summary": "Test Profile",
-        "tags": [
-          "crawl-profiles"
-        ]
+        "tags": ["crawl-profiles"]
       }
     },
     "/api/v1/crawl/cleanup": {
@@ -8707,9 +8244,7 @@
           }
         },
         "summary": "Cleanup Old Data",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/crawl/crawl-now": {
@@ -8749,9 +8284,7 @@
           }
         },
         "summary": "Crawl Now",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/crawl/logs": {
@@ -8843,9 +8376,7 @@
           }
         },
         "summary": "Get Crawl Logs",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/crawl/result/{task_id}": {
@@ -8916,9 +8447,7 @@
           }
         },
         "summary": "Get Crawl Result",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/crawl/status/{task_id}": {
@@ -8969,9 +8498,7 @@
           }
         },
         "summary": "Get Crawl Status",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/crawl/workers": {
@@ -8995,9 +8522,7 @@
           }
         },
         "summary": "List Crawler Workers",
-        "tags": [
-          "products-crawl"
-        ]
+        "tags": ["products-crawl"]
       }
     },
     "/api/v1/dashboard/alerts/recent": {
@@ -9045,9 +8570,7 @@
           }
         },
         "summary": "Get Recent Alerts",
-        "tags": [
-          "dashboard"
-        ]
+        "tags": ["dashboard"]
       }
     },
     "/api/v1/dashboard/events": {
@@ -9067,9 +8590,7 @@
           }
         },
         "summary": "Stream Dashboard Events",
-        "tags": [
-          "dashboard"
-        ]
+        "tags": ["dashboard"]
       }
     },
     "/api/v1/dashboard/kpi": {
@@ -9089,9 +8610,7 @@
           }
         },
         "summary": "Get Dashboard Kpi",
-        "tags": [
-          "dashboard"
-        ]
+        "tags": ["dashboard"]
       }
     },
     "/api/v1/dashboard/trends": {
@@ -9145,9 +8664,7 @@
           }
         },
         "summary": "Get Trend Data",
-        "tags": [
-          "dashboard"
-        ]
+        "tags": ["dashboard"]
       }
     },
     "/api/v1/events": {
@@ -9327,9 +8844,7 @@
           }
         },
         "summary": "List Events",
-        "tags": [
-          "events"
-        ]
+        "tags": ["events"]
       }
     },
     "/api/v1/events/stream": {
@@ -9486,9 +9001,7 @@
           }
         },
         "summary": "Stream Events",
-        "tags": [
-          "events"
-        ]
+        "tags": ["events"]
       }
     },
     "/api/v1/jobs": {
@@ -9675,9 +9188,7 @@
           }
         },
         "summary": "List Jobs",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/configs": {
@@ -9729,9 +9240,7 @@
           }
         },
         "summary": "List Configs",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       },
       "post": {
         "description": "Create a new job search config.",
@@ -9769,9 +9278,7 @@
           }
         },
         "summary": "Create Config",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/configs/{config_id}": {
@@ -9812,9 +9319,7 @@
           }
         },
         "summary": "Delete Config",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       },
       "get": {
         "description": "Get a single config.",
@@ -9853,9 +9358,7 @@
           }
         },
         "summary": "Get Config",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       },
       "patch": {
         "description": "Update a config.",
@@ -9904,9 +9407,7 @@
           }
         },
         "summary": "Update Config",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/configs/{config_id}/cron": {
@@ -9957,9 +9458,7 @@
           }
         },
         "summary": "Update Config Cron",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/crawl-logs": {
@@ -10054,9 +9553,7 @@
           }
         },
         "summary": "Get Job Crawl Logs",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/crawl-now": {
@@ -10076,9 +9573,7 @@
           }
         },
         "summary": "Crawl Now",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/crawl-now/{config_id}": {
@@ -10119,9 +9614,7 @@
           }
         },
         "summary": "Crawl Single",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/crawl/result/{task_id}": {
@@ -10192,9 +9685,7 @@
           }
         },
         "summary": "Get Job Crawl Result",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/crawl/status/{task_id}": {
@@ -10245,9 +9736,7 @@
           }
         },
         "summary": "Get Job Crawl Status",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/match-results": {
@@ -10367,9 +9856,7 @@
           }
         },
         "summary": "List Match Results",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/match-results/analyze": {
@@ -10409,9 +9896,7 @@
           }
         },
         "summary": "Trigger Match Analysis",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/match-results/analyze-async": {
@@ -10451,9 +9936,7 @@
           }
         },
         "summary": "Trigger Match Analysis Async",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/resumes": {
@@ -10476,9 +9959,7 @@
           }
         },
         "summary": "List Resumes",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       },
       "post": {
         "operationId": "jobs_create_resume",
@@ -10515,9 +9996,7 @@
           }
         },
         "summary": "Create Resume",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/resumes/{resume_id}": {
@@ -10557,9 +10036,7 @@
           }
         },
         "summary": "Delete Resume",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       },
       "patch": {
         "operationId": "jobs_update_resume",
@@ -10607,9 +10084,7 @@
           }
         },
         "summary": "Update Resume",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/scheduler/job-configs": {
@@ -10629,9 +10104,7 @@
           }
         },
         "summary": "Get Job Config Schedules",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/tasks/{task_id}": {
@@ -10682,9 +10155,7 @@
           }
         },
         "summary": "Get Match Analysis Task Status",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/jobs/{job_id_str}": {
@@ -10725,9 +10196,7 @@
           }
         },
         "summary": "Get Job",
-        "tags": [
-          "jobs"
-        ]
+        "tags": ["jobs"]
       }
     },
     "/api/v1/products": {
@@ -10831,9 +10300,7 @@
           }
         },
         "summary": "List Products",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "post": {
         "description": "Add a new product to track.",
@@ -10871,9 +10338,7 @@
           }
         },
         "summary": "Create Product",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/batch-create": {
@@ -10917,9 +10382,7 @@
           }
         },
         "summary": "Batch Create Products",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/batch-delete": {
@@ -10963,9 +10426,7 @@
           }
         },
         "summary": "Batch Delete Products",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/batch-update": {
@@ -11009,9 +10470,7 @@
           }
         },
         "summary": "Batch Update Products",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/cron-configs": {
@@ -11035,9 +10494,7 @@
           }
         },
         "summary": "List Product Cron Configs",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "post": {
         "description": "Create a new per-platform cron config for product crawling.",
@@ -11075,9 +10532,7 @@
           }
         },
         "summary": "Create Product Cron Config",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/cron-configs/{platform}": {
@@ -11118,9 +10573,7 @@
           }
         },
         "summary": "Delete Product Cron Config",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "patch": {
         "description": "Update cron expression for a product platform.",
@@ -11169,9 +10622,7 @@
           }
         },
         "summary": "Update Product Cron Config",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/cron-schedules": {
@@ -11191,9 +10642,7 @@
           }
         },
         "summary": "Get Product Cron Schedules",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/profile-bindings": {
@@ -11217,9 +10666,7 @@
           }
         },
         "summary": "List Product Profile Bindings",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/profile-bindings/{platform}": {
@@ -11260,9 +10707,7 @@
           }
         },
         "summary": "Delete Product Profile Binding",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "put": {
         "description": "Create or update a product platform profile binding.",
@@ -11311,9 +10756,7 @@
           }
         },
         "summary": "Upsert Product Profile Binding",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/{product_id}": {
@@ -11354,9 +10797,7 @@
           }
         },
         "summary": "Delete Product",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "get": {
         "description": "Get product details.",
@@ -11395,9 +10836,7 @@
           }
         },
         "summary": "Get Product",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       },
       "patch": {
         "description": "Update a product.",
@@ -11446,9 +10885,7 @@
           }
         },
         "summary": "Update Product",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/products/{product_id}/history": {
@@ -11517,9 +10954,7 @@
           }
         },
         "summary": "Get Product History",
-        "tags": [
-          "products"
-        ]
+        "tags": ["products"]
       }
     },
     "/api/v1/scheduler/status": {
@@ -11549,9 +10984,7 @@
           }
         },
         "summary": "Get Scheduler Status",
-        "tags": [
-          "scheduler"
-        ]
+        "tags": ["scheduler"]
       }
     },
     "/api/v1/smart-home/config": {
@@ -11570,9 +11003,7 @@
           }
         },
         "summary": "Get Config",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       },
       "put": {
         "operationId": "smart_home_update_config",
@@ -11609,9 +11040,7 @@
           }
         },
         "summary": "Update Config",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/api/v1/smart-home/config/test": {
@@ -11650,9 +11079,7 @@
           }
         },
         "summary": "Test Config",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/api/v1/smart-home/entities": {
@@ -11671,9 +11098,7 @@
           }
         },
         "summary": "List Entities",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/api/v1/smart-home/entities/stream": {
@@ -11692,9 +11117,7 @@
           }
         },
         "summary": "Stream Entities",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/api/v1/smart-home/services/call": {
@@ -11733,9 +11156,7 @@
           }
         },
         "summary": "Call Service",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/api/v1/smart-home/summary": {
@@ -11754,9 +11175,7 @@
           }
         },
         "summary": "Get Summary",
-        "tags": [
-          "smart-home"
-        ]
+        "tags": ["smart-home"]
       }
     },
     "/blog-media/{file_name}": {
@@ -11789,9 +11208,7 @@
           }
         },
         "summary": "Get Blog Media",
-        "tags": [
-          "blog-media"
-        ]
+        "tags": ["blog-media"]
       }
     },
     "/health": {

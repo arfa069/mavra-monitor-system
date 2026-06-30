@@ -4,18 +4,18 @@
 
 ## 通用约定
 
-| 项            | 值                                                                        |
-| ------------- | ------------------------------------------------------------------------- |
-| 路由前缀      | `/api/v1`（业务）、`/auth/*`（无前缀，迁移期兼容）                        |
+| 项            | 值                                                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 路由前缀      | `/api/v1`（业务）、`/auth/*`（无前缀，迁移期兼容）                                                                               |
 | 认证方式      | Web token-first：access token 响应体/内存 Bearer，refresh token HttpOnly Cookie；脚本可用 `Authorization: Bearer <access_token>` |
-| 不安全方法    | Cookie-backed `POST` / `PATCH` / `PUT` / `DELETE` 必须带 `X-CSRF-Token`；Bearer 请求跳过 CSRF |
-| Access JWT    | 15 分钟，HS256，响应体返回；Web 前端只存内存                              |
-| Refresh Token | opaque token，DB 存 `users_sessions.refresh_token_hash`（SHA-256）；refresh 轮换并刷新空闲窗口 |
-| 会话生命周期  | 空闲 1 小时滑动过期；登录后固定 14 天绝对上限；实际过期取两者更早时间       |
-| 强密码        | ≥10 位、含大小写数字特殊字符（同步用于注册 / 改密 / 微信绑定）            |
-| 登录锁定      | 5 次失败 → 锁 15 分钟（Redis 计数）                                       |
-| 会话上限      | 每用户 1 个活跃 session；新登录踢掉旧登录                                 |
-| 软删除        | `users.deleted_at IS NOT NULL` → 拒绝所有 `get_current_user`              |
+| 不安全方法    | Cookie-backed `POST` / `PATCH` / `PUT` / `DELETE` 必须带 `X-CSRF-Token`；Bearer 请求跳过 CSRF                                    |
+| Access JWT    | 15 分钟，HS256，响应体返回；Web 前端只存内存                                                                                     |
+| Refresh Token | opaque token，DB 存 `users_sessions.refresh_token_hash`（SHA-256）；refresh 轮换并刷新空闲窗口                                   |
+| 会话生命周期  | 空闲 1 小时滑动过期；登录后固定 14 天绝对上限；实际过期取两者更早时间                                                            |
+| 强密码        | ≥10 位、含大小写数字特殊字符（同步用于注册 / 改密 / 微信绑定）                                                                   |
+| 登录锁定      | 5 次失败 → 锁 15 分钟（Redis 计数）                                                                                              |
+| 会话上限      | 每用户 1 个活跃 session；新登录踢掉旧登录                                                                                        |
+| 软删除        | `users.deleted_at IS NOT NULL` → 拒绝所有 `get_current_user`                                                                     |
 
 ---
 
@@ -72,11 +72,11 @@
 
 Web 副作用（`Set-Cookie` 头）：
 
-| Cookie             | HttpOnly | SameSite | 寿命  | 用途                    |
-| ------------------ | -------- | -------- | ----- | ----------------------- |
-| `pm_refresh_token` | ✅       | Lax      | `min(剩余空闲窗口, 剩余14d)` | Opaque，DB 存哈希 |
-| `pm_access_token`  | ✅       | Lax      | 0     | 清理旧 Cookie 模式遗留值 |
-| `pm_csrf_token`    | ❌       | Lax      | 0     | 清理旧 Cookie 模式遗留值 |
+| Cookie             | HttpOnly | SameSite | 寿命                         | 用途                     |
+| ------------------ | -------- | -------- | ---------------------------- | ------------------------ |
+| `pm_refresh_token` | ✅       | Lax      | `min(剩余空闲窗口, 剩余14d)` | Opaque，DB 存哈希        |
+| `pm_access_token`  | ✅       | Lax      | 0                            | 清理旧 Cookie 模式遗留值 |
+| `pm_csrf_token`    | ❌       | Lax      | 0                            | 清理旧 Cookie 模式遗留值 |
 
 `client_kind=native` 时响应体会返回 `refresh_token`，且不设置认证 Cookie。
 
@@ -132,12 +132,12 @@ Web 副作用（`Set-Cookie` 头）：
 
 启用条件：`WECHAT_LOGIN_ENABLED=true`（`.env` 配 `WECHAT_APP_ID` / `WECHAT_APP_SECRET`）。
 
-| 方法 | 端点                    | 说明                    |
-| ---- | ----------------------- | ----------------------- |
-| GET  | `/auth/wechat/qr`       | 生成二维码 + state      |
-| GET  | `/auth/wechat/callback` | 微信回调后重定向前端    |
+| 方法 | 端点                    | 说明                      |
+| ---- | ----------------------- | ------------------------- |
+| GET  | `/auth/wechat/qr`       | 生成二维码 + state        |
+| GET  | `/auth/wechat/callback` | 微信回调后重定向前端      |
 | POST | `/auth/wechat/bind`     | 用临时 token 绑定已有账号 |
-| POST | `/auth/wechat/register` | 用微信 + 强密码创建账号 |
+| POST | `/auth/wechat/register` | 用微信 + 强密码创建账号   |
 
 补充约定：
 
@@ -240,16 +240,16 @@ smart_home.config.update, smart_home.entity.control
 
 完整表见 [`backend/docs/auth-error-codes.md`](../backend/docs/auth-error-codes.md)。
 
-| 状态 | 含义                                      |
-| ---- | ----------------------------------------- |
-| 400  | 业务校验失败（密码不够强、cron 解析失败） |
+| 状态 | 含义                                                    |
+| ---- | ------------------------------------------------------- |
+| 400  | 业务校验失败（密码不够强、cron 解析失败）               |
 | 401  | Cookie 缺失 / session 空闲过期或绝对过期 / Refresh 失败 |
-| 403  | CSRF 失败 / RBAC 不足 / 跨用户访问        |
-| 404  | 资源不存在 / 跨用户                       |
-| 409  | 状态冲突（profile lease / 唯一键冲突）    |
-| 422  | Pydantic 422（请求体 schema 不匹配）      |
-| 429  | 登录失败 5 次锁 15 分钟                   |
-| 5xx  | 后端故障                                  |
+| 403  | CSRF 失败 / RBAC 不足 / 跨用户访问                      |
+| 404  | 资源不存在 / 跨用户                                     |
+| 409  | 状态冲突（profile lease / 唯一键冲突）                  |
+| 422  | Pydantic 422（请求体 schema 不匹配）                    |
+| 429  | 登录失败 5 次锁 15 分钟                                 |
+| 5xx  | 后端故障                                                |
 
 `detail` 字段兼容两种格式：
 

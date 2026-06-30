@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { absoluteAssetUrl, formatDate, getPosts } from "../../../../src/lib/blog";
+import {
+  absoluteAssetUrl,
+  formatDate,
+  getPosts,
+} from "../../../../src/lib/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +27,11 @@ export default async function TagPage({ params }: TagPageProps) {
         {posts.items.map((post) => {
           const coverUrl = absoluteAssetUrl(post.cover_url);
           return (
-            <Link key={post.slug} href={`/blog/${post.slug}`} className="post-card">
+            <Link
+              key={post.slug}
+              href={`/blog/${post.slug}`}
+              className="post-card"
+            >
               <div className="post-cover">
                 {coverUrl ? <img src={coverUrl} alt="" /> : null}
               </div>

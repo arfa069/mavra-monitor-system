@@ -52,7 +52,10 @@ export function publicBaseUrl(): string {
 }
 
 export function apiBaseUrl(): string {
-  return (process.env.BLOG_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/$/, "");
+  return (process.env.BLOG_API_BASE_URL || DEFAULT_API_BASE_URL).replace(
+    /\/$/,
+    "",
+  );
 }
 
 export function canonicalUrl(path: string): string {
@@ -77,7 +80,9 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-function queryString(params: Record<string, string | number | undefined>): string {
+function queryString(
+  params: Record<string, string | number | undefined>,
+): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
@@ -88,13 +93,15 @@ function queryString(params: Record<string, string | number | undefined>): strin
   return serialized ? `?${serialized}` : "";
 }
 
-export async function getPosts(params: {
-  keyword?: string;
-  category?: string;
-  tag?: string;
-  page?: number;
-  size?: number;
-} = {}): Promise<BlogPostListResponse> {
+export async function getPosts(
+  params: {
+    keyword?: string;
+    category?: string;
+    tag?: string;
+    page?: number;
+    size?: number;
+  } = {},
+): Promise<BlogPostListResponse> {
   return fetchJson<BlogPostListResponse>(
     `/blog/posts${queryString({
       keyword: params.keyword,

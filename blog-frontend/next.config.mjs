@@ -12,7 +12,8 @@ const nextConfig = {
     unoptimized: true,
   },
   async rewrites() {
-    const backendOrigin = process.env.BLOG_BACKEND_ORIGIN || "http://127.0.0.1:8000";
+    const backendOrigin =
+      process.env.BLOG_BACKEND_ORIGIN || "http://127.0.0.1:8000";
     return [
       {
         source: "/blog-media/:path*",

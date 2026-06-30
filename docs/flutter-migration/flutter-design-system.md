@@ -46,24 +46,24 @@ truth. The palette keeps the current warm assistant mood while avoiding a
 beige-only screen. Semantic hues must be visible in charts, status chips, and
 action priority.
 
-| Token | Light | Dark | Usage |
-| --- | --- | --- | --- |
-| `mavra.canvas` | `#F5EFE6` | `#211A16` | App background |
-| `mavra.surface` | `#FFFBF4` | `#2B221C` | Main surfaces |
-| `mavra.surfaceRaised` | `#FFFFFF` | `#352A23` | Dialogs, tables, menus |
-| `mavra.surfaceSoft` | `#EFE7DC` | `#2F261F` | Navigation, grouped panels |
-| `mavra.ink` | `#33251B` | `#F7F0E4` | Primary text |
-| `mavra.muted` | `#705947` | `#C9B8A5` | Secondary text |
-| `mavra.border` | `#D8C8B6` | `#5A4638` | Structural borders |
-| `mavra.primary` | `#7E976B` | `#B8CDA5` | Calm primary action |
-| `mavra.action` | `#2563EB` | `#93C5FD` | Explicit command action |
-| `mavra.home` | `#0F766E` | `#5EEAD4` | Home Assistant state |
-| `mavra.price` | `#C05621` | `#FDBA74` | Price opportunity |
-| `mavra.job` | `#7C3AED` | `#C4B5FD` | Job opportunity |
-| `mavra.info` | `#0369A1` | `#7DD3FC` | Neutral system info |
-| `mavra.success` | `#15803D` | `#86EFAC` | Healthy, complete |
-| `mavra.warning` | `#B45309` | `#FCD34D` | Needs review soon |
-| `mavra.danger` | `#B91C1C` | `#FCA5A5` | Failed, blocked, urgent |
+| Token                 | Light     | Dark      | Usage                      |
+| --------------------- | --------- | --------- | -------------------------- |
+| `mavra.canvas`        | `#F5EFE6` | `#211A16` | App background             |
+| `mavra.surface`       | `#FFFBF4` | `#2B221C` | Main surfaces              |
+| `mavra.surfaceRaised` | `#FFFFFF` | `#352A23` | Dialogs, tables, menus     |
+| `mavra.surfaceSoft`   | `#EFE7DC` | `#2F261F` | Navigation, grouped panels |
+| `mavra.ink`           | `#33251B` | `#F7F0E4` | Primary text               |
+| `mavra.muted`         | `#705947` | `#C9B8A5` | Secondary text             |
+| `mavra.border`        | `#D8C8B6` | `#5A4638` | Structural borders         |
+| `mavra.primary`       | `#7E976B` | `#B8CDA5` | Calm primary action        |
+| `mavra.action`        | `#2563EB` | `#93C5FD` | Explicit command action    |
+| `mavra.home`          | `#0F766E` | `#5EEAD4` | Home Assistant state       |
+| `mavra.price`         | `#C05621` | `#FDBA74` | Price opportunity          |
+| `mavra.job`           | `#7C3AED` | `#C4B5FD` | Job opportunity            |
+| `mavra.info`          | `#0369A1` | `#7DD3FC` | Neutral system info        |
+| `mavra.success`       | `#15803D` | `#86EFAC` | Healthy, complete          |
+| `mavra.warning`       | `#B45309` | `#FCD34D` | Needs review soon          |
+| `mavra.danger`        | `#B91C1C` | `#FCA5A5` | Failed, blocked, urgent    |
 
 Rules:
 
@@ -79,16 +79,16 @@ Rules:
 Flutter text roles map to Material roles while preserving the current Chinese
 and English reading feel.
 
-| Role | Flutter token | Size | Weight | Usage |
-| --- | --- | ---: | ---: | --- |
-| `display` | `displaySmall` | 34 | 500 | Today headline, never table panels |
-| `title` | `headlineSmall` | 24 | 600 | Page title |
-| `sectionTitle` | `titleMedium` | 18 | 600 | Section header |
-| `cardTitle` | `titleSmall` | 15 | 600 | Compact panel title |
-| `body` | `bodyMedium` | 14 | 400 | Default UI text |
-| `small` | `bodySmall` | 13 | 400 | Helper text |
-| `caption` | `labelSmall` | 12 | 500 | Labels, chips, metadata |
-| `data` | custom mono | 13 | 500 | Numeric cells, timestamps, cron |
+| Role           | Flutter token   | Size | Weight | Usage                              |
+| -------------- | --------------- | ---: | -----: | ---------------------------------- |
+| `display`      | `displaySmall`  |   34 |    500 | Today headline, never table panels |
+| `title`        | `headlineSmall` |   24 |    600 | Page title                         |
+| `sectionTitle` | `titleMedium`   |   18 |    600 | Section header                     |
+| `cardTitle`    | `titleSmall`    |   15 |    600 | Compact panel title                |
+| `body`         | `bodyMedium`    |   14 |    400 | Default UI text                    |
+| `small`        | `bodySmall`     |   13 |    400 | Helper text                        |
+| `caption`      | `labelSmall`    |   12 |    500 | Labels, chips, metadata            |
+| `data`         | custom mono     |   13 |    500 | Numeric cells, timestamps, cron    |
 
 Font stack:
 
@@ -107,24 +107,24 @@ Implementation rules:
 
 Base spacing unit: `4 px`.
 
-| Token | Value | Usage |
-| --- | ---: | --- |
-| `space.1` | 4 | Icon gaps, dense metadata |
-| `space.2` | 8 | Chips, compact controls |
-| `space.3` | 12 | Form rows, list rows |
-| `space.4` | 16 | Card internals |
-| `space.6` | 24 | Section gaps |
-| `space.8` | 32 | Page rhythm |
-| `space.12` | 48 | Today desktop composition |
+| Token      | Value | Usage                     |
+| ---------- | ----: | ------------------------- |
+| `space.1`  |     4 | Icon gaps, dense metadata |
+| `space.2`  |     8 | Chips, compact controls   |
+| `space.3`  |    12 | Form rows, list rows      |
+| `space.4`  |    16 | Card internals            |
+| `space.6`  |    24 | Section gaps              |
+| `space.8`  |    32 | Page rhythm               |
+| `space.12` |    48 | Today desktop composition |
 
 Density modes:
 
-| Mode | Platforms | Row height | Control height | Page padding |
-| --- | --- | ---: | ---: | ---: |
-| `mobileComfort` | Android, iOS narrow | 56 | 44 | 16 |
-| `tabletComfort` | tablet, foldable | 52 | 44 | 20 |
-| `desktopCompact` | Web, Windows | 40 | 36 | 24 |
-| `desktopDense` | Admin, logs, data tables | 36 | 32 | 24 |
+| Mode             | Platforms                | Row height | Control height | Page padding |
+| ---------------- | ------------------------ | ---------: | -------------: | -----------: |
+| `mobileComfort`  | Android, iOS narrow      |         56 |             44 |           16 |
+| `tabletComfort`  | tablet, foldable         |         52 |             44 |           20 |
+| `desktopCompact` | Web, Windows             |         40 |             36 |           24 |
+| `desktopDense`   | Admin, logs, data tables |         36 |             32 |           24 |
 
 Shape:
 
@@ -142,12 +142,12 @@ tables, and framed tools.
 
 Motion is quiet and low-frequency.
 
-| Token | Duration | Usage |
-| --- | ---: | --- |
-| `motion.fast` | 120 ms | Button feedback, chip state |
-| `motion.page` | 180 ms | Route content fade |
-| `motion.panel` | 220 ms | Drawer/dialog entrance |
-| `motion.slow` | 280 ms | Today attention entrance |
+| Token          | Duration | Usage                       |
+| -------------- | -------: | --------------------------- |
+| `motion.fast`  |   120 ms | Button feedback, chip state |
+| `motion.page`  |   180 ms | Route content fade          |
+| `motion.panel` |   220 ms | Drawer/dialog entrance      |
+| `motion.slow`  |   280 ms | Today attention entrance    |
 
 Rules:
 
@@ -362,4 +362,3 @@ Fields:
 - Safe areas are respected.
 - Bottom navigation and sheets must not cover form fields when the keyboard is
   open.
-

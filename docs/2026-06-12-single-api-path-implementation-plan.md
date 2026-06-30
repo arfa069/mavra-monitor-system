@@ -36,6 +36,7 @@
 ## Task 0: Prepare an Isolated Execution Worktree
 
 **Files:**
+
 - Read: `docs/2026-06-12-single-api-path-design.md`
 - Read: `docs/2026-06-12-single-api-path-implementation-plan.md`
 - Do not modify: the original checkout's unrelated dirty files
@@ -86,6 +87,7 @@ Expected: save the output in the execution notes. This is the migration checklis
 This task changes test call sites while the backend still supports all aliases. It creates a clean consumer baseline before removing routes.
 
 **Files:**
+
 - Modify: `backend/tests/test_admin_permissions.py`
 - Modify: `backend/tests/test_admin_users.py`
 - Modify: `backend/tests/test_alerts.py`
@@ -221,6 +223,7 @@ git commit -m "test(api): use canonical api v1 paths"
 ## Task 2: Remove Backend Aliases and Synchronize the Contract
 
 **Files:**
+
 - Modify: `backend/app/main.py`
 - Modify: `backend/app/domains/auth/wechat_router.py`
 - Modify: `backend/tests/test_api_v1_routes.py`
@@ -544,6 +547,7 @@ This is a branch checkpoint, not a deployable mixed-version release. Do not depl
 ## Task 3: Make the Main Frontend Preserve `/api/v1`
 
 **Files:**
+
 - Create: `frontend/src/shared/api/base.ts`
 - Modify: `frontend/src/shared/api/client.ts`
 - Modify: `frontend/vite.config.ts`
@@ -873,6 +877,7 @@ git commit -m "refactor(frontend): preserve canonical api v1 paths"
 ## Task 4: Migrate Blog and OAuth Configuration Surfaces
 
 **Files:**
+
 - Modify: `blog-frontend/src/lib/blog.ts`
 - Modify: `blog-frontend/src/lib/blog.test.ts`
 - Modify: `.env.example`
@@ -973,6 +978,7 @@ git commit -m "docs(config): use canonical api callback urls"
 Historical plans under `docs/` and `backend/docs/superpowers/` remain historical unless they are presented as current instructions.
 
 **Files to inspect and modify only when they contain live old-path guidance:**
+
 - `README.md`
 - `ARCHITECTURE.md`
 - `backend/tests/manual_verification_checklist.md`

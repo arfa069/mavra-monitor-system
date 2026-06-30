@@ -265,20 +265,20 @@ User (1) ──────< Product (多)
 
 ### 6.1 路由分组
 
-| 规范前缀 | 路由文件 | 说明 |
-| --- | --- | --- |
-| `/api/v1/auth` | `domains/auth/router.py` | 注册/登录/登出/当前用户 |
-| `/api/v1/config` | `domains/config/router.py` | 用户配置（飞书 Webhook、数据保留期） |
-| `/api/v1/products` | `domains/products/router.py` | 商品 CRUD + 批量操作 |
-| `/api/v1/alerts` | `domains/alerts/router.py` | 告警管理 |
-| `/api/v1/crawl` | `domains/crawling/router.py` | 商品爬取触发 + 日志查询 + worker 观测 |
-| `/api/v1/crawl-profiles` | `domains/crawling/profile_router.py` | profile 列表/创建/改名/复制/删除/状态更新/登录浏览器/测试/导入导出/过期租约释放 |
-| `/api/v1/jobs` | `domains/jobs/router.py` | 职位搜索配置 + 爬取 + 匹配分析 |
-| `/api/v1/admin` | `domains/admin/router.py` | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin） |
-| `/api/v1/events` | `domains/events/router.py` | 事件中心列表和 SSE |
-| `/api/v1/dashboard` | `domains/dashboard/router.py` | Dashboard KPI / 趋势 / SSE |
-| `/api/v1/smart-home` | `domains/smart_home/router.py` | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE |
-| `/api/v1/scheduler/status` | `domains/scheduling/router.py` | APScheduler 状态（admin/super_admin） |
+| 规范前缀                   | 路由文件                             | 说明                                                                            |
+| -------------------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `/api/v1/auth`             | `domains/auth/router.py`             | 注册/登录/登出/当前用户                                                         |
+| `/api/v1/config`           | `domains/config/router.py`           | 用户配置（飞书 Webhook、数据保留期）                                            |
+| `/api/v1/products`         | `domains/products/router.py`         | 商品 CRUD + 批量操作                                                            |
+| `/api/v1/alerts`           | `domains/alerts/router.py`           | 告警管理                                                                        |
+| `/api/v1/crawl`            | `domains/crawling/router.py`         | 商品爬取触发 + 日志查询 + worker 观测                                           |
+| `/api/v1/crawl-profiles`   | `domains/crawling/profile_router.py` | profile 列表/创建/改名/复制/删除/状态更新/登录浏览器/测试/导入导出/过期租约释放 |
+| `/api/v1/jobs`             | `domains/jobs/router.py`             | 职位搜索配置 + 爬取 + 匹配分析                                                  |
+| `/api/v1/admin`            | `domains/admin/router.py`            | 用户管理 + 审计日志 + RBAC 矩阵（admin/super_admin）                            |
+| `/api/v1/events`           | `domains/events/router.py`           | 事件中心列表和 SSE                                                              |
+| `/api/v1/dashboard`        | `domains/dashboard/router.py`        | Dashboard KPI / 趋势 / SSE                                                      |
+| `/api/v1/smart-home`       | `domains/smart_home/router.py`       | Home Assistant 配置 / 连接测试 / 实体列表 / 服务调用 / SSE                      |
+| `/api/v1/scheduler/status` | `domains/scheduling/router.py`       | APScheduler 状态（admin/super_admin）                                           |
 
 `main.py` 仅注册单一路由前缀 `/api/v1`。开发和生产环境的反向代理保持 `/api/v1` 前缀不作任何重写，使前端可以直接访问该规范路径。
 
@@ -328,15 +328,15 @@ Access JWT 有效期 15 分钟；Refresh token（opaque，secrets.token_urlsafe(
 
 变更摘要（从 Bearer token 迁移到 Cookie 认证）：
 
-| 项目              | 旧系统                          | 新系统                                     |
-| ----------------- | ------------------------------- | ------------------------------------------ |
-| Token 存储        | localStorage (浏览器)           | HttpOnly Cookie                            |
-| 请求方式          | `Authorization: Bearer <token>` | 自动携带 Cookie                            |
-| Access JWT 有效期 | 60 分钟                         | 15 分钟                                    |
-| 会话标识          | token_hash (JWT 原文哈希)       | sid (session ID claim)                     |
-| 登录返回          | `TokenResponse {access_token}`  | `UserResponse` + 设置 Cookie               |
+| 项目              | 旧系统                          | 新系统                                       |
+| ----------------- | ------------------------------- | -------------------------------------------- |
+| Token 存储        | localStorage (浏览器)           | HttpOnly Cookie                              |
+| 请求方式          | `Authorization: Bearer <token>` | 自动携带 Cookie                              |
+| Access JWT 有效期 | 60 分钟                         | 15 分钟                                      |
+| 会话标识          | token_hash (JWT 原文哈希)       | sid (session ID claim)                       |
+| 登录返回          | `TokenResponse {access_token}`  | `UserResponse` + 设置 Cookie                 |
 | Refresh 机制      | 无                              | POST /api/v1/auth/refresh，opaque token 轮换 |
-| CSRF 保护         | 无                              | pm_csrf_token Cookie + X-CSRF-Token Header |
+| CSRF 保护         | 无                              | pm_csrf_token Cookie + X-CSRF-Token Header   |
 
 ````
 

@@ -29,14 +29,14 @@ When side-by-side local comparison is needed, keep the legacy frontend on
 
 ## Release Gates
 
-| Gate | Timing | Required evidence |
-| --- | --- | --- |
-| A | After Task 4 | Token auth, WeChat exchange, realtime auth, and error-contract tests pass. |
-| B | After Task 7 | Flutter scaffold builds for Web and Windows; generated Dart client compiles and regenerates without diff. |
-| C | After Task 10 | Auth and Today widget tests plus Web, Windows, Android, and iOS smoke evidence. |
-| D | After Task 11 | Products and Jobs focused tests pass; backup/import/export scope is accepted. |
-| E | After Task 13 | Admin tables, Blog editor, and Settings gaps are classified and accepted. |
-| F | Before completion | Final validation, GitNexus change detection, verification pass, and separate code-review pass. |
+| Gate | Timing            | Required evidence                                                                                         |
+| ---- | ----------------- | --------------------------------------------------------------------------------------------------------- |
+| A    | After Task 4      | Token auth, WeChat exchange, realtime auth, and error-contract tests pass.                                |
+| B    | After Task 7      | Flutter scaffold builds for Web and Windows; generated Dart client compiles and regenerates without diff. |
+| C    | After Task 10     | Auth and Today widget tests plus Web, Windows, Android, and iOS smoke evidence.                           |
+| D    | After Task 11     | Products and Jobs focused tests pass; backup/import/export scope is accepted.                             |
+| E    | After Task 13     | Admin tables, Blog editor, and Settings gaps are classified and accepted.                                 |
+| F    | Before completion | Final validation, GitNexus change detection, verification pass, and separate code-review pass.            |
 
 Android SDK installation may remain pending during Tasks 0-6. It becomes a
 blocking requirement at Gate B for Android build preparation and at Gate C for

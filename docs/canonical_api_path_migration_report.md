@@ -15,16 +15,16 @@ clients now use `/api/v1/*`. Infrastructure endpoints such as `/health` and
 
 ## Implementation Commits
 
-| Commit | Change |
-| --- | --- |
-| `1df2d1c7` | Canonicalize backend API test paths |
-| `6563a2b7` | Expose business routes only under `/api/v1` |
-| `23f20a82` | Preserve `/api/v1` paths in the main frontend |
-| `918ceefb` | Update callback configuration examples |
-| `e78da175` | Document the canonical API namespace |
-| `f201800b` | Fix remaining backend test paths with query strings |
-| `d2308fe0` | Update blog API base URL documentation |
-| `9a493180` | Add the smart-home summary E2E mock |
+| Commit     | Change                                                                  |
+| ---------- | ----------------------------------------------------------------------- |
+| `1df2d1c7` | Canonicalize backend API test paths                                     |
+| `6563a2b7` | Expose business routes only under `/api/v1`                             |
+| `23f20a82` | Preserve `/api/v1` paths in the main frontend                           |
+| `918ceefb` | Update callback configuration examples                                  |
+| `e78da175` | Document the canonical API namespace                                    |
+| `f201800b` | Fix remaining backend test paths with query strings                     |
+| `d2308fe0` | Update blog API base URL documentation                                  |
+| `9a493180` | Add the smart-home summary E2E mock                                     |
 | `57201429` | Removed legacy firewall checks; corrected by the post-review work below |
 
 The post-review correction restores the Playwright firewall regression tests,

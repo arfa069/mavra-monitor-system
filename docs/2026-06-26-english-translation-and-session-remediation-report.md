@@ -23,16 +23,19 @@ This report documents the recent frontend localization changes and session recov
 ## Proposed & Implemented Changes
 
 ### Core Network Layer
+
 - **[MODIFY] [api_client.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/lib/core/api/api_client.dart)**
   - Explicitly invokes `authRepository.logout()` when `_refreshOnce()` returns `false` inside the 401 refresh interceptor, preventing stale local credentials when token rotation fails.
 
 ### Today Briefing Feature
+
 - **[MODIFY] [today_api.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/lib/features/today/data/today_api.dart)**
 - **[MODIFY] [today_models.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/lib/features/today/domain/today_models.dart)**
 - **[MODIFY] [today_page.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/lib/features/today/presentation/today_page.dart)**
   - Fully translated all headers, labels, and categories in model definitions and presentation pages to English.
 
 ### Visual QA and Test Harnesses
+
 - **[MODIFY] [visual_qa_app.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/lib/visual_qa/visual_qa_app.dart)**
 - **[MODIFY] [visual_qa_app_test.dart](file:///c:/Users/arfac/Documents/mavra-monitor-system/frontend/test/visual_qa/visual_qa_app_test.dart)**
   - Updated English labels in mock app state and visual QA widget assertions.
@@ -42,6 +45,7 @@ This report documents the recent frontend localization changes and session recov
   - Synchronized widget test expectations to check for English labels and texts, ensuring no regressions.
 
 ### Project & Design Documentation
+
 - **[MODIFY] [frontend-architecture.md](file:///c:/Users/arfac/Documents/mavra-monitor-system/doc/frontend-architecture.md)**
   - Updated Section 4.1 (Session Restore) and Section 5.2 (Auto-Refresh Interceptor) to document the explicit `authRepository.logout()` cleanup call on refresh failure.
 - **[MODIFY] [DESIGN.md](file:///c:/Users/arfac/Documents/mavra-monitor-system/doc/DESIGN.md)**
@@ -52,9 +56,10 @@ This report documents the recent frontend localization changes and session recov
 ## Verification & Status
 
 ### Automated Tests
+
 - **Flutter Code Analysis**: `flutter analyze` completed successfully:
   ```
-  Analyzing frontend...                                           
+  Analyzing frontend...
   No issues found!
   ```
 - **Flutter Test Suite**: Unit and widget tests pass successfully.

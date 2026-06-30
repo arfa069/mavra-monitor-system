@@ -30,25 +30,25 @@ tabs.
 
 ## Route Tree
 
-| Route | Flutter module | Shell | Access |
-| --- | --- | --- | --- |
-| `/login` | `features/auth` | `AuthShell` | public, redirects authenticated users to `/today` |
-| `/register` | `features/auth` | `AuthShell` | public, redirects authenticated users to `/today` |
-| `/auth/wechat/callback` | `features/auth` | `AuthCallbackShell` | public exchange route |
-| `/today` | `features/today` | `AppShell` | authenticated |
-| `/products` | `features/products` | `AppShell` | authenticated |
-| `/jobs` | `features/jobs` | `AppShell` | authenticated |
-| `/smart-home` | `features/smart_home` | `AppShell` | authenticated |
-| `/schedule` | `features/schedule` | `AppShell` | authenticated |
-| `/events` | `features/events` | `AppShell` | authenticated |
-| `/dashboard` | `features/analytics` | `AppShell` | authenticated |
-| `/profile` | `features/auth` | `AppShell` | authenticated |
-| `/settings` | `features/settings` | `AppShell` | authenticated |
-| `/admin/users` | `features/admin` | `AdminShell` | `user:read` |
-| `/admin/audit-logs` | `features/admin` | `AdminShell` | `user:read` |
-| `/admin/blog` | `features/blog` | `AdminShell` | `blog:read_admin` |
-| `/` | router redirect | none | redirect to `/today` |
-| `*` | router redirect | none | redirect to `/today` |
+| Route                   | Flutter module        | Shell               | Access                                            |
+| ----------------------- | --------------------- | ------------------- | ------------------------------------------------- |
+| `/login`                | `features/auth`       | `AuthShell`         | public, redirects authenticated users to `/today` |
+| `/register`             | `features/auth`       | `AuthShell`         | public, redirects authenticated users to `/today` |
+| `/auth/wechat/callback` | `features/auth`       | `AuthCallbackShell` | public exchange route                             |
+| `/today`                | `features/today`      | `AppShell`          | authenticated                                     |
+| `/products`             | `features/products`   | `AppShell`          | authenticated                                     |
+| `/jobs`                 | `features/jobs`       | `AppShell`          | authenticated                                     |
+| `/smart-home`           | `features/smart_home` | `AppShell`          | authenticated                                     |
+| `/schedule`             | `features/schedule`   | `AppShell`          | authenticated                                     |
+| `/events`               | `features/events`     | `AppShell`          | authenticated                                     |
+| `/dashboard`            | `features/analytics`  | `AppShell`          | authenticated                                     |
+| `/profile`              | `features/auth`       | `AppShell`          | authenticated                                     |
+| `/settings`             | `features/settings`   | `AppShell`          | authenticated                                     |
+| `/admin/users`          | `features/admin`      | `AdminShell`        | `user:read`                                       |
+| `/admin/audit-logs`     | `features/admin`      | `AdminShell`        | `user:read`                                       |
+| `/admin/blog`           | `features/blog`       | `AdminShell`        | `blog:read_admin`                                 |
+| `/`                     | router redirect       | none                | redirect to `/today`                              |
+| `*`                     | router redirect       | none                | redirect to `/today`                              |
 
 ## Shells
 
@@ -179,32 +179,32 @@ Mobile rules:
 
 ## Permission Visibility
 
-| Destination | Required permission | Visible when missing | Flutter behavior |
-| --- | --- | --- | --- |
-| Today | authenticated | yes | Always first authenticated screen |
-| Prices | authenticated | yes | Read view; crawl actions hidden if `crawl:execute` is missing |
-| Jobs | authenticated | yes | Read view; crawl/profile test actions hidden if `crawl:execute` is missing |
-| Home | authenticated | yes | Read view; controls disabled if `smart_home:control` is missing |
-| Rules | authenticated | yes | Read view; edit actions disabled if `schedule:configure` is missing |
-| Activity | authenticated | yes | Read-only event center |
-| Analytics | authenticated | yes | Read-only dashboard data |
-| Settings | authenticated | yes | User settings |
-| Profile | authenticated | yes | User profile |
-| Users | `user:read` | no primary nav entry | Direct URL shows permission panel |
-| Audit Logs | `user:read` | no primary nav entry | Direct URL shows permission panel |
-| Blog Studio | `blog:read_admin` | no primary nav entry | Direct URL shows permission panel |
+| Destination | Required permission | Visible when missing | Flutter behavior                                                           |
+| ----------- | ------------------- | -------------------- | -------------------------------------------------------------------------- |
+| Today       | authenticated       | yes                  | Always first authenticated screen                                          |
+| Prices      | authenticated       | yes                  | Read view; crawl actions hidden if `crawl:execute` is missing              |
+| Jobs        | authenticated       | yes                  | Read view; crawl/profile test actions hidden if `crawl:execute` is missing |
+| Home        | authenticated       | yes                  | Read view; controls disabled if `smart_home:control` is missing            |
+| Rules       | authenticated       | yes                  | Read view; edit actions disabled if `schedule:configure` is missing        |
+| Activity    | authenticated       | yes                  | Read-only event center                                                     |
+| Analytics   | authenticated       | yes                  | Read-only dashboard data                                                   |
+| Settings    | authenticated       | yes                  | User settings                                                              |
+| Profile     | authenticated       | yes                  | User profile                                                               |
+| Users       | `user:read`         | no primary nav entry | Direct URL shows permission panel                                          |
+| Audit Logs  | `user:read`         | no primary nav entry | Direct URL shows permission panel                                          |
+| Blog Studio | `blog:read_admin`   | no primary nav entry | Direct URL shows permission panel                                          |
 
 ## Today Drill-Downs
 
 Today attention items route to modules:
 
-| Today signal | Destination | Target state |
-| --- | --- | --- |
-| Price drop | `/products` | Product table filtered to attention or recent movement when available |
-| Job match | `/jobs` | Jobs tab or match results tab with selected match context |
-| Home issue | `/smart-home` | Entity group with connection or unavailable-device banner |
-| Schedule issue | `/schedule` | Rules page with failing or upcoming run highlighted |
-| Event warning | `/events` | Activity list filtered to warning/error |
+| Today signal   | Destination   | Target state                                                          |
+| -------------- | ------------- | --------------------------------------------------------------------- |
+| Price drop     | `/products`   | Product table filtered to attention or recent movement when available |
+| Job match      | `/jobs`       | Jobs tab or match results tab with selected match context             |
+| Home issue     | `/smart-home` | Entity group with connection or unavailable-device banner             |
+| Schedule issue | `/schedule`   | Rules page with failing or upcoming run highlighted                   |
+| Event warning  | `/events`     | Activity list filtered to warning/error                               |
 
 Back-stack rule:
 
@@ -213,15 +213,15 @@ Back-stack rule:
 
 ## Public And Authenticated Route Behavior
 
-| Situation | Behavior |
-| --- | --- |
-| Unauthenticated user opens protected route | Redirect to `/login`, store requested route |
-| Authenticated user opens `/login` or `/register` | Redirect to `/today` |
-| User logs in from stored route | Return to stored route when still permitted |
-| Stored route now forbidden | Show permission panel with `Go to Today` |
-| User logs out | Clear session state and redirect to `/login` |
-| Unknown route | Redirect to `/today` when authenticated, `/login` when unauthenticated |
-| `/` | Redirect to `/today` when authenticated, `/login` when unauthenticated |
+| Situation                                        | Behavior                                                               |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| Unauthenticated user opens protected route       | Redirect to `/login`, store requested route                            |
+| Authenticated user opens `/login` or `/register` | Redirect to `/today`                                                   |
+| User logs in from stored route                   | Return to stored route when still permitted                            |
+| Stored route now forbidden                       | Show permission panel with `Go to Today`                               |
+| User logs out                                    | Clear session state and redirect to `/login`                           |
+| Unknown route                                    | Redirect to `/today` when authenticated, `/login` when unauthenticated |
+| `/`                                              | Redirect to `/today` when authenticated, `/login` when unauthenticated |
 
 ## Browser URL And Deep Links
 
@@ -305,4 +305,3 @@ Admin and Blog are management destinations:
 - Direct URL access without permission renders a permission panel.
 - Blog Studio uses editor-first layout on desktop and draft-list-first layout
   on mobile.
-

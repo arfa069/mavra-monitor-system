@@ -2,17 +2,17 @@
 
 ## 1. 技术栈概览
 
-| 层级        | 技术选型                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------- |
-| 语言        | Dart (sdk: `^3.12.2`)                                                                       |
-| 框架        | Flutter                                                                                     |
-| 路由        | GoRouter (v17.3.0+)                                                                         |
-| 状态管理    | ChangeNotifier / Riverpod + Repository 模式                                                 |
-| HTTP 客户端 | Dio + OpenAPI Generator CLI 生成的 Dart Dio Client (作为独立 package 引入)                    |
-| 主题与样式  | Material 3 + 自定义 `MavraTheme` 配置                                                       |
-| 字体        | Noto Sans SC (正文) + Noto Serif SC (Today Display/标题) + JetBrains Mono (数据表格与代码)  |
-| 布局模式    | 响应式自适应布局 (Web/Windows 侧边导航 + 移动端底部导航/More 面板)                            |
-| 平台编译    | Web (静态页面/单页应用), Windows (原生可执行程序), Android (APK), iOS (待验证)                |
+| 层级        | 技术选型                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| 语言        | Dart (sdk: `^3.12.2`)                                                                      |
+| 框架        | Flutter                                                                                    |
+| 路由        | GoRouter (v17.3.0+)                                                                        |
+| 状态管理    | ChangeNotifier / Riverpod + Repository 模式                                                |
+| HTTP 客户端 | Dio + OpenAPI Generator CLI 生成的 Dart Dio Client (作为独立 package 引入)                 |
+| 主题与样式  | Material 3 + 自定义 `MavraTheme` 配置                                                      |
+| 字体        | Noto Sans SC (正文) + Noto Serif SC (Today Display/标题) + JetBrains Mono (数据表格与代码) |
+| 布局模式    | 响应式自适应布局 (Web/Windows 侧边导航 + 移动端底部导航/More 面板)                         |
+| 平台编译    | Web (静态页面/单页应用), Windows (原生可执行程序), Android (APK), iOS (待验证)             |
 
 ## 2. 项目结构
 
@@ -60,6 +60,7 @@ frontend/
 ```
 
 各业务 Feature 内部遵循 **Domain-Driven Design (DDD)** 的三层划分方式：
+
 - `domain/`：业务模型定义 (models) 与 Feature 级抽象 Repository 接口。
 - `data/`：对接生成的后端客户端，实现 Repository 接口，做数据归一化、持久化、定时轮询等。
 - `presentation/`：具体的 Page / Widget 视图，以及视图关联的控制器。
@@ -88,12 +89,14 @@ frontend/
 ### 3.2 路由重定向与守卫
 
 `GoRouter` 接收 `AuthController` 作为 `refreshListenable`。当认证状态发生变化时，会触发重定向校验：
+
 1. **未认证拦截**：用户未登录且尝试访问非公开路由时，重定向到 `/login`。如果带有 fragment 目标路由（例如 `#/products`），会在登录成功后跳转到该目标。
 2. **已认证重定向**：用户已登录且访问 `/login` 或 `/register` 时，自动重定向到 `/today` 或 fragment 指定的目标。
 
 ### 3.3 细粒度权限控制
 
 对于具有高权限要求的后台管理端页面，路由使用 `_permissionPage` 包装：
+
 ```dart
 GoRoute(
   path: '/admin/users',
@@ -104,6 +107,7 @@ GoRoute(
   ),
 )
 ```
+
 若 `authController.hasPermission` 校验失败，该路由将不渲染目标页面，而是渲染 `PermissionDeniedPage` 提示缺失的权限，并提供回退到 `/today` 的按钮。
 
 ## 4. 全局状态管理
@@ -113,6 +117,7 @@ GoRoute(
 ### 4.1 用户认证状态 (auth_controller.dart)
 
 `AuthController` 继承自 `ChangeNotifier`，是全局认证的单一真相来源：
+
 - 维护 `isAuthenticated`、`currentUser` (包含 username, role, permissions) 等关键变量。
 - **启动恢复 (Session Restore)**：Web 端由浏览器自动携带 HttpOnly Cookie，并在需要时通过 refresh Cookie 恢复会话；原生 Windows/Android/iOS 端从平台安全存储读取会话，先校验本地过期时间，过期则调用 `POST /api/v1/auth/refresh` 轮换令牌。refresh 失败或本地会话无效时会通过调用 `authRepository.logout()` 清除本地会话状态，并触发路由回到 `/login`。
 - **权限判定**：暴露 `hasPermission`、`hasAnyPermission` 等方法，在 UI 层级控制各种操作性按钮（如 "Crawl Now"、"Save"）的启用与禁用状态。
@@ -137,6 +142,7 @@ GoRoute(
 ### 5.2 Cookie 与无感刷新拦截器 (api_client.dart)
 
 网络层在 Dio 中嵌入了复杂的拦截器链：
+
 1. **CSRF 防护**：对于不安全方法 (POST/PATCH/PUT/DELETE)，请求拦截器会从本地 Cookie (如果是 Web) 读取 `pm_csrf_token` 并注入到 HTTP Header `X-CSRF-Token` 中。
 2. **401 无感刷新 (Auto-Refresh)**：当响应返回 401 且不是登录接口时，Dio 响应拦截器将拦截当前请求，首先静默调用 `POST /api/v1/auth/refresh`。
    - 刷新成功：自动保存最新的 Token 或更新 Cookie，并使用原始配置重新发起此前失败的网络请求，对用户端完全透明。

@@ -265,24 +265,24 @@
 
 ### 中优先级（16个）
 
-| #   | 类型                 | 文件                    | 行号      | 问题描述                                                                                                                                                     |
+| # | 类型 | 文件 | 行号 | 问题描述 |
 | --- | -------------------- | ----------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| Q16 | 不必要的注释 ✅      | `jobs/crawl_service.py` | 216-217   | 函数名已自解释 — 代码中已无冗余注释                                                                                                                          |
-| Q17 | 不必要的注释 ✅      | `jobs/crawl_service.py` | 328-329   | 代码已清晰表达 — 代码中已无冗余注释                                                                                                                          |
-| Q18 | 不必要的注释 ✅      | `jobs/crawl_service.py` | 269       | 变量名已自解释 — 代码中已无冗余注释                                                                                                                          |
-| Q19 | 不必要的注释 ✅      | `jobs/crawl_service.py` | 225-228   | 完全冗余注释 — 代码中已无冗余注释                                                                                                                            |
-| Q20 | 魔法数字 ✅          | `jobs/crawl_service.py` | 35        | `DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2` — 已有注释说明"Allow 2 cooldown cycles before abandoning detail fetch on repeated cookie failures"。              |
-| Q21 | 魔法数字 ✅          | `jobs/crawl_service.py` | 38        | `DETAIL_FETCH_TIMEOUT_SECONDS = 15.0` — 常量名已自解释，表示单次详情抓取超时秒数。                                                                           |
-| Q22 | 魔法数字 ✅          | `jobs/crawl_service.py` | 39        | `DETAIL_WAF_BLOCK_LIMIT = 1` — 已有注释说明"Stop after 1 WAF block to avoid triggering stricter anti-bot measures"。                                         |
-| Q23 | 魔法数字 ✅          | `jobs/crawl_service.py` | 40        | `DETAIL_TIMEOUT_LIMIT = 3` — 已有注释说明"Retry up to 3 times on transient timeouts before giving up"。                                                      |
-| Q24 | 魔法数字 ✅          | `jobs/crawl_service.py` | 1005,1231 | `random.uniform` 已使用命名常量 `CONFIG_CRAWL_DELAY_SECONDS = (3.0, 6.0)`，注释说明"Stagger sequential config crawls to stay under platform rate limits"。   |
-| Q25 | 魔法数字 ✅          | `platforms/base.py`     | 229,264   | `asyncio.timeout` 已使用命名常量 `PRODUCT_CRAWL_TIMEOUT_SECONDS = 90`，注释说明"Overall CDP crawl timeout — JS-heavy pages (Taobao/JD) need generous time"。 |
-| Q26 | 缺少类型注解 ✅      | `jobs/match_service.py` | 66        | `run_match_analysis_task` 参数已有完整类型注解：`task: CrawlTask`, `db: AsyncSession                                                                         | None`。                            |
-| Q27 | 缺少类型注解 ✅      | `jobs/match_service.py` | 95        | `_execute_match_analysis` 参数已有完整类型注解：`task: CrawlTask`, `db: AsyncSession`, `progress_callback: Callable[[CrawlTask], Awaitable[None]]            | None`。                            |
-| Q28 | 缺少类型注解 ✅      | `jobs/crawl_service.py` | 1022      | `crawl_all_job_searches`（原 `crawl_single_config_background`）参数已有完整类型注解：`source: str`, `user_id: int                                            | None`, `lock_already_held: bool`。 |
-| Q29 | 缺少类型注解 ✅      | `jobs/crawl_service.py` | 1100      | `progress_callback` 已有类型注解：`Callable[[CrawlTask], Awaitable[None]]`。                                                                                 |
-| Q30 | 深层嵌套 with/try ✅ | `jobs/crawl_service.py` | 971-1008  | `crawl_scheduled_config` 已简化为两层 `async with`，无 `try`/`for` 嵌套。                                                                                    |
-| Q31 | 深层嵌套 with/try ✅ | `jobs/crawl_service.py` | 1196-1238 | `crawl_all_job_searches_background` 已简化为单层 `async with`，无深层嵌套。                                                                                  |
+| Q16 | 不必要的注释 ✅ | `jobs/crawl_service.py` | 216-217 | 函数名已自解释 — 代码中已无冗余注释 |
+| Q17 | 不必要的注释 ✅ | `jobs/crawl_service.py` | 328-329 | 代码已清晰表达 — 代码中已无冗余注释 |
+| Q18 | 不必要的注释 ✅ | `jobs/crawl_service.py` | 269 | 变量名已自解释 — 代码中已无冗余注释 |
+| Q19 | 不必要的注释 ✅ | `jobs/crawl_service.py` | 225-228 | 完全冗余注释 — 代码中已无冗余注释 |
+| Q20 | 魔法数字 ✅ | `jobs/crawl_service.py` | 35 | `DETAIL_COOKIE_FAILURE_COOLDOWN_LIMIT = 2` — 已有注释说明"Allow 2 cooldown cycles before abandoning detail fetch on repeated cookie failures"。 |
+| Q21 | 魔法数字 ✅ | `jobs/crawl_service.py` | 38 | `DETAIL_FETCH_TIMEOUT_SECONDS = 15.0` — 常量名已自解释，表示单次详情抓取超时秒数。 |
+| Q22 | 魔法数字 ✅ | `jobs/crawl_service.py` | 39 | `DETAIL_WAF_BLOCK_LIMIT = 1` — 已有注释说明"Stop after 1 WAF block to avoid triggering stricter anti-bot measures"。 |
+| Q23 | 魔法数字 ✅ | `jobs/crawl_service.py` | 40 | `DETAIL_TIMEOUT_LIMIT = 3` — 已有注释说明"Retry up to 3 times on transient timeouts before giving up"。 |
+| Q24 | 魔法数字 ✅ | `jobs/crawl_service.py` | 1005,1231 | `random.uniform` 已使用命名常量 `CONFIG_CRAWL_DELAY_SECONDS = (3.0, 6.0)`，注释说明"Stagger sequential config crawls to stay under platform rate limits"。 |
+| Q25 | 魔法数字 ✅ | `platforms/base.py` | 229,264 | `asyncio.timeout` 已使用命名常量 `PRODUCT_CRAWL_TIMEOUT_SECONDS = 90`，注释说明"Overall CDP crawl timeout — JS-heavy pages (Taobao/JD) need generous time"。 |
+| Q26 | 缺少类型注解 ✅ | `jobs/match_service.py` | 66 | `run_match_analysis_task` 参数已有完整类型注解：`task: CrawlTask`, `db: AsyncSession                                                                         | None`。 |
+| Q27 | 缺少类型注解 ✅ | `jobs/match_service.py` | 95 | `_execute_match_analysis` 参数已有完整类型注解：`task: CrawlTask`, `db: AsyncSession`, `progress_callback: Callable[[CrawlTask], Awaitable[None]]            | None`。 |
+| Q28 | 缺少类型注解 ✅ | `jobs/crawl_service.py` | 1022 | `crawl_all_job_searches`（原 `crawl_single_config_background`）参数已有完整类型注解：`source: str`, `user_id: int                                            | None`, `lock_already_held: bool`。 |
+| Q29 | 缺少类型注解 ✅ | `jobs/crawl_service.py` | 1100 | `progress_callback` 已有类型注解：`Callable[[CrawlTask], Awaitable[None]]`。 |
+| Q30 | 深层嵌套 with/try ✅ | `jobs/crawl_service.py` | 971-1008 | `crawl_scheduled_config` 已简化为两层 `async with`，无 `try`/`for` 嵌套。 |
+| Q31 | 深层嵌套 with/try ✅ | `jobs/crawl_service.py` | 1196-1238 | `crawl_all_job_searches_background` 已简化为单层 `async with`，无深层嵌套。 |
 
 ### 低优先级（7个）
 
@@ -327,12 +327,12 @@
 
 ### 重复的无操作更新（4个）
 
-| #   | 文件                     | 行号                | 问题描述                                |
+| # | 文件 | 行号 | 问题描述 |
 | --- | ------------------------ | ------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
-| E12 | `jobs/crawl_service.py`  | 240-251             | 无条件设置 `last_active_at = now()` ✅  | 已在 Top 18 #9 修复：只在 `consecutive_miss_count` 从非零变为零时更新。 |
-| E13 | `jobs/crawl_service.py`  | 277-301             | 无条件设置 `last_updated_at = now()` ✅ | 已在 Top 18 #9 修复：引入 `has_changes` 标志，仅在实际变化时更新。      |
-| E14 | `jobs/crawl_service.py`  | 351-369             | dedup 无条件更新 ✅                     | 已在 Top 18 #9 修复：引入 `dup_changed` 标志。                          |
-| E15 | `crawling/task_store.py` | 109,215,240,267,309 | 可能无条件更新所有字段 ✅               | 已在 Top 18 #9 修复。                                                   |
+| E12 | `jobs/crawl_service.py` | 240-251 | 无条件设置 `last_active_at = now()` ✅ | 已在 Top 18 #9 修复：只在 `consecutive_miss_count` 从非零变为零时更新。 |
+| E13 | `jobs/crawl_service.py` | 277-301 | 无条件设置 `last_updated_at = now()` ✅ | 已在 Top 18 #9 修复：引入 `has_changes` 标志，仅在实际变化时更新。 |
+| E14 | `jobs/crawl_service.py` | 351-369 | dedup 无条件更新 ✅ | 已在 Top 18 #9 修复：引入 `dup_changed` 标志。 |
+| E15 | `crawling/task_store.py` | 109,215,240,267,309 | 可能无条件更新所有字段 ✅ | 已在 Top 18 #9 修复。 |
 
 ### 过于宽泛的操作（5个）
 
@@ -346,20 +346,20 @@
 
 ### 不必要的存在性检查（3个）
 
-| #   | 文件                    | 行号    | 问题描述                           |
+| # | 文件 | 行号 | 问题描述 |
 | --- | ----------------------- | ------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E21 | `jobs/match_service.py` | 509-542 | 先 SELECT 再 INSERT ON CONFLICT ✅ | 去掉 SELECT 存在性检查，改用 PostgreSQL `xmax` 系统列判断 INSERT/UPDATE：`returning(MatchResult, literal_column("xmax"))`，`was_created = row["xmax"] == 0`。ruff 检查通过，pytest 8 项全部通过。                       |
-| E22 | `core/sessions.py`      | 179-207 | 先 SELECT 再 DELETE ✅             | `delete_session` 改为直接 `delete().where(...)`，通过 `rowcount` 判断；`_delete_sessions_by_query` 改为先 `SELECT id` 再批量 `DELETE ... WHERE id IN (...)`，避免逐个 ORM delete。ruff 检查通过，pytest 25 项全部通过。 |
-| E23 | `products/service.py`   | 174-193 | 先查询再决定是否抛异常 ✅          | 去掉先 SELECT 检查，直接 INSERT，捕获 `IntegrityError` 后转换为 `ProductCronConfigConflictError`。ruff 检查通过，pytest 11 项通过。                                                                                     |
+| E21 | `jobs/match_service.py` | 509-542 | 先 SELECT 再 INSERT ON CONFLICT ✅ | 去掉 SELECT 存在性检查，改用 PostgreSQL `xmax` 系统列判断 INSERT/UPDATE：`returning(MatchResult, literal_column("xmax"))`，`was_created = row["xmax"] == 0`。ruff 检查通过，pytest 8 项全部通过。 |
+| E22 | `core/sessions.py` | 179-207 | 先 SELECT 再 DELETE ✅ | `delete_session` 改为直接 `delete().where(...)`，通过 `rowcount` 判断；`_delete_sessions_by_query` 改为先 `SELECT id` 再批量 `DELETE ... WHERE id IN (...)`，避免逐个 ORM delete。ruff 检查通过，pytest 25 项全部通过。 |
+| E23 | `products/service.py` | 174-193 | 先查询再决定是否抛异常 ✅ | 去掉先 SELECT 检查，直接 INSERT，捕获 `IntegrityError` 后转换为 `ProductCronConfigConflictError`。ruff 检查通过，pytest 11 项通过。 |
 
 ### 内存泄漏风险（4个）
 
-| #   | 文件                         | 行号    | 问题描述                                  |
+| # | 文件 | 行号 | 问题描述 |
 | --- | ---------------------------- | ------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E24 | `core/event_stream.py`       | 10-43   | 僵尸订阅者导致内存缓慢增长 ✅             | `publish()` 中已添加 dead subscriber 检测：当 `queue.put_nowait(item)` 抛出 `QueueFull` 时，将队列加入 `dead` 列表并在发布结束后从 `_subscribers` 中移除。防止消费者不跟随时内存无限增长。                                         |
-| E25 | `smart_home/state_stream.py` | 14-72   | 未取消订阅导致集合增长 ✅                 | `_publish()` 中已添加同样的 dead subscriber 检测：当 `queue.put_nowait(item)` 抛出 `QueueFull` 时，将队列加入 `dead` 列表并在锁释放前从 `_subscribers` 中移除。同时 `unsubscribe()` 正确调用 `discard` 移除队列。                  |
-| E26 | `workers/crawler.py`         | 124,272 | `active_tasks` 集合可能累积已完成 Task ✅ | **False positive**：当前代码已有 `_collect_finished_tasks()` 函数（行 108-123），在每轮主循环中（行 233、248、265、282）正确清理已完成任务。`finally` 块（行 283-288）也会在 shutdown 时取消并等待所有未完成任务。不存在累积问题。 |
-| E27 | `core/auth_cookies.py`       | -       | Cookie 缓存可能无界增长 ✅                | **False positive**：当前代码只有 `set_auth_cookies()` 和 `clear_auth_cookies()` 两个纯函数，没有任何缓存机制（字典、LRU 等），不存在无界增长问题。                                                                                 |
+| E24 | `core/event_stream.py` | 10-43 | 僵尸订阅者导致内存缓慢增长 ✅ | `publish()` 中已添加 dead subscriber 检测：当 `queue.put_nowait(item)` 抛出 `QueueFull` 时，将队列加入 `dead` 列表并在发布结束后从 `_subscribers` 中移除。防止消费者不跟随时内存无限增长。 |
+| E25 | `smart_home/state_stream.py` | 14-72 | 未取消订阅导致集合增长 ✅ | `_publish()` 中已添加同样的 dead subscriber 检测：当 `queue.put_nowait(item)` 抛出 `QueueFull` 时，将队列加入 `dead` 列表并在锁释放前从 `_subscribers` 中移除。同时 `unsubscribe()` 正确调用 `discard` 移除队列。 |
+| E26 | `workers/crawler.py` | 124,272 | `active_tasks` 集合可能累积已完成 Task ✅ | **False positive**：当前代码已有 `_collect_finished_tasks()` 函数（行 108-123），在每轮主循环中（行 233、248、265、282）正确清理已完成任务。`finally` 块（行 283-288）也会在 shutdown 时取消并等待所有未完成任务。不存在累积问题。 |
+| E27 | `core/auth_cookies.py` | - | Cookie 缓存可能无界增长 ✅ | **False positive**：当前代码只有 `set_auth_cookies()` 和 `clear_auth_cookies()` 两个纯函数，没有任何缓存机制（字典、LRU 等），不存在无界增长问题。 |
 
 ### 热路径膨胀（3个）
 
@@ -371,19 +371,19 @@
 
 ### 缺失的并发（4个）
 
-| #   | 文件                             | 行号    | 问题描述                                            |
+| # | 文件 | 行号 | 问题描述 |
 | --- | -------------------------------- | ------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| E31 | `dashboard/dashboard_service.py` | 591-605 | 5 个薪资区间查询串行 ✅                             | 当前代码已使用 `asyncio.gather(*(self.db.execute(q) for q in queries))`（行 611）并行执行 5 个薪资区间统计查询。无需修改。          |
-| E32 | `dashboard/dashboard_service.py` | 685-713 | product_result 和 job_result 串行 ✅                | 当前代码已使用 `asyncio.gather(self.db.execute(product_stmt), self.db.execute(job_stmt))`（行 716-719）并行执行两个查询。无需修改。 |
-| E33 | `crawling/task_runner.py`        | 112,178 | `gather(return_exceptions=False)` 单失败整批取消 ✅ | 当前代码已使用 `asyncio.gather(..., return_exceptions=True)`（行 109），单个爬取失败不会取消整批。无需修改。                        |
+| E31 | `dashboard/dashboard_service.py` | 591-605 | 5 个薪资区间查询串行 ✅ | 当前代码已使用 `asyncio.gather(*(self.db.execute(q) for q in queries))`（行 611）并行执行 5 个薪资区间统计查询。无需修改。 |
+| E32 | `dashboard/dashboard_service.py` | 685-713 | product_result 和 job_result 串行 ✅ | 当前代码已使用 `asyncio.gather(self.db.execute(product_stmt), self.db.execute(job_stmt))`（行 716-719）并行执行两个查询。无需修改。 |
+| E33 | `crawling/task_runner.py` | 112,178 | `gather(return_exceptions=False)` 单失败整批取消 ✅ | 当前代码已使用 `asyncio.gather(..., return_exceptions=True)`（行 109），单个爬取失败不会取消整批。无需修改。 |
 
 ### 重复的计算（3个）
 
-| #   | 文件                             | 行号                    | 问题描述                                     |
+| # | 文件 | 行号 | 问题描述 |
 | --- | -------------------------------- | ----------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| E34 | `jobs/crawl_service.py`          | 204-229                 | `parse_salary` 每次调用重新编译正则 ✅       | **False positive**：正则已在模块级别预编译（`_RE_SALARY_BONUS`、`_RE_SALARY_SPACES`、`_RE_SALARY_RANGE`、`_RE_SALARY_SINGLE`，行 73-76），不存在重复编译。               |
+| E34 | `jobs/crawl_service.py` | 204-229 | `parse_salary` 每次调用重新编译正则 ✅ | **False positive**：正则已在模块级别预编译（`_RE_SALARY_BONUS`、`_RE_SALARY_SPACES`、`_RE_SALARY_RANGE`、`_RE_SALARY_SINGLE`，行 73-76），不存在重复编译。 |
 | E35 | `dashboard/dashboard_service.py` | 316,365,432,480,642,688 | 重复计算 `datetime.now(UTC).replace(...)` ✅ | **False positive / 已变更**：当前代码使用 `datetime.now(UTC) - timedelta(days=days)` 无 `.replace()` 调用；各处的 `start_date` 计算参数不同（days 不同），不能提取共享。 |
-| E36 | `products/service.py`            | 125-132                 | `total_pages` 重复计算（微小） ✅            | **False positive**：`total_pages` 仅在行 125 计算一次，后续行 131-132 只是读取该变量。                                                                                   |
+| E36 | `products/service.py` | 125-132 | `total_pages` 重复计算（微小） ✅ | **False positive**：`total_pages` 仅在行 125 计算一次，后续行 131-132 只是读取该变量。 |
 
 ---
 

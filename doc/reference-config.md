@@ -7,13 +7,13 @@
 
 如果缺了，启动时**直接拒绝**：
 
-| 变量                    | 说明                         | 示例                                                                                        |
-| ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`          | PostgreSQL 异步连接          | `postgresql+asyncpg://<user>:<password>@<host>:5432/pricemonitor`                           |
-| `REDIS_URL`             | Redis 连接                   | `redis://localhost:6379/0`                                                                  |
-| `FEISHU_WEBHOOK_URL`    | 默认飞书 webhook             | `https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>`                                   |
+| 变量                    | 说明                         | 示例                                                                                                                             |
+| ----------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`          | PostgreSQL 异步连接          | `postgresql+asyncpg://<user>:<password>@<host>:5432/pricemonitor`                                                                |
+| `REDIS_URL`             | Redis 连接                   | `redis://localhost:6379/0`                                                                                                       |
+| `FEISHU_WEBHOOK_URL`    | 默认飞书 webhook             | `https://open.feishu.cn/open-apis/bot/v2/hook/<your-key>`                                                                        |
 | `SMART_HOME_SECRET_KEY` | Fernet key（32 字节 base64） | `uv run --project backend --extra dev python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| `ALLOWED_ORIGINS`       | CORS 来源                    | `http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001` 或 JSON list |
+| `ALLOWED_ORIGINS`       | CORS 来源                    | `http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001` 或 JSON list                           |
 
 > `FEISHU_WEBHOOK_URL` 在 user 级 PATCH 后**会被覆盖**；`ALLOWED_ORIGINS` 必须在启动时存在。
 
@@ -78,32 +78,32 @@
 
 ## 认证 / Cookie / JWT
 
-| 变量                          | 默认                               | 说明                                                      |
-| ----------------------------- | ---------------------------------- | --------------------------------------------------------- |
-| `JWT_SECRET`                  | 启动时随机生成（**生产必须显式**） | HS256 密钥                                                |
-| `JWT_ALGORITHM`               | `HS256`                            |                                                           |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `15`                               | access JWT 寿命                                           |
-| `SESSION_IDLE_TIMEOUT_MINUTES` | `60`                              | session 空闲过期窗口                                      |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | `14`                               | session 绝对上限；refresh 不延长这个上限                  |
-| `COOKIE_SECURE`               | `false`                            | 生产 `true`，开发 `false`（否则 localhost cookie 写不进） |
-| `COOKIE_SAMESITE`             | `lax`                              |                                                           |
-| `COOKIE_DOMAIN`               | 空                                 | 跨子域用                                                  |
-| `COOKIE_ACCESS_NAME`          | `pm_access_token`                  |                                                           |
-| `COOKIE_REFRESH_NAME`         | `pm_refresh_token`                 |                                                           |
-| `COOKIE_CSRF_NAME`            | `pm_csrf_token`                    |                                                           |
-| `PASSWORD_MIN_LENGTH`         | `10`                               | 强密码最小长度                                            |
-| `LOGIN_LOCKOUT_THRESHOLD`     | `5`                                | 失败 N 次锁                                               |
-| `LOGIN_LOCKOUT_MINUTES`       | `15`                               | 锁多久                                                    |
-| `MAX_SESSIONS_PER_USER`       | `5`                                | session 上限                                              |
+| 变量                           | 默认                               | 说明                                                      |
+| ------------------------------ | ---------------------------------- | --------------------------------------------------------- |
+| `JWT_SECRET`                   | 启动时随机生成（**生产必须显式**） | HS256 密钥                                                |
+| `JWT_ALGORITHM`                | `HS256`                            |                                                           |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`  | `15`                               | access JWT 寿命                                           |
+| `SESSION_IDLE_TIMEOUT_MINUTES` | `60`                               | session 空闲过期窗口                                      |
+| `REFRESH_TOKEN_EXPIRE_DAYS`    | `14`                               | session 绝对上限；refresh 不延长这个上限                  |
+| `COOKIE_SECURE`                | `false`                            | 生产 `true`，开发 `false`（否则 localhost cookie 写不进） |
+| `COOKIE_SAMESITE`              | `lax`                              |                                                           |
+| `COOKIE_DOMAIN`                | 空                                 | 跨子域用                                                  |
+| `COOKIE_ACCESS_NAME`           | `pm_access_token`                  |                                                           |
+| `COOKIE_REFRESH_NAME`          | `pm_refresh_token`                 |                                                           |
+| `COOKIE_CSRF_NAME`             | `pm_csrf_token`                    |                                                           |
+| `PASSWORD_MIN_LENGTH`          | `10`                               | 强密码最小长度                                            |
+| `LOGIN_LOCKOUT_THRESHOLD`      | `5`                                | 失败 N 次锁                                               |
+| `LOGIN_LOCKOUT_MINUTES`        | `15`                               | 锁多久                                                    |
+| `MAX_SESSIONS_PER_USER`        | `5`                                | session 上限                                              |
 
 ## 微信 OAuth
 
-| 变量                   | 默认    | 说明         |
-| ---------------------- | ------- | ------------ |
-| `WECHAT_LOGIN_ENABLED` | `false` | 启用微信登录 |
-| `WECHAT_APP_ID`        | 空      |              |
-| `WECHAT_APP_SECRET`    | 空      |              |
-| `WECHAT_REDIRECT_URI`  | 空      | 回调 URL     |
+| 变量                           | 默认                                         | 说明               |
+| ------------------------------ | -------------------------------------------- | ------------------ |
+| `WECHAT_LOGIN_ENABLED`         | `false`                                      | 启用微信登录       |
+| `WECHAT_APP_ID`                | 空                                           |                    |
+| `WECHAT_APP_SECRET`            | 空                                           |                    |
+| `WECHAT_REDIRECT_URI`          | 空                                           | 回调 URL           |
 | `WECHAT_FRONTEND_CALLBACK_URL` | `http://localhost:3000/auth/wechat/callback` | 前端微信回流展示页 |
 
 ## 数据保留
@@ -132,15 +132,15 @@
 
 ## Public Blog
 
-| 变量                       | 默认                    | 说明                                      |
-| -------------------------- | ----------------------- | ----------------------------------------- |
-| `BLOG_PUBLIC_BASE_URL`     | `http://localhost:3001` | canonical、OG、JSON-LD 使用的公开站点根地址 |
-| `BLOG_MEDIA_ROOT`          | `uploads/blog`          | 后端本地图片存储目录，相对 backend 目录解析 |
-| `BLOG_MEDIA_PUBLIC_PREFIX` | `/blog-media`           | 公开媒体响应路径前缀                      |
-| `BLOG_MEDIA_MAX_BYTES`     | `8388608`               | 单文件上传上限，默认 8MB                  |
-| `BLOG_API_BASE_URL`        | `http://127.0.0.1:8000/api/v1` | Next.js 读取公开博客 API 的后端地址      |
-| `BLOG_BACKEND_ORIGIN`      | `http://127.0.0.1:8000` | Next.js 本地 `/blog-media/*` rewrite 目标 |
-| `NEXT_PUBLIC_BLOG_BASE_URL` | `http://localhost:3001` | Next.js 客户端公开 canonical base 覆盖值  |
+| 变量                        | 默认                           | 说明                                        |
+| --------------------------- | ------------------------------ | ------------------------------------------- |
+| `BLOG_PUBLIC_BASE_URL`      | `http://localhost:3001`        | canonical、OG、JSON-LD 使用的公开站点根地址 |
+| `BLOG_MEDIA_ROOT`           | `uploads/blog`                 | 后端本地图片存储目录，相对 backend 目录解析 |
+| `BLOG_MEDIA_PUBLIC_PREFIX`  | `/blog-media`                  | 公开媒体响应路径前缀                        |
+| `BLOG_MEDIA_MAX_BYTES`      | `8388608`                      | 单文件上传上限，默认 8MB                    |
+| `BLOG_API_BASE_URL`         | `http://127.0.0.1:8000/api/v1` | Next.js 读取公开博客 API 的后端地址         |
+| `BLOG_BACKEND_ORIGIN`       | `http://127.0.0.1:8000`        | Next.js 本地 `/blog-media/*` rewrite 目标   |
+| `NEXT_PUBLIC_BLOG_BASE_URL` | `http://localhost:3001`        | Next.js 客户端公开 canonical base 覆盖值    |
 
 ## 系统
 

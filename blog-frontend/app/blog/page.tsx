@@ -50,7 +50,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         {posts.items.map((post) => {
           const coverUrl = absoluteAssetUrl(post.cover_url);
           return (
-            <Link key={post.slug} href={`/blog/${post.slug}`} className="post-card">
+            <Link
+              key={post.slug}
+              href={`/blog/${post.slug}`}
+              className="post-card"
+            >
               <div className="post-cover">
                 {coverUrl ? <img src={coverUrl} alt="" /> : null}
               </div>
@@ -81,7 +85,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           <h2>Categories</h2>
           <div className="tag-row">
             {categories.map((category) => (
-              <Link className="pill" href={`/blog/category/${category.slug}`} key={category.id}>
+              <Link
+                className="pill"
+                href={`/blog/category/${category.slug}`}
+                key={category.id}
+              >
                 {category.name}
               </Link>
             ))}
@@ -91,7 +99,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           <h2>Tags</h2>
           <div className="tag-row">
             {tags.map((tag) => (
-              <Link className="pill" href={`/blog/tag/${tag.slug}`} key={tag.id}>
+              <Link
+                className="pill"
+                href={`/blog/tag/${tag.slug}`}
+                key={tag.id}
+              >
                 {tag.name}
               </Link>
             ))}

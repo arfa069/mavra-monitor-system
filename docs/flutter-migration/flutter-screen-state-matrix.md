@@ -135,4 +135,3 @@ Backend error envelopes are displayed through `code`, `message`, `details`,
 - Partial data: copy `部分图表暂时不可用。`; primary `刷新图表`; secondary `继续查看`; retry failed chart only; permission path forbidden series omitted; partial never render misleading zero as missing data; widget test expects chart summary names missing source.
 - Offline/realtime disconnected: copy `实时指标断开了，图表显示最近一次数据。`; primary `重新连接`; secondary `手动刷新`; retry reconnect stream/poll; permission path N/A; partial stale timestamp visible; widget test expects stale chart label.
 - Success: copy `Analytics`; primary range selector; secondary drill into source module; retry manual refresh; permission path series visibility follows role; partial N/A; widget test expects chart semantics and data-table fallback.
-
