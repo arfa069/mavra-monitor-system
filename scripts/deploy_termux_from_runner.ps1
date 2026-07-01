@@ -193,6 +193,152 @@ function Stop-ArtifactHttpServer {
   }
 }
 
+function Invoke-RemoteTransferCommand {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $true)]
+    [string]$RemoteCommand
+  )
+
+  & "ssh" @($SshBase + @($Remote, $RemoteCommand))
+  return $LASTEXITCODE
+}
+
+function Wait-ForRemoteHttpArtifact {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$BaseUrl,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $false)]
+    [int]$Attempts = 20
+  )
+
+  $testUrl = "$BaseUrl/frontend-web.tar.gz"
+  $testCommand = "curl -fsSI --connect-timeout 2 --max-time 5 $(ConvertTo-BashSingleQuoted $testUrl) >/dev/null"
+
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    $exitCode = Invoke-RemoteTransferCommand -Remote $Remote -SshBase $SshBase -RemoteCommand $testCommand
+    if ($exitCode -eq 0) {
+      return
+    }
+    Start-Sleep -Milliseconds 500
+  }
+
+  throw "Timed out waiting for Termux to reach the artifact HTTP endpoint."
+}
+
+function Start-SshReverseTunnel {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Server,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase
+  )
+
+  for ($attempt = 1; $attempt -le 5; $attempt++) {
+    $remotePort = Get-Random -Minimum 30000 -Maximum 60999
+    $stdoutLog = Join-Path $Server.Root "ssh-tunnel-$remotePort.out.log"
+    $stderrLog = Join-Path $Server.Root "ssh-tunnel-$remotePort.err.log"
+    $forward = "127.0.0.1:${remotePort}:127.0.0.1:$($Server.Port)"
+    $argumentList = $SshBase + @(
+      "-N",
+      "-o", "ExitOnForwardFailure=yes",
+      "-R", $forward,
+      $Remote
+    )
+
+    $process = Start-Process `
+      -FilePath "ssh" `
+      -ArgumentList $argumentList `
+      -RedirectStandardOutput $stdoutLog `
+      -RedirectStandardError $stderrLog `
+      -WindowStyle Hidden `
+      -PassThru
+
+    Start-Sleep -Milliseconds 750
+    if ($process.HasExited) {
+      continue
+    }
+
+    $baseUrl = "http://127.0.0.1:$remotePort/$($Server.TokenPath)"
+    try {
+      Wait-ForRemoteHttpArtifact -BaseUrl $baseUrl -Remote $Remote -SshBase $SshBase -Attempts 10
+      return [PSCustomObject]@{
+        Process = $process
+        RemotePort = $remotePort
+        BaseUrl = $baseUrl
+      }
+    } catch {
+      Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    }
+  }
+
+  throw "Could not establish an SSH reverse tunnel for artifact transfer."
+}
+
+function Stop-SshReverseTunnel {
+  param(
+    [AllowNull()]
+    [object]$Tunnel
+  )
+
+  if ($null -eq $Tunnel) {
+    return
+  }
+
+  if ($Tunnel.Process -and -not $Tunnel.Process.HasExited) {
+    Stop-Process -Id $Tunnel.Process.Id -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Invoke-RemoteArtifactDownload {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Artifacts,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $true)]
+    [string]$BaseUrl
+  )
+
+  $commands = @("set -euo pipefail", "mkdir -p $(ConvertTo-BashSingleQuoted $Incoming)")
+  foreach ($name in $Artifacts.Keys) {
+    $targetPath = "$Incoming/$name"
+    $sourceUrl = "$BaseUrl/$name"
+    $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 -o $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
+  }
+
+  $exitCode = Invoke-RemoteTransferCommand -Remote $Remote -SshBase $SshBase -RemoteCommand ($commands -join "; ")
+  if ($exitCode -ne 0) {
+    throw "Remote artifact download failed with exit code $exitCode."
+  }
+
+  return $true
+}
+
 function Copy-ArtifactsWithHttpPull {
   param(
     [Parameter(Mandatory = $true)]
@@ -208,26 +354,30 @@ function Copy-ArtifactsWithHttpPull {
     [string[]]$SshBase,
 
     [Parameter(Mandatory = $true)]
-    [string]$RunnerTemp
+    [string]$RunnerTemp,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("direct", "tunnel")]
+    [string]$Mode = "direct"
   )
 
   $server = $null
+  $tunnel = $null
   try {
     $server = Start-ArtifactHttpServer -RunnerTemp $RunnerTemp -Artifacts $Artifacts
+
+    if ($Mode -eq "tunnel") {
+      $tunnel = Start-SshReverseTunnel -Server $server -Remote $Remote -SshBase $SshBase
+      Write-Host "[INFO] Serving deployment artifacts through SSH reverse tunnel on Termux 127.0.0.1:$($tunnel.RemotePort)."
+      return Invoke-RemoteArtifactDownload -Artifacts $Artifacts -Incoming $Incoming -Remote $Remote -SshBase $SshBase -BaseUrl $tunnel.BaseUrl
+    }
+
     $runnerAddress = Get-LocalAddressForRemote -RemoteHost $env:TERMUX_HOST -RemotePort ([int]$env:TERMUX_PORT)
     $baseUrl = "http://${runnerAddress}:$($server.Port)/$($server.TokenPath)"
     Write-Host "[INFO] Serving deployment artifacts from runner at http://${runnerAddress}:$($server.Port)/<token>/"
-
-    $commands = @("set -euo pipefail", "mkdir -p $(ConvertTo-BashSingleQuoted $Incoming)")
-    foreach ($name in $Artifacts.Keys) {
-      $targetPath = "$Incoming/$name"
-      $sourceUrl = "$baseUrl/$name"
-      $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 -o $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
-    }
-
-    Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($SshBase + @($Remote, ($commands -join "; ")))
-    return $true
+    return Invoke-RemoteArtifactDownload -Artifacts $Artifacts -Incoming $Incoming -Remote $Remote -SshBase $SshBase -BaseUrl $baseUrl
   } finally {
+    Stop-SshReverseTunnel -Tunnel $tunnel
     Stop-ArtifactHttpServer -Server $server
   }
 }
@@ -344,18 +494,30 @@ try {
 
     $transferred = $false
     if ($transferMode -eq "auto" -or $transferMode -eq "http") {
-      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via HTTP pull."
+      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
       try {
-        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp
+        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
       } catch {
         if ($transferMode -eq "http") {
           throw
         }
-        Write-Warning "HTTP artifact transfer failed; falling back to scp. $($_.Exception.Message)"
+        Write-Warning "Direct HTTP artifact transfer failed; trying SSH reverse tunnel. $($_.Exception.Message)"
       }
     }
 
-    if (-not $transferred) {
+    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "tunnel")) {
+      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via SSH reverse-tunnel HTTP pull."
+      try {
+        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
+      } catch {
+        if ($transferMode -eq "tunnel") {
+          throw
+        }
+        Write-Warning "SSH reverse-tunnel artifact transfer failed. $($_.Exception.Message)"
+      }
+    }
+
+    if (-not $transferred -and $transferMode -eq "scp") {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via scp."
       Copy-FileWithScp -SourcePath $frontendArtifact -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
       Copy-FileWithScp -SourcePath $blogStandaloneArtifact -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
@@ -363,6 +525,10 @@ try {
       if (Test-Path -LiteralPath $blogPublicArtifact) {
         Copy-FileWithScp -SourcePath $blogPublicArtifact -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
       }
+    }
+
+    if (-not $transferred -and $transferMode -ne "scp") {
+      throw "Artifact transfer failed without using slow scp fallback. Set TERMUX_TRANSFER_MODE=scp to force legacy scp."
     }
   }
 

@@ -401,6 +401,7 @@ jobs:
           TERMUX_USER: ${{ vars.TERMUX_USER }}
           TERMUX_APP_DIR: ${{ vars.TERMUX_APP_DIR }}
           TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
+          TERMUX_TRANSFER_MODE: ${{ vars.TERMUX_TRANSFER_MODE }}
           TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
           DEPLOY_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
