@@ -68,10 +68,9 @@ Secrets:
 这个脚本会：
 
 1. 写入临时 SSH key 和 `known_hosts` 到 runner 临时目录；
-2. 本地构建 Flutter Web；
-3. 本地构建 Next.js 博客；
-4. 通过 `scp` 把产物上传到手机服务器的 `.deploy/incoming/<sha>`；
-5. 通过 `ssh` 调用远端 `scripts/deploy_termux_remote.sh <sha>`；
+2. 下载 GitHub Actions 已经构建好的 Flutter Web / Blog artifact；
+3. 通过 `scp` 把压缩包和远端部署脚本上传到手机服务器的 `.deploy/incoming/<sha>`；
+4. 通过 `ssh` 调用 `.deploy/incoming/<sha>/deploy_termux_remote.sh <sha>`；
 6. 删除本地临时 SSH 文件。
 
 ## 手机服务器要做什么
@@ -81,7 +80,7 @@ Secrets:
 1. 检查目标 SHA 是否存在；
 2. 拒绝覆盖有未提交改动的远端仓库；
 3. `git fetch origin main` 并切到精确的 commit；
-4. 校验上传产物齐全；
+4. 解压并校验上传的 `tar.gz` 产物齐全；
 5. 备份数据库和现有静态产物到 `.deploy/backups/<timestamp>-<sha>`；
 6. 替换 Flutter Web / Blog 产物；
 7. 运行 `python -m alembic upgrade head`；
@@ -119,6 +118,7 @@ Secrets:
 3. 手机 SSH 主机指纹变化，但 `TERMUX_KNOWN_HOSTS` 还是旧值。
 4. 远端仓库有未提交改动，被脚本主动拦截。
 5. 远端迁移或健康检查失败，触发静态产物回滚。
+6. incoming 目录里的压缩包缺失或解压失败。
 
 ## 本地静态检查
 

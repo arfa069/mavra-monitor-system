@@ -24,10 +24,10 @@ function Invoke-ExternalCommand {
   }
 }
 
-function Copy-DirectoryContentsWithScp {
+function Copy-FileWithScp {
   param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceDirectory,
+    [string]$SourcePath,
 
     [Parameter(Mandatory = $true)]
     [string]$RemoteTarget,
@@ -36,10 +36,7 @@ function Copy-DirectoryContentsWithScp {
     [string[]]$ScpBaseArgs
   )
 
-  $items = Get-ChildItem -LiteralPath $SourceDirectory -Force
-  foreach ($item in $items) {
-    Invoke-ExternalCommand -FilePath "scp" -ArgumentList ($ScpBaseArgs + @("-r", $item.FullName, $RemoteTarget))
-  }
+  Invoke-ExternalCommand -FilePath "scp" -ArgumentList ($ScpBaseArgs + @($SourcePath, $RemoteTarget))
 }
 
 if ($DryRun) {
@@ -64,12 +61,12 @@ foreach ($name in $required) {
 }
 
 $repoRoot = Get-RepoRoot
-$frontendDir = Join-Path $repoRoot "frontend"
-$blogDir = Join-Path $repoRoot "blog-frontend"
-$frontendBuildDir = Join-Path $frontendDir "build/web"
-$blogStandaloneDir = Join-Path $blogDir ".next/standalone"
-$blogStaticDir = Join-Path $blogDir ".next/static"
-$blogPublicDir = Join-Path $blogDir "public"
+$artifactDir = Join-Path $repoRoot "deploy-artifacts"
+$frontendArchive = Join-Path $artifactDir "frontend-web.tar.gz"
+$blogStandaloneArchive = Join-Path $artifactDir "blog-standalone.tar.gz"
+$blogStaticArchive = Join-Path $artifactDir "blog-static.tar.gz"
+$blogPublicArchive = Join-Path $artifactDir "blog-public.tar.gz"
+$remoteScriptPath = Join-Path $repoRoot "scripts/deploy_termux_remote.sh"
 
 $runnerTemp = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
   [System.IO.Path]::GetTempPath()
@@ -111,47 +108,23 @@ $scpBase = @(
 $incoming = "$env:TERMUX_APP_DIR/.deploy/incoming/$env:DEPLOY_SHA"
 
 try {
-  Push-Location $frontendDir
-  try {
-    Invoke-ExternalCommand -FilePath "flutter" -ArgumentList @("pub", "get")
-    Invoke-ExternalCommand -FilePath "flutter" -ArgumentList @("build", "web", "--dart-define=API_BASE_URL=/api/v1")
-  } finally {
-    Pop-Location
+  foreach ($requiredPath in @($frontendArchive, $blogStandaloneArchive, $blogStaticArchive, $remoteScriptPath)) {
+    if (-not (Test-Path -LiteralPath $requiredPath)) {
+      throw "Required deploy input missing: $requiredPath"
+    }
   }
 
-  if (-not (Test-Path (Join-Path $frontendBuildDir "index.html"))) {
-    throw "Flutter web build output missing: $(Join-Path $frontendBuildDir 'index.html')"
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p '$incoming'"))
+  Copy-FileWithScp -SourcePath $frontendArchive -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
+  Copy-FileWithScp -SourcePath $blogStandaloneArchive -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
+  Copy-FileWithScp -SourcePath $blogStaticArchive -RemoteTarget "${remote}:$incoming/blog-static.tar.gz" -ScpBaseArgs $scpBase
+  Copy-FileWithScp -SourcePath $remoteScriptPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
+
+  if (Test-Path -LiteralPath $blogPublicArchive) {
+    Copy-FileWithScp -SourcePath $blogPublicArchive -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
   }
 
-  Push-Location $blogDir
-  try {
-    $env:BLOG_PUBLIC_BASE_URL = "http://192.168.1.13:3000"
-    $env:BLOG_API_BASE_URL = "http://127.0.0.1:8000/api/v1"
-    $env:BLOG_BACKEND_ORIGIN = "http://127.0.0.1:8000"
-    $env:NEXT_PUBLIC_BLOG_BASE_URL = "http://192.168.1.13:3000"
-    Invoke-ExternalCommand -FilePath "npm" -ArgumentList @("ci")
-    Invoke-ExternalCommand -FilePath "npm" -ArgumentList @("run", "build")
-  } finally {
-    Pop-Location
-  }
-
-  if (-not (Test-Path (Join-Path $blogStandaloneDir "server.js"))) {
-    throw "Blog standalone build output missing: $(Join-Path $blogStandaloneDir 'server.js')"
-  }
-  if (-not (Test-Path $blogStaticDir)) {
-    throw "Blog static build output missing: $blogStaticDir"
-  }
-
-  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p '$incoming/frontend' '$incoming/blog-standalone' '$incoming/blog-static'"))
-  Copy-DirectoryContentsWithScp -SourceDirectory $frontendBuildDir -RemoteTarget "${remote}:$incoming/frontend/" -ScpBaseArgs $scpBase
-  Copy-DirectoryContentsWithScp -SourceDirectory $blogStandaloneDir -RemoteTarget "${remote}:$incoming/blog-standalone/" -ScpBaseArgs $scpBase
-  Invoke-ExternalCommand -FilePath "scp" -ArgumentList ($scpBase + @("-r", $blogStaticDir, "${remote}:$incoming/blog-static/"))
-
-  if (Test-Path $blogPublicDir) {
-    Invoke-ExternalCommand -FilePath "scp" -ArgumentList ($scpBase + @("-r", $blogPublicDir, "${remote}:$incoming/"))
-  }
-
-  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "cd '$env:TERMUX_APP_DIR' && bash scripts/deploy_termux_remote.sh '$env:DEPLOY_SHA'"))
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "PROJECT_ROOT_OVERRIDE='$env:TERMUX_APP_DIR' bash '$incoming/deploy_termux_remote.sh' '$env:DEPLOY_SHA'"))
 } finally {
   Remove-Item -LiteralPath $sshDir -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -9,7 +9,7 @@
 Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，并能通过浏览器正常打开。
 Flutter 主前端已切回 hash 路由，并由 Nginx 接管 3000 端口，把 `/api/v1` 反代到后端，避免静态托管下登录 POST 落到文件服务器返回 501。
 博客也已经并入同一个 Nginx 入口，`/blog`、`/_next`、`/blog-media`、`/robots.txt` 和 `/sitemap.xml` 都由 3000 统一对外提供。
-GitHub Actions 到 Termux 的 CD 方案也已经落到仓库：当 `main` 上六个质量门都通过后，会由局域网内的 Windows 自托管 runner 构建 Flutter Web 和博客，并通过 SSH 上传到手机服务器后执行远端部署脚本。
+GitHub Actions 到 Termux 的 CD 方案也已经落到仓库：当 `main` 上六个质量门都通过后，会先在 GitHub 托管 runner 上构建并打包 Flutter Web 和博客产物，再由局域网内的 Windows 自托管 runner 下载这些 artifact，通过 SSH 上传到手机服务器后执行远端部署脚本。
 
 ## Termux CD
 
@@ -38,22 +38,25 @@ Secrets:
 
 ### 构建与发布链路
 
-当前 CD 链路分两段：
+当前 CD 链路分三段：
 
-1. Windows 自托管 runner 本地构建：
+1. GitHub 托管 runner 构建并打包：
    - `frontend`: `flutter build web --dart-define=API_BASE_URL=/api/v1`
    - `blog-frontend`: `npm ci && npm run build`
-2. 构建完成后，把产物上传到远端：
-   - `frontend/build/web`
-   - `blog-frontend/.next/standalone`
-   - `blog-frontend/.next/static`
-   - `blog-frontend/public`（如果存在）
+2. 构建完成后，上传 artifact：
+   - `frontend-web.tar.gz`
+   - `blog-standalone.tar.gz`
+   - `blog-static.tar.gz`
+   - `blog-public.tar.gz`（如果存在）
+3. Windows 自托管 runner 下载这些 artifact，再把它们和远端部署脚本上传到手机服务器。
 
 远端真正替换线上目录前，会先把上传内容放到：
 
 ```text
 .deploy/incoming/<git-sha>
 ```
+
+远端部署不再依赖手机主仓库里“事先已经有”最新的部署脚本，而是直接执行本次 incoming 目录里一起上传的 `deploy_termux_remote.sh`。
 
 ### 回滚边界
 

@@ -8,11 +8,12 @@ if [[ -z "$DEPLOY_SHA" ]]; then
   exit 2
 fi
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="${PROJECT_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$PROJECT_ROOT"
 
 INCOMING_DIR="$PROJECT_ROOT/.deploy/incoming/$DEPLOY_SHA"
 BACKUP_ROOT="$PROJECT_ROOT/.deploy/backups/$(date +%Y%m%d-%H%M%S)-$DEPLOY_SHA"
+EXTRACT_DIR="$INCOMING_DIR/extracted"
 FRONTEND_DIR="$PROJECT_ROOT/frontend/build/web"
 BLOG_STANDALONE_DIR="$PROJECT_ROOT/blog-frontend/.next/standalone"
 BLOG_STATIC_DIR="$PROJECT_ROOT/blog-frontend/.next/static"
@@ -79,9 +80,24 @@ fi
 git fetch origin main
 git checkout "$DEPLOY_SHA"
 
-test -f "$INCOMING_DIR/frontend/index.html"
-test -f "$INCOMING_DIR/blog-standalone/server.js"
-test -d "$INCOMING_DIR/blog-static/static"
+test -f "$INCOMING_DIR/frontend-web.tar.gz"
+test -f "$INCOMING_DIR/blog-standalone.tar.gz"
+test -f "$INCOMING_DIR/blog-static.tar.gz"
+
+rm -rf "$EXTRACT_DIR"
+mkdir -p "$EXTRACT_DIR/frontend" "$EXTRACT_DIR/blog-standalone" "$EXTRACT_DIR/blog-static"
+tar -xzf "$INCOMING_DIR/frontend-web.tar.gz" -C "$EXTRACT_DIR/frontend"
+tar -xzf "$INCOMING_DIR/blog-standalone.tar.gz" -C "$EXTRACT_DIR/blog-standalone"
+tar -xzf "$INCOMING_DIR/blog-static.tar.gz" -C "$EXTRACT_DIR/blog-static"
+
+if [[ -f "$INCOMING_DIR/blog-public.tar.gz" ]]; then
+  mkdir -p "$EXTRACT_DIR/public"
+  tar -xzf "$INCOMING_DIR/blog-public.tar.gz" -C "$EXTRACT_DIR/public"
+fi
+
+test -f "$EXTRACT_DIR/frontend/index.html"
+test -f "$EXTRACT_DIR/blog-standalone/server.js"
+test -d "$EXTRACT_DIR/blog-static/static"
 
 mkdir -p "$BACKUP_ROOT"
 
@@ -114,14 +130,14 @@ RESTORE_NEEDED=1
 
 rm -rf "$FRONTEND_DIR" "$BLOG_STANDALONE_DIR" "$BLOG_STATIC_DIR"
 mkdir -p "$FRONTEND_DIR" "$BLOG_STANDALONE_DIR" "$BLOG_STATIC_DIR"
-cp -a "$INCOMING_DIR/frontend/." "$FRONTEND_DIR/"
-cp -a "$INCOMING_DIR/blog-standalone/." "$BLOG_STANDALONE_DIR/"
-cp -a "$INCOMING_DIR/blog-static/static" "$BLOG_STATIC_DIR"
+cp -a "$EXTRACT_DIR/frontend/." "$FRONTEND_DIR/"
+cp -a "$EXTRACT_DIR/blog-standalone/." "$BLOG_STANDALONE_DIR/"
+cp -a "$EXTRACT_DIR/blog-static/static" "$BLOG_STATIC_DIR"
 
-if [[ -d "$INCOMING_DIR/public" ]]; then
+if [[ -d "$EXTRACT_DIR/public" ]]; then
   rm -rf "$BLOG_PUBLIC_DIR"
   mkdir -p "$BLOG_PUBLIC_DIR"
-  cp -a "$INCOMING_DIR/public/." "$BLOG_PUBLIC_DIR/"
+  cp -a "$EXTRACT_DIR/public/." "$BLOG_PUBLIC_DIR/"
 fi
 
 cd "$PROJECT_ROOT/backend"

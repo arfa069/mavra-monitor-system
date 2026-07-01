@@ -298,6 +298,16 @@ jobs:
         run: flutter build web --dart-define=API_BASE_URL=/api/v1
         working-directory: frontend
 
+      - name: Package Flutter Web artifact
+        run: tar -C frontend/build/web -czf frontend-web.tar.gz .
+
+      - name: Upload Flutter Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-frontend-web
+          path: frontend-web.tar.gz
+          if-no-files-found: error
+
       - name: Upload Flutter failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -331,6 +341,25 @@ jobs:
         run: npm run build
         working-directory: blog-frontend
 
+      - name: Package blog artifacts
+        shell: bash
+        run: |
+          tar -C blog-frontend/.next/standalone -czf blog-standalone.tar.gz .
+          tar -C blog-frontend/.next -czf blog-static.tar.gz static
+          if [ -d blog-frontend/public ]; then
+            tar -C blog-frontend/public -czf blog-public.tar.gz .
+          fi
+
+      - name: Upload blog artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-blog-build
+          path: |
+            blog-standalone.tar.gz
+            blog-static.tar.gz
+            blog-public.tar.gz
+          if-no-files-found: ignore
+
   deploy-termux:
     name: Deploy Termux
     runs-on: [self-hosted, Windows, mavra-deploy]
@@ -348,6 +377,18 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download Flutter Web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: termux-frontend-web
+          path: deploy-artifacts
+
+      - name: Download blog artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: termux-blog-build
+          path: deploy-artifacts
 
       - name: Deploy to Termux
         shell: powershell
