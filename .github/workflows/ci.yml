@@ -442,7 +442,6 @@ jobs:
           api-level: 36
           target: google_apis
           arch: x86_64
-          profile: pixel_8
           script: cd frontend && flutter test integration_test/auth_smoke_test.dart -d emulator-5554 --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 
   windows-smoke:
