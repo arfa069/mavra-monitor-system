@@ -20,14 +20,15 @@
 ## Adapter 模式
 
 ```text
-base.py                    BasePlatformAdapter (ABC)
+base.py                    BasePlatformAdapter (ABC，CDP fallback)
 strategies/css_selector    价格提取策略 1
 strategies/js_deep_scan    价格提取策略 2（淘宝）
 strategies/chained         多个策略按顺序试
 
-taobao.py / jd.py / amazon.py  继承 Base，注入策略
-boss_cloak_experimental.py     走 curl_cffi + CloakBrowser
-job51.py / liepin.py           走 curl_cffi
+taobao_opencli.py / jd_opencli.py  商品走 OpenCLI 子进程提取价格
+firecrawl_product.py               走 Firecrawl Cloud API 兜底
+boss_cloak_experimental.py         走 curl_cffi + CloakBrowser
+job51.py / liepin.py               走 curl_cffi
 ```
 
 **Adapter 自己负责**：

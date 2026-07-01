@@ -16,7 +16,7 @@ Auth write paths use a shared strong-password policy: new registrations, passwor
 - **Web Framework**: FastAPI (async via asyncio)
 - **Database**: PostgreSQL (async via SQLAlchemy)
 - **Cache**: Redis
-- **Crawler**: Playwright for product pages; `curl_cffi` HTTP clients for job platforms; CloakBrowser for Boss cookie refresh
+- **Crawler**: OpenCLI (JD/Taobao), Firecrawl (product pages); `curl_cffi` HTTP clients for job platforms; CloakBrowser for Boss cookie refresh. Playwright `base.py` retained for CDP fallback.
 - **Notification**: Feishu Webhook
 - **Frontend**: Flutter + Dart (mobile-responsive, desktop-dense, WCAG accessible)
 - **API Generation**: OpenAPI Generator CLI + generated Dart Dio package (automated End-to-End Type Safety)
@@ -81,12 +81,13 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 
 **Status endpoint**: `GET /scheduler/status` returns all registered jobs in `products_platforms` and `job_configs` objects.
 
-### Browser Modes
+### Browser Modes (CDP Fallback)
 
-1. **Launch mode** (default): Launches a Chromium instance per crawl. It is headless by default and can be made visible for local debugging with `CRAWLER_HEADLESS=false`.
-2. **CDP mode**: Connects to an existing browser via Chrome DevTools Protocol (`--remote-debugging-port=9222`). Reuses cookies/login sessions to bypass anti-bot detection.
+1. **OpenCLI mode** (default for products): Calls platform-specific CLI tools (`jd_opencli`, `taobao_opencli`) for price extraction — no browser session needed.
+2. **Firecrawl mode**: Alternative product crawl path via Firecrawl Cloud API.
+3. **CDP mode**: Connects to an existing browser via Chrome DevTools Protocol (`--remote-debugging-port=9222`). Reuses cookies/login sessions for platforms needing login state.
 
-### Page Load Strategy
+### Page Load Strategy (CDP Fallback)
 
 - Uses `domcontentloaded` instead of `networkidle` (avoids stalling on ad trackers/WebSocket pings)
 - Explicitly waits for price selectors to appear
@@ -332,17 +333,16 @@ APScheduler (AsyncIOScheduler) is managed by FastAPI's lifespan startup/shutdown
 ## Platform Adapter Pattern
 
 ```
-backend/app/platforms/base.py     — BasePlatformAdapter (ABC): _init_browser, crawl, extract_price/title
-backend/app/platforms/taobao.py   — TaobaoAdapter
-backend/app/platforms/jd.py       — JDAdapter
-backend/app/platforms/amazon.py   — AmazonAdapter
-backend/app/platforms/boss.py    — BossZhipinAdapter (legacy CDP + curl_cffi)
+backend/app/platforms/base.py              — BasePlatformAdapter (ABC): browser lifecycle, navigation, extraction interface (CDP fallback)
+backend/app/platforms/firecrawl_product.py — FirecrawlProductAdapter (Firecrawl Cloud API for product pages)
+backend/app/platforms/jd_opencli.py        — JD OpenCLI (subprocess CLI for JD price extraction)
+backend/app/platforms/taobao_opencli.py    — Taobao OpenCLI (subprocess CLI for Taobao price extraction)
 backend/app/platforms/boss_cloak_experimental.py — BossCloakExperimentalAdapter (CloakBrowser cookies + curl_cffi)
-backend/app/platforms/job51.py   — Job51Adapter (curl_cffi)
-backend/app/platforms/liepin.py  — LiepinAdapter (curl_cffi)
+backend/app/platforms/job51.py             — Job51Adapter (curl_cffi)
+backend/app/platforms/liepin.py            — LiepinAdapter (curl_cffi)
 ```
 
-Each product adapter implements `extract_price()` and `extract_title()`. The base class manages browser lifecycle (launch or CDP connection), page navigation with timeout handling, and error recovery.
+Product crawl now uses OpenCLI (`crawl_one_opencli`) or Firecrawl (`crawl_one_firecrawl`) instead of Playwright-based browser adapters. The Playwright `BasePlatformAdapter` is retained in `base.py` for CDP fallback paths only. Job adapters (`boss_cloak_experimental`, `job51`, `liepin`) operate via `curl_cffi` HTTP, not Playwright.
 
 ### Job Crawling Adapters
 

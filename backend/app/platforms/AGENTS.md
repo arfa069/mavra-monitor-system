@@ -2,23 +2,24 @@
 
 ## OVERVIEW
 
-平台爬虫适配层：商品用 Playwright/CDP，职位优先 HTTP + `curl_cffi`，Boss 用 CloakBrowser 刷新 cookie。
+平台爬虫适配层：商品优先 OpenCLI/Firecrawl（不再依赖 Playwright），职位优先 HTTP + `curl_cffi`，Boss 用 CloakBrowser 刷新 cookie。`base.py` Playwright 仍保留作 CDP fallback。
 
 ## WHERE TO LOOK
 
 | Platform             | Location                             | Notes                                                                                         |
 | -------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Base product adapter | `base.py`                            | Browser lifecycle, navigation, extraction contract                                            |
-| JD/Taobao OpenCLI    | `jd_opencli.py`, `taobao_opencli.py` | Product anti-bot helper paths                                                                 |
+| Base product adapter | `base.py`                            | Browser lifecycle, navigation, extraction contract (CDP fallback only)                        |
+| JD/Taobao OpenCLI    | `jd_opencli.py`, `taobao_opencli.py` | Product anti-bot helper paths (primary for JD/Taobao)                                         |
+| Firecrawl Cloud API  | `firecrawl_product.py`               | Alternative product crawl via Firecrawl API                                                   |
 | Boss                 | `boss_cloak_experimental.py`         | Active Boss path; cookie refresh + serial HTTP                                                |
 | 51job                | `job51.py`                           | `curl_cffi` search + HTML detail parsing                                                      |
 | Liepin               | `liepin.py`                          | HTTP search/detail; supports Chromium profile cookie decryption; should not open browser tabs |
-| Strategies           | `strategies/*.py`                    | Price extraction strategies                                                                   |
+| Strategies           | `strategies/*.py`                    | Price extraction strategies (CDP fallback only)                                               |
 | Middleware           | `middleware/cookie_injection.py`     | Optional JD cookie fallback injection                                                         |
 
 ## CONVENTIONS
 
-- Product adapters own extraction logic; browser/profile lifecycle should stay in crawling domain when profile-managed.
+- Product adapters own extraction logic; browser/profile lifecycle should stay in crawling domain when profile-managed. Product crawl primary path is now OpenCLI (`crawl_one_opencli`) or Firecrawl (`crawl_one_firecrawl`), not Playwright.
 - Boss list/detail requests stay serial and browser-like via `curl_cffi` impersonation.
 - Liepin search posts to `api-c.liepin.com`; detail parsing covers `/job/` and `/a/` URLs. Supports loading Chromium profile cookies under Windows (via DPAPI) to bypass challenge verification.
 - `JD_COOKIE` is emergency fallback only when explicitly enabled.

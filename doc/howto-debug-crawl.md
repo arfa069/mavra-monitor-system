@@ -132,11 +132,10 @@ ExtractionError: no price selector matched
 # powershell 进 backend/ 目录后
 uv run --extra dev python -c "
 import asyncio
-from app.platforms.jd import JDAdapter
+from app.platforms.jd_opencli import crawl_jd_via_opencli
 
 async def main():
-    a = JDAdapter(headless=False)
-    result = await a.crawl('https://item.jd.com/100012345678.html')
+    result = await crawl_jd_via_opencli('https://item.jd.com/100012345678.html')
     print(result)
 
 asyncio.run(main())

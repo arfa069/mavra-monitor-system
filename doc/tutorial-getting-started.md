@@ -80,7 +80,7 @@ powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start
 3. 爬虫 worker（`python -m app.workers.crawler --kind all`，使用后端虚拟环境）
 4. Next.js 公共博客（端口 3001）
 
-Codex 内建浏览器直接打开 `http://127.0.0.1:3000` 即可截图和 QA。
+内建浏览器直接打开 `http://127.0.0.1:3000` 即可截图和 QA。
 需要 Flutter Inspector 时使用：
 `powershell.exe -Command "powershell -ExecutionPolicy Bypass -File 'scripts/start_server.ps1' -ChromeDev"`。
 如果本次不需要公共博客，可以加 `-NoBlogFrontend`。

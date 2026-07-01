@@ -1,7 +1,7 @@
 # 商品域 API 参考
 
 > 本页是商品监控子系统的完整接口参考。
-> 路由前缀：`/api/v1`（前端调用路径）。后端同时在 `/` 和 `/v1` 兼容旧客户端。
+> 路由前缀：`/api/v1`（前端调用路径）。
 > 端点对应文件：`backend/app/domains/products/router.py`、`backend/app/domains/crawling/router.py`、`backend/app/domains/alerts/router.py`、`backend/app/domains/smart_home/router.py`、`backend/app/domains/config/router.py`。
 
 ## 通用约定

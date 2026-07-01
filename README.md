@@ -43,7 +43,7 @@ flutter run -d web-server --web-hostname 127.0.0.1 --web-port 3000 --dart-define
 
 > **Windows note**: Do **not** add `--reload` — it breaks Playwright's subprocess handling. Run uvicorn through the backend uv environment as shown above.
 >
-> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts the backend on `8000`, the Flutter main app via `web-server` on `3000`, the crawler worker, and the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first, then open the Flutter app at `http://127.0.0.1:3000` in the Codex in-app browser. Use `-ChromeDev` for Flutter DevTools/Inspector, `-StaticFrontend` to serve `frontend/build/web` after `flutter build web`, or `-FlutterDev` as the compatibility alias for the default web-server mode. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
+> `scripts/start_server.ps1` uses `backend/.venv/Scripts/python.exe` by default and starts the backend on `8000`, the Flutter main app via `web-server` on `3000`, the crawler worker, and the Next.js public blog on `3001`. Run `cd backend; uv sync --extra dev` first, then open the Flutter app at `http://127.0.0.1:3000` in the browser. Use `-ChromeDev` for Flutter DevTools/Inspector, `-StaticFrontend` to serve `frontend/build/web` after `flutter build web`, or `-FlutterDev` as the compatibility alias for the default web-server mode. Use `-NoBlogFrontend`, `-NoCrawlerWorker`, or `-BackendOnly` to trim local services.
 
 ## Configuration
 
