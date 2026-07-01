@@ -55,6 +55,22 @@ retry_command() {
   done
 }
 
+ensure_alembic_cli() {
+  if command -v alembic >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "[INFO] Installing Alembic CLI for database migrations"
+  python -m pip install "alembic>=1.13.1"
+}
+
+restart_termux_stack() {
+  cd "$PROJECT_ROOT"
+  tmux kill-session -t mavra-backend 2>/dev/null || true
+  tmux kill-session -t mavra-blog 2>/dev/null || true
+  bash "$PROJECT_ROOT/scripts/start_termux_stack.sh"
+}
+
 cleanup_sensitive_files() {
   if [[ -n "$GITHUB_CURL_CONFIG" ]]; then
     rm -f "$GITHUB_CURL_CONFIG"
@@ -208,9 +224,7 @@ restore_static_artifacts() {
     rm -rf "$BLOG_PUBLIC_DIR"
   fi
 
-  tmux kill-session -t mavra-backend 2>/dev/null || true
-  tmux kill-session -t mavra-blog 2>/dev/null || true
-  bash scripts/start_termux_stack.sh
+  restart_termux_stack
 
   RESTORE_COMPLETED=1
 }
@@ -301,12 +315,11 @@ if [[ -d "$EXTRACT_DIR/public" ]]; then
 fi
 
 cd "$PROJECT_ROOT/backend"
-python -m alembic upgrade head
+ensure_alembic_cli
+alembic upgrade head
 cd "$PROJECT_ROOT"
 
-tmux kill-session -t mavra-backend 2>/dev/null || true
-tmux kill-session -t mavra-blog 2>/dev/null || true
-bash scripts/start_termux_stack.sh
+restart_termux_stack
 
 if ! curl -fsS http://127.0.0.1:8000/health >/dev/null; then
   echo "[ERROR] Backend health check failed after deploy" >&2

@@ -79,7 +79,7 @@ function Invoke-SshScript {
     [string]$Script
   )
 
-  $normalizedScript = $Script.Replace("`r`n", "`n").Replace("`r", "`n")
+  $normalizedScript = $Script.Replace("`r`n", "`n").Replace("`r", "`n").TrimStart([char]0xFEFF)
   if (-not $normalizedScript.EndsWith("`n")) {
     $normalizedScript += "`n"
   }
@@ -194,7 +194,7 @@ try {
     }
   }
 
-  $remoteScriptContent = [System.IO.File]::ReadAllText($remoteScriptPath).Replace("`r`n", "`n").Replace("`r", "`n")
+  $remoteScriptContent = [System.IO.File]::ReadAllText($remoteScriptPath).Replace("`r`n", "`n").Replace("`r", "`n").TrimStart([char]0xFEFF)
   [System.IO.File]::WriteAllText($remoteScriptUploadPath, $remoteScriptContent, (New-Object System.Text.UTF8Encoding($false)))
 
   $incomingQuoted = ConvertTo-BashSingleQuoted $incoming
