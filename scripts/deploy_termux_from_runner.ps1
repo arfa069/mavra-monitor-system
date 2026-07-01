@@ -52,6 +52,83 @@ function Copy-FileWithScp {
   Invoke-ExternalCommand -FilePath "scp" -ArgumentList ($ScpBaseArgs + @($SourcePath, $RemoteTarget))
 }
 
+function Invoke-GitCapture {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$ArgumentList
+  )
+
+  $output = & "git" @ArgumentList
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command failed with exit code ${LASTEXITCODE}: git $($ArgumentList -join ' ')"
+  }
+
+  return (($output | Select-Object -Last 1) -as [string]).Trim()
+}
+
+function Get-RemoteCurrentSha {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $true)]
+    [string]$AppDir
+  )
+
+  $remoteCommand = "cd $(ConvertTo-BashSingleQuoted $AppDir) && git rev-parse HEAD 2>/dev/null || true"
+  $output = & "ssh" @($SshBase + @($Remote, $remoteCommand))
+  if ($LASTEXITCODE -ne 0) {
+    return ""
+  }
+
+  return (($output | Select-Object -Last 1) -as [string]).Trim()
+}
+
+function New-DeploySourceBundle {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$RepoRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$DeploySha,
+
+    [Parameter(Mandatory = $false)]
+    [string]$RemoteCurrentSha = "",
+
+    [Parameter(Mandatory = $true)]
+    [string]$BundlePath
+  )
+
+  $currentHead = Invoke-GitCapture -ArgumentList @("-C", $RepoRoot, "rev-parse", "HEAD")
+  if ($currentHead -ne $DeploySha) {
+    throw "Local checkout HEAD ($currentHead) does not match DEPLOY_SHA ($DeploySha)."
+  }
+
+  if ($RemoteCurrentSha -eq $DeploySha) {
+    Write-Host "[INFO] Remote source already at $DeploySha; skipping source bundle upload."
+    return $false
+  }
+
+  $bundleArgs = @("-C", $RepoRoot, "bundle", "create", $BundlePath, "HEAD")
+  if ($RemoteCurrentSha -match "^[0-9a-f]{40}$") {
+    & "git" @("-C", $RepoRoot, "merge-base", "--is-ancestor", $RemoteCurrentSha, $DeploySha) *> $null
+    if ($LASTEXITCODE -eq 0) {
+      $bundleArgs += "^$RemoteCurrentSha"
+      Write-Host "[INFO] Creating incremental source bundle from $($RemoteCurrentSha.Substring(0, 8)) to $($DeploySha.Substring(0, 8))."
+    } else {
+      Write-Host "[INFO] Remote SHA is not an ancestor of DEPLOY_SHA; creating full source bundle."
+    }
+  } else {
+    Write-Host "[INFO] Remote SHA unavailable; creating full source bundle."
+  }
+
+  Invoke-ExternalCommand -FilePath "git" -ArgumentList $bundleArgs
+  return $true
+}
+
 function Get-FreeTcpPort {
   $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, 0)
   try {
@@ -717,6 +794,7 @@ $keyPath = Join-Path $sshDir "deploy_key"
 $knownHostsPath = Join-Path $sshDir "known_hosts"
 $remoteScriptUploadPath = Join-Path $sshDir "deploy_termux_remote.sh"
 $remoteEnvUploadPath = Join-Path $sshDir "deploy_env.sh"
+$sourceBundlePath = Join-Path $sshDir "source.bundle"
 
 [System.IO.File]::WriteAllText($keyPath, $env:TERMUX_SSH_KEY.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
 [System.IO.File]::WriteAllText($knownHostsPath, $env:TERMUX_KNOWN_HOSTS.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
@@ -759,6 +837,11 @@ try {
   $incomingQuoted = ConvertTo-BashSingleQuoted $incoming
   Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p $incomingQuoted"))
   Copy-FileWithScp -SourcePath $remoteScriptUploadPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
+
+  $remoteCurrentSha = Get-RemoteCurrentSha -Remote $remote -SshBase $sshBase -AppDir $env:TERMUX_APP_DIR
+  if (New-DeploySourceBundle -RepoRoot $repoRoot -DeploySha $env:DEPLOY_SHA -RemoteCurrentSha $remoteCurrentSha -BundlePath $sourceBundlePath) {
+    Copy-FileWithScp -SourcePath $sourceBundlePath -RemoteTarget "${remote}:$incoming/source.bundle" -ScpBaseArgs $scpBase
+  }
 
   if (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
     $artifactRoot = (Resolve-Path -LiteralPath $env:TERMUX_ARTIFACT_DIR).Path

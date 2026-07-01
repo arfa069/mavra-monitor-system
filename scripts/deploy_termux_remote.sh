@@ -14,6 +14,7 @@ cd "$PROJECT_ROOT"
 INCOMING_DIR="$PROJECT_ROOT/.deploy/incoming/$DEPLOY_SHA"
 BACKUP_ROOT="$PROJECT_ROOT/.deploy/backups/$(date +%Y%m%d-%H%M%S)-$DEPLOY_SHA"
 EXTRACT_DIR="$INCOMING_DIR/extracted"
+SOURCE_BUNDLE="$INCOMING_DIR/source.bundle"
 FRONTEND_DIR="$PROJECT_ROOT/frontend/build/web"
 BLOG_STANDALONE_DIR="$PROJECT_ROOT/blog-frontend/.next/standalone"
 BLOG_STATIC_DIR="$PROJECT_ROOT/blog-frontend/.next/static"
@@ -342,10 +343,19 @@ if [[ -n "$TRACKED_CHANGES" ]]; then
   exit 3
 fi
 
-if ! retry_command git fetch --depth=1 origin "$DEPLOY_SHA"; then
-  retry_command git fetch origin main
+CURRENT_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+if [[ "$CURRENT_SHA" == "$DEPLOY_SHA" ]]; then
+  echo "[INFO] Source already at $DEPLOY_SHA"
+elif [[ -f "$SOURCE_BUNDLE" ]]; then
+  echo "[INFO] Updating source from runner-provided Git bundle"
+  retry_command git fetch "$SOURCE_BUNDLE" HEAD
+else
+  echo "[WARN] Source bundle missing; falling back to GitHub fetch" >&2
+  if ! retry_command git fetch --depth=1 origin "$DEPLOY_SHA"; then
+    retry_command git fetch origin main
+  fi
 fi
-git checkout "$DEPLOY_SHA"
+git checkout --detach "$DEPLOY_SHA"
 
 ensure_incoming_artifacts
 
