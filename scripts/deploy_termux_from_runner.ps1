@@ -517,7 +517,7 @@ function Start-RemoteArtifactReceiver {
       continue
     }
 
-    $pid = ($pidOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
+    $receiverProcessId = ($pidOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
     $baseUrl = "http://$($env:TERMUX_HOST):$port/$token"
     try {
       Wait-ForArtifactReceiver -HealthUrl "$baseUrl/health"
@@ -525,13 +525,13 @@ function Start-RemoteArtifactReceiver {
         Port = $port
         Token = $token
         BaseUrl = $baseUrl
-        Pid = $pid
+        Pid = $receiverProcessId
         LocalScriptPath = $localScriptPath
         RemoteScriptPath = $remoteScriptPath
       }
     } catch {
-      if ($pid) {
-        & "ssh" @($SshBase + @($Remote, "kill $pid 2>/dev/null || true")) *> $null
+      if ($receiverProcessId) {
+        & "ssh" @($SshBase + @($Remote, "kill $receiverProcessId 2>/dev/null || true")) *> $null
       }
     }
   }
