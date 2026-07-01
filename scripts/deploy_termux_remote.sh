@@ -71,9 +71,10 @@ handle_error() {
 
 trap handle_error ERR
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "[ERROR] Remote worktree has uncommitted changes:" >&2
-  git status --short >&2
+TRACKED_CHANGES="$(git status --porcelain --untracked-files=no)"
+if [[ -n "$TRACKED_CHANGES" ]]; then
+  echo "[ERROR] Remote worktree has uncommitted tracked changes:" >&2
+  git status --short --untracked-files=no >&2
   exit 3
 fi
 
