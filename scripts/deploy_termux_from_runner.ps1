@@ -37,74 +37,6 @@ function ConvertTo-BashSingleQuoted {
   return "'" + $Value.Replace("'", "'\''") + "'"
 }
 
-function ConvertTo-ProcessArgument {
-  param(
-    [AllowNull()]
-    [string]$Value
-  )
-
-  if ($null -eq $Value) {
-    $Value = ""
-  }
-
-  if ($Value -eq "") {
-    return '""'
-  }
-
-  if ($Value -notmatch '[\s"]') {
-    return $Value
-  }
-
-  return '"' + (($Value -replace '(\\*)"', '$1$1\"') -replace '(\\+)$', '$1$1') + '"'
-}
-
-function Join-ProcessArguments {
-  param(
-    [Parameter(Mandatory = $true)]
-    [string[]]$ArgumentList
-  )
-
-  return ($ArgumentList | ForEach-Object { ConvertTo-ProcessArgument $_ }) -join " "
-}
-
-function Invoke-SshScript {
-  param(
-    [Parameter(Mandatory = $true)]
-    [string]$Remote,
-
-    [Parameter(Mandatory = $true)]
-    [string[]]$SshBaseArgs,
-
-    [Parameter(Mandatory = $true)]
-    [string]$Script
-  )
-
-  $normalizedScript = $Script.Replace("`r`n", "`n").Replace("`r", "`n").TrimStart([char]0xFEFF)
-  if (-not $normalizedScript.EndsWith("`n")) {
-    $normalizedScript += "`n"
-  }
-
-  $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-  $processInfo.FileName = "ssh"
-  $processInfo.Arguments = Join-ProcessArguments ($SshBaseArgs + @($Remote, "bash -s"))
-  $processInfo.UseShellExecute = $false
-  $processInfo.RedirectStandardInput = $true
-
-  $process = New-Object System.Diagnostics.Process
-  $process.StartInfo = $processInfo
-
-  [void]$process.Start()
-  $stdinBytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($normalizedScript)
-  $process.StandardInput.BaseStream.Write($stdinBytes, 0, $stdinBytes.Length)
-  $process.StandardInput.BaseStream.Flush()
-  $process.StandardInput.Close()
-  $process.WaitForExit()
-
-  if ($process.ExitCode -ne 0) {
-    throw "Remote SSH script failed with exit code $($process.ExitCode)"
-  }
-}
-
 function Copy-FileWithScp {
   param(
     [Parameter(Mandatory = $true)]
@@ -158,6 +90,7 @@ New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
 $keyPath = Join-Path $sshDir "deploy_key"
 $knownHostsPath = Join-Path $sshDir "known_hosts"
 $remoteScriptUploadPath = Join-Path $sshDir "deploy_termux_remote.sh"
+$remoteEnvUploadPath = Join-Path $sshDir "deploy_env.sh"
 
 [System.IO.File]::WriteAllText($keyPath, $env:TERMUX_SSH_KEY.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
 [System.IO.File]::WriteAllText($knownHostsPath, $env:TERMUX_KNOWN_HOSTS.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
@@ -201,18 +134,43 @@ try {
   Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p $incomingQuoted"))
   Copy-FileWithScp -SourcePath $remoteScriptUploadPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
 
-  $remoteScript = @"
-set -euo pipefail
-export PROJECT_ROOT_OVERRIDE=$(ConvertTo-BashSingleQuoted $env:TERMUX_APP_DIR)
-export GITHUB_TOKEN=$(ConvertTo-BashSingleQuoted $env:GITHUB_TOKEN)
-export GITHUB_REPOSITORY=$(ConvertTo-BashSingleQuoted $env:GITHUB_REPOSITORY)
-export GITHUB_RUN_ID=$(ConvertTo-BashSingleQuoted $env:GITHUB_RUN_ID)
-export FRONTEND_ARTIFACT_NAME='termux-frontend-web'
-export BLOG_ARTIFACT_NAME='termux-blog-build'
-exec bash $(ConvertTo-BashSingleQuoted "$incoming/deploy_termux_remote.sh") $(ConvertTo-BashSingleQuoted $env:DEPLOY_SHA)
-"@
+  if (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
+    $artifactRoot = (Resolve-Path -LiteralPath $env:TERMUX_ARTIFACT_DIR).Path
+    $frontendArtifact = Join-Path (Join-Path $artifactRoot "frontend") "frontend-web.tar.gz"
+    $blogStandaloneArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-standalone.tar.gz"
+    $blogStaticArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-static.tar.gz"
+    $blogPublicArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-public.tar.gz"
 
-  Invoke-SshScript -Remote $remote -SshBaseArgs $sshBase -Script $remoteScript
+    foreach ($artifactPath in @($frontendArtifact, $blogStandaloneArtifact, $blogStaticArtifact)) {
+      if (-not (Test-Path -LiteralPath $artifactPath)) {
+        throw "Downloaded deploy artifact missing: $artifactPath"
+      }
+    }
+
+    Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN."
+    Copy-FileWithScp -SourcePath $frontendArtifact -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
+    Copy-FileWithScp -SourcePath $blogStandaloneArtifact -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
+    Copy-FileWithScp -SourcePath $blogStaticArtifact -RemoteTarget "${remote}:$incoming/blog-static.tar.gz" -ScpBaseArgs $scpBase
+    if (Test-Path -LiteralPath $blogPublicArtifact) {
+      Copy-FileWithScp -SourcePath $blogPublicArtifact -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
+    }
+  }
+
+  $remoteEnvContent = @(
+    "export PROJECT_ROOT_OVERRIDE=$(ConvertTo-BashSingleQuoted $env:TERMUX_APP_DIR)",
+    "export GITHUB_TOKEN=$(ConvertTo-BashSingleQuoted $env:GITHUB_TOKEN)",
+    "export GITHUB_REPOSITORY=$(ConvertTo-BashSingleQuoted $env:GITHUB_REPOSITORY)",
+    "export GITHUB_RUN_ID=$(ConvertTo-BashSingleQuoted $env:GITHUB_RUN_ID)",
+    "export FRONTEND_ARTIFACT_NAME='termux-frontend-web'",
+    "export BLOG_ARTIFACT_NAME='termux-blog-build'"
+  ) -join "`n"
+  [System.IO.File]::WriteAllText($remoteEnvUploadPath, $remoteEnvContent + "`n", (New-Object System.Text.UTF8Encoding($false)))
+  Copy-FileWithScp -SourcePath $remoteEnvUploadPath -RemoteTarget "${remote}:$incoming/deploy_env.sh" -ScpBaseArgs $scpBase
+
+  $remoteEnvPath = "$incoming/deploy_env.sh"
+  $remoteScriptPathOnHost = "$incoming/deploy_termux_remote.sh"
+  $remoteCommand = "set -euo pipefail; chmod 600 $(ConvertTo-BashSingleQuoted $remoteEnvPath); . $(ConvertTo-BashSingleQuoted $remoteEnvPath); rm -f $(ConvertTo-BashSingleQuoted $remoteEnvPath); exec bash $(ConvertTo-BashSingleQuoted $remoteScriptPathOnHost) $(ConvertTo-BashSingleQuoted $env:DEPLOY_SHA)"
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, $remoteCommand))
 } finally {
   Remove-Item -LiteralPath $sshDir -Recurse -Force -ErrorAction SilentlyContinue
 }

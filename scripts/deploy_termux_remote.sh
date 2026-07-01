@@ -64,6 +64,49 @@ ensure_alembic_cli() {
   python -m pip install "alembic>=1.13.1"
 }
 
+postgres_tcp_ready() {
+  python - "${POSTGRES_HOST:-127.0.0.1}" "${POSTGRES_PORT:-5432}" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+
+try:
+    with socket.create_connection((host, port), timeout=2):
+        pass
+except OSError:
+    raise SystemExit(1)
+PY
+}
+
+ensure_postgresql_ready() {
+  local data_dir="${POSTGRES_DATA_DIR:-${PREFIX:-/data/data/com.termux/files/home}/var/lib/postgresql}"
+  local log_file="${POSTGRES_LOG:-$data_dir/logfile}"
+  local attempt
+
+  if postgres_tcp_ready; then
+    return
+  fi
+
+  echo "[INFO] Starting PostgreSQL for database migrations"
+  mkdir -p "$data_dir"
+  if ! pg_ctl -D "$data_dir" status >/dev/null 2>&1; then
+    pg_ctl -D "$data_dir" start -l "$log_file"
+  fi
+
+  for attempt in $(seq 1 20); do
+    if postgres_tcp_ready; then
+      return
+    fi
+    sleep 1
+  done
+
+  echo "[ERROR] PostgreSQL did not become reachable on ${POSTGRES_HOST:-127.0.0.1}:${POSTGRES_PORT:-5432}" >&2
+  pg_ctl -D "$data_dir" status >&2 || true
+  return 1
+}
+
 restart_termux_stack() {
   cd "$PROJECT_ROOT"
   tmux kill-session -t mavra-backend 2>/dev/null || true
@@ -316,6 +359,7 @@ fi
 
 cd "$PROJECT_ROOT/backend"
 ensure_alembic_cli
+ensure_postgresql_ready
 alembic upgrade head
 cd "$PROJECT_ROOT"
 

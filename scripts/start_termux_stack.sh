@@ -37,6 +37,10 @@ start_session() {
   echo "[OK] Started tmux session: $session_name"
 }
 
+nginx_process_running() {
+  ps -ef | grep -Eq "[n]ginx"
+}
+
 require_cmd tmux
 require_cmd nginx
 require_cmd redis-server
@@ -74,7 +78,11 @@ start_session "$BLOG_SESSION" "cd '$BLOG_STANDALONE_DIR' && exec env NODE_ENV=pr
 
 echo "[Start] Nginx"
 if nginx -t >/dev/null 2>&1; then
-  if ! nginx -s reload >/dev/null 2>&1; then
+  if nginx -s reload >/dev/null 2>&1; then
+    echo "[OK] Reloaded Nginx"
+  elif nginx_process_running; then
+    echo "[OK] Nginx already running"
+  else
     nginx
   fi
 else

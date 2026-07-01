@@ -381,6 +381,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download Flutter Web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: termux-frontend-web
+          path: ${{ runner.temp }}/mavra-termux-artifacts/frontend
+
+      - name: Download blog artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: termux-blog-build
+          path: ${{ runner.temp }}/mavra-termux-artifacts/blog
+
       - name: Deploy to Termux
         shell: powershell
         env:
@@ -394,6 +406,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          TERMUX_ARTIFACT_DIR: ${{ runner.temp }}/mavra-termux-artifacts
         run: ./scripts/deploy_termux_from_runner.ps1
 
   android-smoke:
