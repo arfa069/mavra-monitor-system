@@ -331,6 +331,36 @@ jobs:
         run: npm run build
         working-directory: blog-frontend
 
+  deploy-termux:
+    name: Deploy Termux
+    runs-on: [self-hosted, Windows, mavra-deploy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - lint
+      - test
+      - compile
+      - api-contract
+      - flutter-web-fast
+      - blog
+    environment: production-termux
+    concurrency:
+      group: production-termux
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Termux
+        shell: pwsh
+        env:
+          TERMUX_HOST: ${{ vars.TERMUX_HOST }}
+          TERMUX_PORT: ${{ vars.TERMUX_PORT }}
+          TERMUX_USER: ${{ vars.TERMUX_USER }}
+          TERMUX_APP_DIR: ${{ vars.TERMUX_APP_DIR }}
+          TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
+          TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: ./scripts/deploy_termux_from_runner.ps1
+
   android-smoke:
     name: Android build and smoke
     runs-on: ubuntu-latest

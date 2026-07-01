@@ -9,6 +9,66 @@
 Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，并能通过浏览器正常打开。
 Flutter 主前端已切回 hash 路由，并由 Nginx 接管 3000 端口，把 `/api/v1` 反代到后端，避免静态托管下登录 POST 落到文件服务器返回 501。
 博客也已经并入同一个 Nginx 入口，`/blog`、`/_next`、`/blog-media`、`/robots.txt` 和 `/sitemap.xml` 都由 3000 统一对外提供。
+GitHub Actions 到 Termux 的 CD 方案也已经落到仓库：当 `main` 上六个质量门都通过后，会由局域网内的 Windows 自托管 runner 构建 Flutter Web 和博客，并通过 SSH 上传到手机服务器后执行远端部署脚本。
+
+## Termux CD
+
+### GitHub 环境配置
+
+新增的 GitHub Actions 部署环境如下：
+
+```text
+Environment: production-termux
+Runner labels: self-hosted, Windows, mavra-deploy
+Variables:
+  TERMUX_HOST=192.168.1.13
+  TERMUX_PORT=8022
+  TERMUX_USER=u0_a323
+  TERMUX_APP_DIR=/data/data/com.termux/files/home/apps/mavra-monitor-system
+  TERMUX_KNOWN_HOSTS=<ssh-keyscan result for 192.168.1.13:8022>
+Secrets:
+  TERMUX_SSH_KEY=<deployment private key>
+```
+
+说明：
+
+- 触发条件是 `push` 到 `main`。
+- `deploy-termux` 必须等待 `lint`、`test`、`compile`、`api-contract`、`flutter-web-fast`、`blog` 六个任务全部通过。
+- 部署使用 `production-termux` 环境串行执行，不会取消正在进行中的上一次生产部署。
+
+### 构建与发布链路
+
+当前 CD 链路分两段：
+
+1. Windows 自托管 runner 本地构建：
+   - `frontend`: `flutter build web --dart-define=API_BASE_URL=/api/v1`
+   - `blog-frontend`: `npm ci && npm run build`
+2. 构建完成后，把产物上传到远端：
+   - `frontend/build/web`
+   - `blog-frontend/.next/standalone`
+   - `blog-frontend/.next/static`
+   - `blog-frontend/public`（如果存在）
+
+远端真正替换线上目录前，会先把上传内容放到：
+
+```text
+.deploy/incoming/<git-sha>
+```
+
+### 回滚边界
+
+如果上传后的静态产物替换完成，但后续迁移、重启或健康检查失败，远端脚本会恢复上一版 Flutter Web 和博客静态产物，再重新拉起服务。
+
+数据库迁移不会自动回滚；如需手动恢复，请使用：
+
+```text
+.deploy/backups/<timestamp>-<git-sha>/database.sql
+```
+
+也就是说：
+
+- 静态站点资源支持自动回退；
+- 数据库只保留 `pg_dump` 备份，需要人工决定是否恢复。
 
 ## 前端构建与运行
 
