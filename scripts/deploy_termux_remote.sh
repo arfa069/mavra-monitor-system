@@ -55,6 +55,30 @@ retry_command() {
   done
 }
 
+wait_for_curl() {
+  local description="$1"
+  shift
+  local max_attempts="${HEALTHCHECK_ATTEMPTS:-45}"
+  local delay_seconds="${HEALTHCHECK_DELAY_SECONDS:-2}"
+  local curl_max_time="${HEALTHCHECK_CURL_MAX_TIME:-5}"
+  local attempt
+
+  for attempt in $(seq 1 "$max_attempts"); do
+    if curl --max-time "$curl_max_time" "$@" >/dev/null 2>&1; then
+      echo "[OK] $description health check passed"
+      return 0
+    fi
+
+    if [[ "$attempt" -lt "$max_attempts" ]]; then
+      echo "[WARN] $description health check not ready; retrying in ${delay_seconds}s ($attempt/$max_attempts)" >&2
+      sleep "$delay_seconds"
+    fi
+  done
+
+  echo "[ERROR] $description health check failed after $max_attempts attempts" >&2
+  curl --max-time "$curl_max_time" "$@" >/dev/null
+}
+
 ensure_alembic_cli() {
   if command -v alembic >/dev/null 2>&1; then
     return
@@ -365,20 +389,17 @@ cd "$PROJECT_ROOT"
 
 restart_termux_stack
 
-if ! curl -fsS http://127.0.0.1:8000/health >/dev/null; then
-  echo "[ERROR] Backend health check failed after deploy" >&2
+if ! wait_for_curl "Backend" -fsS http://127.0.0.1:8000/health; then
   restore_static_artifacts
   exit 4
 fi
 
-if ! curl -fsSI http://127.0.0.1:3000/ >/dev/null; then
-  echo "[ERROR] Frontend root health check failed after deploy" >&2
+if ! wait_for_curl "Frontend root" -fsSI http://127.0.0.1:3000/; then
   restore_static_artifacts
   exit 5
 fi
 
-if ! curl -fsSI http://127.0.0.1:3000/blog >/dev/null; then
-  echo "[ERROR] Blog health check failed after deploy" >&2
+if ! wait_for_curl "Blog" -fsSI http://127.0.0.1:3000/blog; then
   restore_static_artifacts
   exit 6
 fi
