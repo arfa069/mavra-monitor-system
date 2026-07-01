@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-import nh3
 from bs4 import BeautifulSoup
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +23,11 @@ from app.schemas.blog import (
     BlogPostResponse,
     BlogPostUpdate,
 )
+
+try:
+    import nh3 as _nh3
+except ImportError:
+    _nh3 = None
 
 ALLOWED_MEDIA_TYPES = {
     "image/jpeg": ".jpg",
@@ -61,6 +65,9 @@ ALLOWED_HTML_ATTRIBUTES = {
     "pre": {"class"},
     "span": {"class"},
 }
+CLEAN_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed"}
+URL_ATTRIBUTES = {"href", "src"}
+ALLOWED_URL_SCHEMES = {"", "http", "https", "mailto"}
 
 
 class BlogPostNotFoundError(LookupError):
@@ -83,13 +90,52 @@ def now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+def _is_allowed_url(value: str) -> bool:
+    match = re.match(r"^([a-zA-Z][a-zA-Z0-9+.-]*):", value.strip())
+    scheme = match.group(1).lower() if match else ""
+    return scheme in ALLOWED_URL_SCHEMES
+
+
+def _sanitize_content_html_with_bs4(raw_html: str) -> str:
+    soup = BeautifulSoup(raw_html or "", "html.parser")
+
+    for tag in list(soup.find_all(True)):
+        if tag.name in CLEAN_CONTENT_TAGS:
+            tag.decompose()
+            continue
+
+        if tag.name not in ALLOWED_HTML_TAGS:
+            tag.unwrap()
+            continue
+
+        allowed_attributes = ALLOWED_HTML_ATTRIBUTES.get(tag.name, set())
+        for attribute in list(tag.attrs):
+            if attribute not in allowed_attributes:
+                del tag.attrs[attribute]
+                continue
+
+            value = tag.attrs[attribute]
+            if isinstance(value, list):
+                value = " ".join(value)
+
+            if attribute in URL_ATTRIBUTES and not _is_allowed_url(str(value)):
+                del tag.attrs[attribute]
+            else:
+                tag.attrs[attribute] = value
+
+    return str(soup)
+
+
 def sanitize_content_html(raw_html: str) -> str:
-    return nh3.clean(
+    if _nh3 is None:
+        return _sanitize_content_html_with_bs4(raw_html)
+
+    return _nh3.clean(
         raw_html or "",
         tags=ALLOWED_HTML_TAGS,
         attributes=ALLOWED_HTML_ATTRIBUTES,
-        clean_content_tags={"script", "style", "iframe", "object", "embed"},
-        url_schemes={"http", "https", "mailto", ""},
+        clean_content_tags=CLEAN_CONTENT_TAGS,
+        url_schemes=ALLOWED_URL_SCHEMES,
     )
 
 

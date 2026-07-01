@@ -26,6 +26,24 @@ def test_sanitize_html_removes_scripts_and_event_handlers():
     assert 'src="/blog-media/cover.webp"' in cleaned
 
 
+def test_sanitize_html_falls_back_when_nh3_unavailable(monkeypatch):
+    monkeypatch.setattr(service, "_nh3", None)
+    raw_html = (
+        "<p onclick=\"alert('x')\">Welcome <strong>home</strong></p>"
+        "<a href=\"javascript:alert('x')\" title=\"bad\">bad link</a>"
+        "<script>alert('xss')</script>"
+    )
+
+    cleaned = service.sanitize_content_html(raw_html)
+
+    assert "<script" not in cleaned
+    assert "alert('xss')" not in cleaned
+    assert "onclick" not in cleaned
+    assert "javascript:" not in cleaned
+    assert "<strong>home</strong>" in cleaned
+    assert 'title="bad"' in cleaned
+
+
 @pytest.mark.asyncio
 async def test_generate_unique_slug_adds_numeric_suffix(monkeypatch):
     seen_slugs = {"hello-world"}

@@ -398,6 +398,7 @@ class ArtifactHandler(http.server.BaseHTTPRequestHandler):
                 if not chunk:
                     raise ConnectionError("client disconnected")
                 handle.write(chunk)
+                self._mark_request()
                 remaining -= len(chunk)
 
         os.replace(tmp_path, target_path)
@@ -470,7 +471,7 @@ function Invoke-ArtifactReceiverUpload {
     --retry 3 `
     --retry-delay 2 `
     --connect-timeout 5 `
-    --max-time 600 `
+    --max-time 1800 `
     --upload-file $SourcePath `
     $UploadUrl
 
@@ -509,7 +510,7 @@ function Start-RemoteArtifactReceiver {
     $remoteCommand = @(
       "set -euo pipefail",
       "mkdir -p $(ConvertTo-BashSingleQuoted $Incoming)",
-      "nohup python $(ConvertTo-BashSingleQuoted $remoteScriptPath) --host 0.0.0.0 --port $port --token $(ConvertTo-BashSingleQuoted $token) --directory $(ConvertTo-BashSingleQuoted $Incoming) --idle-timeout 120 --max-lifetime 900 > $(ConvertTo-BashSingleQuoted $remoteLogPath) 2>&1 < /dev/null & echo `$!"
+      "nohup python $(ConvertTo-BashSingleQuoted $remoteScriptPath) --host 0.0.0.0 --port $port --token $(ConvertTo-BashSingleQuoted $token) --directory $(ConvertTo-BashSingleQuoted $Incoming) --idle-timeout 120 --max-lifetime 3600 > $(ConvertTo-BashSingleQuoted $remoteLogPath) 2>&1 < /dev/null & echo `$!"
     ) -join "; "
 
     $pidOutput = & "ssh" @($SshBase + @($Remote, $remoteCommand))
@@ -710,7 +711,7 @@ $runnerTemp = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
   $env:RUNNER_TEMP
 }
 
-$sshDir = Join-Path $runnerTemp "mavra-termux-ssh"
+$sshDir = Join-Path $runnerTemp ("mavra-termux-ssh-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
 $keyPath = Join-Path $sshDir "deploy_key"
 $knownHostsPath = Join-Path $sshDir "known_hosts"
