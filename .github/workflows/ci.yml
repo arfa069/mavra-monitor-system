@@ -350,7 +350,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy to Termux
-        shell: pwsh
+        shell: powershell
         env:
           TERMUX_HOST: ${{ vars.TERMUX_HOST }}
           TERMUX_PORT: ${{ vars.TERMUX_PORT }}
