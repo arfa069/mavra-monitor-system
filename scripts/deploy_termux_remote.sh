@@ -35,6 +35,25 @@ curl_with_retries() {
   fi
 }
 
+retry_command() {
+  local attempt
+  local max_attempts=3
+  local delay_seconds=5
+
+  for attempt in $(seq 1 "$max_attempts"); do
+    if "$@"; then
+      return 0
+    fi
+
+    if [[ "$attempt" -eq "$max_attempts" ]]; then
+      return 1
+    fi
+
+    echo "[WARN] Command failed; retrying in ${delay_seconds}s ($attempt/$max_attempts): $*" >&2
+    sleep "$delay_seconds"
+  done
+}
+
 github_api_curl() {
   local url="$1"
   shift
@@ -190,7 +209,9 @@ if [[ -n "$TRACKED_CHANGES" ]]; then
   exit 3
 fi
 
-git fetch origin main
+if ! retry_command git fetch --depth=1 origin "$DEPLOY_SHA"; then
+  retry_command git fetch origin main
+fi
 git checkout "$DEPLOY_SHA"
 
 ensure_incoming_artifacts

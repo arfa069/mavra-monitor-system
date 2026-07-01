@@ -94,8 +94,9 @@ function Invoke-SshScript {
   $process.StartInfo = $processInfo
 
   [void]$process.Start()
-  $process.StandardInput.NewLine = "`n"
-  $process.StandardInput.Write($normalizedScript)
+  $stdinBytes = (New-Object System.Text.UTF8Encoding($false)).GetBytes($normalizedScript)
+  $process.StandardInput.BaseStream.Write($stdinBytes, 0, $stdinBytes.Length)
+  $process.StandardInput.BaseStream.Flush()
   $process.StandardInput.Close()
   $process.WaitForExit()
 
