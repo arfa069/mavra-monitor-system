@@ -37,6 +37,36 @@ function ConvertTo-BashSingleQuoted {
   return "'" + $Value.Replace("'", "'\''") + "'"
 }
 
+function ConvertTo-ProcessArgument {
+  param(
+    [AllowNull()]
+    [string]$Value
+  )
+
+  if ($null -eq $Value) {
+    $Value = ""
+  }
+
+  if ($Value -eq "") {
+    return '""'
+  }
+
+  if ($Value -notmatch '[\s"]') {
+    return $Value
+  }
+
+  return '"' + (($Value -replace '(\\*)"', '$1$1\"') -replace '(\\+)$', '$1$1') + '"'
+}
+
+function Join-ProcessArguments {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$ArgumentList
+  )
+
+  return ($ArgumentList | ForEach-Object { ConvertTo-ProcessArgument $_ }) -join " "
+}
+
 function Invoke-SshScript {
   param(
     [Parameter(Mandatory = $true)]
@@ -49,9 +79,28 @@ function Invoke-SshScript {
     [string]$Script
   )
 
-  $Script | & ssh @SshBaseArgs $Remote "bash -s"
-  if ($LASTEXITCODE -ne 0) {
-    throw "Remote SSH script failed with exit code ${LASTEXITCODE}"
+  $normalizedScript = $Script.Replace("`r`n", "`n").Replace("`r", "`n")
+  if (-not $normalizedScript.EndsWith("`n")) {
+    $normalizedScript += "`n"
+  }
+
+  $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $processInfo.FileName = "ssh"
+  $processInfo.Arguments = Join-ProcessArguments ($SshBaseArgs + @($Remote, "bash -s"))
+  $processInfo.UseShellExecute = $false
+  $processInfo.RedirectStandardInput = $true
+
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $processInfo
+
+  [void]$process.Start()
+  $process.StandardInput.NewLine = "`n"
+  $process.StandardInput.Write($normalizedScript)
+  $process.StandardInput.Close()
+  $process.WaitForExit()
+
+  if ($process.ExitCode -ne 0) {
+    throw "Remote SSH script failed with exit code $($process.ExitCode)"
   }
 }
 
