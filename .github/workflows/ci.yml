@@ -364,6 +364,9 @@ jobs:
     name: Deploy Termux
     runs-on: [self-hosted, Windows, mavra-deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      actions: read
+      contents: read
     needs:
       - lint
       - test
@@ -378,18 +381,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Flutter Web artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: termux-frontend-web
-          path: deploy-artifacts
-
-      - name: Download blog artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: termux-blog-build
-          path: deploy-artifacts
-
       - name: Deploy to Termux
         shell: powershell
         env:
@@ -400,6 +391,9 @@ jobs:
           TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
           TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
           DEPLOY_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: ./scripts/deploy_termux_from_runner.ps1
 
   android-smoke:

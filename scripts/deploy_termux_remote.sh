@@ -21,6 +21,118 @@ BLOG_PUBLIC_DIR="$PROJECT_ROOT/blog-frontend/public"
 RESTORE_NEEDED=0
 RESTORE_COMPLETED=0
 
+require_env() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "[ERROR] Missing required environment variable: $name" >&2
+    exit 2
+  fi
+}
+
+curl_with_retries() {
+  if ! curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$@"; then
+    curl --retry 3 --retry-delay 2 -fsSL "$@"
+  fi
+}
+
+github_api_curl() {
+  local url="$1"
+  shift
+
+  curl_with_retries \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "$url" \
+    "$@"
+}
+
+artifact_id_from_json() {
+  local artifacts_json="$1"
+  local artifact_name="$2"
+
+  python - "$artifacts_json" "$artifact_name" <<'PY'
+import json
+import sys
+
+artifacts_path = sys.argv[1]
+artifact_name = sys.argv[2]
+
+with open(artifacts_path, encoding="utf-8") as handle:
+    payload = json.load(handle)
+
+for artifact in payload.get("artifacts", []):
+    if artifact.get("name") == artifact_name:
+        print(artifact["id"])
+        raise SystemExit(0)
+
+print(f"artifact not found: {artifact_name}", file=sys.stderr)
+raise SystemExit(1)
+PY
+}
+
+extract_artifact_zip() {
+  local zip_path="$1"
+  local target_dir="$2"
+
+  python - "$zip_path" "$target_dir" <<'PY'
+import sys
+import zipfile
+
+zip_path = sys.argv[1]
+target_dir = sys.argv[2]
+
+with zipfile.ZipFile(zip_path) as archive:
+    for member in archive.infolist():
+        normalized = member.filename.replace("\\", "/")
+        parts = [part for part in normalized.split("/") if part]
+        if normalized.startswith("/") or ".." in parts:
+            raise SystemExit(f"unsafe artifact path: {member.filename}")
+
+    archive.extractall(target_dir)
+PY
+}
+
+download_github_artifact_by_name() {
+  local artifacts_json="$1"
+  local artifact_name="$2"
+  local artifact_id
+  local zip_path
+
+  artifact_id="$(artifact_id_from_json "$artifacts_json" "$artifact_name")"
+  zip_path="$INCOMING_DIR/$artifact_name.zip"
+
+  echo "[INFO] Downloading GitHub artifact: $artifact_name"
+  github_api_curl \
+    "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+    -o "$zip_path"
+
+  extract_artifact_zip "$zip_path" "$INCOMING_DIR"
+}
+
+ensure_incoming_artifacts() {
+  if [[ -f "$INCOMING_DIR/frontend-web.tar.gz" \
+    && -f "$INCOMING_DIR/blog-standalone.tar.gz" \
+    && -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
+    return
+  fi
+
+  require_env GITHUB_TOKEN
+  require_env GITHUB_REPOSITORY
+  require_env GITHUB_RUN_ID
+
+  local artifacts_json="$INCOMING_DIR/github-artifacts.json"
+
+  mkdir -p "$INCOMING_DIR"
+  echo "[INFO] Downloading deployment artifacts from GitHub run $GITHUB_RUN_ID"
+  github_api_curl \
+    "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+    -o "$artifacts_json"
+
+  download_github_artifact_by_name "$artifacts_json" "${FRONTEND_ARTIFACT_NAME:-termux-frontend-web}"
+  download_github_artifact_by_name "$artifacts_json" "${BLOG_ARTIFACT_NAME:-termux-blog-build}"
+}
+
 restore_static_artifacts() {
   if [[ "$RESTORE_COMPLETED" -eq 1 ]]; then
     return
@@ -80,6 +192,8 @@ fi
 
 git fetch origin main
 git checkout "$DEPLOY_SHA"
+
+ensure_incoming_artifacts
 
 test -f "$INCOMING_DIR/frontend-web.tar.gz"
 test -f "$INCOMING_DIR/blog-standalone.tar.gz"

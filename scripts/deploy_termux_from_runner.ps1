@@ -24,6 +24,37 @@ function Invoke-ExternalCommand {
   }
 }
 
+function ConvertTo-BashSingleQuoted {
+  param(
+    [AllowNull()]
+    [string]$Value
+  )
+
+  if ($null -eq $Value) {
+    $Value = ""
+  }
+
+  return "'" + $Value.Replace("'", "'\''") + "'"
+}
+
+function Invoke-SshScript {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBaseArgs,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Script
+  )
+
+  $Script | & ssh @SshBaseArgs $Remote "bash -s"
+  if ($LASTEXITCODE -ne 0) {
+    throw "Remote SSH script failed with exit code ${LASTEXITCODE}"
+  }
+}
+
 function Copy-FileWithScp {
   param(
     [Parameter(Mandatory = $true)]
@@ -51,7 +82,10 @@ $required = @(
   "TERMUX_APP_DIR",
   "TERMUX_KNOWN_HOSTS",
   "TERMUX_SSH_KEY",
-  "DEPLOY_SHA"
+  "DEPLOY_SHA",
+  "GITHUB_TOKEN",
+  "GITHUB_REPOSITORY",
+  "GITHUB_RUN_ID"
 )
 
 foreach ($name in $required) {
@@ -61,11 +95,6 @@ foreach ($name in $required) {
 }
 
 $repoRoot = Get-RepoRoot
-$artifactDir = Join-Path $repoRoot "deploy-artifacts"
-$frontendArchive = Join-Path $artifactDir "frontend-web.tar.gz"
-$blogStandaloneArchive = Join-Path $artifactDir "blog-standalone.tar.gz"
-$blogStaticArchive = Join-Path $artifactDir "blog-static.tar.gz"
-$blogPublicArchive = Join-Path $artifactDir "blog-public.tar.gz"
 $remoteScriptPath = Join-Path $repoRoot "scripts/deploy_termux_remote.sh"
 
 $runnerTemp = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
@@ -109,7 +138,7 @@ $scpBase = @(
 $incoming = "$env:TERMUX_APP_DIR/.deploy/incoming/$env:DEPLOY_SHA"
 
 try {
-  foreach ($requiredPath in @($frontendArchive, $blogStandaloneArchive, $blogStaticArchive, $remoteScriptPath)) {
+  foreach ($requiredPath in @($remoteScriptPath)) {
     if (-not (Test-Path -LiteralPath $requiredPath)) {
       throw "Required deploy input missing: $requiredPath"
     }
@@ -118,17 +147,22 @@ try {
   $remoteScriptContent = [System.IO.File]::ReadAllText($remoteScriptPath).Replace("`r`n", "`n").Replace("`r", "`n")
   [System.IO.File]::WriteAllText($remoteScriptUploadPath, $remoteScriptContent, (New-Object System.Text.UTF8Encoding($false)))
 
-  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p '$incoming'"))
-  Copy-FileWithScp -SourcePath $frontendArchive -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
-  Copy-FileWithScp -SourcePath $blogStandaloneArchive -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
-  Copy-FileWithScp -SourcePath $blogStaticArchive -RemoteTarget "${remote}:$incoming/blog-static.tar.gz" -ScpBaseArgs $scpBase
+  $incomingQuoted = ConvertTo-BashSingleQuoted $incoming
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p $incomingQuoted"))
   Copy-FileWithScp -SourcePath $remoteScriptUploadPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
 
-  if (Test-Path -LiteralPath $blogPublicArchive) {
-    Copy-FileWithScp -SourcePath $blogPublicArchive -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
-  }
+  $remoteScript = @"
+set -euo pipefail
+export PROJECT_ROOT_OVERRIDE=$(ConvertTo-BashSingleQuoted $env:TERMUX_APP_DIR)
+export GITHUB_TOKEN=$(ConvertTo-BashSingleQuoted $env:GITHUB_TOKEN)
+export GITHUB_REPOSITORY=$(ConvertTo-BashSingleQuoted $env:GITHUB_REPOSITORY)
+export GITHUB_RUN_ID=$(ConvertTo-BashSingleQuoted $env:GITHUB_RUN_ID)
+export FRONTEND_ARTIFACT_NAME='termux-frontend-web'
+export BLOG_ARTIFACT_NAME='termux-blog-build'
+exec bash $(ConvertTo-BashSingleQuoted "$incoming/deploy_termux_remote.sh") $(ConvertTo-BashSingleQuoted $env:DEPLOY_SHA)
+"@
 
-  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "PROJECT_ROOT_OVERRIDE='$env:TERMUX_APP_DIR' bash '$incoming/deploy_termux_remote.sh' '$env:DEPLOY_SHA'"))
+  Invoke-SshScript -Remote $remote -SshBaseArgs $sshBase -Script $remoteScript
 } finally {
   Remove-Item -LiteralPath $sshDir -Recurse -Force -ErrorAction SilentlyContinue
 }
