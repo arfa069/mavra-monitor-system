@@ -306,6 +306,301 @@ function Stop-SshReverseTunnel {
   }
 }
 
+function Get-ArtifactReceiverScript {
+  return @'
+import argparse
+import http.server
+import os
+import sys
+import time
+import urllib.parse
+
+
+ALLOWED_FILES = {
+    "frontend-web.tar.gz",
+    "blog-standalone.tar.gz",
+    "blog-static.tar.gz",
+    "blog-public.tar.gz",
+}
+
+
+class ArtifactHandler(http.server.BaseHTTPRequestHandler):
+    server_version = "MavraArtifactReceiver/1.0"
+
+    def log_message(self, format, *args):
+        # Avoid logging token-bearing request paths.
+        sys.stderr.write("%s - request handled\n" % self.log_date_time_string())
+
+    def _mark_request(self):
+        self.server.last_request_at = time.monotonic()
+
+    def _send_plain(self, status, body):
+        encoded = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(encoded)
+
+    def _path_parts(self):
+        parsed = urllib.parse.urlparse(self.path)
+        return [
+            urllib.parse.unquote(part)
+            for part in parsed.path.split("/")
+            if part
+        ]
+
+    def _authorized_path(self):
+        parts = self._path_parts()
+        if len(parts) != 2 or parts[0] != self.server.token:
+            return None
+
+        filename = parts[1]
+        if filename not in ALLOWED_FILES:
+            return None
+
+        return os.path.join(self.server.target_dir, filename)
+
+    def do_GET(self):
+        self._mark_request()
+        if self.path == "/%s/health" % self.server.token:
+            self._send_plain(200, "ok\n")
+            return
+        self._send_plain(404, "not found\n")
+
+    def do_HEAD(self):
+        self.do_GET()
+
+    def do_PUT(self):
+        self._mark_request()
+        target_path = self._authorized_path()
+        if target_path is None:
+            self._send_plain(404, "not found\n")
+            return
+
+        length_header = self.headers.get("Content-Length")
+        if not length_header:
+            self._send_plain(411, "missing content length\n")
+            return
+
+        try:
+            remaining = int(length_header)
+        except ValueError:
+            self._send_plain(400, "invalid content length\n")
+            return
+
+        os.makedirs(self.server.target_dir, exist_ok=True)
+        tmp_path = target_path + ".part"
+        with open(tmp_path, "wb") as handle:
+            while remaining:
+                chunk = self.rfile.read(min(1024 * 1024, remaining))
+                if not chunk:
+                    raise ConnectionError("client disconnected")
+                handle.write(chunk)
+                remaining -= len(chunk)
+
+        os.replace(tmp_path, target_path)
+        self._send_plain(200, "stored\n")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--token", required=True)
+    parser.add_argument("--directory", required=True)
+    parser.add_argument("--idle-timeout", type=float, default=120.0)
+    parser.add_argument("--max-lifetime", type=float, default=900.0)
+    args = parser.parse_args()
+
+    server = http.server.ThreadingHTTPServer((args.host, args.port), ArtifactHandler)
+    server.token = args.token
+    server.target_dir = args.directory
+    server.last_request_at = time.monotonic()
+    server.timeout = 1.0
+
+    started_at = time.monotonic()
+    while time.monotonic() - started_at < args.max_lifetime:
+        server.handle_request()
+        if time.monotonic() - server.last_request_at > args.idle_timeout:
+            break
+
+
+if __name__ == "__main__":
+    main()
+'@
+}
+
+function Wait-ForArtifactReceiver {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$HealthUrl,
+
+    [Parameter(Mandatory = $false)]
+    [int]$Attempts = 30
+  )
+
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    & curl.exe -fsS --connect-timeout 2 --max-time 5 $HealthUrl *> $null
+    if ($LASTEXITCODE -eq 0) {
+      return
+    }
+
+    Start-Sleep -Milliseconds 500
+  }
+
+  throw "Timed out waiting for the Termux artifact receiver."
+}
+
+function Invoke-ArtifactReceiverUpload {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$SourcePath,
+
+    [Parameter(Mandatory = $true)]
+    [string]$FileName,
+
+    [Parameter(Mandatory = $true)]
+    [string]$UploadUrl
+  )
+
+  & curl.exe `
+    -fS `
+    --retry 3 `
+    --retry-delay 2 `
+    --connect-timeout 5 `
+    --max-time 600 `
+    --upload-file $SourcePath `
+    $UploadUrl
+
+  if ($LASTEXITCODE -ne 0) {
+    throw "Artifact receiver upload failed for ${FileName} with curl exit code $LASTEXITCODE."
+  }
+}
+
+function Start-RemoteArtifactReceiver {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$ScpBase,
+
+    [Parameter(Mandatory = $true)]
+    [string]$RunnerTemp
+  )
+
+  $localScriptPath = Join-Path $RunnerTemp ("mavra-artifact-receiver-" + [guid]::NewGuid().ToString("N") + ".py")
+  $remoteScriptPath = "$Incoming/artifact_receiver.py"
+  [System.IO.File]::WriteAllText($localScriptPath, (Get-ArtifactReceiverScript), (New-Object System.Text.UTF8Encoding($false)))
+  Copy-FileWithScp -SourcePath $localScriptPath -RemoteTarget "${Remote}:$remoteScriptPath" -ScpBaseArgs $ScpBase
+
+  for ($attempt = 1; $attempt -le 5; $attempt++) {
+    $port = Get-Random -Minimum 30000 -Maximum 60999
+    $token = [guid]::NewGuid().ToString("N")
+    $remoteLogPath = "$Incoming/artifact_receiver.log"
+    $remoteCommand = @(
+      "set -euo pipefail",
+      "mkdir -p $(ConvertTo-BashSingleQuoted $Incoming)",
+      "nohup python $(ConvertTo-BashSingleQuoted $remoteScriptPath) --host 0.0.0.0 --port $port --token $(ConvertTo-BashSingleQuoted $token) --directory $(ConvertTo-BashSingleQuoted $Incoming) --idle-timeout 120 --max-lifetime 900 > $(ConvertTo-BashSingleQuoted $remoteLogPath) 2>&1 < /dev/null & echo `$!"
+    ) -join "; "
+
+    $pidOutput = & "ssh" @($SshBase + @($Remote, $remoteCommand))
+    if ($LASTEXITCODE -ne 0) {
+      continue
+    }
+
+    $pid = ($pidOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Last 1)
+    $baseUrl = "http://$($env:TERMUX_HOST):$port/$token"
+    try {
+      Wait-ForArtifactReceiver -HealthUrl "$baseUrl/health"
+      return [PSCustomObject]@{
+        Port = $port
+        Token = $token
+        BaseUrl = $baseUrl
+        Pid = $pid
+        LocalScriptPath = $localScriptPath
+        RemoteScriptPath = $remoteScriptPath
+      }
+    } catch {
+      if ($pid) {
+        & "ssh" @($SshBase + @($Remote, "kill $pid 2>/dev/null || true")) *> $null
+      }
+    }
+  }
+
+  Remove-Item -LiteralPath $localScriptPath -Force -ErrorAction SilentlyContinue
+  throw "Could not start a reachable Termux artifact receiver."
+}
+
+function Stop-RemoteArtifactReceiver {
+  param(
+    [AllowNull()]
+    [object]$Receiver,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase
+  )
+
+  if ($null -eq $Receiver) {
+    return
+  }
+
+  if ($Receiver.Pid) {
+    & "ssh" @($SshBase + @($Remote, "kill $($Receiver.Pid) 2>/dev/null || true; rm -f $(ConvertTo-BashSingleQuoted $($Receiver.RemoteScriptPath))")) *> $null
+  }
+
+  if ($Receiver.LocalScriptPath) {
+    Remove-Item -LiteralPath $Receiver.LocalScriptPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Copy-ArtifactsWithTermuxReceiver {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Artifacts,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$ScpBase,
+
+    [Parameter(Mandatory = $true)]
+    [string]$RunnerTemp
+  )
+
+  $receiver = $null
+  try {
+    $receiver = Start-RemoteArtifactReceiver -Incoming $Incoming -Remote $Remote -SshBase $SshBase -ScpBase $ScpBase -RunnerTemp $RunnerTemp
+    Write-Host "[INFO] Termux artifact receiver is listening on $($env:TERMUX_HOST):$($receiver.Port)."
+
+    foreach ($name in $Artifacts.Keys) {
+      Invoke-ArtifactReceiverUpload -SourcePath $Artifacts[$name] -FileName $name -UploadUrl "$($receiver.BaseUrl)/$name"
+    }
+
+    return $true
+  } finally {
+    Stop-RemoteArtifactReceiver -Receiver $receiver -Remote $Remote -SshBase $SshBase
+  }
+}
+
 function Invoke-RemoteArtifactDownload {
   param(
     [Parameter(Mandatory = $true)]
@@ -493,28 +788,25 @@ try {
     }
 
     $transferred = $false
-    if ($transferMode -eq "auto" -or $transferMode -eq "http") {
-      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
-      try {
-        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
-      } catch {
-        if ($transferMode -eq "http") {
-          throw
-        }
-        Write-Warning "Direct HTTP artifact transfer failed; trying SSH reverse tunnel. $($_.Exception.Message)"
-      }
+    $validTransferModes = @("auto", "receiver", "direct", "http", "tunnel", "scp")
+    if ($validTransferModes -notcontains $transferMode) {
+      throw "Unsupported TERMUX_TRANSFER_MODE: $transferMode"
     }
 
-    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "tunnel")) {
+    $transferred = $false
+    if ($transferMode -eq "auto" -or $transferMode -eq "receiver") {
+      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via temporary Termux HTTP receiver."
+      $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
+    }
+
+    if (-not $transferred -and ($transferMode -eq "direct" -or $transferMode -eq "http")) {
+      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
+      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
+    }
+
+    if (-not $transferred -and $transferMode -eq "tunnel") {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via SSH reverse-tunnel HTTP pull."
-      try {
-        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
-      } catch {
-        if ($transferMode -eq "tunnel") {
-          throw
-        }
-        Write-Warning "SSH reverse-tunnel artifact transfer failed. $($_.Exception.Message)"
-      }
+      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
     }
 
     if (-not $transferred -and $transferMode -eq "scp") {
@@ -528,7 +820,7 @@ try {
     }
 
     if (-not $transferred -and $transferMode -ne "scp") {
-      throw "Artifact transfer failed without using slow scp fallback. Set TERMUX_TRANSFER_MODE=scp to force legacy scp."
+      throw "Artifact transfer failed. Set TERMUX_TRANSFER_MODE=scp to force legacy scp."
     }
   }
 
