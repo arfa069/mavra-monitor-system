@@ -47,6 +47,17 @@ BLOG_PUBLIC_BASE_URL="${BLOG_PUBLIC_BASE_URL:-http://192.168.1.13:3000}"
 BLOG_API_BASE_URL="${BLOG_API_BASE_URL:-http://127.0.0.1:8000/api/v1}"
 BLOG_BACKEND_ORIGIN="${BLOG_BACKEND_ORIGIN:-http://127.0.0.1:8000}"
 
+case "$BLOG_API_BASE_URL" in
+  */v1)
+    BLOG_API_BASE_URL="${BLOG_API_BASE_URL%/v1}/api/v1"
+    echo "[WARN] Normalized legacy BLOG_API_BASE_URL to $BLOG_API_BASE_URL"
+    ;;
+  */v1/)
+    BLOG_API_BASE_URL="${BLOG_API_BASE_URL%/v1/}/api/v1"
+    echo "[WARN] Normalized legacy BLOG_API_BASE_URL to $BLOG_API_BASE_URL"
+    ;;
+esac
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[ERROR] Missing command: $1" >&2
