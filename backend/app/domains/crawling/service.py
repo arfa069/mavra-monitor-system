@@ -6,7 +6,7 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,13 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.domains.crawling import repository
-from app.domains.crawling.browser_manager import BrowserSession
 from app.integrations.feishu import send_feishu_notification
 from app.models.alert import Alert
 from app.models.crawl_log import CrawlLog
 from app.models.price_history import PriceHistory
 from app.models.product import Product
 from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.domains.crawling.browser_manager import BrowserSession
 
 logger = logging.getLogger(__name__)
 
