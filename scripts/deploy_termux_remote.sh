@@ -20,6 +20,7 @@ BLOG_STATIC_DIR="$PROJECT_ROOT/blog-frontend/.next/static"
 BLOG_PUBLIC_DIR="$PROJECT_ROOT/blog-frontend/public"
 RESTORE_NEEDED=0
 RESTORE_COMPLETED=0
+GITHUB_CURL_CONFIG=""
 
 require_env() {
   local name="$1"
@@ -54,14 +55,36 @@ retry_command() {
   done
 }
 
+cleanup_sensitive_files() {
+  if [[ -n "$GITHUB_CURL_CONFIG" ]]; then
+    rm -f "$GITHUB_CURL_CONFIG"
+  fi
+}
+
+ensure_github_curl_config() {
+  if [[ -n "$GITHUB_CURL_CONFIG" && -f "$GITHUB_CURL_CONFIG" ]]; then
+    return
+  fi
+
+  require_env GITHUB_TOKEN
+
+  GITHUB_CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/mavra-github-curl.XXXXXX")"
+  chmod 600 "$GITHUB_CURL_CONFIG"
+  {
+    printf 'header = "Authorization: Bearer %s"\n' "$GITHUB_TOKEN"
+    printf 'header = "Accept: application/vnd.github+json"\n'
+    printf 'header = "X-GitHub-Api-Version: 2022-11-28"\n'
+  } > "$GITHUB_CURL_CONFIG"
+}
+
 github_api_curl() {
   local url="$1"
   shift
 
+  ensure_github_curl_config
+
   curl_with_retries \
-    -H "Authorization: Bearer $GITHUB_TOKEN" \
-    -H "Accept: application/vnd.github+json" \
-    -H "X-GitHub-Api-Version: 2022-11-28" \
+    --config "$GITHUB_CURL_CONFIG" \
     "$url" \
     "$@"
 }
@@ -201,6 +224,7 @@ handle_error() {
 }
 
 trap handle_error ERR
+trap cleanup_sensitive_files EXIT
 
 TRACKED_CHANGES="$(git status --porcelain --untracked-files=no)"
 if [[ -n "$TRACKED_CHANGES" ]]; then
