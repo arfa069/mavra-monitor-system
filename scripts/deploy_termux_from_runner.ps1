@@ -95,12 +95,16 @@ $remote = "$env:TERMUX_USER@$env:TERMUX_HOST"
 $sshBase = @(
   "-i", $keyPath,
   "-p", $env:TERMUX_PORT,
+  "-o", "BatchMode=yes",
+  "-o", "IdentitiesOnly=yes",
   "-o", "UserKnownHostsFile=$knownHostsPath",
   "-o", "StrictHostKeyChecking=yes"
 )
 $scpBase = @(
   "-i", $keyPath,
   "-P", $env:TERMUX_PORT,
+  "-o", "BatchMode=yes",
+  "-o", "IdentitiesOnly=yes",
   "-o", "UserKnownHostsFile=$knownHostsPath",
   "-o", "StrictHostKeyChecking=yes"
 )
