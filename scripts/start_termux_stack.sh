@@ -6,6 +6,36 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 BLOG_STANDALONE_DIR="$PROJECT_ROOT/blog-frontend/.next/standalone"
 FRONTEND_BUILD_DIR="$PROJECT_ROOT/frontend/build/web"
+DEPLOY_LOG_DIR="${DEPLOY_LOG_DIR:-$PROJECT_ROOT/.deploy/logs}"
+
+shell_quote() {
+  printf "%q" "$1"
+}
+
+ENV_FILE="${ENV_FILE:-}"
+if [[ -z "$ENV_FILE" ]]; then
+  for candidate in "$PROJECT_ROOT/.env" "$BACKEND_DIR/.env"; do
+    if [[ -f "$candidate" ]]; then
+      ENV_FILE="$candidate"
+      break
+    fi
+  done
+fi
+
+ENV_SOURCE_PREFIX=""
+if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  if . "$ENV_FILE"; then
+    echo "[OK] Loaded environment file: $ENV_FILE"
+    ENV_SOURCE_PREFIX="set -a; . $(shell_quote "$ENV_FILE"); set +a; "
+  else
+    echo "[WARN] Could not source environment file: $ENV_FILE" >&2
+  fi
+  set +a
+else
+  echo "[WARN] No environment file found at $PROJECT_ROOT/.env or $BACKEND_DIR/.env" >&2
+fi
 
 REDIS_SESSION="${REDIS_SESSION:-redis}"
 POSTGRES_SESSION="${POSTGRES_SESSION:-postgresql}"
@@ -27,18 +57,47 @@ require_cmd() {
 start_session() {
   local session_name="$1"
   local command_line="$2"
+  local log_file="$DEPLOY_LOG_DIR/$session_name.log"
 
   if tmux has-session -t "$session_name" >/dev/null 2>&1; then
     echo "[OK] tmux session already exists: $session_name"
     return
   fi
 
-  tmux new-session -d -s "$session_name" bash -lc "$command_line"
+  mkdir -p "$DEPLOY_LOG_DIR"
+  : > "$log_file"
+
+  tmux new-session -d -s "$session_name" bash -lc "{ $command_line; } >> $(shell_quote "$log_file") 2>&1; status=\$?; echo \"[ERROR] $session_name exited with status \$status\" >> $(shell_quote "$log_file"); sleep 30; exit \$status"
+  sleep 1
+  if ! tmux has-session -t "$session_name" >/dev/null 2>&1; then
+    echo "[ERROR] tmux session exited immediately: $session_name" >&2
+    if [[ -f "$log_file" ]]; then
+      tail -n 80 "$log_file" >&2 || true
+    fi
+    return 1
+  fi
+
   echo "[OK] Started tmux session: $session_name"
 }
 
 nginx_process_running() {
   ps -ef | grep -Eq "[n]ginx"
+}
+
+tcp_ready() {
+  python - "$1" "$2" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+
+try:
+    with socket.create_connection((host, port), timeout=1):
+        pass
+except OSError:
+    raise SystemExit(1)
+PY
 }
 
 require_cmd tmux
@@ -63,18 +122,26 @@ if [[ ! -f "$BLOG_STANDALONE_DIR/server.js" ]]; then
 fi
 
 echo "[Start] Redis"
-start_session "$REDIS_SESSION" "exec redis-server"
+if tcp_ready "${REDIS_HOST:-127.0.0.1}" "${REDIS_PORT:-6379}"; then
+  echo "[OK] Redis already reachable"
+else
+  start_session "$REDIS_SESSION" "redis-server"
+fi
 
 echo "[Start] PostgreSQL"
-start_session "$POSTGRES_SESSION" "mkdir -p '$POSTGRES_DATA_DIR' && pg_ctl -D '$POSTGRES_DATA_DIR' start -l '$POSTGRES_LOG' && exec tail -f '$POSTGRES_LOG'"
+if tcp_ready "${POSTGRES_HOST:-127.0.0.1}" "${POSTGRES_PORT:-5432}"; then
+  echo "[OK] PostgreSQL already reachable"
+else
+  start_session "$POSTGRES_SESSION" "mkdir -p $(shell_quote "$POSTGRES_DATA_DIR") && pg_ctl -D $(shell_quote "$POSTGRES_DATA_DIR") start -l $(shell_quote "$POSTGRES_LOG") && tail -f $(shell_quote "$POSTGRES_LOG")"
+fi
 
 sleep 2
 
 echo "[Start] Backend"
-start_session "$BACKEND_SESSION" "cd '$BACKEND_DIR' && exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+start_session "$BACKEND_SESSION" "cd $(shell_quote "$BACKEND_DIR") && ${ENV_SOURCE_PREFIX}python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
 echo "[Start] Blog"
-start_session "$BLOG_SESSION" "cd '$BLOG_STANDALONE_DIR' && exec env NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3001 BLOG_PUBLIC_BASE_URL='$BLOG_PUBLIC_BASE_URL' BLOG_API_BASE_URL='$BLOG_API_BASE_URL' BLOG_BACKEND_ORIGIN='$BLOG_BACKEND_ORIGIN' NEXT_PUBLIC_BLOG_BASE_URL='$BLOG_PUBLIC_BASE_URL' node server.js"
+start_session "$BLOG_SESSION" "cd $(shell_quote "$BLOG_STANDALONE_DIR") && ${ENV_SOURCE_PREFIX}env NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3001 BLOG_PUBLIC_BASE_URL=$(shell_quote "$BLOG_PUBLIC_BASE_URL") BLOG_API_BASE_URL=$(shell_quote "$BLOG_API_BASE_URL") BLOG_BACKEND_ORIGIN=$(shell_quote "$BLOG_BACKEND_ORIGIN") NEXT_PUBLIC_BLOG_BASE_URL=$(shell_quote "$BLOG_PUBLIC_BASE_URL") node server.js"
 
 echo "[Start] Nginx"
 if nginx -t >/dev/null 2>&1; then

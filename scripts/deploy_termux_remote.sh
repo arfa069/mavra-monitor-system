@@ -79,6 +79,34 @@ wait_for_curl() {
   curl --max-time "$curl_max_time" "$@" >/dev/null
 }
 
+redact_sensitive_output() {
+  sed -E \
+    -e 's#(postgresql(\+asyncpg)?://[^:/@[:space:]]+:)[^@[:space:]]+@#\1***@#g' \
+    -e 's#(redis://:)[^@[:space:]]+@#\1***@#g' \
+    -e 's#((JWT_SECRET_KEY|SMART_HOME_SECRET_KEY|FEISHU_WEBHOOK_URL|FIRECRAWL_API_KEY|MINIMAX_API_KEY|ANTHROPIC_API_KEY|OPENAI_API_KEY)=)[^[:space:]]+#\1***#g'
+}
+
+dump_termux_service_diagnostics() {
+  local label="$1"
+  local session
+  local log_file
+
+  echo "[INFO] Termux service diagnostics: $label" >&2
+  echo "[INFO] tmux sessions:" >&2
+  tmux ls 2>&1 | redact_sensitive_output >&2 || true
+
+  for session in redis postgresql mavra-backend mavra-blog backend; do
+    echo "[INFO] tmux capture: $session" >&2
+    tmux capture-pane -pt "$session" -S -120 2>&1 | redact_sensitive_output >&2 || true
+  done
+
+  for log_file in "$PROJECT_ROOT"/.deploy/logs/*.log; do
+    [[ -e "$log_file" ]] || continue
+    echo "[INFO] service log: $log_file" >&2
+    tail -n 120 "$log_file" 2>&1 | redact_sensitive_output >&2 || true
+  done
+}
+
 ensure_alembic_cli() {
   if command -v alembic >/dev/null 2>&1; then
     return
@@ -390,16 +418,19 @@ cd "$PROJECT_ROOT"
 restart_termux_stack
 
 if ! wait_for_curl "Backend" -fsS http://127.0.0.1:8000/health; then
+  dump_termux_service_diagnostics "backend health failure"
   restore_static_artifacts
   exit 4
 fi
 
 if ! wait_for_curl "Frontend root" -fsSI http://127.0.0.1:3000/; then
+  dump_termux_service_diagnostics "frontend root health failure"
   restore_static_artifacts
   exit 5
 fi
 
 if ! wait_for_curl "Blog" -fsSI http://127.0.0.1:3000/blog; then
+  dump_termux_service_diagnostics "blog health failure"
   restore_static_artifacts
   exit 6
 fi
