@@ -460,7 +460,7 @@ jobs:
   windows-smoke:
     name: Windows build and smoke
     runs-on: windows-latest
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
