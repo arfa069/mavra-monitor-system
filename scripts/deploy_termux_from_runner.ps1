@@ -78,6 +78,7 @@ $sshDir = Join-Path $runnerTemp "mavra-termux-ssh"
 New-Item -ItemType Directory -Force -Path $sshDir | Out-Null
 $keyPath = Join-Path $sshDir "deploy_key"
 $knownHostsPath = Join-Path $sshDir "known_hosts"
+$remoteScriptUploadPath = Join-Path $sshDir "deploy_termux_remote.sh"
 
 [System.IO.File]::WriteAllText($keyPath, $env:TERMUX_SSH_KEY.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
 [System.IO.File]::WriteAllText($knownHostsPath, $env:TERMUX_KNOWN_HOSTS.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
@@ -114,11 +115,14 @@ try {
     }
   }
 
+  $remoteScriptContent = [System.IO.File]::ReadAllText($remoteScriptPath).Replace("`r`n", "`n").Replace("`r", "`n")
+  [System.IO.File]::WriteAllText($remoteScriptUploadPath, $remoteScriptContent, (New-Object System.Text.UTF8Encoding($false)))
+
   Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($sshBase + @($remote, "mkdir -p '$incoming'"))
   Copy-FileWithScp -SourcePath $frontendArchive -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
   Copy-FileWithScp -SourcePath $blogStandaloneArchive -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
   Copy-FileWithScp -SourcePath $blogStaticArchive -RemoteTarget "${remote}:$incoming/blog-static.tar.gz" -ScpBaseArgs $scpBase
-  Copy-FileWithScp -SourcePath $remoteScriptPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
+  Copy-FileWithScp -SourcePath $remoteScriptUploadPath -RemoteTarget "${remote}:$incoming/deploy_termux_remote.sh" -ScpBaseArgs $scpBase
 
   if (Test-Path -LiteralPath $blogPublicArchive) {
     Copy-FileWithScp -SourcePath $blogPublicArchive -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
