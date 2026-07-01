@@ -5,138 +5,70 @@
 
 ## 当前结论
 
-后端已经在手机服务器上跑起来，并且通过健康检查验证成功。
-Flutter 前端和 Next.js 公共博客也都已经部署到手机服务器上，并能通过浏览器正常打开。
-Flutter 主前端已切回 hash 路由，并由 Nginx 接管 3000 端口，把 `/api/v1` 反代到后端，避免静态托管下登录 POST 落到文件服务器返回 501。
-博客也已经并入同一个 Nginx 入口，`/blog`、`/_next`、`/blog-media`、`/robots.txt` 和 `/sitemap.xml` 都由 3000 统一对外提供。
-GitHub Actions 到 Termux 的 CD 方案也已经落到仓库：当 `main` 上六个质量门都通过后，会先在 GitHub 托管 runner 上构建并打包 Flutter Web 和博客产物，再由局域网内的 Windows 自托管 runner 下载这些 artifact，通过 SSH 上传到手机服务器后执行远端部署脚本。
+Termux CD 已经跑通完整链路。最新验证不是只跑部署脚本，而是 GitHub Actions 从
+构建 Flutter Web 和 Blog artifact 开始，经过 Windows self-hosted runner 下载
+artifact、上传到 Termux、远端解包部署、重启服务和健康检查，整条链路自然完成。
+
+最新成功记录：
+
+```text
+GitHub Actions run: 28536274068 attempt 2
+Run result: completed / success
+Deploy job: Deploy Termux completed / success
+Deploy sha: 2f74acb480389f649c7167afc8510f6f9f90676d
+```
+
+部署日志中的关键结果：
+
+```text
+[INFO] Uploading GitHub-built artifacts to Termux via temporary Termux HTTP receiver.
+[OK] Backend health check passed
+[OK] Frontend root health check passed
+[OK] Blog health check passed
+[OK] Deployed 2f74acb480389f649c7167afc8510f6f9f90676d
+```
+
+当前仍需关注的主要问题是速度：这次 `Deploy to Termux` step 从
+`2026-07-01T18:09:16Z` 跑到 `2026-07-01T18:25:38Z`，约 16 分钟 22 秒。
+瓶颈主要在 Windows runner 向 Termux 上传两个构建 artifact。
 
 ## Termux CD
 
-### GitHub 环境配置
+当前 CD 全链路是：
+main push 触发 CI。
+Deploy Termux 只在 push main 时跑，并且等这些必需 job 成功：Backend lint/tests/compile、API contract、Flutter Web fast PR、Blog tests/build。见 [.github/workflows/ci.yml (line 363)](C:/Users/arfac/Documents/mavra-monitor-system/.github/workflows/ci.yml:363)。
 
-新增的 GitHub Actions 部署环境如下：
+GitHub hosted runner 构建产物。
+Flutter Web 构建成 termux-frontend-web artifact；Blog 构建成 termux-blog-build artifact。Deploy job 再在 Windows self-hosted runner 下载这两个 artifact。见 [.github/workflows/ci.yml (line 384)](C:/Users/arfac/Documents/mavra-monitor-system/.github/workflows/ci.yml:384)。
 
-```text
-Environment: production-termux
-Runner labels: self-hosted, Windows, mavra-deploy
-Variables:
-  TERMUX_HOST=192.168.1.13
-  TERMUX_PORT=8022
-  TERMUX_USER=u0_a323
-  TERMUX_APP_DIR=/data/data/com.termux/files/home/apps/mavra-monitor-system
-  TERMUX_KNOWN_HOSTS=<ssh-keyscan result for 192.168.1.13:8022>
-Secrets:
-  TERMUX_SSH_KEY=<deployment private key>
-```
+Windows self-hosted runner 负责连 Termux。
+scripts/deploy_termux_from_runner.ps1 写入临时 SSH key/known_hosts，上传远端部署脚本，检查远端当前 Git SHA，并按需要生成 `source.bundle`。如果远端还不是本次 SHA，runner 会上传这个 Git bundle，让 Termux 从本地 bundle 更新源码，避免手机端依赖 `github.com` 出网。
 
-说明：
+artifact 传输方式。
+Deploy job 下载 GitHub 构建好的 artifact 后，runner 默认在 Termux 上启动临时 HTTP receiver，再通过 HTTP PUT 把 `frontend-web.tar.gz`、`blog-standalone.tar.gz`、`blog-static.tar.gz` 等包上传到 `.deploy/incoming/<git-sha>/`。这次完整链路验证实际走的就是这个 receiver 模式。
 
-- 触发条件是 `push` 到 `main`。
-- `deploy-termux` 必须等待 `lint`、`test`、`compile`、`api-contract`、`flutter-web-fast`、`blog` 六个任务全部通过。
-- 部署使用 `production-termux` 环境串行执行，不会取消正在进行中的上一次生产部署。
+Termux 远端执行真正部署。
+scripts/deploy_termux_remote.sh 会检查远端 tracked 文件不能脏，优先确认当前源码是否已经是本次 SHA；否则从 `source.bundle` fetch；缺少 bundle 时才回退到 GitHub fetch。随后解压 artifact、备份旧前端和 Blog、可选 pg_dump、复制新产物、执行 alembic upgrade head。见 [deploy_termux_remote.sh](C:/Users/arfac/Documents/mavra-monitor-system/scripts/deploy_termux_remote.sh)。
 
-### 构建与发布链路
+Termux 重启服务。
+scripts/start_termux_stack.sh 加载生产 .env，确认 Redis/PostgreSQL，就用 tmux 启动 backend、blog，并 reload/确认 Nginx。见 [start_termux_stack.sh (line 15)](C:/Users/arfac/Documents/mavra-monitor-system/scripts/start_termux_stack.sh:15)。
 
-当前 CD 链路分三段：
+健康检查和回滚。
+部署后依次检查 backend /health、前端 /、Blog /blog；任一失败就恢复备份的静态产物并重启栈。全部通过才输出 [OK] Deployed <sha>。见 [deploy_termux_remote.sh (line 420)](C:/Users/arfac/Documents/mavra-monitor-system/scripts/deploy_termux_remote.sh:420)。
 
-1. GitHub 托管 runner 构建并打包：
-   - `frontend`: `flutter build web --dart-define=API_BASE_URL=/api/v1`
-   - `blog-frontend`: `npm ci && npm run build`
-2. 构建完成后，上传 artifact：
-   - `frontend-web.tar.gz`
-   - `blog-standalone.tar.gz`
-   - `blog-static.tar.gz`
-   - `blog-public.tar.gz`（如果存在）
-3. Windows 自托管 runner 下载这些 artifact，再把它们和远端部署脚本上传到手机服务器。
+推送时跳过的重型 smoke。
+Android build and smoke、Windows build and smoke 当前只在 schedule 或 workflow_dispatch 触发，push main 的 CD 链路会跳过它们；这次 run 中两者均为 skipped，符合预期。
 
-远端真正替换线上目录前，会先把上传内容放到：
-
-```text
-.deploy/incoming/<git-sha>
-```
-
-远端部署不再依赖手机主仓库里“事先已经有”最新的部署脚本，而是直接执行本次 incoming 目录里一起上传的 `deploy_termux_remote.sh`。
-
-### 回滚边界
-
-如果上传后的静态产物替换完成，但后续迁移、重启或健康检查失败，远端脚本会恢复上一版 Flutter Web 和博客静态产物，再重新拉起服务。
-
-数据库迁移不会自动回滚；如需手动恢复，请使用：
-
-```text
-.deploy/backups/<timestamp>-<git-sha>/database.sql
-```
-
-也就是说：
-
-- 静态站点资源支持自动回退；
-- 数据库只保留 `pg_dump` 备份，需要人工决定是否恢复。
-
-## 前端构建与运行
+## 前端构建
 
 ### Flutter 主前端
 
-构建命令（Windows）：
+构建:
 
 ```powershell
 cd C:/Users/arfac/Documents/mavra-monitor-system/frontend
 flutter build web --dart-define=API_BASE_URL=/api/v1
 ```
-
-运行命令（Termux，Nginx 接管 3000）：
-
-```bash
-nginx -t
-nginx
-```
-
-Nginx 配置文件位于：
-
-```text
-/data/data/com.termux/files/usr/etc/nginx/nginx.conf
-```
-
-当前这份配置让 3000 端口直接提供 Flutter Web 静态文件，并把 `/api/v1/` 反代到 `127.0.0.1:8000`，所以登录请求会到真正的后端，而不是打到静态文件服务器。
-
-## Nginx 接管
-
-手机服务器上的 Nginx 已经从默认配置切到统一入口模式，配置文件位于：
-
-```text
-/data/data/com.termux/files/usr/etc/nginx/nginx.conf
-```
-
-当前部署方式是：
-
-- `3000` 作为公网入口
-- `/` 提供 Flutter Web
-- `/api/v1/` 反代到后端 `127.0.0.1:8000`
-- `/blog`、`/_next`、`/blog-media`、`/robots.txt`、`/sitemap.xml` 反代到博客服务链路
-
-这一步替换了原先的 `python -m http.server 3000` 静态托管，所以现在登录 POST 不会再命中静态文件服务器。
-
-## 手机一键启动
-
-手机上的常用启动方式已经整理成脚本：
-
-```bash
-cd ~/apps/mavra-monitor-system
-bash scripts/start_termux_stack.sh
-```
-
-这个脚本会：
-
-- 用 `tmux` 启动 Redis
-- 用 `tmux` 启动 PostgreSQL
-- 用 `tmux` 启动后端 `uvicorn`
-- 用 `tmux` 启动 Next.js 博客
-- 校验并重载 Nginx
-
-说明：
-
-- Flutter 主前端不是独立常驻进程，它是静态构建产物，由 Nginx 直接提供。
-- 如果 Flutter 或博客的构建产物缺失，脚本会提前报错并提示先在 Windows 上重新构建。
 
 ### Next.js 公共博客
 
@@ -152,7 +84,35 @@ $env:NEXT_PUBLIC_BLOG_BASE_URL="http://192.168.1.13:3000"
 npm run build
 ```
 
-运行命令（Termux，建议放进 `tmux` 常驻）：
+## 部署方式
+
+### Flutter 主前端部署
+
+运行命令（Termux，Nginx 接管 3000）：
+
+```bash
+nginx -t
+nginx
+```
+
+Nginx 配置文件：
+
+```text
+/data/data/com.termux/files/usr/etc/nginx/nginx.conf
+```
+
+注：当前这份配置让 3000 端口直接提供 Flutter Web 静态文件，并把 `/api/v1/` 反代到 `127.0.0.1:8000`，所以登录请求会到真正的后端。
+
+当前部署方式是：
+
+- `3000` 作为公网入口
+- `/` 提供 Flutter Web
+- `/api/v1/` 反代到后端 `127.0.0.1:8000`
+- `/blog`、`/_next`、`/blog-media`、`/robots.txt`、`/sitemap.xml` 反代到博客服务链路
+
+### Next.js 公共博客部署
+
+运行命令：
 
 ```bash
 cd /data/data/com.termux/files/home/apps/mavra-monitor-system/blog-frontend
@@ -161,61 +121,30 @@ if [ -d public ]; then cp -r public .next/standalone/; fi
 tmux new-session -d -s mavra-blog 'cd /data/data/com.termux/files/home/apps/mavra-monitor-system/blog-frontend/.next/standalone && env NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3001 BLOG_PUBLIC_BASE_URL=http://192.168.1.13:3000 BLOG_API_BASE_URL=http://127.0.0.1:8000/api/v1 BLOG_BACKEND_ORIGIN=http://127.0.0.1:8000 NEXT_PUBLIC_BLOG_BASE_URL=http://192.168.1.13:3000 node server.js'
 ```
 
-说明：
+## 一键启动脚本
 
-- 博客刚开始只跑通了 HTML，`/_next/static/...` 一度返回 404。
-- 现已把 `.next/static` 补进 `standalone` 运行目录，所以样式和脚本都能正常加载。
-- 博客的公开基址也已经切到 `http://192.168.1.13:3000`，这样 canonical、sitemap 和媒体 URL 都跟统一入口一致。
+手机上常用启动脚本：
 
-## 已完成的事情
+```bash
+cd ~/apps/mavra-monitor-system
+bash scripts/start_termux_stack.sh
+```
 
-1. 通过 SSH 连上手机服务器：
-   - `ssh -p 8022 u0_a323@192.168.1.13`
-2. 确认远端仓库位置：
-   - `~/apps/mavra-monitor-system`
-3. 把 Windows 端 `.env` 同步到远端后端目录。
-4. 在 Termux 上补齐后端运行所需的 Python / 系统依赖。
-5. 处理了 Termux 环境下的兼容问题：
-   - `pydantic-core` 需要显式 `ANDROID_API_LEVEL=31`
-   - `zoneinfo` 缺少时区数据，补装了 `tzdata`
-   - `nh3` 在 Termux / Python 3.13 上有 ABI 导入问题，部署侧改成了纯 Python HTML 清洗方案
-6. 启动后端服务：
-   - `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
-7. 用健康检查验证：
-   - `GET /health`
-8. 补齐前端构建与运行命令，并修复博客静态资源加载路径：
-   - Flutter Web 使用 `flutter build web --dart-define=API_BASE_URL=/api/v1`
-   - Flutter Web 回退到默认 hash 路由，刷新时不再依赖服务器回退规则
-   - 博客使用 `npm run build` 后在 `standalone` 目录运行 `node .next/standalone/server.js`
-   - 博客静态资源需要同步到 `.next/standalone/.next/static`
+这个脚本会：
 
-## 结果
+- 用 `tmux` 启动 Redis
+- 用 `tmux` 启动 PostgreSQL
+- 用 `tmux` 启动后端 `uvicorn`
+- 用 `tmux` 启动 Next.js 博客
+- 校验并重载 Nginx
 
-- 健康检查返回：`{"status":"healthy"}`
-- Uvicorn 日志显示应用启动完成
+## 如何验证
+
 - PostgreSQL 和 Redis 连接正常
-- 当前后端服务已在远端常驻运行
-- Flutter Web 构建产物已上传到手机服务器
-- 前端入口现在由 Nginx 提供，`http://192.168.1.13:3000` 可以正常打开 Flutter 页面
-- `GET http://127.0.0.1:3000/` 返回 `200 OK`，响应头显示 `Server: nginx/1.31.2`
-- `POST http://127.0.0.1:3000/api/v1/auth/login` 会返回后端的 `401 Unauthorized`，不再出现 `501 Unsupported method ('POST')`
-- `GET http://127.0.0.1:3000/blog` 返回 `200 OK`
-- `GET http://127.0.0.1:3000/_next/static/css/bd008b7ec1a52c96.css` 返回 `200 OK`
-- `GET http://127.0.0.1:3000/robots.txt` 和 `GET http://127.0.0.1:3000/sitemap.xml` 都由博客服务返回
-- 后端已放行 `http://192.168.1.13:3000` 的 CORS 来源
-- Next.js 博客已在手机服务器上构建并启动
-- 博客的公开入口现在并入 `http://192.168.1.13:3000/blog`
-- 后端已放行 `http://192.168.1.13:3000` 的 CORS 来源
-- 博客的 CSS 和 JS 静态资源现在可以正常加载，不再出现 `/_next/static` 404
-
-## 说明
-
-- 本地 Windows 仓库已经恢复干净，没有保留这些 Termux 兼容改动。
-- 远端手机服务器保留的是能正常启动的部署版本，用于当前在线服务。
-
-## 下一步
-
-前端主站部署已经完成，下一步可以继续做：
-
-1. 验证登录、首页、博客列表和文章详情页的实际交互。
-2. 如果后续需要，还可以把手机端静态站改成更正式的反代或常驻脚本。
+- Termux 远端仓库 HEAD 是 `2f74acb480389f649c7167afc8510f6f9f90676d`
+- `tmux ls` 中存在 `mavra-backend`、`mavra-blog`、`postgresql`、`redis`
+- 后端健康检查：`GET http://127.0.0.1:8000/health` 返回 `200 OK`
+- 统一入口首页：`GET http://192.168.1.13:3000/` 返回 `200 OK`
+- Blog 首页：`GET http://192.168.1.13:3000/blog` 返回 `200 OK`
+- Blog API：`GET http://192.168.1.13:3000/api/v1/blog/posts?limit=1` 返回 `200 OK`
+- Blog 的 CSS、JS、`robots.txt`、`sitemap.xml` 继续由统一入口提供
