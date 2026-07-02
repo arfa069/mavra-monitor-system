@@ -981,8 +981,11 @@ function Invoke-RemoteArtifactDownload {
   $commands = @("set -euo pipefail", "mkdir -p $(ConvertTo-BashSingleQuoted $Incoming)")
   foreach ($name in $Artifacts.Keys) {
     $targetPath = "$Incoming/$name"
+    $partialPath = "$targetPath.part"
     $sourceUrl = "$BaseUrl/$name"
-    $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 900 -o $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
+    $commands += "if [ -f $(ConvertTo-BashSingleQuoted $targetPath) ] && [ ! -f $(ConvertTo-BashSingleQuoted $partialPath) ]; then mv $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $partialPath); fi"
+    $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 1800 -C - -o $(ConvertTo-BashSingleQuoted $partialPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
+    $commands += "mv $(ConvertTo-BashSingleQuoted $partialPath) $(ConvertTo-BashSingleQuoted $targetPath)"
   }
 
   $exitCode = Invoke-RemoteTransferCommand -Remote $Remote -SshBase $SshBase -RemoteCommand ($commands -join "; ")
