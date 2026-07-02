@@ -105,6 +105,33 @@ function Normalize-DartGeneratedSources {
     }
 }
 
+function Normalize-DartGeneratedReadme {
+    param([Parameter(Mandatory = $true)][string]$Destination)
+
+    $ReadmePath = Join-Path $Destination "README.md"
+    if (!(Test-Path $ReadmePath)) {
+        return
+    }
+
+    $normalizedLines = @()
+    foreach ($line in @(Get-Content $ReadmePath)) {
+        $normalizedLines += $line.TrimEnd()
+    }
+    while (($normalizedLines.Count -gt 0) -and ($normalizedLines[$normalizedLines.Count - 1] -eq "")) {
+        if ($normalizedLines.Count -eq 1) {
+            $normalizedLines = @()
+        } else {
+            $normalizedLines = @($normalizedLines[0..($normalizedLines.Count - 2)])
+        }
+    }
+
+    $content = ""
+    if ($normalizedLines.Count -gt 0) {
+        $content = [string]::Join("`n", $normalizedLines) + "`n"
+    }
+    Set-Content -LiteralPath $ReadmePath -Value $content -NoNewline
+}
+
 function Normalize-OpenApiGeneratorMetadata {
     param([Parameter(Mandatory = $true)][string]$Destination)
 
@@ -167,6 +194,7 @@ if ($Check) {
         Invoke-DartGenerator -Destination $TempRoot
         Normalize-DartPackagePubspec -Destination $TempRoot
         Normalize-DartGeneratedSources -Destination $TempRoot
+        Normalize-DartGeneratedReadme -Destination $TempRoot
         Normalize-OpenApiGeneratorMetadata -Destination $TempRoot
         Invoke-DartPackageBuild -Destination $TempRoot
         Remove-DartPackageVolatileFiles -Destination $OutputPath
@@ -188,5 +216,6 @@ if ($Clean -and (Test-Path $OutputPath)) {
 Invoke-DartGenerator -Destination $OutputPath
 Normalize-DartPackagePubspec -Destination $OutputPath
 Normalize-DartGeneratedSources -Destination $OutputPath
+Normalize-DartGeneratedReadme -Destination $OutputPath
 Normalize-OpenApiGeneratorMetadata -Destination $OutputPath
 Invoke-DartPackageBuild -Destination $OutputPath
