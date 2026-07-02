@@ -981,7 +981,7 @@ function Invoke-RemoteArtifactDownload {
   foreach ($name in $Artifacts.Keys) {
     $targetPath = "$Incoming/$name"
     $sourceUrl = "$BaseUrl/$name"
-    $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 -o $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
+    $commands += "curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 5 --max-time 900 -o $(ConvertTo-BashSingleQuoted $targetPath) $(ConvertTo-BashSingleQuoted $sourceUrl)"
   }
 
   $exitCode = Invoke-RemoteTransferCommand -Remote $Remote -SshBase $SshBase -RemoteCommand ($commands -join "; ")
@@ -1178,14 +1178,14 @@ try {
       $transferred = $true
     }
 
-    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "receiver")) {
-      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via temporary Termux HTTP receiver."
-      $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
-    }
-
-    if (-not $transferred -and ($transferMode -eq "direct" -or $transferMode -eq "http")) {
+    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "direct" -or $transferMode -eq "http")) {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
       $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
+    }
+
+    if (-not $transferred -and $transferMode -eq "receiver") {
+      Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via temporary Termux HTTP receiver."
+      $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
     }
 
     if (-not $transferred -and $transferMode -eq "tunnel") {
