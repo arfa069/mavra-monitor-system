@@ -3,8 +3,20 @@ name: CI
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - "**/*.md"
+      - "doc/**"
+      - "docs/**"
+      - "README*"
+      - "CLAUDE.md"
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - "**/*.md"
+      - "doc/**"
+      - "docs/**"
+      - "README*"
+      - "CLAUDE.md"
   schedule:
     - cron: "0 19 * * *"
   workflow_dispatch:

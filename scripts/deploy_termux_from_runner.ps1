@@ -129,6 +129,158 @@ function New-DeploySourceBundle {
   return $true
 }
 
+function Get-ArtifactHashes {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Artifacts
+  )
+
+  $hashes = @{}
+  foreach ($name in $Artifacts.Keys) {
+    $hashes[$name] = (Get-FileHash -Algorithm SHA256 -LiteralPath $Artifacts[$name]).Hash.ToLowerInvariant()
+  }
+
+  return $hashes
+}
+
+function Write-ArtifactManifest {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$ArtifactHashes,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ManifestPath
+  )
+
+  $lines = @()
+  foreach ($name in ($ArtifactHashes.Keys | Sort-Object)) {
+    $lines += "$($ArtifactHashes[$name])  $name"
+  }
+
+  [System.IO.File]::WriteAllLines($ManifestPath, $lines, [System.Text.Encoding]::ASCII)
+}
+
+function Restore-RemoteCachedArtifacts {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$CacheRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase
+  )
+
+  $remoteManifest = "$Incoming/artifact-sha256.txt"
+  $remoteCommand = @(
+    "set -euo pipefail",
+    "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
+    "cache_root=$(ConvertTo-BashSingleQuoted $CacheRoot)",
+    "manifest=$(ConvertTo-BashSingleQuoted $remoteManifest)",
+    'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache reuse disabled" >&2; exit 0; fi',
+    'mkdir -p "$incoming" "$cache_root"',
+    'while read -r hash name extra; do',
+    '  [ -n "$hash" ] || continue',
+    '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[WARN] Unsafe artifact name in manifest: $name" >&2; continue ;; esac',
+    '  cache="$cache_root/$hash/$name"',
+    '  target="$incoming/$name"',
+    '  if [ -f "$cache" ] && printf "%s  %s\n" "$hash" "$cache" | sha256sum -c - >/dev/null 2>&1; then',
+    '    cp "$cache" "$target"',
+    '    printf "%s\n" "$name"',
+    '    continue',
+    '  fi',
+    '  incoming_root="$(dirname "$incoming")"',
+    '  for candidate in "$incoming_root"/*/"$name"; do',
+    '    [ -f "$candidate" ] || continue',
+    '    if printf "%s  %s\n" "$hash" "$candidate" | sha256sum -c - >/dev/null 2>&1; then',
+    '      mkdir -p "$(dirname "$cache")"',
+    '      cp "$candidate" "$cache"',
+    '      cp "$cache" "$target"',
+    '      printf "%s\n" "$name"',
+    '      break',
+    '    fi',
+    '  done',
+    'done < "$manifest"'
+  ) -join "`n"
+
+  $output = & "ssh" @($SshBase + @($Remote, $remoteCommand))
+  if ($LASTEXITCODE -ne 0) {
+    throw "Remote artifact cache restore failed with exit code $LASTEXITCODE."
+  }
+
+  return @($output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function Select-ArtifactsForUpload {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Artifacts,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$ReusedArtifactNames
+  )
+
+  $reused = @{}
+  foreach ($name in $ReusedArtifactNames) {
+    $reused[$name] = $true
+  }
+
+  $pending = @{}
+  foreach ($name in $Artifacts.Keys) {
+    if ($reused.ContainsKey($name)) {
+      Write-Host "[INFO] Reusing cached Termux artifact: $name"
+    } else {
+      $pending[$name] = $Artifacts[$name]
+    }
+  }
+
+  return $pending
+}
+
+function Update-RemoteArtifactCache {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$CacheRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase
+  )
+
+  $remoteManifest = "$Incoming/artifact-sha256.txt"
+  $remoteCommand = @(
+    "set -euo pipefail",
+    "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
+    "cache_root=$(ConvertTo-BashSingleQuoted $CacheRoot)",
+    "manifest=$(ConvertTo-BashSingleQuoted $remoteManifest)",
+    'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache update disabled" >&2; exit 0; fi',
+    'mkdir -p "$cache_root"',
+    'while read -r hash name extra; do',
+    '  [ -n "$hash" ] || continue',
+    '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[ERROR] Unsafe artifact name in manifest: $name" >&2; exit 2 ;; esac',
+    '  target="$incoming/$name"',
+    '  [ -f "$target" ] || { echo "[ERROR] Missing deploy artifact after transfer/cache restore: $target" >&2; exit 3; }',
+    '  printf "%s  %s\n" "$hash" "$target" | sha256sum -c - >/dev/null',
+    '  cache="$cache_root/$hash/$name"',
+    '  if [ ! -f "$cache" ]; then',
+    '    mkdir -p "$(dirname "$cache")"',
+    '    cp "$target" "$cache"',
+    '  fi',
+    'done < "$manifest"'
+  ) -join "`n"
+
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($SshBase + @($Remote, $remoteCommand))
+}
+
 function Get-FreeTcpPort {
   $listener = New-Object System.Net.Sockets.TcpListener([System.Net.IPAddress]::Loopback, 0)
   try {
@@ -795,6 +947,7 @@ $knownHostsPath = Join-Path $sshDir "known_hosts"
 $remoteScriptUploadPath = Join-Path $sshDir "deploy_termux_remote.sh"
 $remoteEnvUploadPath = Join-Path $sshDir "deploy_env.sh"
 $sourceBundlePath = Join-Path $sshDir "source.bundle"
+$artifactManifestPath = Join-Path $sshDir "artifact-sha256.txt"
 
 [System.IO.File]::WriteAllText($keyPath, $env:TERMUX_SSH_KEY.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
 [System.IO.File]::WriteAllText($knownHostsPath, $env:TERMUX_KNOWN_HOSTS.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
@@ -865,6 +1018,14 @@ try {
       $artifacts["blog-public.tar.gz"] = $blogPublicArtifact
     }
 
+    $artifactHashes = Get-ArtifactHashes -Artifacts $artifacts
+    Write-ArtifactManifest -ArtifactHashes $artifactHashes -ManifestPath $artifactManifestPath
+    Copy-FileWithScp -SourcePath $artifactManifestPath -RemoteTarget "${remote}:$incoming/artifact-sha256.txt" -ScpBaseArgs $scpBase
+
+    $artifactCacheRoot = "$env:TERMUX_APP_DIR/.deploy/artifact-cache"
+    $reusedArtifactNames = Restore-RemoteCachedArtifacts -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase
+    $artifactsToTransfer = Select-ArtifactsForUpload -Artifacts $artifacts -ReusedArtifactNames $reusedArtifactNames
+
     $transferMode = if ([string]::IsNullOrWhiteSpace($env:TERMUX_TRANSFER_MODE)) {
       "auto"
     } else {
@@ -878,34 +1039,39 @@ try {
     }
 
     $transferred = $false
-    if ($transferMode -eq "auto" -or $transferMode -eq "receiver") {
+    if ($artifactsToTransfer.Count -eq 0) {
+      Write-Host "[INFO] All deploy artifacts are already present in the Termux artifact cache; skipping artifact upload."
+      $transferred = $true
+    }
+
+    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "receiver")) {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via temporary Termux HTTP receiver."
-      $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
+      $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
     }
 
     if (-not $transferred -and ($transferMode -eq "direct" -or $transferMode -eq "http")) {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
-      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
+      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
     }
 
     if (-not $transferred -and $transferMode -eq "tunnel") {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via SSH reverse-tunnel HTTP pull."
-      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifacts -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
+      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
     }
 
     if (-not $transferred -and $transferMode -eq "scp") {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via scp."
-      Copy-FileWithScp -SourcePath $frontendArtifact -RemoteTarget "${remote}:$incoming/frontend-web.tar.gz" -ScpBaseArgs $scpBase
-      Copy-FileWithScp -SourcePath $blogStandaloneArtifact -RemoteTarget "${remote}:$incoming/blog-standalone.tar.gz" -ScpBaseArgs $scpBase
-      Copy-FileWithScp -SourcePath $blogStaticArtifact -RemoteTarget "${remote}:$incoming/blog-static.tar.gz" -ScpBaseArgs $scpBase
-      if (Test-Path -LiteralPath $blogPublicArtifact) {
-        Copy-FileWithScp -SourcePath $blogPublicArtifact -RemoteTarget "${remote}:$incoming/blog-public.tar.gz" -ScpBaseArgs $scpBase
+      foreach ($name in $artifactsToTransfer.Keys) {
+        Copy-FileWithScp -SourcePath $artifactsToTransfer[$name] -RemoteTarget "${remote}:$incoming/$name" -ScpBaseArgs $scpBase
       }
+      $transferred = $true
     }
 
     if (-not $transferred -and $transferMode -ne "scp") {
       throw "Artifact transfer failed. Set TERMUX_TRANSFER_MODE=scp to force legacy scp."
     }
+
+    Update-RemoteArtifactCache -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase
   }
 
   $remoteEnvContent = @(

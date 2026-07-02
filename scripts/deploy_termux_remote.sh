@@ -287,6 +287,22 @@ ensure_incoming_artifacts() {
   download_github_artifact_by_name "$artifacts_json" "${BLOG_ARTIFACT_NAME:-termux-blog-build}"
 }
 
+verify_incoming_artifact_hashes() {
+  local manifest="$INCOMING_DIR/artifact-sha256.txt"
+
+  if [[ ! -f "$manifest" ]]; then
+    return
+  fi
+
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "[WARN] sha256sum missing; skipping artifact manifest verification" >&2
+    return
+  fi
+
+  echo "[INFO] Verifying deploy artifact hashes"
+  (cd "$INCOMING_DIR" && sha256sum -c "$(basename "$manifest")")
+}
+
 restore_static_artifacts() {
   if [[ "$RESTORE_COMPLETED" -eq 1 ]]; then
     return
@@ -358,6 +374,7 @@ fi
 git checkout --detach "$DEPLOY_SHA"
 
 ensure_incoming_artifacts
+verify_incoming_artifact_hashes
 
 test -f "$INCOMING_DIR/frontend-web.tar.gz"
 test -f "$INCOMING_DIR/blog-standalone.tar.gz"
