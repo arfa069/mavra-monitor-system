@@ -143,6 +143,39 @@ function Get-ArtifactHashes {
   return $hashes
 }
 
+function Resolve-DeployArtifactPath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Root,
+
+    [Parameter(Mandatory = $true)]
+    [string]$FileName
+  )
+
+  $expectedPath = Join-Path $Root $FileName
+  if (Test-Path -LiteralPath $expectedPath) {
+    return (Resolve-Path -LiteralPath $expectedPath).Path
+  }
+
+  $matches = @(
+    Get-ChildItem -LiteralPath $Root -Recurse -File -Filter $FileName -ErrorAction SilentlyContinue |
+      Select-Object -ExpandProperty FullName
+  )
+  if ($matches.Count -eq 1) {
+    return $matches[0]
+  }
+  if ($matches.Count -gt 1) {
+    throw "Downloaded deploy artifact is ambiguous: $FileName found at $($matches -join ', ')"
+  }
+
+  $available = @(
+    Get-ChildItem -LiteralPath $Root -Recurse -File -ErrorAction SilentlyContinue |
+      Select-Object -ExpandProperty FullName
+  )
+  $availableText = if ($available.Count -gt 0) { $available -join ", " } else { "<none>" }
+  throw "Downloaded deploy artifact missing: $expectedPath. Available files under ${Root}: $availableText"
+}
+
 function Get-ArtifactCacheKeys {
   param(
     [Parameter(Mandatory = $true)]
@@ -1130,24 +1163,21 @@ try {
 
   if (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
     $artifactRoot = (Resolve-Path -LiteralPath $env:TERMUX_ARTIFACT_DIR).Path
-    $frontendArtifact = Join-Path (Join-Path $artifactRoot "frontend") "frontend-web.tar.gz"
-    $blogStandaloneArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-standalone.tar.gz"
-    $blogStaticArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-static.tar.gz"
-    $blogPublicArtifact = Join-Path (Join-Path $artifactRoot "blog") "blog-public.tar.gz"
-
-    foreach ($artifactPath in @($frontendArtifact, $blogStandaloneArtifact, $blogStaticArtifact)) {
-      if (-not (Test-Path -LiteralPath $artifactPath)) {
-        throw "Downloaded deploy artifact missing: $artifactPath"
-      }
-    }
+    $frontendArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "frontend") -FileName "frontend-web.tar.gz"
+    $blogStandaloneArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "blog") -FileName "blog-standalone.tar.gz"
+    $blogStaticArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "blog") -FileName "blog-static.tar.gz"
+    $blogPublicArtifactRoot = Join-Path $artifactRoot "blog"
 
     $artifacts = @{
       "frontend-web.tar.gz" = $frontendArtifact
       "blog-standalone.tar.gz" = $blogStandaloneArtifact
       "blog-static.tar.gz" = $blogStaticArtifact
     }
-    if (Test-Path -LiteralPath $blogPublicArtifact) {
-      $artifacts["blog-public.tar.gz"] = $blogPublicArtifact
+    if (Test-Path -LiteralPath $blogPublicArtifactRoot) {
+      $blogPublicMatches = @(Get-ChildItem -LiteralPath $blogPublicArtifactRoot -Recurse -File -Filter "blog-public.tar.gz" -ErrorAction SilentlyContinue)
+      if ($blogPublicMatches.Count -gt 0) {
+        $artifacts["blog-public.tar.gz"] = $blogPublicMatches[0].FullName
+      }
     }
 
     $artifactHashes = Get-ArtifactHashes -Artifacts $artifacts
