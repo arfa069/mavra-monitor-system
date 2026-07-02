@@ -395,6 +395,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Write Termux artifact input manifest
+        shell: powershell
+        run: |
+          $manifestPath = Join-Path $env:RUNNER_TEMP "mavra-termux-artifact-inputs.txt"
+          $frontendInputHash = "${{ hashFiles('frontend/**', 'backend/app/**', 'backend/alembic/**', 'backend/pyproject.toml', 'backend/uv.lock', 'scripts/export_openapi.py', 'scripts/generate_dart_client.ps1', 'scripts/check_api_contract.py', 'scripts/check_dart_api_usage.py') }}"
+          $blogInputHash = "${{ hashFiles('blog-frontend/**') }}"
+          $lines = New-Object System.Collections.Generic.List[string]
+          if (-not [string]::IsNullOrWhiteSpace($frontendInputHash)) {
+            $lines.Add("$frontendInputHash  frontend-web.tar.gz")
+          }
+          if (-not [string]::IsNullOrWhiteSpace($blogInputHash)) {
+            $lines.Add("$blogInputHash  blog-standalone.tar.gz")
+            $lines.Add("$blogInputHash  blog-static.tar.gz")
+            $lines.Add("$blogInputHash  blog-public.tar.gz")
+          }
+          [System.IO.File]::WriteAllText($manifestPath, (($lines -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
+          Write-Host "Wrote Termux artifact input hash manifest: $manifestPath"
+
       - name: Download Flutter Web artifact
         uses: actions/download-artifact@v4
         with:
@@ -422,6 +440,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           TERMUX_ARTIFACT_DIR: ${{ runner.temp }}/mavra-termux-artifacts
+          TERMUX_ARTIFACT_INPUT_MANIFEST: ${{ runner.temp }}/mavra-termux-artifact-inputs.txt
         run: ./scripts/deploy_termux_from_runner.ps1
 
   android-smoke:

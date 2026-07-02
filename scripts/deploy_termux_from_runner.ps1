@@ -143,18 +143,73 @@ function Get-ArtifactHashes {
   return $hashes
 }
 
-function Write-ArtifactManifest {
+function Get-ArtifactCacheKeys {
   param(
     [Parameter(Mandatory = $true)]
+    [hashtable]$Artifacts,
+
+    [Parameter(Mandatory = $true)]
     [hashtable]$ArtifactHashes,
+
+    [AllowEmptyString()]
+    [string]$InputManifestPath
+  )
+
+  $cacheKeys = @{}
+  foreach ($name in $Artifacts.Keys) {
+    $cacheKeys[$name] = $ArtifactHashes[$name]
+  }
+
+  if ([string]::IsNullOrWhiteSpace($InputManifestPath)) {
+    return $cacheKeys
+  }
+
+  if (-not (Test-Path -LiteralPath $InputManifestPath)) {
+    Write-Warning "Artifact input hash manifest not found; falling back to content hash cache keys: $InputManifestPath"
+    return $cacheKeys
+  }
+
+  foreach ($line in Get-Content -LiteralPath $InputManifestPath) {
+    $trimmed = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
+      continue
+    }
+
+    $parts = $trimmed -split "\s+", 3
+    if ($parts.Count -lt 2) {
+      Write-Warning "Ignoring malformed artifact input hash line: $trimmed"
+      continue
+    }
+
+    $inputHash = $parts[0].ToLowerInvariant()
+    $name = $parts[1]
+    if (-not $Artifacts.ContainsKey($name)) {
+      continue
+    }
+
+    if ($inputHash -notmatch "^[0-9a-f]{64}$") {
+      Write-Warning "Ignoring invalid artifact input hash for $name."
+      continue
+    }
+
+    $cacheKeys[$name] = $inputHash
+  }
+
+  return $cacheKeys
+}
+
+function Write-ArtifactCacheKeyManifest {
+  param(
+    [Parameter(Mandatory = $true)]
+    [hashtable]$ArtifactCacheKeys,
 
     [Parameter(Mandatory = $true)]
     [string]$ManifestPath
   )
 
   $lines = @()
-  foreach ($name in ($ArtifactHashes.Keys | Sort-Object)) {
-    $lines += "$($ArtifactHashes[$name])  $name"
+  foreach ($name in ($ArtifactCacheKeys.Keys | Sort-Object)) {
+    $lines += "$($ArtifactCacheKeys[$name])  $name"
   }
 
   [System.IO.File]::WriteAllText($ManifestPath, (($lines -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
@@ -175,7 +230,7 @@ function Restore-RemoteCachedArtifacts {
     [string[]]$SshBase
   )
 
-  $remoteManifest = "$Incoming/artifact-sha256.txt"
+  $remoteManifest = "$Incoming/artifact-cache-keys.txt"
   $remoteCommand = @(
     "set -euo pipefail",
     "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
@@ -183,17 +238,25 @@ function Restore-RemoteCachedArtifacts {
     "manifest=$(ConvertTo-BashSingleQuoted $remoteManifest)",
     'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache reuse disabled" >&2; exit 0; fi',
     'mkdir -p "$incoming" "$cache_root"',
-    'while read -r hash name extra; do',
-    '  hash="${hash%$''\r''}"',
+    'while read -r cache_key name extra; do',
+    '  cache_key="${cache_key%$''\r''}"',
     '  name="${name%$''\r''}"',
-    '  [ -n "$hash" ] || continue',
+    '  [ -n "$cache_key" ] || continue',
+    '  case "$cache_key" in *[!0123456789abcdef]*|"") echo "[WARN] Unsafe artifact cache key in manifest: $cache_key" >&2; continue ;; esac',
     '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[WARN] Unsafe artifact name in manifest: $name" >&2; continue ;; esac',
-    '  cache="$cache_root/$hash/$name"',
+    '  cache="$cache_root/$cache_key/$name"',
+    '  cache_sha="$cache.sha256"',
     '  target="$incoming/$name"',
     '  if [ -f "$cache" ]; then',
-    '    actual_hash="$(sha256sum "$cache")"',
-    '    actual_hash="${actual_hash%% *}"',
-    '    if [ "$actual_hash" = "$hash" ]; then',
+    '    verified=0',
+    '    if [ -f "$cache_sha" ] && (cd "$(dirname "$cache")" && sha256sum -c "$(basename "$cache_sha")" >/dev/null 2>&1); then',
+    '      verified=1',
+    '    else',
+    '      actual_hash="$(sha256sum "$cache")"',
+    '      actual_hash="${actual_hash%% *}"',
+    '      if [ "$actual_hash" = "$cache_key" ]; then verified=1; fi',
+    '    fi',
+    '    if [ "$verified" -eq 1 ]; then',
     '      cp "$cache" "$target"',
     '      printf "%s\n" "$name"',
     '      continue',
@@ -204,9 +267,10 @@ function Restore-RemoteCachedArtifacts {
     '    [ -f "$candidate" ] || continue',
     '    actual_hash="$(sha256sum "$candidate")"',
     '    actual_hash="${actual_hash%% *}"',
-    '    if [ "$actual_hash" = "$hash" ]; then',
+    '    if [ "$actual_hash" = "$cache_key" ]; then',
     '      mkdir -p "$(dirname "$cache")"',
     '      cp "$candidate" "$cache"',
+    '      (cd "$(dirname "$cache")" && printf "%s  %s\n" "$actual_hash" "$name" > "$name.sha256")',
     '      cp "$cache" "$target"',
     '      printf "%s\n" "$name"',
     '      break',
@@ -221,6 +285,45 @@ function Restore-RemoteCachedArtifacts {
   }
 
   return @($output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function Write-RemoteArtifactContentManifest {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Incoming,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Remote,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$SshBase
+  )
+
+  $remoteCacheKeyManifest = "$Incoming/artifact-cache-keys.txt"
+  $remoteContentManifest = "$Incoming/artifact-sha256.txt"
+  $remoteCommand = @(
+    "set -euo pipefail",
+    "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
+    "cache_manifest=$(ConvertTo-BashSingleQuoted $remoteCacheKeyManifest)",
+    "content_manifest=$(ConvertTo-BashSingleQuoted $remoteContentManifest)",
+    'if ! command -v sha256sum >/dev/null 2>&1; then echo "[ERROR] sha256sum missing; cannot verify deploy artifacts" >&2; exit 1; fi',
+    'tmp="$content_manifest.tmp"',
+    ': > "$tmp"',
+    'while read -r cache_key name extra; do',
+    '  cache_key="${cache_key%$''\r''}"',
+    '  name="${name%$''\r''}"',
+    '  [ -n "$cache_key" ] || continue',
+    '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[ERROR] Unsafe artifact name in cache manifest: $name" >&2; exit 2 ;; esac',
+    '  target="$incoming/$name"',
+    '  [ -f "$target" ] || { echo "[ERROR] Missing deploy artifact before content manifest: $target" >&2; exit 3; }',
+    '  actual_hash="$(sha256sum "$target")"',
+    '  actual_hash="${actual_hash%% *}"',
+    '  printf "%s  %s\n" "$actual_hash" "$name" >> "$tmp"',
+    'done < "$cache_manifest"',
+    'mv "$tmp" "$content_manifest"'
+  ) -join "`n"
+
+  Invoke-ExternalCommand -FilePath "ssh" -ArgumentList ($SshBase + @($Remote, $remoteCommand))
 }
 
 function Select-ArtifactsForUpload {
@@ -265,7 +368,7 @@ function Update-RemoteArtifactCache {
     [string[]]$SshBase
   )
 
-  $remoteManifest = "$Incoming/artifact-sha256.txt"
+  $remoteManifest = "$Incoming/artifact-cache-keys.txt"
   $remoteCommand = @(
     "set -euo pipefail",
     "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
@@ -273,24 +376,33 @@ function Update-RemoteArtifactCache {
     "manifest=$(ConvertTo-BashSingleQuoted $remoteManifest)",
     'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache update disabled" >&2; exit 0; fi',
     'mkdir -p "$cache_root"',
-    'while read -r hash name extra; do',
-    '  hash="${hash%$''\r''}"',
+    'while read -r cache_key name extra; do',
+    '  cache_key="${cache_key%$''\r''}"',
     '  name="${name%$''\r''}"',
-    '  [ -n "$hash" ] || continue',
+    '  [ -n "$cache_key" ] || continue',
+    '  case "$cache_key" in *[!0123456789abcdef]*|"") echo "[ERROR] Unsafe artifact cache key in manifest: $cache_key" >&2; exit 2 ;; esac',
     '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[ERROR] Unsafe artifact name in manifest: $name" >&2; exit 2 ;; esac',
     '  target="$incoming/$name"',
     '  [ -f "$target" ] || { echo "[ERROR] Missing deploy artifact after transfer/cache restore: $target" >&2; exit 3; }',
-    '  actual_hash="$(sha256sum "$target")"',
-    '  actual_hash="${actual_hash%% *}"',
-    '  if [ "$actual_hash" != "$hash" ]; then',
-    '    echo "[ERROR] Artifact hash mismatch for $name" >&2',
-    '    exit 4',
+    '  cache="$cache_root/$cache_key/$name"',
+    '  cache_sha="$cache.sha256"',
+    '  cache_valid=0',
+    '  if [ -f "$cache" ]; then',
+    '    if [ -f "$cache_sha" ] && (cd "$(dirname "$cache")" && sha256sum -c "$(basename "$cache_sha")" >/dev/null 2>&1); then',
+    '      cache_valid=1',
+    '    else',
+    '      cache_actual_hash="$(sha256sum "$cache")"',
+    '      cache_actual_hash="${cache_actual_hash%% *}"',
+    '      if [ "$cache_actual_hash" = "$cache_key" ]; then cache_valid=1; fi',
+    '    fi',
     '  fi',
-    '  cache="$cache_root/$hash/$name"',
-    '  if [ ! -f "$cache" ]; then',
+    '  if [ "$cache_valid" -ne 1 ]; then',
     '    mkdir -p "$(dirname "$cache")"',
     '    cp "$target" "$cache"',
     '  fi',
+    '  cache_actual_hash="$(sha256sum "$cache")"',
+    '  cache_actual_hash="${cache_actual_hash%% *}"',
+    '  (cd "$(dirname "$cache")" && printf "%s  %s\n" "$cache_actual_hash" "$name" > "$name.sha256")',
     'done < "$manifest"'
   ) -join "`n"
 
@@ -963,7 +1075,7 @@ $knownHostsPath = Join-Path $sshDir "known_hosts"
 $remoteScriptUploadPath = Join-Path $sshDir "deploy_termux_remote.sh"
 $remoteEnvUploadPath = Join-Path $sshDir "deploy_env.sh"
 $sourceBundlePath = Join-Path $sshDir "source.bundle"
-$artifactManifestPath = Join-Path $sshDir "artifact-sha256.txt"
+$artifactCacheKeyManifestPath = Join-Path $sshDir "artifact-cache-keys.txt"
 
 [System.IO.File]::WriteAllText($keyPath, $env:TERMUX_SSH_KEY.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
 [System.IO.File]::WriteAllText($knownHostsPath, $env:TERMUX_KNOWN_HOSTS.Replace("`r", "") + "`n", [System.Text.Encoding]::ASCII)
@@ -1035,8 +1147,14 @@ try {
     }
 
     $artifactHashes = Get-ArtifactHashes -Artifacts $artifacts
-    Write-ArtifactManifest -ArtifactHashes $artifactHashes -ManifestPath $artifactManifestPath
-    Copy-FileWithScp -SourcePath $artifactManifestPath -RemoteTarget "${remote}:$incoming/artifact-sha256.txt" -ScpBaseArgs $scpBase
+    $artifactInputManifestPath = if ([string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_INPUT_MANIFEST)) {
+      ""
+    } else {
+      $env:TERMUX_ARTIFACT_INPUT_MANIFEST
+    }
+    $artifactCacheKeys = Get-ArtifactCacheKeys -Artifacts $artifacts -ArtifactHashes $artifactHashes -InputManifestPath $artifactInputManifestPath
+    Write-ArtifactCacheKeyManifest -ArtifactCacheKeys $artifactCacheKeys -ManifestPath $artifactCacheKeyManifestPath
+    Copy-FileWithScp -SourcePath $artifactCacheKeyManifestPath -RemoteTarget "${remote}:$incoming/artifact-cache-keys.txt" -ScpBaseArgs $scpBase
 
     $artifactCacheRoot = "$env:TERMUX_APP_DIR/.deploy/artifact-cache"
     $reusedArtifactNames = @(Restore-RemoteCachedArtifacts -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase)
@@ -1087,6 +1205,7 @@ try {
       throw "Artifact transfer failed. Set TERMUX_TRANSFER_MODE=scp to force legacy scp."
     }
 
+    Write-RemoteArtifactContentManifest -Incoming $incoming -Remote $remote -SshBase $sshBase
     Update-RemoteArtifactCache -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase
   }
 
