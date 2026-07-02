@@ -22,6 +22,7 @@
 ## Task 1: Add the CI Deploy Job
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Add write-safe deploy permissions and production environment**
@@ -31,21 +32,21 @@ Keep the workflow-level permission as `contents: read`. Add a new `deploy-termux
 The job must use:
 
 ```yaml
-  deploy-termux:
-    name: Deploy Termux
-    runs-on: [self-hosted, Windows, mavra-deploy]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs:
-      - lint
-      - test
-      - compile
-      - api-contract
-      - flutter-web-fast
-      - blog
-    environment: production-termux
-    concurrency:
-      group: production-termux
-      cancel-in-progress: false
+deploy-termux:
+  name: Deploy Termux
+  runs-on: [self-hosted, Windows, mavra-deploy]
+  if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  needs:
+    - lint
+    - test
+    - compile
+    - api-contract
+    - flutter-web-fast
+    - blog
+  environment: production-termux
+  concurrency:
+    group: production-termux
+    cancel-in-progress: false
 ```
 
 Expected: deploy waits for the same six checks required by branch protection.
@@ -55,20 +56,20 @@ Expected: deploy waits for the same six checks required by branch protection.
 Add checkout and script execution steps:
 
 ```yaml
-    steps:
-      - uses: actions/checkout@v4
+steps:
+  - uses: actions/checkout@v4
 
-      - name: Deploy to Termux
-        shell: pwsh
-        env:
-          TERMUX_HOST: ${{ vars.TERMUX_HOST }}
-          TERMUX_PORT: ${{ vars.TERMUX_PORT }}
-          TERMUX_USER: ${{ vars.TERMUX_USER }}
-          TERMUX_APP_DIR: ${{ vars.TERMUX_APP_DIR }}
-          TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
-          TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
-          DEPLOY_SHA: ${{ github.sha }}
-        run: ./scripts/deploy_termux_from_runner.ps1
+  - name: Deploy to Termux
+    shell: pwsh
+    env:
+      TERMUX_HOST: ${{ vars.TERMUX_HOST }}
+      TERMUX_PORT: ${{ vars.TERMUX_PORT }}
+      TERMUX_USER: ${{ vars.TERMUX_USER }}
+      TERMUX_APP_DIR: ${{ vars.TERMUX_APP_DIR }}
+      TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
+      TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
+      DEPLOY_SHA: ${{ github.sha }}
+    run: ./scripts/deploy_termux_from_runner.ps1
 ```
 
 Expected: no secret values are echoed by the workflow.
@@ -76,6 +77,7 @@ Expected: no secret values are echoed by the workflow.
 ## Task 2: Create the Windows Runner Deploy Script
 
 **Files:**
+
 - Create: `scripts/deploy_termux_from_runner.ps1`
 
 - [ ] **Step 1: Implement input validation and SSH material setup**
@@ -203,6 +205,7 @@ Expected: deployment finishes or fails with a clear remote error; key files are 
 ## Task 3: Create the Termux Remote Deploy Script
 
 **Files:**
+
 - Create: `scripts/deploy_termux_remote.sh`
 
 - [ ] **Step 1: Add strict shell setup and commit argument validation**
@@ -404,6 +407,7 @@ Expected: failed health checks restore previous static frontend/blog artifacts. 
 ## Task 4: Document Setup and Operations
 
 **Files:**
+
 - Modify: `doc/deployment-progress.md`
 - Create or modify: `doc/howto-termux-cd.md`
 
@@ -439,6 +443,7 @@ Expected: rollback boundary is explicit.
 ## Task 5: Verification and Commit
 
 **Files:**
+
 - Verify: `.github/workflows/ci.yml`
 - Verify: `scripts/deploy_termux_from_runner.ps1`
 - Verify: `scripts/deploy_termux_remote.sh`

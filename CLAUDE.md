@@ -4,9 +4,10 @@
 
 Mavra 做价格监控（淘宝/京东/亚马逊）、职位监控（Boss/51job/猎聘）和
 Home Assistant 智能家居控制。后端是 FastAPI + PostgreSQL/Redis +
-Playwright/curl_cffi；主前端是 Flutter/Dart，公共博客仍是 Next.js。
-业务 API 只使用 `/api/v1`，根路径和 `/v1` 业务别名应返回 404。主应用首页是
-`/today`。
+OpenCLI + Firecrawl（商品爬取）/ curl_cffi（职位爬取）；主前端是 Flutter/Dart，
+公共博客仍是 Next.js。业务 API 只使用 `/api/v1`，根路径和 `/v1` 业务别名应返回 404。
+主应用首页是 `/today`。生产部署在 Termux 手机服务器（192.168.1.13:3000），
+通过 GitHub Actions CD + Windows self-hosted runner 自动发布。
 
 ## 文件定位
 
@@ -18,7 +19,8 @@ Playwright/curl_cffi；主前端是 Flutter/Dart，公共博客仍是 Next.js。
 | 智能家居            | `backend/app/domains/smart_home/*`, `backend/app/schemas/smart_home.py`, `frontend/lib/features/smart_home/*`                                                   |
 | 认证/RBAC           | `backend/app/core/security.py`, `backend/app/core/permissions.py`, `frontend/lib/core/auth/*`, `frontend/lib/features/auth/*`, `doc/permission-architecture.md` |
 | 前端壳/API          | `frontend/lib/app/*`, `frontend/lib/core/api/*`, `frontend/lib/core/api/generated/*`                                                                            |
-| 文档                | `doc/` 放当前架构/教程/参考；`docs/` 放计划和阶段报告                                                                                                           |
+| 部署/CD             | `scripts/deploy_termux_from_runner.ps1`, `scripts/deploy_termux_remote.sh`, `scripts/start_termux_stack.sh`, `.github/workflows/ci.yml`                         |
+| 文档                | `doc/` 放当前架构/教程/参考（含 `deployment-progress.md`, `howto-termux-cd.md`）；`docs/` 放计划和阶段报告                                                      |
 
 做 UI 前先读 `doc/DESIGN.md`。只有明确需要手动 UI/爬取验证时，才使用`backend/tests/manual_verification_checklist.md`。
 

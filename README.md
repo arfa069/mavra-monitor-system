@@ -5,7 +5,7 @@ E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 5
 ## Features
 
 - Track product prices across Taobao, JD, and Amazon; monitor jobs across Boss Zhipin, 51job, and Liepin
-- Automated product crawling with Playwright (handles dynamic JS-rendered pages)
+- Automated product crawling with OpenCLI + Firecrawl (handles dynamic JS-rendered pages)
 - Price drop alerts via Feishu Webhook
 - CDP mode: reuse an existing browser session for product crawlers and JD login walls
 - Boss Zhipin job crawling uses CloakBrowser profile cookies plus `curl_cffi` search/detail APIs
@@ -17,6 +17,7 @@ E-commerce price monitoring (Taobao, JD, Amazon), job monitoring (Boss Zhipin, 5
 - Public SEO blog at `/blog` backed by a separate Next.js App Router app and admin writing tools in the console
 - RESTful API for product and alert management
 - Flutter Web, Android, iOS, and Windows frontend with responsive management UI and accessibility coverage
+- Production deployment on Termux phone server via GitHub Actions CD (Windows self-hosted runner)
 
 ## Quick Start
 
@@ -340,9 +341,10 @@ client。业务 repository 只负责轮询、缓存失效和 UI 数据映射。F
 - **FastAPI**: Web framework (async via asyncio)
 - **Flutter**: Main Web, Android, iOS, and Windows frontend
 - **PostgreSQL**: Database (async via SQLAlchemy)
-- **Playwright**: Product crawler for dynamic pages (launch or CDP mode)
+- **OpenCLI + Firecrawl**: Product crawler for dynamic pages (OpenCLI sub-process with Firecrawl Cloud API fallback)
 - **curl_cffi**: Job crawler HTTP client with browser-like TLS fingerprints
 - **CloakBrowser**: Boss Zhipin cookie refresh/profile browser for anti-bot-sensitive job crawls
+- **Nginx**: Production reverse proxy on Termux — serves Flutter SPA on port 3000, proxies `/api/v1/` to backend, routes `/blog` to Next.js
 - **Redis**: Cache layer
 - **Feishu Webhook**: Notification service
 
