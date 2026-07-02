@@ -157,7 +157,7 @@ function Write-ArtifactManifest {
     $lines += "$($ArtifactHashes[$name])  $name"
   }
 
-  [System.IO.File]::WriteAllLines($ManifestPath, $lines, [System.Text.Encoding]::ASCII)
+  [System.IO.File]::WriteAllText($ManifestPath, (($lines -join "`n") + "`n"), [System.Text.Encoding]::ASCII)
 }
 
 function Restore-RemoteCachedArtifacts {
@@ -184,6 +184,8 @@ function Restore-RemoteCachedArtifacts {
     'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache reuse disabled" >&2; exit 0; fi',
     'mkdir -p "$incoming" "$cache_root"',
     'while read -r hash name extra; do',
+    '  hash="${hash%$''\r''}"',
+    '  name="${name%$''\r''}"',
     '  [ -n "$hash" ] || continue',
     '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[WARN] Unsafe artifact name in manifest: $name" >&2; continue ;; esac',
     '  cache="$cache_root/$hash/$name"',
@@ -221,6 +223,7 @@ function Select-ArtifactsForUpload {
     [hashtable]$Artifacts,
 
     [Parameter(Mandatory = $true)]
+    [AllowEmptyCollection()]
     [string[]]$ReusedArtifactNames
   )
 
@@ -265,6 +268,8 @@ function Update-RemoteArtifactCache {
     'if ! command -v sha256sum >/dev/null 2>&1; then echo "[WARN] sha256sum missing; artifact cache update disabled" >&2; exit 0; fi',
     'mkdir -p "$cache_root"',
     'while read -r hash name extra; do',
+    '  hash="${hash%$''\r''}"',
+    '  name="${name%$''\r''}"',
     '  [ -n "$hash" ] || continue',
     '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[ERROR] Unsafe artifact name in manifest: $name" >&2; exit 2 ;; esac',
     '  target="$incoming/$name"',
@@ -1023,7 +1028,7 @@ try {
     Copy-FileWithScp -SourcePath $artifactManifestPath -RemoteTarget "${remote}:$incoming/artifact-sha256.txt" -ScpBaseArgs $scpBase
 
     $artifactCacheRoot = "$env:TERMUX_APP_DIR/.deploy/artifact-cache"
-    $reusedArtifactNames = Restore-RemoteCachedArtifacts -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase
+    $reusedArtifactNames = @(Restore-RemoteCachedArtifacts -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase)
     $artifactsToTransfer = Select-ArtifactsForUpload -Artifacts $artifacts -ReusedArtifactNames $reusedArtifactNames
 
     $transferMode = if ([string]::IsNullOrWhiteSpace($env:TERMUX_TRANSFER_MODE)) {
