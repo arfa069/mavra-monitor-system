@@ -299,27 +299,28 @@ function Write-RemoteArtifactContentManifest {
     [string[]]$SshBase
   )
 
-  $remoteCacheKeyManifest = "$Incoming/artifact-cache-keys.txt"
   $remoteContentManifest = "$Incoming/artifact-sha256.txt"
   $remoteCommand = @(
     "set -euo pipefail",
     "incoming=$(ConvertTo-BashSingleQuoted $Incoming)",
-    "cache_manifest=$(ConvertTo-BashSingleQuoted $remoteCacheKeyManifest)",
     "content_manifest=$(ConvertTo-BashSingleQuoted $remoteContentManifest)",
     'if ! command -v sha256sum >/dev/null 2>&1; then echo "[ERROR] sha256sum missing; cannot verify deploy artifacts" >&2; exit 1; fi',
     'tmp="$content_manifest.tmp"',
     ': > "$tmp"',
-    'while read -r cache_key name extra; do',
-    '  cache_key="${cache_key%$''\r''}"',
-    '  name="${name%$''\r''}"',
-    '  [ -n "$cache_key" ] || continue',
-    '  case "$name" in frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz) ;; *) echo "[ERROR] Unsafe artifact name in cache manifest: $name" >&2; exit 2 ;; esac',
+    'for name in frontend-web.tar.gz blog-standalone.tar.gz blog-static.tar.gz; do',
     '  target="$incoming/$name"',
     '  [ -f "$target" ] || { echo "[ERROR] Missing deploy artifact before content manifest: $target" >&2; exit 3; }',
     '  actual_hash="$(sha256sum "$target")"',
     '  actual_hash="${actual_hash%% *}"',
     '  printf "%s  %s\n" "$actual_hash" "$name" >> "$tmp"',
-    'done < "$cache_manifest"',
+    'done',
+    'if [ -f "$incoming/blog-public.tar.gz" ]; then',
+    '  actual_hash="$(sha256sum "$incoming/blog-public.tar.gz")"',
+    '  actual_hash="${actual_hash%% *}"',
+    '  printf "%s  %s\n" "$actual_hash" "blog-public.tar.gz" >> "$tmp"',
+    'fi',
+    'line_count="$(wc -l < "$tmp" | tr -d " ")"',
+    '[ "$line_count" -ge 3 ] || { echo "[ERROR] Artifact content manifest has too few entries: $line_count" >&2; exit 4; }',
     'mv "$tmp" "$content_manifest"'
   ) -join "`n"
 
