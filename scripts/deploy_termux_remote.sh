@@ -276,25 +276,6 @@ is_deploy_artifact_name() {
   esac
 }
 
-manifest_mentions_artifact() {
-  local target_name="$1"
-  local manifest="$INCOMING_DIR/artifact-cache-keys.txt"
-  local cache_key
-  local name
-  local extra
-
-  [[ -f "$manifest" ]] || return 1
-
-  while read -r cache_key name extra; do
-    name="${name%$'\r'}"
-    if [[ "$name" == "$target_name" ]]; then
-      return 0
-    fi
-  done < "$manifest"
-
-  return 1
-}
-
 restore_cached_artifacts() {
   local manifest="$INCOMING_DIR/artifact-cache-keys.txt"
   local cache_key
@@ -463,8 +444,6 @@ ensure_incoming_artifacts() {
 
   [[ -f "$INCOMING_DIR/frontend-web.tar.gz" ]] || frontend_needed=1
   if [[ ! -f "$INCOMING_DIR/blog-standalone.tar.gz" || ! -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
-    blog_needed=1
-  elif manifest_mentions_artifact "blog-public.tar.gz" && [[ ! -f "$INCOMING_DIR/blog-public.tar.gz" ]]; then
     blog_needed=1
   fi
 
