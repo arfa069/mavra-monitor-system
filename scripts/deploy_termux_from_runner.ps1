@@ -352,7 +352,7 @@ function Write-RemoteArtifactContentManifest {
     '  actual_hash="${actual_hash%% *}"',
     '  printf "%s  %s\n" "$actual_hash" "blog-public.tar.gz" >> "$tmp"',
     'fi',
-    'line_count="$(wc -l < "$tmp" | tr -d " ")"',
+    'line_count="$(awk ''END { print NR + 0 }'' "$tmp")"',
     '[ "$line_count" -ge 3 ] || { echo "[ERROR] Artifact content manifest has too few entries: $line_count" >&2; exit 4; }',
     'mv "$tmp" "$content_manifest"'
   ) -join "`n"
