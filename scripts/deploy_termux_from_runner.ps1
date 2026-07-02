@@ -1180,7 +1180,14 @@ try {
 
     if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "direct" -or $transferMode -eq "http")) {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux over LAN via direct HTTP pull."
-      $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
+      try {
+        $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "direct"
+      } catch {
+        if ($transferMode -ne "auto") {
+          throw
+        }
+        Write-Warning "Direct HTTP pull failed; falling back to SSH reverse-tunnel HTTP pull. $($_.Exception.Message)"
+      }
     }
 
     if (-not $transferred -and $transferMode -eq "receiver") {
@@ -1188,7 +1195,7 @@ try {
       $transferred = Copy-ArtifactsWithTermuxReceiver -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -ScpBase $scpBase -RunnerTemp $runnerTemp
     }
 
-    if (-not $transferred -and $transferMode -eq "tunnel") {
+    if (-not $transferred -and ($transferMode -eq "auto" -or $transferMode -eq "tunnel")) {
       Write-Host "[INFO] Uploading GitHub-built artifacts to Termux via SSH reverse-tunnel HTTP pull."
       $transferred = Copy-ArtifactsWithHttpPull -Artifacts $artifactsToTransfer -Incoming $incoming -Remote $remote -SshBase $sshBase -RunnerTemp $runnerTemp -Mode "tunnel"
     }
