@@ -361,6 +361,7 @@ jobs:
           if [ -d blog-frontend/public ]; then
             tar -C blog-frontend/public -czf blog-public.tar.gz .
           fi
+          ls -lh blog-*.tar.gz
 
       - name: Upload blog artifacts
         uses: actions/upload-artifact@v4
@@ -371,6 +372,13 @@ jobs:
             blog-static.tar.gz
             blog-public.tar.gz
           if-no-files-found: ignore
+
+      - name: Upload blog static artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-blog-static
+          path: blog-static.tar.gz
+          if-no-files-found: error
 
   deploy-termux:
     name: Deploy Termux
@@ -423,6 +431,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: termux-blog-build
+          path: ${{ runner.temp }}/mavra-termux-artifacts/blog
+
+      - name: Download blog static artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: termux-blog-static
           path: ${{ runner.temp }}/mavra-termux-artifacts/blog
 
       - name: Deploy to Termux
