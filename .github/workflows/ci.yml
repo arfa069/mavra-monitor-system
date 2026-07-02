@@ -422,18 +422,21 @@ jobs:
           Write-Host "Wrote Termux artifact input hash manifest: $manifestPath"
 
       - name: Download Flutter Web artifact
+        if: ${{ vars.TERMUX_TRANSFER_MODE != '' && vars.TERMUX_TRANSFER_MODE != 'github' }}
         uses: actions/download-artifact@v4
         with:
           name: termux-frontend-web
           path: ${{ runner.temp }}/mavra-termux-artifacts/frontend
 
       - name: Download blog artifacts
+        if: ${{ vars.TERMUX_TRANSFER_MODE != '' && vars.TERMUX_TRANSFER_MODE != 'github' }}
         uses: actions/download-artifact@v4
         with:
           name: termux-blog-build
           path: ${{ runner.temp }}/mavra-termux-artifacts/blog
 
       - name: Download blog static artifact
+        if: ${{ vars.TERMUX_TRANSFER_MODE != '' && vars.TERMUX_TRANSFER_MODE != 'github' }}
         uses: actions/download-artifact@v4
         with:
           name: termux-blog-static
@@ -447,13 +450,13 @@ jobs:
           TERMUX_USER: ${{ vars.TERMUX_USER }}
           TERMUX_APP_DIR: ${{ vars.TERMUX_APP_DIR }}
           TERMUX_KNOWN_HOSTS: ${{ vars.TERMUX_KNOWN_HOSTS }}
-          TERMUX_TRANSFER_MODE: ${{ vars.TERMUX_TRANSFER_MODE }}
+          TERMUX_TRANSFER_MODE: ${{ vars.TERMUX_TRANSFER_MODE || 'github' }}
           TERMUX_SSH_KEY: ${{ secrets.TERMUX_SSH_KEY }}
           DEPLOY_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-          TERMUX_ARTIFACT_DIR: ${{ runner.temp }}/mavra-termux-artifacts
+          TERMUX_ARTIFACT_DIR: ${{ (vars.TERMUX_TRANSFER_MODE != '' && vars.TERMUX_TRANSFER_MODE != 'github') && format('{0}/mavra-termux-artifacts', runner.temp) || '' }}
           TERMUX_ARTIFACT_INPUT_MANIFEST: ${{ runner.temp }}/mavra-termux-artifact-inputs.txt
         run: ./scripts/deploy_termux_from_runner.ps1
 

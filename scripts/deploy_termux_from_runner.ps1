@@ -1161,7 +1161,19 @@ try {
     Copy-FileWithScp -SourcePath $sourceBundlePath -RemoteTarget "${remote}:$incoming/source.bundle" -ScpBaseArgs $scpBase
   }
 
-  if (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
+  $transferMode = if ([string]::IsNullOrWhiteSpace($env:TERMUX_TRANSFER_MODE)) {
+    "auto"
+  } else {
+    $env:TERMUX_TRANSFER_MODE.Trim().ToLowerInvariant()
+  }
+  $validTransferModes = @("auto", "receiver", "direct", "http", "tunnel", "scp", "github")
+  if ($validTransferModes -notcontains $transferMode) {
+    throw "Unsupported TERMUX_TRANSFER_MODE: $transferMode"
+  }
+
+  if ($transferMode -eq "github") {
+    Write-Host "[INFO] Termux will download GitHub-built artifacts directly from GitHub."
+  } elseif (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
     $artifactRoot = (Resolve-Path -LiteralPath $env:TERMUX_ARTIFACT_DIR).Path
     $frontendArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "frontend") -FileName "frontend-web.tar.gz"
     $blogStandaloneArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "blog") -FileName "blog-standalone.tar.gz"
@@ -1193,18 +1205,6 @@ try {
     $artifactCacheRoot = "$env:TERMUX_APP_DIR/.deploy/artifact-cache"
     $reusedArtifactNames = @(Restore-RemoteCachedArtifacts -Incoming $incoming -CacheRoot $artifactCacheRoot -Remote $remote -SshBase $sshBase)
     $artifactsToTransfer = Select-ArtifactsForUpload -Artifacts $artifacts -ReusedArtifactNames $reusedArtifactNames
-
-    $transferMode = if ([string]::IsNullOrWhiteSpace($env:TERMUX_TRANSFER_MODE)) {
-      "auto"
-    } else {
-      $env:TERMUX_TRANSFER_MODE.Trim().ToLowerInvariant()
-    }
-
-    $transferred = $false
-    $validTransferModes = @("auto", "receiver", "direct", "http", "tunnel", "scp")
-    if ($validTransferModes -notcontains $transferMode) {
-      throw "Unsupported TERMUX_TRANSFER_MODE: $transferMode"
-    }
 
     $transferred = $false
     if ($artifactsToTransfer.Count -eq 0) {
@@ -1256,7 +1256,8 @@ try {
     "export GITHUB_REPOSITORY=$(ConvertTo-BashSingleQuoted $env:GITHUB_REPOSITORY)",
     "export GITHUB_RUN_ID=$(ConvertTo-BashSingleQuoted $env:GITHUB_RUN_ID)",
     "export FRONTEND_ARTIFACT_NAME='termux-frontend-web'",
-    "export BLOG_ARTIFACT_NAME='termux-blog-build'"
+    "export BLOG_ARTIFACT_NAME='termux-blog-build'",
+    "export BLOG_STATIC_ARTIFACT_NAME='termux-blog-static'"
   ) -join "`n"
   [System.IO.File]::WriteAllText($remoteEnvUploadPath, $remoteEnvContent + "`n", (New-Object System.Text.UTF8Encoding($false)))
   Copy-FileWithScp -SourcePath $remoteEnvUploadPath -RemoteTarget "${remote}:$incoming/deploy_env.sh" -ScpBaseArgs $scpBase

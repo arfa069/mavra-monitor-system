@@ -285,6 +285,9 @@ ensure_incoming_artifacts() {
 
   download_github_artifact_by_name "$artifacts_json" "${FRONTEND_ARTIFACT_NAME:-termux-frontend-web}"
   download_github_artifact_by_name "$artifacts_json" "${BLOG_ARTIFACT_NAME:-termux-blog-build}"
+  if [[ ! -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
+    download_github_artifact_by_name "$artifacts_json" "${BLOG_STATIC_ARTIFACT_NAME:-termux-blog-static}"
+  fi
 }
 
 verify_incoming_artifact_hashes() {
