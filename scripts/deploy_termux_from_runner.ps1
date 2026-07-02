@@ -1173,6 +1173,13 @@ try {
 
   if ($transferMode -eq "github") {
     Write-Host "[INFO] Termux will download GitHub-built artifacts directly from GitHub."
+    if (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_INPUT_MANIFEST)) {
+      if (Test-Path -LiteralPath $env:TERMUX_ARTIFACT_INPUT_MANIFEST) {
+        Copy-FileWithScp -SourcePath $env:TERMUX_ARTIFACT_INPUT_MANIFEST -RemoteTarget "${remote}:$incoming/artifact-cache-keys.txt" -ScpBaseArgs $scpBase
+      } else {
+        Write-Warning "Artifact input hash manifest not found; Termux artifact cache reuse will be skipped: $env:TERMUX_ARTIFACT_INPUT_MANIFEST"
+      }
+    }
   } elseif (-not [string]::IsNullOrWhiteSpace($env:TERMUX_ARTIFACT_DIR)) {
     $artifactRoot = (Resolve-Path -LiteralPath $env:TERMUX_ARTIFACT_DIR).Path
     $frontendArtifact = Resolve-DeployArtifactPath -Root (Join-Path $artifactRoot "frontend") -FileName "frontend-web.tar.gz"

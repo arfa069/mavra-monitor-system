@@ -19,6 +19,7 @@ FRONTEND_DIR="$PROJECT_ROOT/frontend/build/web"
 BLOG_STANDALONE_DIR="$PROJECT_ROOT/blog-frontend/.next/standalone"
 BLOG_STATIC_DIR="$PROJECT_ROOT/blog-frontend/.next/static"
 BLOG_PUBLIC_DIR="$PROJECT_ROOT/blog-frontend/public"
+ARTIFACT_CACHE_ROOT="$PROJECT_ROOT/.deploy/artifact-cache"
 RESTORE_NEEDED=0
 RESTORE_COMPLETED=0
 GITHUB_CURL_CONFIG=""
@@ -264,30 +265,236 @@ download_github_artifact_by_name() {
   extract_artifact_zip "$zip_path" "$INCOMING_DIR"
 }
 
-ensure_incoming_artifacts() {
-  if [[ -f "$INCOMING_DIR/frontend-web.tar.gz" \
-    && -f "$INCOMING_DIR/blog-standalone.tar.gz" \
-    && -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
-    return
+is_deploy_artifact_name() {
+  case "$1" in
+    frontend-web.tar.gz|blog-standalone.tar.gz|blog-static.tar.gz|blog-public.tar.gz)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+manifest_mentions_artifact() {
+  local target_name="$1"
+  local manifest="$INCOMING_DIR/artifact-cache-keys.txt"
+  local cache_key
+  local name
+  local extra
+
+  [[ -f "$manifest" ]] || return 1
+
+  while read -r cache_key name extra; do
+    name="${name%$'\r'}"
+    if [[ "$name" == "$target_name" ]]; then
+      return 0
+    fi
+  done < "$manifest"
+
+  return 1
+}
+
+restore_cached_artifacts() {
+  local manifest="$INCOMING_DIR/artifact-cache-keys.txt"
+  local cache_key
+  local name
+  local extra
+  local cache
+  local cache_sha
+  local target
+  local verified
+  local actual_hash
+
+  [[ -f "$manifest" ]] || return 0
+
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "[WARN] sha256sum missing; artifact cache reuse disabled" >&2
+    return 0
   fi
 
-  require_env GITHUB_TOKEN
-  require_env GITHUB_REPOSITORY
-  require_env GITHUB_RUN_ID
+  mkdir -p "$INCOMING_DIR" "$ARTIFACT_CACHE_ROOT"
 
+  while read -r cache_key name extra; do
+    cache_key="${cache_key%$'\r'}"
+    name="${name%$'\r'}"
+    [[ -n "$cache_key" ]] || continue
+
+    if [[ ${#cache_key} -ne 64 || "$cache_key" == *[!0123456789abcdef]* ]]; then
+      echo "[WARN] Unsafe artifact cache key in manifest: $cache_key" >&2
+      continue
+    fi
+    if ! is_deploy_artifact_name "$name"; then
+      echo "[WARN] Unsafe artifact name in manifest: $name" >&2
+      continue
+    fi
+
+    cache="$ARTIFACT_CACHE_ROOT/$cache_key/$name"
+    cache_sha="$cache.sha256"
+    target="$INCOMING_DIR/$name"
+
+    if [[ -f "$cache" ]]; then
+      verified=0
+      if [[ -f "$cache_sha" ]] && (cd "$(dirname "$cache")" && sha256sum -c "$(basename "$cache_sha")" >/dev/null 2>&1); then
+        verified=1
+      else
+        actual_hash="$(sha256sum "$cache")"
+        actual_hash="${actual_hash%% *}"
+        if [[ "$actual_hash" == "$cache_key" ]]; then
+          verified=1
+        fi
+      fi
+
+      if [[ "$verified" -eq 1 ]]; then
+        cp "$cache" "$target"
+        echo "[INFO] Reusing cached Termux artifact: $name"
+      fi
+    fi
+  done < "$manifest"
+}
+
+write_incoming_artifact_hash_manifest() {
+  local manifest="$INCOMING_DIR/artifact-sha256.txt"
+  local tmp="$manifest.tmp"
+  local name
+  local target
+  local actual_hash
+  local line_count
+
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "[ERROR] sha256sum missing; cannot verify deploy artifacts" >&2
+    return 1
+  fi
+
+  : > "$tmp"
+  for name in frontend-web.tar.gz blog-standalone.tar.gz blog-static.tar.gz; do
+    target="$INCOMING_DIR/$name"
+    [[ -f "$target" ]] || { echo "[ERROR] Missing deploy artifact before content manifest: $target" >&2; return 3; }
+    actual_hash="$(sha256sum "$target")"
+    actual_hash="${actual_hash%% *}"
+    printf "%s  %s\n" "$actual_hash" "$name" >> "$tmp"
+  done
+
+  if [[ -f "$INCOMING_DIR/blog-public.tar.gz" ]]; then
+    actual_hash="$(sha256sum "$INCOMING_DIR/blog-public.tar.gz")"
+    actual_hash="${actual_hash%% *}"
+    printf "%s  %s\n" "$actual_hash" "blog-public.tar.gz" >> "$tmp"
+  fi
+
+  line_count="$(awk 'END { print NR + 0 }' "$tmp")"
+  [[ "$line_count" -ge 3 ]] || { echo "[ERROR] Artifact content manifest has too few entries: $line_count" >&2; return 4; }
+  mv "$tmp" "$manifest"
+}
+
+update_artifact_cache() {
+  local manifest="$INCOMING_DIR/artifact-cache-keys.txt"
+  local cache_key
+  local name
+  local extra
+  local target
+  local cache
+  local cache_sha
+  local cache_valid
+  local cache_actual_hash
+
+  [[ -f "$manifest" ]] || return 0
+
+  if ! command -v sha256sum >/dev/null 2>&1; then
+    echo "[WARN] sha256sum missing; artifact cache update disabled" >&2
+    return 0
+  fi
+
+  mkdir -p "$ARTIFACT_CACHE_ROOT"
+
+  while read -r cache_key name extra; do
+    cache_key="${cache_key%$'\r'}"
+    name="${name%$'\r'}"
+    [[ -n "$cache_key" ]] || continue
+
+    if [[ ${#cache_key} -ne 64 || "$cache_key" == *[!0123456789abcdef]* ]]; then
+      echo "[ERROR] Unsafe artifact cache key in manifest: $cache_key" >&2
+      return 2
+    fi
+    if ! is_deploy_artifact_name "$name"; then
+      echo "[ERROR] Unsafe artifact name in manifest: $name" >&2
+      return 2
+    fi
+
+    target="$INCOMING_DIR/$name"
+    if [[ ! -f "$target" ]]; then
+      [[ "$name" == "blog-public.tar.gz" ]] && continue
+      echo "[ERROR] Missing deploy artifact after download/cache restore: $target" >&2
+      return 3
+    fi
+
+    cache="$ARTIFACT_CACHE_ROOT/$cache_key/$name"
+    cache_sha="$cache.sha256"
+    cache_valid=0
+    if [[ -f "$cache" ]]; then
+      if [[ -f "$cache_sha" ]] && (cd "$(dirname "$cache")" && sha256sum -c "$(basename "$cache_sha")" >/dev/null 2>&1); then
+        cache_valid=1
+      else
+        cache_actual_hash="$(sha256sum "$cache")"
+        cache_actual_hash="${cache_actual_hash%% *}"
+        if [[ "$cache_actual_hash" == "$cache_key" ]]; then
+          cache_valid=1
+        fi
+      fi
+    fi
+
+    if [[ "$cache_valid" -ne 1 ]]; then
+      mkdir -p "$(dirname "$cache")"
+      cp "$target" "$cache"
+    fi
+
+    cache_actual_hash="$(sha256sum "$cache")"
+    cache_actual_hash="${cache_actual_hash%% *}"
+    (cd "$(dirname "$cache")" && printf "%s  %s\n" "$cache_actual_hash" "$name" > "$name.sha256")
+  done < "$manifest"
+}
+
+ensure_incoming_artifacts() {
+  local frontend_needed=0
+  local blog_needed=0
   local artifacts_json="$INCOMING_DIR/github-artifacts.json"
 
   mkdir -p "$INCOMING_DIR"
-  echo "[INFO] Downloading deployment artifacts from GitHub run $GITHUB_RUN_ID"
-  github_api_curl \
-    "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
-    -o "$artifacts_json"
+  restore_cached_artifacts
 
-  download_github_artifact_by_name "$artifacts_json" "${FRONTEND_ARTIFACT_NAME:-termux-frontend-web}"
-  download_github_artifact_by_name "$artifacts_json" "${BLOG_ARTIFACT_NAME:-termux-blog-build}"
+  [[ -f "$INCOMING_DIR/frontend-web.tar.gz" ]] || frontend_needed=1
+  if [[ ! -f "$INCOMING_DIR/blog-standalone.tar.gz" || ! -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
+    blog_needed=1
+  elif manifest_mentions_artifact "blog-public.tar.gz" && [[ ! -f "$INCOMING_DIR/blog-public.tar.gz" ]]; then
+    blog_needed=1
+  fi
+
+  if [[ "$frontend_needed" -eq 1 || "$blog_needed" -eq 1 ]]; then
+    require_env GITHUB_TOKEN
+    require_env GITHUB_REPOSITORY
+    require_env GITHUB_RUN_ID
+
+    echo "[INFO] Downloading deployment artifacts from GitHub run $GITHUB_RUN_ID"
+    github_api_curl \
+      "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+      -o "$artifacts_json"
+  fi
+
+  if [[ "$frontend_needed" -eq 1 ]]; then
+    download_github_artifact_by_name "$artifacts_json" "${FRONTEND_ARTIFACT_NAME:-termux-frontend-web}"
+  fi
+  if [[ "$blog_needed" -eq 1 ]]; then
+    download_github_artifact_by_name "$artifacts_json" "${BLOG_ARTIFACT_NAME:-termux-blog-build}"
+  fi
   if [[ ! -f "$INCOMING_DIR/blog-static.tar.gz" ]]; then
     download_github_artifact_by_name "$artifacts_json" "${BLOG_STATIC_ARTIFACT_NAME:-termux-blog-static}"
   fi
+
+  test -f "$INCOMING_DIR/frontend-web.tar.gz"
+  test -f "$INCOMING_DIR/blog-standalone.tar.gz"
+  test -f "$INCOMING_DIR/blog-static.tar.gz"
+
+  update_artifact_cache
+  write_incoming_artifact_hash_manifest
 }
 
 verify_incoming_artifact_hashes() {
